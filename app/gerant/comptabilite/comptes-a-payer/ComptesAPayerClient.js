@@ -1,0 +1,472 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux }) {
+  const router = useRouter();
+  const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
+  const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const [depenseAPayer, setDepenseAPayer] = useState(null); // id de la dépense en train d'être payée
+
+  const totalDu = depenses.filter((d) => d.statut === "IMPAYEE").reduce((s, d) => s + d.montant, 0);
+
+  async function supprimerDepense(id) {
+    if (!window.confirm("Supprimer cette dépense ? Retire aussi les écritures comptables liées.")) return;
+    const res = await fetch(`/api/depenses/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.erreur || "Erreur lors de la suppression.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="conteneur-page">
+      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 }}>
+        <h1 style={{ fontSize: 20 }}>💳 Comptes à payer</h1>
+        <button onClick={() => setAfficherFormulaire((v) => !v)} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+          {afficherFormulaire ? "Annuler" : "+ Dépense"}
+        </button>
+      </div>
+
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalDu.toFixed(2)} $</div>
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total dû aux fournisseurs</div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setOngletGestion(ongletGestion === "fournisseurs" ? null : "fournisseurs")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
+          🏢 Fournisseurs
+        </button>
+        <button onClick={() => setOngletGestion(ongletGestion === "categories" ? null : "categories")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
+          📂 Postes de dépenses
+        </button>
+      </div>
+
+      {ongletGestion === "fournisseurs" && <GestionFournisseurs fournisseurs={fournisseurs} onModifie={() => router.refresh()} />}
+      {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => window.location.reload()} />}
+
+      {afficherFormulaire && (
+        <FormulaireDepense
+          fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense}
+          tpsTaux={tpsTaux} tvqTaux={tvqTaux}
+          onCree={() => { setAfficherFormulaire(false); router.refresh(); }}
+          onCategorieCreee={() => window.location.reload()}
+        />
+      )}
+
+      <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8, marginTop: 8 }}>Dépenses récentes</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {depenses.map((d) => (
+          <div key={d.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, borderLeft: `3px solid ${d.statut === "PAYEE" ? "var(--success)" : "var(--danger)"}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 13, fontWeight: 600 }}>{d.fournisseur.nom}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: d.statut === "PAYEE" ? "var(--success)" : "var(--danger)" }}>
+                {d.statut === "PAYEE" ? "Payée" : "Impayée"}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.description} · {d.categorieDepense.nom}</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{new Date(d.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
+            {(d.tpsPayee > 0 || d.tvqPayee > 0) && (
+              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                TPS {d.tpsPayee.toFixed(2)} $ · TVQ {d.tvqPayee.toFixed(2)} $ (récupérables)
+              </div>
+            )}
+            {d.statut === "PAYEE" && d.referenceVersement && (
+              <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {d.referenceVersement}</div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>{d.montant.toFixed(2)} $</span>
+              <div style={{ display: "flex", gap: 8 }}>
+                {d.statut === "IMPAYEE" && depenseAPayer !== d.id && (
+                  <button onClick={() => setDepenseAPayer(d.id)} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
+                    Marquer payée
+                  </button>
+                )}
+                <button onClick={() => supprimerDepense(d.id)} style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
+                  🗑️
+                </button>
+              </div>
+            </div>
+            {depenseAPayer === d.id && (
+              <FormulairePaiementDepense depense={d} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
+            )}
+          </div>
+        ))}
+        {depenses.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune dépense encore.</p>}
+      </div>
+    </div>
+  );
+}
+
+function FormulairePaiementDepense({ depense, onTermine, onAnnuler }) {
+  const [reference, setReference] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  async function confirmer() {
+    setEnCours(true);
+    await fetch(`/api/depenses/${depense.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ statut: "PAYEE", reference }),
+    });
+    setEnCours(false);
+    onTermine();
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <input
+        placeholder="No de chèque ou de transaction (optionnel)" value={reference}
+        onChange={(e) => setReference(e.target.value)}
+        style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
+        autoFocus
+      />
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={confirmer} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+          {enCours ? "…" : "✓ Confirmer le paiement"}
+        </button>
+        <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+          Annuler
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GestionFournisseurs({ fournisseurs, onModifie }) {
+  const [nom, setNom] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [courriel, setCourriel] = useState("");
+  const [adresse, setAdresse] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const [modificationId, setModificationId] = useState(null);
+
+  async function creer(e) {
+    e.preventDefault();
+    if (!nom.trim()) return;
+    setEnCours(true);
+    await fetch("/api/fournisseurs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom, telephone, courriel, adresse }),
+    });
+    setEnCours(false);
+    setNom(""); setTelephone(""); setCourriel(""); setAdresse("");
+    onModifie();
+  }
+
+  async function desactiver(id) {
+    if (!window.confirm("Retirer ce fournisseur de la liste ?")) return;
+    await fetch(`/api/fournisseurs/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actif: false }),
+    });
+    onModifie();
+  }
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Fournisseurs</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+        {fournisseurs.map((f) =>
+          modificationId === f.id ? (
+            <LigneEditionFournisseur key={f.id} fournisseur={f} onTermine={() => { setModificationId(null); onModifie(); }} onAnnuler={() => setModificationId(null)} />
+          ) : (
+            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+              <div>
+                <div>{f.nom}</div>
+                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                  {[f.telephone, f.adresse].filter(Boolean).join(" · ") || "Aucune coordonnée"}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button onClick={() => setModificationId(f.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>✏️</button>
+                <button onClick={() => desactiver(f.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }}>✕</button>
+              </div>
+            </div>
+          )
+        )}
+        {fournisseurs.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun fournisseur encore.</p>}
+      </div>
+      <form onSubmit={creer} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <input placeholder="Nom du fournisseur" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
+        <input placeholder="Téléphone (optionnel)" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
+        <input placeholder="Courriel (optionnel)" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
+        <input placeholder="Adresse (optionnel)" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+        <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+          {enCours ? "…" : "+ Ajouter le fournisseur"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function LigneEditionFournisseur({ fournisseur, onTermine, onAnnuler }) {
+  const [nom, setNom] = useState(fournisseur.nom);
+  const [telephone, setTelephone] = useState(fournisseur.telephone || "");
+  const [courriel, setCourriel] = useState(fournisseur.courriel || "");
+  const [adresse, setAdresse] = useState(fournisseur.adresse || "");
+  const [enCours, setEnCours] = useState(false);
+
+  async function sauvegarder() {
+    setEnCours(true);
+    await fetch(`/api/fournisseurs/${fournisseur.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom, telephone, courriel, adresse }),
+    });
+    setEnCours(false);
+    onTermine();
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+      <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom" style={{ ...champStyle, marginBottom: 0 }} />
+      <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Téléphone" style={{ ...champStyle, marginBottom: 0 }} />
+      <input value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Courriel" style={{ ...champStyle, marginBottom: 0 }} />
+      <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Adresse" style={{ ...champStyle, marginBottom: 0 }} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={sauvegarder} disabled={enCours} style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
+          ✓ Sauvegarder
+        </button>
+        <button onClick={onAnnuler} style={{ flex: 1, fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
+          Annuler
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GestionCategories({ categories, comptesDepense, onModifie }) {
+  const [nom, setNom] = useState("");
+  const [modeCompte, setModeCompte] = useState("nouveau"); // "existant" | "nouveau"
+  const [compteDepenseNumero, setCompteDepenseNumero] = useState(comptesDepense[0]?.numero || "");
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  async function creer(e) {
+    e.preventDefault();
+    setErreur("");
+    if (!nom.trim()) return;
+    setEnCours(true);
+    const res = await fetch("/api/comptabilite/categories-depense", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        modeCompte === "nouveau" ? { nom, nomNouveauCompte: nom } : { nom, compteDepenseNumero }
+      ),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    setNom("");
+    onModifie();
+  }
+
+  async function desactiver(id) {
+    if (!window.confirm("Retirer ce poste de dépense ?")) return;
+    await fetch(`/api/comptabilite/categories-depense/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actif: false }),
+    });
+    onModifie();
+  }
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Postes de dépenses</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+        {categories.map((c) => (
+          <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+            <span>{c.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>→ {c.compteDepenseNumero}</span></span>
+            {c.code !== "GENERAL" && (
+              <button onClick={() => desactiver(c.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }}>✕</button>
+            )}
+          </div>
+        ))}
+      </div>
+      <form onSubmit={creer} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <input placeholder="Nom du poste (ex : Huile et lubrifiants)" value={nom} onChange={(e) => setNom(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+
+        <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>
+          <button type="button" onClick={() => setModeCompte("nouveau")} style={{ flex: 1, fontSize: 11, fontWeight: 700, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer", background: modeCompte === "nouveau" ? "var(--accent)" : "none", color: modeCompte === "nouveau" ? "#17150f" : "var(--text-muted)" }}>
+            + Nouveau compte
+          </button>
+          <button type="button" onClick={() => setModeCompte("existant")} style={{ flex: 1, fontSize: 11, fontWeight: 700, padding: "6px 8px", borderRadius: 6, border: "none", cursor: "pointer", background: modeCompte === "existant" ? "var(--accent)" : "none", color: modeCompte === "existant" ? "#17150f" : "var(--text-muted)" }}>
+            Compte existant
+          </button>
+        </div>
+
+        {modeCompte === "nouveau" ? (
+          <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "2px 0 0" }}>Un compte "{nom || "…"}" sera créé automatiquement, avec le prochain numéro disponible.</p>
+        ) : (
+          <select value={compteDepenseNumero} onChange={(e) => setCompteDepenseNumero(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
+            {comptesDepense.map((c) => <option key={c.id} value={c.numero}>{c.numero} — {c.nom}</option>)}
+          </select>
+        )}
+
+        {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5 }}>{erreur}</p>}
+        <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+          {enCours ? "…" : "+ Ajouter le poste"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
+  const [categories, setCategories] = useState(categoriesInitiales);
+  const [fournisseurId, setFournisseurId] = useState(fournisseurs[0]?.id || "");
+  const [categorieDepenseId, setCategorieDepenseId] = useState(categoriesInitiales[0]?.id || "");
+  const [description, setDescription] = useState("");
+  const [montant, setMontant] = useState("");
+  const [tpsPayee, setTpsPayee] = useState("");
+  const [tvqPayee, setTvqPayee] = useState("");
+  const [dateFacture, setDateFacture] = useState(new Date().toISOString().slice(0, 10));
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  function calculerTaxesAutomatiquement() {
+    const total = Number(montant);
+    if (!total) return;
+    // Le montant entré est le total taxes incluses — on retrouve la portion
+    // de taxe à partir des taux configurés dans Paramètres
+    const avantTaxes = total / (1 + tpsTaux / 100 + tvqTaux / 100);
+    setTpsPayee((avantTaxes * (tpsTaux / 100)).toFixed(2));
+    setTvqPayee((avantTaxes * (tvqTaux / 100)).toFixed(2));
+  }
+
+  const [afficherNouveauPoste, setAfficherNouveauPoste] = useState(false);
+  const [nomNouveauPoste, setNomNouveauPoste] = useState("");
+  const [creationPosteEnCours, setCreationPosteEnCours] = useState(false);
+
+  async function creerPoste() {
+    if (!nomNouveauPoste.trim()) return;
+    setCreationPosteEnCours(true);
+    setErreur("");
+    const res = await fetch("/api/comptabilite/categories-depense", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom: nomNouveauPoste, nomNouveauCompte: nomNouveauPoste }),
+    });
+    setCreationPosteEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de la création du poste.");
+      return;
+    }
+    const nouveauPoste = await res.json();
+    setCategories((prev) => [...prev, nouveauPoste]);
+    setCategorieDepenseId(nouveauPoste.id);
+    setNomNouveauPoste("");
+    setAfficherNouveauPoste(false);
+    onCategorieCreee(); // rafraîchit la vraie liste côté serveur, pour que ça reste après réouverture
+  }
+
+  async function creer(e) {
+    e.preventDefault();
+    setErreur("");
+    if (!fournisseurId || !categorieDepenseId || !description.trim() || !montant) {
+      setErreur("Remplis tous les champs.");
+      return;
+    }
+    setEnCours(true);
+    const res = await fetch("/api/depenses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fournisseurId, categorieDepenseId, description, montant, tpsPayee, tvqPayee, dateFacture }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    onCree();
+  }
+
+  if (fournisseurs.length === 0) {
+    return <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Ajoute d'abord un fournisseur ci-dessus.</p>;
+  }
+
+  return (
+    <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <label style={labelStyle}>Fournisseur</label>
+      <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
+        {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+      </select>
+
+      <label style={labelStyle}>Poste de dépense</label>
+      {afficherNouveauPoste ? (
+        <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+          <input placeholder="Nom du poste (ex : Loyer) — compte créé automatiquement" value={nomNouveauPoste} onChange={(e) => setNomNouveauPoste(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button type="button" onClick={creerPoste} disabled={creationPosteEnCours} style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
+              {creationPosteEnCours ? "…" : "✓ Créer et utiliser"}
+            </button>
+            <button type="button" onClick={() => setAfficherNouveauPoste(false)} style={{ flex: 1, fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+          <select value={categorieDepenseId} onChange={(e) => setCategorieDepenseId(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1 }}>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+          </select>
+          <button type="button" onClick={() => setAfficherNouveauPoste(true)} className="bouton-3d-sombre" style={{ padding: "0 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
+            + Nouveau
+          </button>
+        </div>
+      )}
+
+      <label style={labelStyle}>Description</label>
+      <input placeholder="Ex : Loyer août 2026" value={description} onChange={(e) => setDescription(e.target.value)} style={champStyle} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Montant total ($) — taxes incluses</label>
+          <input type="number" min={0} step="0.01" value={montant} onChange={(e) => setMontant(e.target.value)} style={champStyle} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Date de la facture</label>
+          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <label style={{ ...labelStyle, marginBottom: 0 }}>Taxes payées (optionnel — récupérables)</label>
+        <button type="button" onClick={calculerTaxesAutomatiquement} style={{ fontSize: 10.5, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+          Calculer à partir du total
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <input type="number" min={0} step="0.01" placeholder={`TPS (${tpsTaux}%)`} value={tpsPayee} onChange={(e) => setTpsPayee(e.target.value)} style={champStyle} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <input type="number" min={0} step="0.01" placeholder={`TVQ (${tvqTaux}%)`} value={tvqPayee} onChange={(e) => setTvqPayee(e.target.value)} style={champStyle} />
+        </div>
+      </div>
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
+      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+        {enCours ? "Enregistrement…" : "Enregistrer la dépense"}
+      </button>
+    </form>
+  );
+}
+
+const champStyle = {
+  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
+};
+const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 };

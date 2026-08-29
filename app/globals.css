@@ -1,0 +1,92 @@
+:root {
+  --bg: #17150f;
+  --surface: #201f1d;
+  --border: #2c2a24;
+  --accent: #e8a33d;
+  --accent-clair: #f5b15a;
+  --accent-ombre: #b8791f;
+  --text: #f2eee4;
+  --text-muted: #9c978a;
+  --danger: #c15b4a;
+  --success: #6fa96b;
+  --bleu: #4f82c0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Inter, sans-serif;
+}
+
+input, select, button {
+  font-family: inherit;
+}
+
+a { color: inherit; }
+
+/* Bouton "3D" réutilisable — relief au repos, s'enfonce au clic */
+.bouton-3d {
+  background: linear-gradient(180deg, var(--accent-clair), var(--accent));
+  color: #17150f;
+  border: none;
+  box-shadow: 0 3px 0 var(--accent-ombre), 0 4px 10px rgba(0, 0, 0, 0.35);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  cursor: pointer;
+}
+.bouton-3d:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--accent-ombre), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.bouton-3d-sombre {
+  background: linear-gradient(180deg, #2c2a24, #201f1d);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: 0 3px 0 #100f0c, 0 4px 10px rgba(0, 0, 0, 0.35);
+  transform: translateY(0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  cursor: pointer;
+}
+.bouton-3d-sombre:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #100f0c, 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Conteneur de page commun — pleine largeur mobile inchangée, s'élargit
+   progressivement sur tablette et ordinateur, comme le Calendrier et le
+   Tableau des bons */
+.conteneur-page {
+  padding: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+@media (min-width: 700px) {
+  .conteneur-page {
+    max-width: 640px;
+  }
+}
+@media (min-width: 1000px) {
+  .conteneur-page {
+    max-width: 820px;
+  }
+}
+/* Même largeur responsive que .conteneur-page, mais sans imposer de
+   padding/margin — pour les sections qui gèrent déjà les leurs */
+.conteneur-page-large {
+  max-width: 480px;
+}
+@media (min-width: 700px) {
+  .conteneur-page-large {
+    max-width: 640px;
+  }
+}
+@media (min-width: 1000px) {
+  .conteneur-page-large {
+    max-width: 820px;
+  }
+}

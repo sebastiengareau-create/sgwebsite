@@ -1,0 +1,412 @@
+// Base de données de production (PostgreSQL, hébergée sur Railway).
+// En développement local, DATABASE_URL pointe directement vers la même
+// base PostgreSQL en ligne — plus simple pour une seule personne, pas besoin
+// d'installer PostgreSQL sur ton ordinateur.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- UTILISATEURS ET RÔLES ----------
+// Note : SQLite ne supporte pas les enums Prisma, donc "role" et "statut"
+// sont stockés comme texte simple (GERANT / SECRETAIRE / MECANICIEN, etc.)
+
+model User {
+  id           String   @id @default(cuid())
+  nom          String
+  courriel     String   @unique
+  motDePasse   String // haché avec bcrypt, jamais en clair
+  role         String // "GERANT" | "SECRETAIRE" | "MECANICIEN"
+  pin          String?  @unique // pour poinçonner rapidement à l'horodateur
+  qbId         String? // référence employé QuickBooks (taux horaire vient de QB)
+  actif        Boolean  @default(true)
+  telephone    String?
+  adresse      String?
+  assignation  String? // ex. spécialité, poste, secteur assigné — texte libre
+  // Niveau d'accès distinct du rôle "Gérant" — jamais exposé dans les
+  // formulaires de création/modification d'employé, ne peut être activé
+  // que manuellement (voir prisma/rendre-super-admin.js). Même un futur
+  // client-gérant sur une autre installation ne peut jamais l'obtenir
+  // par l'interface normale.
+  estSuperAdmin Boolean @default(false)
+  accesSections String? // sections supplémentaires accordées individuellement, séparées par virgule (ex: "comptabilite,paie")
+  // Configuration de paie
+  typeRemuneration String  @default("HORAIRE") // "HORAIRE" | "SALAIRE"
+  tauxHoraireEmploye Float? // si vide, utilise le taux global (cout_horaire_mecanicien)
+  salaireAnnuel      Float? // pour un employé salarié (montant fixe)
+  frequencePaie      String @default("BIHEBDOMADAIRE") // "HEBDOMADAIRE" | "BIHEBDOMADAIRE" | "BIMENSUEL" | "MENSUEL"
+  tauxVacances       Float  @default(4) // % du salaire brut accumulé en vacances (minimum légal QC : 4%, ou 6% après 3 ans)
+  creeLe       DateTime @default(now())
+
+  entreesTemps EntreeTemps[]
+  entreesTempsInternes EntreeTempsInterne[]
+  photosAjoutees Photo[]
+  paies        Paie[]
+}
+
+// ---------- CLIENTS ET VÉHICULES ----------
+
+model Client {
+  id                 String       @id @default(cuid())
+  nom                String
+  telephone          String?
+  courriel           String?
+  adresse            String?
+  ville              String?
+  codePostal         String?
+  garantieProlongee  String? // numéro de contrat de garantie prolongée, si applicable
+  vehicules          Vehicule[]
+  bons               BonTravail[]
+  soumissions        Soumission[]
+  rendezVous         RendezVous[]
+  creeLe             DateTime     @default(now())
+}
+
+model Vehicule {
+  id        String       @id @default(cuid())
+  marque    String
+  modele    String
+  annee     Int?
+  vin       String?
+  plaque    String?
+  clientId  String
+  client    Client       @relation(fields: [clientId], references: [id])
+  bons      BonTravail[]
+}
+
+// ---------- BONS DE TRAVAIL ----------
+
+model BonTravail {
+  id           String       @id @default(cuid())
+  numero       String       @unique
+  statut       String       @default("EN_ATTENTE") // "EN_ATTENTE" | "EN_COURS" | "TERMINE"
+  clientId     String
+  client       Client       @relation(fields: [clientId], references: [id])
+  vehiculeId   String
+  vehicule     Vehicule     @relation(fields: [vehiculeId], references: [id])
+  problemes    Probleme[]
+  facture      Facture?
+  rendezVous   RendezVous?
+  escompteMontant Float     @default(0) // remise manuelle en dollars, appliquée avant taxes
+  escompteRaison  String?
+  creeLe       DateTime     @default(now())
+}
+
+// ---------- FACTURATION ----------
+// Une facture "fige" les montants au moment de son émission (numéro
+// séquentiel officiel, total figé) — même si des pièces sont ajoutées au
+// bon après coup, la facture déjà émise ne change pas rétroactivement.
+
+model Facture {
+  id                 String    @id @default(cuid())
+  bonId              String    @unique
+  bon                BonTravail @relation(fields: [bonId], references: [id])
+  numero             String    @unique
+  statut             String    @default("IMPAYEE") // "IMPAYEE" | "PAYEE" | "ANNULEE"
+  totalPieces        Float
+  totalMainOeuvre    Float
+  escompteApplique   Float     @default(0)
+  totalFacture       Float
+  tauxHoraireUtilise Float
+  heuresFacturees    Float
+  tpsMontant         Float     @default(0)
+  tvqMontant         Float     @default(0)
+  totalAvecTaxes     Float     @default(0)
+  dateEmission       DateTime  @default(now())
+  datePaiement       DateTime?
+}
+
+model Probleme {
+  id          String     @id @default(cuid())
+  description String
+  categorieRevenu String @default("MAIN_OEUVRE") // "MAIN_OEUVRE" | "ALIGNEMENT" | "REMORQUAGE" | "ENTREPOSAGE" | "AUTRE"
+  bonId       String
+  bon         BonTravail @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  photos      Photo[]
+  pieces      PieceUtilisee[]
+  entreesTemps EntreeTemps[]
+}
+
+model Photo {
+  id          String   @id @default(cuid())
+  url         String // chemin/URL vers le fichier (stockage cloud en production)
+  problemeId  String
+  probleme    Probleme @relation(fields: [problemeId], references: [id], onDelete: Cascade)
+  employeId   String?
+  employe     User?    @relation(fields: [employeId], references: [id])
+  ajouteeLe   DateTime @default(now())
+}
+
+// ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------
+
+model Piece {
+  id       String          @id @default(cuid())
+  nom      String
+  numero   String          @unique
+  qte      Int             @default(0)
+  qteMin   Int             @default(0)
+  prix     Float // prix de vente (facturé au client)
+  coutant  Float           @default(0) // prix coûtant (payé au fournisseur) — pour le coût des marchandises vendues
+  categorie String         @default("PIECE") // pour répartir les revenus, voir CategorieInventaire
+  qbId     String? // référence article QuickBooks
+  syncLe   DateTime        @default(now())
+  utilisee PieceUtilisee[]
+}
+
+model PieceUtilisee {
+  id         String   @id @default(cuid())
+  problemeId String
+  probleme   Probleme @relation(fields: [problemeId], references: [id], onDelete: Cascade)
+  pieceId    String
+  piece      Piece    @relation(fields: [pieceId], references: [id])
+  qte        Int
+  prix       Float // prix figé au moment de l'ajout (historique de facturation)
+}
+
+// ---------- PARAMÈTRES (valeurs clés configurables, ex. taux horaire facturé) ----------
+
+// ---------- SOUMISSIONS (estimés avant travaux) ----------
+
+model Soumission {
+  id              String   @id @default(cuid())
+  numero          String   @unique
+  clientId        String?
+  client          Client?  @relation(fields: [clientId], references: [id])
+  clientNom       String
+  clientTelephone String?
+  vehiculeInfo    String? // texte libre : "Honda Civic 2019" — pas encore un vrai véhicule en base
+  statut          String   @default("EN_ATTENTE") // "EN_ATTENTE" | "ACCEPTEE"
+  bonId           String?  @unique // rempli une fois transformée en vrai bon de commande
+  taches          TacheSoumission[]
+  creeLe          DateTime @default(now())
+}
+
+model TacheSoumission {
+  id            String     @id @default(cuid())
+  description   String
+  tempsEstime   Float      @default(0) // heures
+  soumissionId  String
+  soumission    Soumission @relation(fields: [soumissionId], references: [id], onDelete: Cascade)
+  pieces        PieceEstimee[]
+}
+
+model PieceEstimee {
+  id                String          @id @default(cuid())
+  nom               String
+  prixEstime        Float
+  qte               Int             @default(1)
+  tacheSoumissionId String
+  tacheSoumission   TacheSoumission @relation(fields: [tacheSoumissionId], references: [id], onDelete: Cascade)
+}
+
+// ---------- RENDEZ-VOUS ----------
+
+model RendezVous {
+  id              String      @id @default(cuid())
+  clientId        String?
+  client          Client?     @relation(fields: [clientId], references: [id])
+  clientNom       String
+  clientTelephone String?
+  vehiculeInfo    String?
+  date            DateTime // date et heure du rendez-vous
+  dureeMinutes    Int         @default(60)
+  motif           String
+  statut          String      @default("CONFIRME") // "CONFIRME" | "ANNULE" | "COMPLETE"
+  bonId           String?     @unique // rempli si transformé en bon de travail
+  bon             BonTravail? @relation(fields: [bonId], references: [id])
+  referenceExterne String?    @unique // référence du site de réservation en ligne, si applicable
+  creeLe          DateTime    @default(now())
+}
+
+// ---------- COMPTABILITÉ ----------
+
+// Plan comptable — la liste structurée des comptes de l'entreprise
+model Compte {
+  id        String   @id @default(cuid())
+  numero    String   @unique // ex : "1000", "4000" — convention comptable standard
+  nom       String
+  type      String   // "ACTIF" | "PASSIF" | "CAPITAUX_PROPRES" | "REVENU" | "DEPENSE"
+  actif     Boolean  @default(true)
+  lignes    LigneEcriture[]
+}
+
+// Une écriture comptable = une transaction complète, composée d'au moins
+// 2 lignes (débit/crédit) qui doivent toujours s'équilibrer entre elles.
+model EcritureComptable {
+  id          String   @id @default(cuid())
+  numero      String   @unique // ex : "EC-0001"
+  date        DateTime
+  description String
+  source      String?  // "FACTURE" | "MANUEL" | etc. — d'où vient l'écriture, pour traçabilité
+  sourceId    String?  // id de la facture/dépense d'origine, si applicable
+  creePar     String?  // nom de l'utilisateur connecté au moment de la création
+  lignes      LigneEcriture[]
+  creeLe      DateTime @default(now())
+}
+
+model LigneEcriture {
+  id          String            @id @default(cuid())
+  ecritureId  String
+  ecriture    EcritureComptable @relation(fields: [ecritureId], references: [id], onDelete: Cascade)
+  compteId    String
+  compte      Compte            @relation(fields: [compteId], references: [id])
+  debit       Float             @default(0)
+  credit      Float             @default(0)
+  description String?
+  rapproche   Boolean           @default(false) // coché lors d'une consolidation bancaire
+}
+
+// ---------- TÂCHES INTERNES (suivi de présence, non facturable) ----------
+
+model TacheInterne {
+  id     String   @id @default(cuid())
+  nom    String
+  actif  Boolean  @default(true) // "annuler" = désactiver, garde l'historique intact
+  creeLe DateTime @default(now())
+  entreesTemps EntreeTempsInterne[]
+}
+
+model EntreeTempsInterne {
+  id             String       @id @default(cuid())
+  employeId      String
+  employe        User         @relation(fields: [employeId], references: [id])
+  tacheInterneId String
+  tacheInterne   TacheInterne @relation(fields: [tacheInterneId], references: [id])
+  debut          DateTime
+  fin            DateTime?
+}
+
+// ---------- PAIE (estimation — voir avertissements dans l'interface) ----------
+
+model Paie {
+  id              String    @id @default(cuid())
+  employeId       String
+  employe         User      @relation(fields: [employeId], references: [id])
+  periodeDebut    DateTime
+  periodeFin      DateTime
+  heuresTravaillees Float   @default(0)
+  salaireBrut     Float
+  rrqEmploye      Float     @default(0)
+  rqapEmploye     Float     @default(0)
+  aeEmploye       Float     @default(0)
+  impotFederal    Float     @default(0)
+  impotQuebec     Float     @default(0)
+  totalDeductions Float     @default(0)
+  salaireNet      Float
+  rrqEmployeur    Float     @default(0)
+  rqapEmployeur   Float     @default(0)
+  aeEmployeur     Float     @default(0)
+  vacancesAccumulees Float  @default(0) // % du brut accumulé en vacances cette paie-ci
+  typePaie        String    @default("REGULIERE") // "REGULIERE" | "VACANCES" — une paie de vacances puise dans le solde accumulé au lieu d'en créer
+  statut          String    @default("BROUILLON") // "BROUILLON" | "VERSEE" | "CORRIGEE"
+  corrigeeParId   String?   // pointe vers la nouvelle paie qui remplace celle-ci
+  dateVersement   DateTime?
+  creeLe          DateTime  @default(now())
+}
+
+// Catégories d'inventaire — chacune reliée à un compte de revenu, pour que
+// la facturation sache où comptabiliser la vente. Extensible, comme le
+// plan comptable (Pièces et Pneus créées par défaut, d'autres ajoutables).
+model CategorieInventaire {
+  id                String  @id @default(cuid())
+  code              String  @unique // ex : "PIECE", "PNEU", "HUILE" — utilisé comme valeur sur Piece.categorie
+  nom               String
+  compteRevenuNumero String // numéro du compte au plan comptable (ex : "4010")
+  actif             Boolean @default(true)
+}
+
+model RapprochementBancaire {
+  id                  String   @id @default(cuid())
+  dateRapprochement   DateTime
+  soldeReleve         Float
+  soldeLivres         Float
+  ecart               Float
+  creeLe              DateTime @default(now())
+}
+
+// ---------- COMPTES À PAYER ----------
+
+model Fournisseur {
+  id        String    @id @default(cuid())
+  nom       String
+  telephone String?
+  courriel  String?
+  adresse   String?
+  actif     Boolean   @default(true)
+  depenses  Depense[]
+  creeLe    DateTime  @default(now())
+}
+
+// Postes de dépenses — chacun relié à un compte du plan comptable,
+// extensible comme les catégories d'inventaire (ex : Loyer, Assurances…)
+model CategorieDepense {
+  id                 String    @id @default(cuid())
+  code               String    @unique
+  nom                String
+  compteDepenseNumero String
+  actif              Boolean   @default(true)
+  depenses           Depense[]
+}
+
+model Depense {
+  id                 String            @id @default(cuid())
+  fournisseurId      String
+  fournisseur        Fournisseur       @relation(fields: [fournisseurId], references: [id])
+  categorieDepenseId String
+  categorieDepense   CategorieDepense  @relation(fields: [categorieDepenseId], references: [id])
+  description        String
+  montant            Float // montant total, taxes incluses (ce qui est vraiment dû au fournisseur)
+  tpsPayee           Float             @default(0) // récupérable — réduit la TPS nette à remettre
+  tvqPayee           Float             @default(0) // récupérable — réduit la TVQ nette à remettre
+  dateFacture        DateTime
+  dateEcheance       DateTime?
+  statut             String            @default("IMPAYEE") // "IMPAYEE" | "PAYEE"
+  datePaiement       DateTime?
+  referenceVersement String?           // numéro de chèque ou de transaction
+  creeLe             DateTime          @default(now())
+}
+
+// ---------- IMMOBILISATIONS ET AMORTISSEMENT ----------
+
+model Immobilisation {
+  id                String    @id @default(cuid())
+  nom               String
+  description       String?
+  dateAcquisition   DateTime
+  coutAcquisition   Float
+  valeurResiduelle  Float     @default(0) // valeur estimée à la fin de sa vie utile
+  dureeVieAns       Int       // durée de vie utile, en années — amortissement linéaire
+  actif             Boolean   @default(true) // "annulé"/vendu = false, garde l'historique
+  creeLe            DateTime  @default(now())
+}
+
+// Empêche de comptabiliser deux fois l'amortissement du même mois
+model AmortissementMensuel {
+  id      String   @id @default(cuid())
+  mois    String   @unique // "YYYY-MM"
+  montant Float
+  creeLe  DateTime @default(now())
+}
+
+model Parametre {
+  id     String @id @default(cuid())
+  cle    String @unique
+  valeur String
+}
+
+// ---------- TEMPS (horodateur) ----------
+
+model EntreeTemps {
+  id         String    @id @default(cuid())
+  employeId  String
+  employe    User      @relation(fields: [employeId], references: [id])
+  problemeId String
+  probleme   Probleme  @relation(fields: [problemeId], references: [id], onDelete: Cascade)
+  debut      DateTime
+  fin        DateTime? // null = poinçon actif (en cours)
+}
