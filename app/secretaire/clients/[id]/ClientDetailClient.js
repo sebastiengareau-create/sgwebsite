@@ -19,7 +19,6 @@ export default function ClientDetailClient({ client }) {
   const [adresse, setAdresse] = useState(client.adresse || "");
   const [ville, setVille] = useState(client.ville || "");
   const [codePostal, setCodePostal] = useState(client.codePostal || "");
-  const [garantieProlongee, setGarantieProlongee] = useState(client.garantieProlongee || "");
 
   async function sauvegarder(e) {
     e.preventDefault();
@@ -28,7 +27,7 @@ export default function ClientDetailClient({ client }) {
     const res = await fetch(`/api/clients/${client.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -70,7 +69,6 @@ export default function ClientDetailClient({ client }) {
             <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1 }} />
             <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
           </div>
-          <input placeholder="Garantie prolongée — numéro de contrat" value={garantieProlongee} onChange={(e) => setGarantieProlongee(e.target.value)} style={champStyle} />
           {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 4 }}>{erreur}</p>}
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button type="submit" disabled={enCours} style={{ flex: 1, padding: 10, borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, cursor: "pointer" }}>

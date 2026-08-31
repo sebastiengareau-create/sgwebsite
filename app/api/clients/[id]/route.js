@@ -8,7 +8,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee } = await request.json();
+  const { nom, telephone, courriel, adresse, ville, codePostal } = await request.json();
   if (!nom) return NextResponse.json({ erreur: "Le nom est requis." }, { status: 400 });
 
   const doublon = await prisma.client.findFirst({
@@ -27,7 +27,6 @@ export async function PATCH(request, { params }) {
       adresse: adresse || null,
       ville: ville || null,
       codePostal: codePostal || null,
-      garantieProlongee: garantieProlongee || null,
     },
   });
   return NextResponse.json(client);
