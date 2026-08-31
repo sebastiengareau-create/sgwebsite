@@ -49,7 +49,7 @@ model User {
   paies        Paie[]
 }
 
-// ---------- CLIENTS ET VÉHICULES ----------
+// ---------- CLIENTS ----------
 
 model Client {
   id                 String       @id @default(cuid())
@@ -60,23 +60,10 @@ model Client {
   ville              String?
   codePostal         String?
   garantieProlongee  String? // numéro de contrat de garantie prolongée, si applicable
-  vehicules          Vehicule[]
   bons               BonTravail[]
   soumissions        Soumission[]
   rendezVous         RendezVous[]
   creeLe             DateTime     @default(now())
-}
-
-model Vehicule {
-  id        String       @id @default(cuid())
-  marque    String
-  modele    String
-  annee     Int?
-  vin       String?
-  plaque    String?
-  clientId  String
-  client    Client       @relation(fields: [clientId], references: [id])
-  bons      BonTravail[]
 }
 
 // ---------- BONS DE TRAVAIL ----------
@@ -87,8 +74,6 @@ model BonTravail {
   statut       String       @default("EN_ATTENTE") // "EN_ATTENTE" | "EN_COURS" | "TERMINE"
   clientId     String
   client       Client       @relation(fields: [clientId], references: [id])
-  vehiculeId   String
-  vehicule     Vehicule     @relation(fields: [vehiculeId], references: [id])
   problemes    Probleme[]
   facture      Facture?
   rendezVous   RendezVous?

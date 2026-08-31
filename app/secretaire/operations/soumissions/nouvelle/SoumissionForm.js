@@ -23,7 +23,6 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
 
   const [clientNom, setClientNom] = useState(soumissionExistante?.clientNom || "");
   const [clientTelephone, setClientTelephone] = useState(soumissionExistante?.clientTelephone || "");
-  const [vehiculeInfo, setVehiculeInfo] = useState(soumissionExistante?.vehiculeInfo || "");
   const [taches, setTaches] = useState(
     soumissionExistante
       ? soumissionExistante.taches.map((t) => ({
@@ -56,10 +55,6 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
     setRechercheClient(c.nom);
     setClientTelephone(c.telephone || "");
     setAfficherSuggestions(false);
-    if (c.vehicules.length === 1) {
-      const v = c.vehicules[0];
-      setVehiculeInfo(`${v.marque} ${v.modele} ${v.annee || ""}`.trim());
-    }
   }
   function changerClientPourNouveau() {
     setClientSelectionne(null);
@@ -115,7 +110,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
-        clientNom: nomFinal, clientTelephone, vehiculeInfo,
+        clientNom: nomFinal, clientTelephone,
         taches: tachesValides.map((t) => ({
           description: t.description,
           tempsEstime: t.tempsEstime,
@@ -184,23 +179,6 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
       {!clientSelectionne && (
         <input placeholder="Téléphone" value={clientTelephone} onChange={(e) => setClientTelephone(e.target.value)} style={champInput} />
       )}
-      {clientSelectionne && clientSelectionne.vehicules.length > 1 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Véhicules connus de ce client :</span>
-          {clientSelectionne.vehicules.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => setVehiculeInfo(`${v.marque} ${v.modele} ${v.annee || ""}`.trim())}
-              style={{ textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
-            >
-              🚗 {v.marque} {v.modele} {v.annee} {v.plaque ? `· ${v.plaque}` : ""}
-            </button>
-          ))}
-        </div>
-      )}
-      <input placeholder="Véhicule (ex : Honda Civic 2019)" value={vehiculeInfo} onChange={(e) => setVehiculeInfo(e.target.value)} style={champInput} />
-
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Tâches estimées</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {taches.map((t, idx) => (

@@ -11,7 +11,7 @@ export default async function BonDeCommande({ params }) {
 
   const bon = await prisma.bonTravail.findUnique({
     where: { id: params.id },
-    include: { client: true, vehicule: true, problemes: { orderBy: { id: "asc" } } },
+    include: { client: true, problemes: { orderBy: { id: "asc" } } },
   });
   if (!bon) notFound();
 
@@ -50,13 +50,6 @@ export default async function BonDeCommande({ params }) {
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace" }}>#{bon.numero}</div>
             <div style={{ fontSize: 12, color: "#666" }}>{new Date(bon.creeLe).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
           </div>
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Véhicule</div>
-          <div style={{ fontWeight: 600 }}>{bon.vehicule.marque} {bon.vehicule.modele} {bon.vehicule.annee}</div>
-          {bon.vehicule.vin && <div style={{ fontSize: 12, fontFamily: "monospace" }}>NIV : {bon.vehicule.vin}</div>}
-          {bon.vehicule.plaque && <div style={{ fontSize: 13 }}>Plaque : {bon.vehicule.plaque}</div>}
         </div>
 
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 8 }}>Tâches à effectuer</div>

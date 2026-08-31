@@ -74,7 +74,6 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
                   <span style={{ fontSize: 11, fontWeight: 700, color: COULEUR_STATUT(s.statut) }}>{LIBELLE_STATUT(s.statut)}</span>
                 </div>
                 <div style={{ fontWeight: 600, marginTop: 2 }}>{s.clientNom}</div>
-                {s.vehiculeInfo && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{s.vehiculeInfo}</div>}
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
                   {s.taches.length} tâche(s) · {totalTemps}h
                 </div>

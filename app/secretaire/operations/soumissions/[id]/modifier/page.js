@@ -14,7 +14,7 @@ export default async function ModifierSoumissionPage({ params }) {
       where: { id: params.id },
       include: { taches: { include: { pieces: true } }, client: true },
     }),
-    prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: true } }),
+    prisma.client.findMany({ orderBy: { nom: "asc" } }),
     prisma.parametre.findMany(),
   ]);
   if (!soumissionExistante) notFound();

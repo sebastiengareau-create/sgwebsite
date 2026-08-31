@@ -71,7 +71,6 @@ export default async function ImprimerSoumission({ params }) {
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
           <div style={{ fontWeight: 600 }}>{soumission.clientNom}</div>
           {soumission.clientTelephone && <div style={{ fontSize: 13 }}>{soumission.clientTelephone}</div>}
-          {soumission.vehiculeInfo && <div style={{ fontSize: 13, marginTop: 4 }}>Véhicule : {soumission.vehiculeInfo}</div>}
           {garantie && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
               🛡️ Garantie prolongée — contrat #{garantie}

@@ -105,20 +105,6 @@ export default function ClientDetailClient({ client }) {
             </div>
           </div>
 
-          {client.vehicules.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Véhicules</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {client.vehicules.map((v) => (
-                  <div key={v.id} style={{ fontSize: 13, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-                    🚗 {v.marque} {v.modele} {v.annee} {v.plaque ? `· ${v.plaque}` : ""}
-                    {v.vin && <div style={{ fontSize: 10.5, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2 }}>NIV : {v.vin}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div style={{ marginTop: 16 }}>
             <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Bons de commande ({client.bons.length})</h2>
             {client.bons.length === 0 ? (
@@ -128,7 +114,7 @@ export default function ClientDetailClient({ client }) {
                 {client.bons.map((b) => (
                   <Link key={b.id} href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                     <div style={{ fontSize: 13, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between" }}>
-                      <span><strong style={{ fontSize: 14, fontFamily: "monospace" }}>#{b.numero}</strong> — {b.vehicule.marque} {b.vehicule.modele}</span>
+                      <span><strong style={{ fontSize: 14, fontFamily: "monospace" }}>#{b.numero}</strong></span>
                       <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{STATUTS_BON[b.statut]}</span>
                     </div>
                   </Link>

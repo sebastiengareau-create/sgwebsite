@@ -25,7 +25,6 @@ export default async function ImprimerBon({ params }) {
       where: { id: params.id },
       include: {
         client: true,
-        vehicule: true,
         problemes: { orderBy: { id: "asc" }, include: { photos: true, pieces: { include: { piece: true } }, entreesTemps: { include: { employe: true } } } },
         facture: true,
       },
@@ -123,26 +122,18 @@ export default async function ImprimerBon({ params }) {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 40, marginBottom: 24 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
-            <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
-            {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
-            {(bon.client.adresse || bon.client.ville) && (
-              <div style={{ fontSize: 13 }}>{[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>
-            )}
-            {bon.client.garantieProlongee && (
-              <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
-                🛡️ Garantie prolongée — #{bon.client.garantieProlongee}
-              </div>
-            )}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Véhicule</div>
-            <div style={{ fontWeight: 600 }}>{bon.vehicule.marque} {bon.vehicule.modele} {bon.vehicule.annee}</div>
-            {bon.vehicule.vin && <div style={{ fontSize: 12, fontFamily: "monospace" }}>NIV : {bon.vehicule.vin}</div>}
-            {bon.vehicule.plaque && <div style={{ fontSize: 13 }}>Plaque : {bon.vehicule.plaque}</div>}
-          </div>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
+          <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
+          {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
+          {(bon.client.adresse || bon.client.ville) && (
+            <div style={{ fontSize: 13 }}>{[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>
+          )}
+          {bon.client.garantieProlongee && (
+            <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
+              🛡️ Garantie prolongée — #{bon.client.garantieProlongee}
+            </div>
+          )}
         </div>
 
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 8 }}>

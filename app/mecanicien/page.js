@@ -27,7 +27,6 @@ export default async function EspaceMecanicien() {
     where: { statut: { not: "TERMINE" } },
     include: {
       client: true,
-      vehicule: true,
       problemes: { orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } } } },
     },
     orderBy: { creeLe: "desc" },
@@ -101,7 +100,6 @@ export default async function EspaceMecanicien() {
             <div key={b.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</div>
               <div style={{ fontWeight: 600 }}>{b.client.nom}</div>
-              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{b.vehicule.marque} {b.vehicule.modele} {b.vehicule.annee}</div>
               <Link href={`/bons/${b.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>
                 Voir la fiche complète →
               </Link>

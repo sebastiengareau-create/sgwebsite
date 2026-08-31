@@ -14,7 +14,7 @@ export default async function EspaceSecretaire({ searchParams }) {
 
   const bons = await prisma.bonTravail.findMany({
     where: filtre ? { statut: filtre } : undefined,
-    include: { client: true, vehicule: true, problemes: { orderBy: { id: "asc" }, include: { pieces: true } } },
+    include: { client: true, problemes: { orderBy: { id: "asc" }, include: { pieces: true } } },
     orderBy: { creeLe: "desc" },
   });
 

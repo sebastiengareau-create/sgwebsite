@@ -2,19 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 
-function analyserVehicule(texte) {
-  if (!texte) return { marque: "Véhicule", modele: "", annee: null };
-  const mots = texte.trim().split(/\s+/);
-  const dernier = mots[mots.length - 1];
-  const anneeTrouvee = /^\d{4}$/.test(dernier) ? Number(dernier) : null;
-  const motsRestants = anneeTrouvee ? mots.slice(0, -1) : mots;
-  return {
-    marque: motsRestants[0] || "Véhicule",
-    modele: motsRestants.slice(1).join(" ") || "",
-    annee: anneeTrouvee,
-  };
-}
-
 export async function POST(request, { params }) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "calendrier"))) {
@@ -33,9 +20,6 @@ export async function POST(request, { params }) {
     clientId = client.id;
   }
 
-  const { marque, modele, annee } = analyserVehicule(rdv.vehiculeInfo);
-  const vehicule = await prisma.vehicule.create({ data: { marque, modele, annee, clientId } });
-
   const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
   let prochainNum = 1;
   if (dernierBon) {
@@ -48,7 +32,6 @@ export async function POST(request, { params }) {
     data: {
       numero,
       clientId,
-      vehiculeId: vehicule.id,
       problemes: { create: [{ description: rdv.motif }] },
     },
   });

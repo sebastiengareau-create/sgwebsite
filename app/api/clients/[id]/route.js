@@ -47,8 +47,6 @@ export async function DELETE(request, { params }) {
     );
   }
 
-  // Retire ses véhicules d'abord (aucun bon n'y est rattaché, donc sécuritaire)
-  await prisma.vehicule.deleteMany({ where: { clientId: params.id } });
   await prisma.client.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

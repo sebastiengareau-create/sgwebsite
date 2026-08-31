@@ -12,7 +12,6 @@ export default async function DetailBonPage({ params }) {
     where: { id: params.id },
     include: {
       client: true,
-      vehicule: true,
       problemes: {
         orderBy: { id: "asc" },
         include: {

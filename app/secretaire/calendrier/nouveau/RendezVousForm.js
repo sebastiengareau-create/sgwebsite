@@ -40,10 +40,6 @@ export default function RendezVousForm({ clientsExistants }) {
     setRechercheClient(c.nom);
     setClientTelephone(c.telephone || "");
     setAfficherSuggestions(false);
-    if (c.vehicules.length === 1) {
-      const v = c.vehicules[0];
-      setVehiculeInfo(`${v.marque} ${v.modele} ${v.annee || ""}`.trim());
-    }
   }
   function changerClientPourNouveau() {
     setClientSelectionne(null);

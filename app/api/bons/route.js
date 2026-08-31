@@ -10,19 +10,13 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
-    vehiculeId, marque, modele, annee, vin, plaque,
     problemes,
   } = await request.json();
 
   const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
 
-  if ((!clientId && !clientNom) || (!vehiculeId && (!marque || !modele)) || lignesValides.length === 0) {
+  if ((!clientId && !clientNom) || lignesValides.length === 0) {
     return NextResponse.json({ erreur: "Champs manquants (au moins une tâche requise)." }, { status: 400 });
-  }
-
-  const vinPropre = (vin || "").trim().toUpperCase();
-  if (vinPropre && vinPropre.length !== 17) {
-    return NextResponse.json({ erreur: "Le NIV doit contenir exactement 17 caractères." }, { status: 400 });
   }
 
   let idClientFinal = clientId;
@@ -53,26 +47,6 @@ export async function POST(request) {
     if (!existe) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
   }
 
-  let idVehiculeFinal = vehiculeId;
-
-  if (idVehiculeFinal) {
-    const vehiculeExiste = await prisma.vehicule.findUnique({ where: { id: idVehiculeFinal } });
-    if (!vehiculeExiste || vehiculeExiste.clientId !== idClientFinal) {
-      return NextResponse.json({ erreur: "Véhicule introuvable pour ce client." }, { status: 404 });
-    }
-  } else {
-    const vehicule = await prisma.vehicule.create({
-      data: {
-        marque, modele,
-        annee: annee ? Number(annee) : null,
-        vin: vinPropre || null,
-        plaque: plaque || null,
-        clientId: idClientFinal,
-      },
-    });
-    idVehiculeFinal = vehicule.id;
-  }
-
   const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
   let prochainNum = 1;
   if (dernierBon) {
@@ -85,7 +59,6 @@ export async function POST(request) {
     data: {
       numero,
       clientId: idClientFinal,
-      vehiculeId: idVehiculeFinal,
       problemes: { create: lignesValides.map((description) => ({ description })) },
     },
   });

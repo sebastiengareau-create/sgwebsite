@@ -11,7 +11,7 @@ export default async function ListeFactures() {
   if (!(await aAccesSection(session, "operations"))) redirect("/mecanicien");
 
   const factures = await prisma.facture.findMany({
-    include: { bon: { include: { client: true, vehicule: true } } },
+    include: { bon: { include: { client: true } } },
     orderBy: { dateEmission: "desc" },
   });
 

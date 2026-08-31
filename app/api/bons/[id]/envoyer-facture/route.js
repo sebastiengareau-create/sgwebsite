@@ -20,7 +20,6 @@ export async function POST(request, { params }) {
     where: { id: params.id },
     include: {
       client: true,
-      vehicule: true,
       facture: true,
       problemes: {
         orderBy: { id: "asc" },
@@ -59,7 +58,7 @@ export async function POST(request, { params }) {
       from: `${nomEntreprise} <${adresseEnvoi}>`,
       to: destinataire,
       subject: `Facture ${bon.facture.numero} — ${nomEntreprise}`,
-      text: `Bonjour ${bon.client.nom},\n\nVoici votre facture ${bon.facture.numero} pour votre ${bon.vehicule.marque} ${bon.vehicule.modele}, en pièce jointe.\n\nMontant total : ${bon.facture.totalAvecTaxes.toFixed(2)} $\n\nMerci de votre confiance,\n${nomEntreprise}`,
+      text: `Bonjour ${bon.client.nom},\n\nVoici votre facture ${bon.facture.numero}, en pièce jointe.\n\nMontant total : ${bon.facture.totalAvecTaxes.toFixed(2)} $\n\nMerci de votre confiance,\n${nomEntreprise}`,
       attachments: [
         {
           filename: `facture-${bon.facture.numero}.pdf`,

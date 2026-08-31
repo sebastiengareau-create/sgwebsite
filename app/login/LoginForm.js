@@ -35,7 +35,7 @@ export default function LoginForm({ nomEntreprise }) {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <form onSubmit={seConnecter} style={{ width: "100%", maxWidth: 340 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          <Image src="/logo.png" alt={nomEntreprise} width={90} height={90} priority style={{ objectFit: "contain" }} />
+          <Image src="/logo.png" alt={nomEntreprise} width={220} height={147} priority style={{ objectFit: "contain" }} />
         </div>
         <h1 style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>{nomEntreprise}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>Connecte-toi pour continuer</p>
@@ -47,7 +47,7 @@ export default function LoginForm({ nomEntreprise }) {
           value={courriel}
           onChange={(e) => setCourriel(e.target.value)}
           style={champStyle}
-          placeholder="toi@vrpremium.com"
+          placeholder="toi@tondomaine.com"
         />
 
         <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Mot de passe</label>

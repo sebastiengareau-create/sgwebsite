@@ -241,18 +241,12 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
         <StatusPill statut={bon.statut} />
       </div>
       <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
-      <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{bon.vehicule.marque} {bon.vehicule.modele} {bon.vehicule.annee}</div>
       {(bon.client.adresse || bon.client.ville) && (
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
           {[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
         </div>
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
-      {bon.vehicule.vin && (
-        <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2 }}>
-          NIV : {bon.vehicule.vin}{bon.vehicule.plaque ? ` · Plaque : ${bon.vehicule.plaque}` : ""}
-        </div>
-      )}
 
       <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-muted)" }}>
         Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise.

@@ -100,7 +100,7 @@ export default function FacturesClient({ factures }) {
               </div>
             </div>
             <div style={{ fontWeight: 600, marginTop: 2 }}>{f.bon.client.nom}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{f.bon.vehicule.marque} {f.bon.vehicule.modele} · {new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
               <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalFacture.toFixed(2)} $</span>
               {f.statut === "IMPAYEE" && (

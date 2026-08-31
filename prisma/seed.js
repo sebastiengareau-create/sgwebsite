@@ -10,7 +10,6 @@ async function main() {
   await prisma.photo.deleteMany();
   await prisma.probleme.deleteMany();
   await prisma.bonTravail.deleteMany();
-  await prisma.vehicule.deleteMany();
   await prisma.client.deleteMany();
   await prisma.piece.deleteMany();
   await prisma.user.deleteMany();
@@ -53,19 +52,15 @@ async function main() {
     prisma.piece.create({ data: { nom: "Batterie 12V", numero: "BAT-12V-A", qte: 2, qteMin: 3, prix: 145.0, qbId: "QB-ITM-121" } }),
   ]);
 
-  console.log("Création d'un client, véhicule et bon de travail de démo…");
+  console.log("Création d'un client et bon de travail de démo…");
   const client = await prisma.client.create({
     data: { nom: "Denis Ouellet", telephone: "418-555-0142", courriel: "denis.ouellet@example.com" },
-  });
-  const vehicule = await prisma.vehicule.create({
-    data: { marque: "Honda", modele: "Civic", annee: 2019, clientId: client.id },
   });
   await prisma.bonTravail.create({
     data: {
       numero: "2026-0114",
       statut: "EN_COURS",
       clientId: client.id,
-      vehiculeId: vehicule.id,
       problemes: {
         create: [
           { description: "Bruit de freinage à l'avant" },

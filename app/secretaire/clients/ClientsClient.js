@@ -12,10 +12,7 @@ export default function ClientsClient({ clients }) {
   const clientsFiltres = clients.filter((c) => {
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    const champs = [
-      c.nom, c.telephone, c.courriel, c.adresse, c.ville, c.codePostal,
-      ...c.vehicules.flatMap((v) => [v.marque, v.modele, v.vin, v.plaque]),
-    ];
+    const champs = [c.nom, c.telephone, c.courriel, c.adresse, c.ville, c.codePostal];
     return champs.some((champ) => champ && champ.toLowerCase().includes(q));
   });
 
@@ -41,7 +38,7 @@ export default function ClientsClient({ clients }) {
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par nom, téléphone, véhicule, NIV, plaque…"
+        placeholder="🔍 Rechercher par nom, ville, téléphone, courriel…"
         style={{
           width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
           background: "var(--surface)", color: "var(--text)", fontSize: 13, marginTop: 12, marginBottom: 16, boxSizing: "border-box",
@@ -56,15 +53,6 @@ export default function ClientsClient({ clients }) {
               <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                 {[c.telephone, c.adresse, [c.ville, c.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Aucune coordonnée"}
               </div>
-              {c.vehicules.length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
-                  {c.vehicules.map((v) => (
-                    <div key={v.id} style={{ fontSize: 12 }}>
-                      🚗 {v.marque} {v.modele} {v.annee} {v.plaque ? `· ${v.plaque}` : ""}
-                    </div>
-                  ))}
-                </div>
-              )}
               {c.garantieProlongee && (
                 <div style={{ fontSize: 11, marginTop: 6, padding: "3px 8px", background: "var(--bg)", borderRadius: 6, display: "inline-block" }}>
                   🛡️ Garantie prolongée — #{c.garantieProlongee}

@@ -17,7 +17,7 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
   const bonsFiltres = bons.filter((b) => {
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    const champs = [b.numero, b.client.nom, b.vehicule.marque, b.vehicule.modele, b.vehicule.plaque];
+    const champs = [b.numero, b.client.nom];
     return champs.some((champ) => champ && champ.toLowerCase().includes(q));
   });
 
@@ -47,7 +47,7 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par numéro, client, véhicule, plaque…"
+        placeholder="🔍 Rechercher par numéro ou client…"
         style={{
           width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
           background: "var(--surface)", color: "var(--text)", fontSize: 13, marginBottom: 12, boxSizing: "border-box",
@@ -103,7 +103,6 @@ function TableauBons({ bons }) {
                   <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</div>
                     <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{b.client.nom}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{b.vehicule.marque} {b.vehicule.modele}</div>
                   </div>
                 </Link>
               ))}
@@ -124,7 +123,7 @@ function CarteBon({ b }) {
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
           <span style={{ fontSize: 11, fontWeight: 700, color: STATUTS[b.statut].color }}>{STATUTS[b.statut].label}</span>
         </div>
-        <div style={{ fontWeight: 600, marginTop: 2 }}>{b.client.nom} — {b.vehicule.marque} {b.vehicule.modele}</div>
+        <div style={{ fontWeight: 600, marginTop: 2 }}>{b.client.nom}</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
           {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {b.problemes.reduce((s, p) => s + p.pieces.length, 0)} pièce(s)
         </div>

@@ -68,7 +68,7 @@ export default async function EnTete({ nom, role }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <MenuHamburger liens={liens} />
-          <Image src="/logo.png" alt={nomEntreprise} width={34} height={34} style={{ objectFit: "contain" }} />
+          <Image src="/logo.png" alt={nomEntreprise} width={72} height={48} style={{ objectFit: "contain" }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{nom}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{labelRole}</div>

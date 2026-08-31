@@ -8,7 +8,7 @@ export default async function NouvelleSoumissionPage() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
   const [clients, parametres] = await Promise.all([
-    prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: true } }),
+    prisma.client.findMany({ orderBy: { nom: "asc" } }),
     prisma.parametre.findMany(),
   ]);
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
