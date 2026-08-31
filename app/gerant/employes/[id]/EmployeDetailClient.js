@@ -11,6 +11,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [erreur, setErreur] = useState("");
 
   const [nom, setNom] = useState(employe.nom);
+  const [courriel, setCourriel] = useState(employe.courriel || "");
   const [role, setRole] = useState(employe.role);
   const [telephone, setTelephone] = useState(employe.telephone || "");
   const [adresse, setAdresse] = useState(employe.adresse || "");
@@ -25,7 +26,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, role, telephone, adresse, assignation, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
+    const body = { nom, courriel, role, telephone, adresse, assignation, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
       method: "PATCH",
@@ -97,6 +98,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <SectionTitre>Profil</SectionTitre>
           <label style={labelStyle}>Nom</label>
           <input value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
+          <label style={labelStyle}>Courriel</label>
+          <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Rôle</label>
           <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
             <option value="MECANICIEN">{nomsRoles.MECANICIEN}</option>

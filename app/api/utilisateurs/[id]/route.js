@@ -12,6 +12,13 @@ export async function PATCH(request, { params }) {
   const data = {};
 
   if (body.nom) data.nom = body.nom;
+  if (body.courriel) {
+    const existant = await prisma.user.findFirst({ where: { courriel: body.courriel, NOT: { id: params.id } } });
+    if (existant) {
+      return NextResponse.json({ erreur: "Ce courriel est déjà utilisé." }, { status: 409 });
+    }
+    data.courriel = body.courriel;
+  }
   if (body.role && ["GERANT", "SECRETAIRE", "MECANICIEN"].includes(body.role)) data.role = body.role;
   if (typeof body.actif === "boolean") {
     if (params.id === session.id && body.actif === false) {
