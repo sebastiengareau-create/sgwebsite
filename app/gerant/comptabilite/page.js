@@ -17,8 +17,6 @@ export default async function Comptabilite() {
 
   await assurerPlanComptable(); // crée le plan standard au besoin, sans dupliquer
 
-  const parametreVerrou = await prisma.parametre.findUnique({ where: { cle: "comptabilite_verrouille_avant" } });
-
   const comptes = await prisma.compte.findMany({
     where: { actif: true },
     include: { lignes: true },
@@ -35,7 +33,7 @@ export default async function Comptabilite() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <PlanComptableClient comptes={comptesAvecSolde} labelsType={LABELS_TYPE} dateVerrouInit={parametreVerrou?.valeur || ""} />
+      <PlanComptableClient comptes={comptesAvecSolde} labelsType={LABELS_TYPE} />
     </div>
   );
 }

@@ -76,6 +76,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
   }
 
   const [erreurFacture, setErreurFacture] = useState("");
+  const [avertissementFacture, setAvertissementFacture] = useState("");
   const [envoiCourrielEnCours, setEnvoiCourrielEnCours] = useState(false);
   const [messageCourriel, setMessageCourriel] = useState(null);
   const [demanderCourriel, setDemanderCourriel] = useState(false);
@@ -112,6 +113,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
   async function creerFacture() {
     if (!window.confirm("Émettre la facture officielle pour ce bon ? Le montant sera figé même si le bon est modifié après.")) return;
     setErreurFacture("");
+    setAvertissementFacture("");
     setEnCours(true);
     const res = await fetch(`/api/bons/${bon.id}/facturer`, { method: "POST" });
     setEnCours(false);
@@ -120,17 +122,26 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
       setErreurFacture(data.erreur || "Erreur lors de la facturation.");
       return;
     }
+    const data = await res.json().catch(() => ({}));
+    if (data.avertissementComptable) {
+      setAvertissementFacture(`Facture émise, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
+    }
     router.refresh();
   }
 
   async function changerStatutFacture(statut) {
+    setAvertissementFacture("");
     setEnCours(true);
-    await fetch(`/api/factures/${bon.facture.id}`, {
+    const res = await fetch(`/api/factures/${bon.facture.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ statut }),
     });
+    const data = await res.json().catch(() => ({}));
     setEnCours(false);
+    if (data.avertissementComptable) {
+      setAvertissementFacture(`Statut mis à jour, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
+    }
     router.refresh();
   }
 
@@ -335,6 +346,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
                 </button>
               </div>
             )}
+            {avertissementFacture && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8 }}>⚠️ {avertissementFacture}</p>}
             {estGerant && (
               <button
                 onClick={supprimerFacture}
@@ -410,6 +422,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
                 </button>
                 <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>Le bon passera automatiquement au statut « Facturé ».</p>
                 {erreurFacture && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurFacture}</p>}
+                {avertissementFacture && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 6 }}>⚠️ {avertissementFacture}</p>}
               </div>
             )}
           </>

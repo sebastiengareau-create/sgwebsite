@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { renverserEcriture, verifierNonVerrouille } from "@/lib/comptabilite";
+import { renverserEcriture, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function POST(request, { params }) {
   const session = await obtenirSession();
@@ -14,9 +14,9 @@ export async function POST(request, { params }) {
   if (paie.statut === "CORRIGEE") return NextResponse.json({ erreur: "Cette paie a déjà été corrigée." }, { status: 400 });
 
   try {
-    await verifierNonVerrouille(paie.dateVersement || paie.periodeFin);
+    await verifierPeriodeModifiable(paie.dateVersement || paie.periodeFin, { nouvellePiece: false });
   } catch (e) {
-    return NextResponse.json({ erreur: e.message.replace("VERROUILLE:", "") }, { status: 423 });
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
   try {

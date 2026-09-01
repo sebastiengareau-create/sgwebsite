@@ -15,6 +15,7 @@ export default function FacturesClient({ factures }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState("IMPAYEE");
   const [recherche, setRecherche] = useState("");
+  const [avertissement, setAvertissement] = useState("");
 
   const facturesFiltrees = factures.filter((f) => {
     if (filtre !== "TOUTES" && f.statut !== filtre) return false;
@@ -27,11 +28,16 @@ export default function FacturesClient({ factures }) {
   const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalFacture, 0);
 
   async function marquerPayee(id) {
-    await fetch(`/api/factures/${id}`, {
+    setAvertissement("");
+    const res = await fetch(`/api/factures/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ statut: "PAYEE" }),
     });
+    const data = await res.json().catch(() => ({}));
+    if (data.avertissementComptable) {
+      setAvertissement(`Facture marquée payée, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
+    }
     router.refresh();
   }
 
@@ -41,6 +47,7 @@ export default function FacturesClient({ factures }) {
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
         {factures.length} facture{factures.length !== 1 ? "s" : ""} émise{factures.length !== 1 ? "s" : ""} au total.
       </p>
+      {avertissement && <p style={{ fontSize: 12, color: "var(--accent)", marginBottom: 12 }}>⚠️ {avertissement}</p>}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>

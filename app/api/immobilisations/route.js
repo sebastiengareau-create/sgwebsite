@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { posterAcquisitionImmobilisation } from "@/lib/comptabilite";
+import { posterAcquisitionImmobilisation, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -15,6 +15,12 @@ export async function POST(request) {
   }
   if (Number(dureeVieAns) < 1) {
     return NextResponse.json({ erreur: "La durée de vie doit être d'au moins 1 an." }, { status: 400 });
+  }
+
+  try {
+    await verifierPeriodeModifiable(new Date(dateAcquisition), { nouvellePiece: true });
+  } catch (e) {
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
   const immobilisation = await prisma.immobilisation.create({

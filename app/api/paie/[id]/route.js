@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { verifierNonVerrouille } from "@/lib/comptabilite";
+import { verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function DELETE(request, { params }) {
   const session = await obtenirSession();
@@ -13,9 +13,9 @@ export async function DELETE(request, { params }) {
   if (!paie) return NextResponse.json({ erreur: "Paie introuvable." }, { status: 404 });
 
   try {
-    await verifierNonVerrouille(paie.dateVersement || paie.periodeFin);
+    await verifierPeriodeModifiable(paie.dateVersement || paie.periodeFin, { nouvellePiece: false });
   } catch (e) {
-    return NextResponse.json({ erreur: e.message.replace("VERROUILLE:", "") }, { status: 423 });
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
   // Retire aussi l'écriture comptable liée (si la comptabilité était active

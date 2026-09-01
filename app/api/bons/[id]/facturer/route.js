@@ -80,11 +80,17 @@ export async function POST(request, { params }) {
 
   // Génère l'écriture comptable correspondante — ne fait jamais échouer
   // l'émission de la facture elle-même si la comptabilité a un problème
+  // (y compris si la période comptable du jour est fermée)
+  let avertissementComptable = null;
   try {
     await posterFactureEmise(bon, facture, session.nom);
   } catch (e) {
-    console.error("Erreur comptabilisation facture émise :", e);
+    if (e.message.startsWith("PERIODE_LOCK:")) {
+      avertissementComptable = e.message.replace("PERIODE_LOCK:", "").split("\n")[0];
+    } else {
+      console.error("Erreur comptabilisation facture émise :", e);
+    }
   }
 
-  return NextResponse.json(facture);
+  return NextResponse.json({ ...facture, avertissementComptable });
 }

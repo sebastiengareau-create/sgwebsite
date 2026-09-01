@@ -384,6 +384,40 @@ model Parametre {
   valeur String
 }
 
+// ---------- FERMETURE DE PÉRIODE COMPTABLE ----------
+
+// État courant d'un mois comptable. Aucune ligne = "OUVERTE" par défaut —
+// une ligne n'est créée qu'au premier verrouillage/fermeture de ce mois.
+model PeriodeComptable {
+  id           String    @id @default(cuid())
+  annee        Int
+  mois         Int       // 1 à 12
+  dateDebut    DateTime  // début du mois, heure du Québec convertie en UTC
+  dateFin      DateTime  // fin du mois, heure du Québec convertie en UTC
+  statut       String    @default("OUVERTE") // "OUVERTE" | "VERROUILLEE" | "FERMEE"
+  statutParNom String?   // nom de l'utilisateur ayant établi le statut actuel
+  statutLe     DateTime?
+  creeLe       DateTime  @default(now())
+  historique   FermeturePeriodeHistorique[]
+
+  @@unique([annee, mois])
+}
+
+// Journal d'audit des fermetures — une ligne par action, jamais modifiée
+// après coup.
+model FermeturePeriodeHistorique {
+  id          String           @id @default(cuid())
+  periodeId   String
+  periode     PeriodeComptable @relation(fields: [periodeId], references: [id])
+  action      String           // "VERROUILLAGE" | "FERMETURE" | "REOUVERTURE"
+  statutAvant String
+  statutApres String
+  parNom      String
+  motif       String?          // obligatoire pour REOUVERTURE seulement
+  resumeJson  String?          // JSON.stringify() du résumé, rempli seulement pour "FERMETURE"
+  creeLe      DateTime         @default(now())
+}
+
 // ---------- TEMPS (horodateur) ----------
 
 model EntreeTemps {

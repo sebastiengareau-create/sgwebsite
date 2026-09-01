@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { verifierNonVerrouille } from "@/lib/comptabilite";
+import { verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function DELETE(request, { params }) {
   const session = await obtenirSession();
@@ -13,9 +13,9 @@ export async function DELETE(request, { params }) {
   if (!ecriture) return NextResponse.json({ erreur: "Écriture introuvable." }, { status: 404 });
 
   try {
-    await verifierNonVerrouille(ecriture.date);
+    await verifierPeriodeModifiable(ecriture.date, { nouvellePiece: false });
   } catch (e) {
-    return NextResponse.json({ erreur: e.message.replace("VERROUILLE:", "") }, { status: 423 });
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
   await prisma.ecritureComptable.delete({ where: { id: params.id } });

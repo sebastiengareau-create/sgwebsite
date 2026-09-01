@@ -40,8 +40,12 @@ export async function POST(request) {
   try {
     await posterPaie(paie, session.nom);
   } catch (e) {
-    console.error("Erreur comptabilisation de la paie :", e);
-    avertissementComptable = "La paie a été enregistrée, mais la comptabilisation a échoué : " + e.message;
+    if (e.message.startsWith("PERIODE_LOCK:")) {
+      avertissementComptable = "La paie a été enregistrée, mais aucune écriture comptable n'a été créée : " + e.message.replace("PERIODE_LOCK:", "").split("\n")[0];
+    } else {
+      console.error("Erreur comptabilisation de la paie :", e);
+      avertissementComptable = "La paie a été enregistrée, mais la comptabilisation a échoué : " + e.message;
+    }
   }
 
   return NextResponse.json({ ...paie, avertissementComptable });

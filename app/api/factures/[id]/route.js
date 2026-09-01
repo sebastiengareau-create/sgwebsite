@@ -26,15 +26,20 @@ export async function PATCH(request, { params }) {
 
   // Comptabilise l'encaissement seulement au moment où ça bascule VERS
   // "Payée" (pas si c'était déjà payée) — évite les doublons d'écritures
+  let avertissementComptable = null;
   if (statut === "PAYEE" && ancienneFacture?.statut !== "PAYEE") {
     try {
       await posterFacturePayee(facture, session.nom);
     } catch (e) {
-      console.error("Erreur comptabilisation facture payée :", e);
+      if (e.message.startsWith("PERIODE_LOCK:")) {
+        avertissementComptable = e.message.replace("PERIODE_LOCK:", "").split("\n")[0];
+      } else {
+        console.error("Erreur comptabilisation facture payée :", e);
+      }
     }
   }
 
-  return NextResponse.json(facture);
+  return NextResponse.json({ ...facture, avertissementComptable });
 }
 
 export async function DELETE(request, { params }) {

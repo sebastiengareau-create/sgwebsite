@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { dateVerrouillage } from "@/lib/comptabilite";
-
 export async function DELETE() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const verrou = await dateVerrouillage();
-  if (verrou) {
+  const periodeProtegee = await prisma.periodeComptable.findFirst({ where: { statut: { not: "OUVERTE" } } });
+  if (periodeProtegee) {
     return NextResponse.json(
-      { erreur: "Une période est verrouillée — impossible de tout réinitialiser tant qu'elle n'est pas déverrouillée." },
+      { erreur: "Au moins une période est verrouillée ou fermée — impossible de tout réinitialiser tant qu'elle n'est pas rouverte." },
       { status: 423 }
     );
   }

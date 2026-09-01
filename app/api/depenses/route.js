@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { posterDepenseRecue } from "@/lib/comptabilite";
+import { posterDepenseRecue, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -12,6 +12,12 @@ export async function POST(request) {
   const { fournisseurId, categorieDepenseId, description, montant, tpsPayee, tvqPayee, dateFacture, dateEcheance } = await request.json();
   if (!fournisseurId || !categorieDepenseId || !description || !montant || !dateFacture) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
+  }
+
+  try {
+    await verifierPeriodeModifiable(new Date(dateFacture), { nouvellePiece: true });
+  } catch (e) {
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
   const categorie = await prisma.categorieDepense.findUnique({ where: { id: categorieDepenseId } });

@@ -7,7 +7,7 @@ import Link from "next/link";
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
-export default function PlanComptableClient({ comptes, labelsType, dateVerrouInit }) {
+export default function PlanComptableClient({ comptes, labelsType }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [numero, setNumero] = useState("");
@@ -15,20 +15,6 @@ export default function PlanComptableClient({ comptes, labelsType, dateVerrouIni
   const [type, setType] = useState("DEPENSE");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
-  const [dateVerrou, setDateVerrou] = useState(dateVerrouInit);
-  const [verrouEnCours, setVerrouEnCours] = useState(false);
-
-  async function sauvegarderVerrou(nouvelleDate) {
-    setVerrouEnCours(true);
-    await fetch("/api/comptabilite/verrouillage", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: nouvelleDate || null }),
-    });
-    setDateVerrou(nouvelleDate);
-    setVerrouEnCours(false);
-    router.refresh();
-  }
 
   const totalActif = comptes.filter((c) => c.type === "ACTIF").reduce((s, c) => s + c.solde, 0);
   const totalPassif = comptes.filter((c) => c.type === "PASSIF").reduce((s, c) => s + c.solde, 0);
@@ -80,37 +66,13 @@ export default function PlanComptableClient({ comptes, labelsType, dateVerrouIni
         </Link>
       </div>
 
-      <div style={{ background: dateVerrou ? "rgba(193,91,74,0.12)" : "var(--surface)", border: `1px solid ${dateVerrou ? "var(--danger)" : "var(--border)"}`, borderRadius: 10, padding: 14, marginBottom: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: dateVerrou ? "var(--danger)" : "var(--text-muted)", fontWeight: 700, marginBottom: 6 }}>
-          🔒 Verrouillage de période
-        </div>
-        <p style={{ fontSize: 11.5, color: "var(--text-muted)", marginBottom: 10 }}>
-          Empêche de modifier ou supprimer une écriture, une paie ou une dépense datée à cette date ou avant — pour protéger un mois déjà clôturé.
-        </p>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            type="date" value={dateVerrou || ""} onChange={(e) => setDateVerrou(e.target.value)}
-            style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}
-          />
-          <button
-            onClick={() => sauvegarderVerrou(dateVerrou)}
-            disabled={verrouEnCours}
-            className="bouton-3d"
-            style={{ padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
-          >
-            Verrouiller
-          </button>
-        </div>
-        {dateVerrouInit && (
-          <button
-            onClick={() => sauvegarderVerrou("")}
-            disabled={verrouEnCours}
-            style={{ width: "100%", marginTop: 8, padding: 8, borderRadius: 8, border: "1px dashed var(--danger)", background: "none", color: "var(--danger)", fontSize: 11.5, cursor: "pointer" }}
-          >
-            🔓 Déverrouiller complètement
-          </button>
-        )}
-      </div>
+      <Link
+        href="/gerant/comptabilite/fermeture"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
+      >
+        🔒 Fermeture de période
+      </Link>
       <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
         <Link href="/gerant/comptabilite/etat-resultats" className="bouton-3d" style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
           📊 État des résultats

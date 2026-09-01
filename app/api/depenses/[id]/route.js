@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { posterDepensePayee, verifierNonVerrouille } from "@/lib/comptabilite";
+import { posterDepensePayee, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
@@ -12,6 +12,14 @@ export async function PATCH(request, { params }) {
   const { statut, reference } = await request.json();
   if (!["IMPAYEE", "PAYEE"].includes(statut)) {
     return NextResponse.json({ erreur: "Statut invalide." }, { status: 400 });
+  }
+
+  if (statut === "PAYEE") {
+    try {
+      await verifierPeriodeModifiable(new Date(), { nouvellePiece: true });
+    } catch (e) {
+      return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
+    }
   }
 
   const ancienne = await prisma.depense.findUnique({ where: { id: params.id } });
@@ -45,9 +53,9 @@ export async function DELETE(request, { params }) {
   if (!depense) return NextResponse.json({ erreur: "Dépense introuvable." }, { status: 404 });
 
   try {
-    await verifierNonVerrouille(depense.dateFacture);
+    await verifierPeriodeModifiable(depense.dateFacture, { nouvellePiece: false });
   } catch (e) {
-    return NextResponse.json({ erreur: e.message.replace("VERROUILLE:", "") }, { status: 423 });
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
   // Retire aussi les écritures comptables liées, pour garder les livres cohérents
