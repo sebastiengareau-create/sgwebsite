@@ -27,8 +27,8 @@ export async function PATCH(request, { params }) {
     data.actif = body.actif;
   }
   if (body.motDePasse) {
-    if (body.motDePasse.length < 6) {
-      return NextResponse.json({ erreur: "Le mot de passe doit avoir au moins 6 caractères." }, { status: 400 });
+    if (body.motDePasse.length < 4 || body.motDePasse.length > 12) {
+      return NextResponse.json({ erreur: "Le mot de passe doit avoir entre 4 et 12 caractères." }, { status: 400 });
     }
     data.motDePasse = await hashPassword(body.motDePasse);
   }

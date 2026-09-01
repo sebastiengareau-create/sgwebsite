@@ -119,7 +119,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <label style={labelStyle}>Date d'embauche</label>
           <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Nouveau mot de passe (laisse vide pour ne pas changer)</label>
-          <input type="password" value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)} style={champStyle} />
+          <input type="password" minLength={4} maxLength={12} value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)} style={champStyle} />
 
           <SectionTitre>Configuration de paie</SectionTitre>
           <label style={labelStyle}>Type de rémunération</label>

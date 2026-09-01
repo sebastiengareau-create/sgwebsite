@@ -70,6 +70,16 @@ function FormulaireCreation({ onCree, nomsRoles }) {
   const [motDePasse, setMotDePasse] = useState("");
   const [role, setRole] = useState("MECANICIEN");
   const [pin, setPin] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [adresse, setAdresse] = useState("");
+  const [assignation, setAssignation] = useState("");
+  const [numeroEmploye, setNumeroEmploye] = useState("");
+  const [dateEmbauche, setDateEmbauche] = useState("");
+  const [typeRemuneration, setTypeRemuneration] = useState("HORAIRE");
+  const [tauxHoraireEmploye, setTauxHoraireEmploye] = useState("");
+  const [salaireAnnuel, setSalaireAnnuel] = useState("");
+  const [frequencePaie, setFrequencePaie] = useState("BIHEBDOMADAIRE");
+  const [tauxVacances, setTauxVacances] = useState(4);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -80,7 +90,11 @@ function FormulaireCreation({ onCree, nomsRoles }) {
     const res = await fetch("/api/utilisateurs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, courriel, motDePasse, role, pin: pin || undefined }),
+      body: JSON.stringify({
+        nom, courriel, motDePasse, role, pin: pin || undefined,
+        telephone, adresse, assignation, numeroEmploye, dateEmbauche,
+        typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
+      }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -93,15 +107,50 @@ function FormulaireCreation({ onCree, nomsRoles }) {
 
   return (
     <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 4 }}>
+      <SectionTitreForm>Profil</SectionTitreForm>
       <input required placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input required type="email" placeholder="Courriel" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-      <input required type="password" placeholder="Mot de passe (min. 6 caractères)" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} style={champStyle} />
+      <input required type="password" minLength={4} maxLength={12} placeholder="Mot de passe (4 à 12 caractères)" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} style={champStyle} />
       <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
         <option value="MECANICIEN">{nomsRoles.MECANICIEN}</option>
         <option value="SECRETAIRE">{nomsRoles.SECRETAIRE}</option>
         <option value="GERANT">{nomsRoles.GERANT}</option>
       </select>
-      <input placeholder="Code PIN (optionnel, 4 chiffres)" value={pin} onChange={(e) => setPin(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+      <input placeholder="Code PIN (optionnel, 4 chiffres)" value={pin} onChange={(e) => setPin(e.target.value)} style={champStyle} />
+      <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
+      <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+      <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
+      <input placeholder="Numéro d'employé" value={numeroEmploye} onChange={(e) => setNumeroEmploye(e.target.value)} style={champStyle} />
+      <label style={labelStyle}>Date d'embauche</label>
+      <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
+
+      <SectionTitreForm>Configuration de paie</SectionTitreForm>
+      <label style={labelStyle}>Type de rémunération</label>
+      <select value={typeRemuneration} onChange={(e) => setTypeRemuneration(e.target.value)} style={champStyle}>
+        <option value="HORAIRE">Payé à l'heure</option>
+        <option value="SALAIRE">Salarié (montant fixe)</option>
+      </select>
+      {typeRemuneration === "HORAIRE" ? (
+        <>
+          <label style={labelStyle}>Taux horaire spécifique (vide = taux global des Paramètres)</label>
+          <input type="number" min={0} step="0.01" value={tauxHoraireEmploye} onChange={(e) => setTauxHoraireEmploye(e.target.value)} style={champStyle} />
+        </>
+      ) : (
+        <>
+          <label style={labelStyle}>Salaire annuel</label>
+          <input type="number" min={0} step="0.01" value={salaireAnnuel} onChange={(e) => setSalaireAnnuel(e.target.value)} style={champStyle} />
+        </>
+      )}
+      <label style={labelStyle}>Fréquence de paie</label>
+      <select value={frequencePaie} onChange={(e) => setFrequencePaie(e.target.value)} style={champStyle}>
+        <option value="HEBDOMADAIRE">Chaque semaine</option>
+        <option value="BIHEBDOMADAIRE">Aux 2 semaines</option>
+        <option value="BIMENSUEL">2 fois par mois</option>
+        <option value="MENSUEL">Chaque mois</option>
+      </select>
+      <label style={labelStyle}>Taux de vacances (%) — minimum légal QC : 4% (ou 6% après 3 ans)</label>
+      <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 10, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
         {enCours ? "Création…" : "Créer le compte"}
@@ -110,7 +159,12 @@ function FormulaireCreation({ onCree, nomsRoles }) {
   );
 }
 
+function SectionTitreForm({ children }) {
+  return <div style={{ fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.04em", marginTop: 12, marginBottom: 8 }}>{children}</div>;
+}
+
 const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
+const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 };
