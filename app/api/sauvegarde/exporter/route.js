@@ -9,7 +9,7 @@ export async function GET() {
   }
 
   const donnees = await exporterDonnees();
-  const nomFichier = `vr-premium-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  const nomFichier = `sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
 
   return new Response(JSON.stringify(donnees, null, 2), {
     headers: {
