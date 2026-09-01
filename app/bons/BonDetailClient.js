@@ -56,7 +56,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHoraireClient, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, tauxHoraireClient, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -461,8 +461,10 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
             bonId={bon.id}
             inventaire={inventaire}
             mecaniciens={mecaniciens}
+            postesRevenu={postesRevenu}
             peutModifier={peutModifier}
             peutPoinconner={peutPoinconner}
+            estGerant={estGerant}
             moi={moi}
             peutSupprimer={peutModifier && bon.problemes.length > 1}
             onSupprimer={() => supprimerProbleme(pr.id)}
@@ -486,7 +488,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, peutModifier, peutPoinconner, moi, peutSupprimer, onSupprimer, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, peutSupprimer, onSupprimer, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
   const [qtePiece, setQtePiece] = useState(1);
   const [erreurPiece, setErreurPiece] = useState("");
@@ -678,11 +680,16 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, peutModif
           style={{ marginTop: 6, fontSize: 10.5, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text-muted)" }}
         >
           <option value="MAIN_OEUVRE">🔧 Main-d'œuvre</option>
-          <option value="ALIGNEMENT">📐 Alignement / équilibrage</option>
-          <option value="REMORQUAGE">🚛 Remorquage</option>
-          <option value="ENTREPOSAGE">🏬 Entreposage de pneus</option>
-          <option value="AUTRE">➕ Autre revenu</option>
+          {postesRevenu.map((c) => (
+            <option key={c.numero} value={c.numero}>{c.nom}</option>
+          ))}
         </select>
+      )}
+
+      {peutModifier && estGerant && (
+        <Link href="/gerant/comptabilite" target="_blank" style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "var(--text-muted)", textDecoration: "underline" }}>
+          + Ajouter/retirer un poste (Plan comptable)
+        </Link>
       )}
 
       {peutModifier && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (

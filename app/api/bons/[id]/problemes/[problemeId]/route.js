@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-
-const CATEGORIES_VALIDES = ["MAIN_OEUVRE", "ALIGNEMENT", "REMORQUAGE", "ENTREPOSAGE", "AUTRE"];
+import { COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
@@ -14,8 +13,14 @@ export async function PATCH(request, { params }) {
 
   const data = {};
   if (categorieRevenu !== undefined) {
-    if (!CATEGORIES_VALIDES.includes(categorieRevenu)) {
-      return NextResponse.json({ erreur: "Catégorie invalide." }, { status: 400 });
+    if (categorieRevenu !== "MAIN_OEUVRE") {
+      if (COMPTES_REVENU_RESERVES.includes(categorieRevenu)) {
+        return NextResponse.json({ erreur: "Poste de revenu invalide." }, { status: 400 });
+      }
+      const compte = await prisma.compte.findUnique({ where: { numero: categorieRevenu } });
+      if (!compte || compte.type !== "REVENU" || !compte.actif) {
+        return NextResponse.json({ erreur: "Poste de revenu invalide." }, { status: 400 });
+      }
     }
     data.categorieRevenu = categorieRevenu;
   }

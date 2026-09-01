@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -30,6 +31,11 @@ export default async function DetailBonPage({ params }) {
 
   const inventaire = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
   const mecaniciens = await prisma.user.findMany({ where: { role: "MECANICIEN", actif: true }, orderBy: { nom: "asc" } });
+  await assurerPlanComptable();
+  const postesRevenu = await prisma.compte.findMany({
+    where: { type: "REVENU", actif: true, numero: { notIn: COMPTES_REVENU_RESERVES } },
+    orderBy: { numero: "asc" },
+  });
   const parametres = await prisma.parametre.findMany();
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
@@ -45,6 +51,7 @@ export default async function DetailBonPage({ params }) {
         bon={bon}
         inventaire={inventaire}
         mecaniciens={mecaniciens}
+        postesRevenu={postesRevenu}
         tauxHoraireClient={tauxHoraireClient}
         tpsTaux={tpsTaux}
         tvqTaux={tvqTaux}
