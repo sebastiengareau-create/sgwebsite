@@ -21,7 +21,7 @@ export async function PATCH(request, { params }) {
   const paie = await prisma.paie.findUnique({ where: { id: params.paieId } });
   if (!paie || paie.lotId !== lot.id) return NextResponse.json({ erreur: "Paie introuvable dans ce lot." }, { status: 404 });
 
-  const { heuresManuelles, montantVacances } = await request.json();
+  const { heuresManuelles, montantVacances, boni } = await request.json();
 
   const resultat = await calculerPaiePourEmploye(paie.employeId, {
     periodeDebut: lot.periodeDebut,
@@ -29,6 +29,7 @@ export async function PATCH(request, { params }) {
     typePaie: lot.typePaie,
     heuresManuelles,
     montantVacances,
+    boni,
   });
   if (resultat.erreur) return NextResponse.json({ erreur: resultat.erreur }, { status: 400 });
 
@@ -36,6 +37,7 @@ export async function PATCH(request, { params }) {
     where: { id: paie.id },
     data: {
       heuresTravaillees: resultat.heuresTravaillees,
+      boni: resultat.boni,
       salaireBrut: resultat.salaireBrutPeriode,
       rrqEmploye: resultat.rrqEmploye,
       rqapEmploye: resultat.rqapEmploye,

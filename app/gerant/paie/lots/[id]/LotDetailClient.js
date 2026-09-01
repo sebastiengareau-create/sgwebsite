@@ -179,56 +179,119 @@ export default function LotDetailClient({ lot, checklist }) {
 }
 
 function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onRetirer, onCorriger }) {
-  const [valeur, setValeur] = useState(String(estVacances ? paie.salaireBrut : paie.heuresTravaillees));
+  const [ouvert, setOuvert] = useState(false);
+  const [heuresValeur, setHeuresValeur] = useState(String(paie.heuresTravaillees));
+  const [montantValeur, setMontantValeur] = useState(String(paie.salaireBrut));
+  const [boniValeur, setBoniValeur] = useState(String(paie.boni || 0));
   const modifiable = estBrouillon && paie.employe.typeRemuneration !== "SALAIRE";
+
+  const infoRemuneration = paie.employe.typeRemuneration === "SALAIRE"
+    ? `Salarié — ${(paie.employe.salaireAnnuel || 0).toFixed(2)} $/an`
+    : `${(paie.employe.tauxHoraireEmploye || 0).toFixed(2)} $/h`;
+
+  function recalculer() {
+    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur } : { heuresManuelles: heuresValeur, boni: boniValeur });
+  }
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, opacity: paie.statut === "CORRIGEE" ? 0.5 : 1 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontWeight: 600, fontSize: 13 }}>
-          {paie.employe.nom}
-          {paie.statut === "CORRIGEE" && <span style={{ fontSize: 10.5, color: "var(--danger)", fontWeight: 400 }}> — corrigée</span>}
-        </span>
-        <span style={{ fontWeight: 700, fontSize: 13, textDecoration: paie.statut === "CORRIGEE" ? "line-through" : "none" }}>{paie.salaireNet.toFixed(2)} $</span>
-      </div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-        Brut {paie.salaireBrut.toFixed(2)} $ · Retenues {paie.totalDeductions.toFixed(2)} $
-        {!estVacances && ` · ${paie.heuresTravaillees.toFixed(2)} h`}
+      <div onClick={() => setOuvert((v) => !v)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+        <div>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>
+            {paie.employe.nom}
+            {paie.statut === "CORRIGEE" && <span style={{ fontSize: 10.5, color: "var(--danger)", fontWeight: 400 }}> — corrigée</span>}
+          </span>
+          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{infoRemuneration}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <span style={{ fontWeight: 700, fontSize: 13, textDecoration: paie.statut === "CORRIGEE" ? "line-through" : "none" }}>{paie.salaireNet.toFixed(2)} $</span>
+          <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{ouvert ? "▲ replier" : "▼ détails"}</div>
+        </div>
       </div>
 
-      {modifiable && (
-        <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
-          <label style={{ fontSize: 11, color: "var(--text-muted)" }}>{estVacances ? "Montant ($)" : "Heures"}</label>
-          <input
-            type="number" min={0} step="0.01" value={valeur} onChange={(e) => setValeur(e.target.value)}
-            style={{ width: 90, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12 }}
-          />
-          <button
-            type="button" disabled={enCours}
-            onClick={() => onAjuster(paie.id, estVacances ? { montantVacances: valeur } : { heuresManuelles: valeur })}
-            style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 6, cursor: "pointer" }}
-          >
-            ↻ Recalculer
-          </button>
-          <button
-            type="button" disabled={enCours} onClick={() => onRetirer(paie.id)}
-            style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginLeft: "auto" }}
-          >
-            Retirer
-          </button>
+      {!ouvert && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+          Brut {paie.salaireBrut.toFixed(2)} $ · Retenues {paie.totalDeductions.toFixed(2)} $
+          {!estVacances && ` · ${paie.heuresTravaillees.toFixed(2)} h`}
+          {paie.boni > 0 && ` · +${paie.boni.toFixed(2)} $ boni`}
         </div>
       )}
 
-      {paie.statut === "VERSEE" && (
-        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-          <a href={`/gerant/paie/${paie.id}/talon`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--text)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, textDecoration: "none" }}>
-            🖨️ Talon
-          </a>
-          <button onClick={() => onCorriger(paie.id)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
-            ✎ Corriger
-          </button>
+      {ouvert && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
+          {modifiable ? (
+            <>
+              {estVacances ? (
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>Montant de vacances ($)</label>
+                  <input
+                    type="number" min={0} step="0.01" value={montantValeur} onChange={(e) => setMontantValeur(e.target.value)}
+                    style={{ width: "100%", padding: "7px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12, boxSizing: "border-box" }}
+                  />
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>Heures</label>
+                    <input
+                      type="number" min={0} step="0.01" value={heuresValeur} onChange={(e) => setHeuresValeur(e.target.value)}
+                      style={{ width: "100%", padding: "7px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12, boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>Boni / extra ($)</label>
+                    <input
+                      type="number" min={0} step="0.01" value={boniValeur} onChange={(e) => setBoniValeur(e.target.value)}
+                      style={{ width: "100%", padding: "7px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12, boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                <button type="button" disabled={enCours} onClick={recalculer} style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "7px 10px", borderRadius: 6, cursor: "pointer" }}>
+                  ↻ Recalculer
+                </button>
+                <button type="button" disabled={enCours} onClick={() => onRetirer(paie.id)} style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "7px 10px", borderRadius: 6, cursor: "pointer" }}>
+                  Retirer
+                </button>
+              </div>
+            </>
+          ) : (
+            !estVacances && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{paie.heuresTravaillees.toFixed(2)} h{paie.boni > 0 && ` · +${paie.boni.toFixed(2)} $ boni`}</div>
+          )}
+
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 6 }}>Retenues détaillées</div>
+          <LigneDetail label="RRQ" valeur={paie.rrqEmploye} />
+          <LigneDetail label="RQAP" valeur={paie.rqapEmploye} />
+          <LigneDetail label="Assurance-emploi" valeur={paie.aeEmploye} />
+          <LigneDetail label="Impôt fédéral" valeur={paie.impotFederal} />
+          <LigneDetail label="Impôt Québec" valeur={paie.impotQuebec} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginTop: 4, paddingTop: 4, borderTop: "1px solid var(--border)" }}>
+            <span>Total retenues</span>
+            <span>{paie.totalDeductions.toFixed(2)} $</span>
+          </div>
+
+          {paie.statut === "VERSEE" && (
+            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              <a href={`/gerant/paie/${paie.id}/talon`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--text)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, textDecoration: "none" }}>
+                🖨️ Talon
+              </a>
+              <button onClick={() => onCorriger(paie.id)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
+                ✎ Corriger
+              </button>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function LigneDetail({ label, valeur }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 3 }}>
+      <span>{label}</span>
+      <span>{valeur.toFixed(2)} $</span>
     </div>
   );
 }

@@ -298,6 +298,7 @@ model Paie {
   periodeDebut    DateTime
   periodeFin      DateTime
   heuresTravaillees Float   @default(0)
+  boni            Float     @default(0) // prime/extra ajouté au brut, imposé comme le reste
   salaireBrut     Float
   rrqEmploye      Float     @default(0)
   rqapEmploye     Float     @default(0)
