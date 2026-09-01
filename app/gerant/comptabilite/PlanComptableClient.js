@@ -92,13 +92,6 @@ export default function PlanComptableClient({ comptes, labelsType }) {
         🏦 Rapprochement bancaire
       </Link>
       <Link
-        href="/gerant/comptabilite/comptes-a-payer"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        💳 Comptes à payer
-      </Link>
-      <Link
         href="/gerant/comptabilite/immobilisations"
         className="bouton-3d-sombre"
         style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}

@@ -8,6 +8,7 @@ const SECTIONS = [
   { cle: "operations", label: "🔧 Bons de commande / Factures" },
   { cle: "calendrier", label: "📅 Calendrier" },
   { cle: "clients", label: "🧑‍🤝‍🧑 Clients" },
+  { cle: "fournisseurs", label: "🏢 Fournisseurs" },
   { cle: "inventaire", label: "📦 Inventaire" },
   { cle: "comptabilite", label: "💰 Comptabilité" },
   { cle: "paie", label: "🧾 Paie" },

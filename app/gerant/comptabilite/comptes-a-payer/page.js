@@ -7,10 +7,7 @@ import ComptesAPayerClient from "./ComptesAPayerClient";
 
 export default async function ComptesAPayer() {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
-
-  const moduleComptabilite = await prisma.parametre.findUnique({ where: { cle: "module_comptabilite" } });
-  if (moduleComptabilite?.valeur === "inactif") redirect("/gerant");
+  if (!(await aAccesSection(session, "fournisseurs"))) redirect("/gerant");
 
   await assurerPlanComptable();
   await assurerCategoriesDepense();

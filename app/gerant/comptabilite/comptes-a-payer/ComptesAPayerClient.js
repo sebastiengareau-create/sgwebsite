@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux }) {
   const router = useRouter();
@@ -25,9 +24,8 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
 
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>💳 Comptes à payer</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <h1 style={{ fontSize: 20 }}>🏢 Fournisseurs</h1>
         <button onClick={() => setAfficherFormulaire((v) => !v)} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
           {afficherFormulaire ? "Annuler" : "+ Dépense"}
         </button>
@@ -48,14 +46,14 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
       </div>
 
       {ongletGestion === "fournisseurs" && <GestionFournisseurs fournisseurs={fournisseurs} onModifie={() => router.refresh()} />}
-      {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => window.location.reload()} />}
+      {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => router.refresh()} />}
 
       {afficherFormulaire && (
         <FormulaireDepense
           fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense}
           tpsTaux={tpsTaux} tvqTaux={tvqTaux}
           onCree={() => { setAfficherFormulaire(false); router.refresh(); }}
-          onCategorieCreee={() => window.location.reload()}
+          onCategorieCreee={() => router.refresh()}
         />
       )}
 
@@ -376,8 +374,13 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   async function creer(e) {
     e.preventDefault();
     setErreur("");
-    if (!fournisseurId || !categorieDepenseId || !description.trim() || !montant) {
-      setErreur("Remplis tous les champs.");
+    const manquants = [];
+    if (!fournisseurId) manquants.push("Fournisseur");
+    if (!categorieDepenseId) manquants.push("Poste de dépense");
+    if (!description.trim()) manquants.push("Description");
+    if (!montant || Number(montant) <= 0) manquants.push("Montant");
+    if (manquants.length > 0) {
+      setErreur(`Champ(s) manquant(s) : ${manquants.join(", ")}.`);
       return;
     }
     setEnCours(true);

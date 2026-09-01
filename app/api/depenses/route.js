@@ -5,7 +5,7 @@ import { posterDepenseRecue, verifierPeriodeModifiable } from "@/lib/comptabilit
 
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "comptabilite"))) {
+  if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 

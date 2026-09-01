@@ -5,7 +5,7 @@ import { posterDepensePayee, verifierPeriodeModifiable } from "@/lib/comptabilit
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "comptabilite"))) {
+  if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
@@ -45,7 +45,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "comptabilite"))) {
+  if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
