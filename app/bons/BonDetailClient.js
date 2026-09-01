@@ -511,6 +511,9 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   const [editDescriptionFacturation, setEditDescriptionFacturation] = useState(probleme.factureDescription || "");
   const [editPrixFacturation, setEditPrixFacturation] = useState(probleme.facturePrixUnitaire != null ? String(probleme.facturePrixUnitaire) : "");
   const [editQteFacturation, setEditQteFacturation] = useState(String(probleme.factureQte ?? 1));
+  const [erreurFacturation, setErreurFacturation] = useState("");
+  const [confirmationFacturation, setConfirmationFacturation] = useState("");
+  const [erreurCategorie, setErreurCategorie] = useState("");
 
   const piecesDisponibles = inventaire.filter((p) => p.qte > 0);
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
@@ -587,29 +590,44 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   }
 
   async function changerCategorie(categorieRevenu) {
+    setErreurCategorie("");
     setEnCours(true);
-    await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
+    const res = await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ categorieRevenu }),
     });
     setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurCategorie(data.erreur || "Erreur lors du changement de poste.");
+      return;
+    }
     onRafraichir();
   }
 
   async function sauvegarderFacturation() {
+    setErreurFacturation("");
+    setConfirmationFacturation("");
     setEnCours(true);
-    await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
+    const res = await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         factureDescription: editDescriptionFacturation,
-        facturePrixUnitaire: parseFloat(editPrixFacturation) || 0,
-        factureQte: parseFloat(editQteFacturation) || 1,
+        facturePrixUnitaire: parseFloat(editPrixFacturation.replace(",", ".")) || 0,
+        factureQte: parseFloat(editQteFacturation.replace(",", ".")) || 1,
       }),
     });
     setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurFacturation(data.erreur || "Erreur lors de la sauvegarde.");
+      return;
+    }
+    setConfirmationFacturation("Sauvegardé ✓");
     onRafraichir();
+    setTimeout(() => setConfirmationFacturation(""), 2500);
   }
 
   async function ajouterPiece() {
@@ -681,10 +699,11 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
         >
           <option value="MAIN_OEUVRE">🔧 Main-d'œuvre</option>
           {postesRevenu.map((c) => (
-            <option key={c.numero} value={c.numero}>{c.nom}</option>
+            <option key={c.numero} value={c.numero} disabled={!c.actif}>{c.nom}{!c.actif ? " (désactivé)" : ""}</option>
           ))}
         </select>
       )}
+      {erreurCategorie && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreurCategorie}</p>}
 
       {peutModifier && estGerant && (
         <Link href="/gerant/comptabilite" target="_blank" style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "var(--text-muted)", textDecoration: "underline" }}>
@@ -719,8 +738,10 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12 }}>
             <span style={{ color: "var(--text-muted)" }}>Total de cette ligne</span>
-            <span style={{ fontWeight: 700 }}>{((parseFloat(editPrixFacturation) || 0) * (parseFloat(editQteFacturation) || 0)).toFixed(2)} $</span>
+            <span style={{ fontWeight: 700 }}>{((parseFloat(editPrixFacturation.replace(",", ".")) || 0) * (parseFloat(editQteFacturation.replace(",", ".")) || 0)).toFixed(2)} $</span>
           </div>
+          {erreurFacturation && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurFacturation}</p>}
+          {confirmationFacturation && <p style={{ fontSize: 11, color: "var(--success)", marginTop: 6 }}>{confirmationFacturation}</p>}
         </div>
       )}
 

@@ -32,8 +32,11 @@ export default async function DetailBonPage({ params }) {
   const inventaire = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
   const mecaniciens = await prisma.user.findMany({ where: { role: "MECANICIEN", actif: true }, orderBy: { nom: "asc" } });
   await assurerPlanComptable();
+  // Inclut aussi les comptes désactivés (affichés grisés, non sélectionnables)
+  // pour qu'une tâche déjà classée dessus ne se retrouve jamais avec une
+  // valeur qui ne correspond à aucune option affichée.
   const postesRevenu = await prisma.compte.findMany({
-    where: { type: "REVENU", actif: true, numero: { notIn: COMPTES_REVENU_RESERVES } },
+    where: { type: "REVENU", numero: { notIn: COMPTES_REVENU_RESERVES } },
     orderBy: { numero: "asc" },
   });
   const parametres = await prisma.parametre.findMany();
