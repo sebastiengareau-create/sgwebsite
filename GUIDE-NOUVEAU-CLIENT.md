@@ -50,6 +50,9 @@ Chaque client a son **propre projet Railway complet** :
 4. Ajoute les variables `DATABASE_URL` (référence vers le Postgres du même
    projet) et `SESSION_SECRET` (nouvelle phrase secrète, différente pour
    chaque client — jamais la même partout)
+5. Pour Assistant SG, génère une clé Gemini gratuite sur aistudio.google.com
+   (une par client) et ajoute `GEMINI_API_KEY` + `GEMINI_MODEL` (voir le
+   `.env` local pour la valeur recommandée du modèle)
 
 ### 4. Initialiser la base de données de ce client
 Depuis le dossier du nouveau client, avec le tunnel Railway comme on l'a

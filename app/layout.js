@@ -1,6 +1,7 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
+import AssistantSG from "./components/AssistantSG";
 import "./globals.css";
 
 // Obligatoire — sinon Next.js essaie de générer cette page (et les
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }) {
     <html lang="fr">
       <body>
         {verrouille ? <EcranVerrouille /> : children}
+        {!verrouille && session && <AssistantSG />}
       </body>
     </html>
   );
