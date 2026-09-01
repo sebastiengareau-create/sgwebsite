@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function LotDetailClient({ lot, checklist }) {
+export default function LotDetailClient({ lot, checklist, employesDisponibles }) {
   const router = useRouter();
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const [avertissements, setAvertissements] = useState([]);
+  const [employeAAjouter, setEmployeAAjouter] = useState("");
   const estBrouillon = lot.statut === "BROUILLON";
 
   const totalBrut = lot.paies.reduce((s, p) => s + p.salaireBrut, 0);
@@ -42,6 +43,25 @@ export default function LotDetailClient({ lot, checklist }) {
       window.alert(data.erreur || "Erreur.");
       return;
     }
+    router.refresh();
+  }
+
+  async function ajouterEmploye() {
+    if (!employeAAjouter) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/paie/lots/${lot.id}/paies`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeId: employeAAjouter }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de l'ajout.");
+      return;
+    }
+    setEmployeAAjouter("");
     router.refresh();
   }
 
@@ -141,6 +161,18 @@ export default function LotDetailClient({ lot, checklist }) {
         </div>
       )}
 
+      {estBrouillon && employesDisponibles.length > 0 && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+          <select value={employeAAjouter} onChange={(e) => setEmployeAAjouter(e.target.value)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}>
+            <option value="">+ Ajouter un employé oublié…</option>
+            {employesDisponibles.map((e) => <option key={e.id} value={e.id}>{e.nom}</option>)}
+          </select>
+          <button type="button" disabled={enCours || !employeAAjouter} onClick={ajouterEmploye} className="bouton-3d-sombre" style={{ padding: "0 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+            Ajouter
+          </button>
+        </div>
+      )}
+
       <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Employés</h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
         {lot.paies.map((p) => (
@@ -204,6 +236,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{infoRemuneration}</div>
         </div>
         <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Brut {paie.salaireBrut.toFixed(2)} $</div>
           <span style={{ fontWeight: 700, fontSize: 13, textDecoration: paie.statut === "CORRIGEE" ? "line-through" : "none" }}>{paie.salaireNet.toFixed(2)} $</span>
           <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{ouvert ? "▲ replier" : "▼ détails"}</div>
         </div>
@@ -211,8 +244,9 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
 
       {!ouvert && (
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-          Brut {paie.salaireBrut.toFixed(2)} $ · Retenues {paie.totalDeductions.toFixed(2)} $
+          Retenues {paie.totalDeductions.toFixed(2)} $
           {!estVacances && ` · ${paie.heuresTravaillees.toFixed(2)} h`}
+          {!estVacances && paie.heuresHorodateur != null && paie.heuresHorodateur !== paie.heuresTravaillees && ` (${paie.heuresHorodateur.toFixed(2)} h réelles)`}
           {paie.boni > 0 && ` · +${paie.boni.toFixed(2)} $ boni`}
         </div>
       )}
@@ -232,7 +266,10 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
               ) : (
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>Heures</label>
+                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
+                      Heures
+                      {paie.heuresHorodateur != null && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> ({paie.heuresHorodateur.toFixed(2)} h réelles)</span>}
+                    </label>
                     <input
                       type="number" min={0} step="0.01" value={heuresValeur} onChange={(e) => setHeuresValeur(e.target.value)}
                       style={{ width: "100%", padding: "7px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12, boxSizing: "border-box" }}

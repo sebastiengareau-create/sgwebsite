@@ -46,6 +46,7 @@ export async function POST(request) {
           periodeDebut: new Date(periodeDebut),
           periodeFin: new Date(periodeFin),
           heuresTravaillees: r.heuresTravaillees,
+          heuresHorodateur: r.heuresHorodateur,
           boni: r.boni,
           salaireBrut: r.salaireBrutPeriode,
           rrqEmploye: r.rrqEmploye,

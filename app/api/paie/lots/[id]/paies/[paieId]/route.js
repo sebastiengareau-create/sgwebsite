@@ -37,6 +37,7 @@ export async function PATCH(request, { params }) {
     where: { id: paie.id },
     data: {
       heuresTravaillees: resultat.heuresTravaillees,
+      heuresHorodateur: resultat.heuresHorodateur,
       boni: resultat.boni,
       salaireBrut: resultat.salaireBrutPeriode,
       rrqEmploye: resultat.rrqEmploye,

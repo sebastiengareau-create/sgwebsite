@@ -17,10 +17,19 @@ export default async function LotPaieDetail({ params }) {
 
   const checklist = lot.statut === "BROUILLON" ? await obtenirChecklistLot(lot.paies) : null;
 
+  let employesDisponibles = [];
+  if (lot.statut === "BROUILLON") {
+    const idsDansLot = lot.paies.map((p) => p.employeId);
+    employesDisponibles = await prisma.user.findMany({
+      where: { actif: true, role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] }, id: { notIn: idsDansLot } },
+      orderBy: { nom: "asc" },
+    });
+  }
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <LotDetailClient lot={lot} checklist={checklist} />
+      <LotDetailClient lot={lot} checklist={checklist} employesDisponibles={employesDisponibles} />
     </div>
   );
 }

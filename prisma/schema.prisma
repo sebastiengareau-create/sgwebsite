@@ -298,6 +298,7 @@ model Paie {
   periodeDebut    DateTime
   periodeFin      DateTime
   heuresTravaillees Float   @default(0)
+  heuresHorodateur  Float?  // total réellement poinçonné, informatif seulement — heuresTravaillees peut différer (horaire d'ouverture par défaut, ou ajusté manuellement)
   boni            Float     @default(0) // prime/extra ajouté au brut, imposé comme le reste
   salaireBrut     Float
   rrqEmploye      Float     @default(0)
