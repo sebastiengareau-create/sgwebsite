@@ -40,6 +40,17 @@ export async function PATCH(request, { params }) {
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
   if (body.assignation !== undefined) data.assignation = body.assignation || null;
+  if (body.dateEmbauche !== undefined) data.dateEmbauche = body.dateEmbauche ? new Date(body.dateEmbauche) : null;
+  if (body.numeroEmploye !== undefined) {
+    const valeur = body.numeroEmploye || null;
+    if (valeur) {
+      const existant = await prisma.user.findFirst({ where: { numeroEmploye: valeur, NOT: { id: params.id } } });
+      if (existant) {
+        return NextResponse.json({ erreur: "Ce numéro d'employé est déjà utilisé." }, { status: 409 });
+      }
+    }
+    data.numeroEmploye = valeur;
+  }
 
   if (body.accesSections !== undefined) {
     // Réservé au développeur ou à un gérant avec le statut super-admin —

@@ -17,7 +17,7 @@ export default async function JournalPaie({ searchParams }) {
   const fin = new Date(`${finStr}T23:59:59`);
 
   const paies = await prisma.paie.findMany({
-    where: { periodeFin: { gte: debut, lte: fin }, statut: { not: "CORRIGEE" } },
+    where: { periodeFin: { gte: debut, lte: fin }, statut: "VERSEE" },
     include: { employe: true },
     orderBy: { periodeFin: "asc" },
   });

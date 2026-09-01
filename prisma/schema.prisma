@@ -28,6 +28,8 @@ model User {
   telephone    String?
   adresse      String?
   assignation  String? // ex. spécialité, poste, secteur assigné — texte libre
+  numeroEmploye String? @unique
+  dateEmbauche  DateTime?
   // Niveau d'accès distinct du rôle "Gérant" — jamais exposé dans les
   // formulaires de création/modification d'employé, ne peut être activé
   // que manuellement (voir prisma/rendre-super-admin.js). Même un futur
@@ -268,10 +270,31 @@ model EntreeTempsInterne {
 
 // ---------- PAIE (estimation — voir avertissements dans l'interface) ----------
 
+// Un lot regroupe une ou plusieurs paies traitées ensemble (traitement par
+// lot). BROUILLON = calculé mais pas encore comptabilisé, encore modifiable.
+// COMPTABILISEE = chaque paie du lot a été versée et son écriture comptable
+// créée. La correction reste au niveau d'une paie individuelle (voir Paie.statut) —
+// un lot n'a pas de statut "corrigée" propre, une correction ne concerne
+// jamais tout le lot à la fois.
+model LotPaie {
+  id             String    @id @default(cuid())
+  numero         String    @unique // "PAIE-0007"
+  periodeDebut   DateTime
+  periodeFin     DateTime
+  typePaie       String    @default("REGULIERE") // "REGULIERE" | "VACANCES"
+  statut         String    @default("BROUILLON") // "BROUILLON" | "COMPTABILISEE"
+  creePar        String?
+  comptabiliseLe DateTime?
+  creeLe         DateTime  @default(now())
+  paies          Paie[]
+}
+
 model Paie {
   id              String    @id @default(cuid())
   employeId       String
   employe         User      @relation(fields: [employeId], references: [id])
+  lotId           String?
+  lot             LotPaie?  @relation(fields: [lotId], references: [id])
   periodeDebut    DateTime
   periodeFin      DateTime
   heuresTravaillees Float   @default(0)

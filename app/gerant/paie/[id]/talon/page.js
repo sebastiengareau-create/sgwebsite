@@ -19,7 +19,7 @@ export default async function TalonDePaie({ params }) {
   const paiesAnnee = await prisma.paie.findMany({
     where: {
       employeId: paie.employeId,
-      statut: { not: "CORRIGEE" },
+      statut: "VERSEE",
       periodeFin: { gte: new Date(`${anneeCourante}-01-01`), lte: paie.periodeFin },
     },
   });
