@@ -7,7 +7,7 @@ import Link from "next/link";
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
-export default function PlanComptableClient({ comptes, labelsType }) {
+export default function PlanComptableClient({ comptes, labelsType, estDeveloppeur }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [numero, setNumero] = useState("");
@@ -15,6 +15,9 @@ export default function PlanComptableClient({ comptes, labelsType }) {
   const [type, setType] = useState("DEPENSE");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
+  const [renommageId, setRenommageId] = useState(null);
+  const [nomRenommage, setNomRenommage] = useState("");
+  const [erreurRenommage, setErreurRenommage] = useState("");
 
   const totalActif = comptes.filter((c) => c.type === "ACTIF").reduce((s, c) => s + c.solde, 0);
   const totalPassif = comptes.filter((c) => c.type === "PASSIF").reduce((s, c) => s + c.solde, 0);
@@ -54,6 +57,33 @@ export default function PlanComptableClient({ comptes, labelsType }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ actif: false }),
     });
+    router.refresh();
+  }
+
+  function commencerRenommage(compte, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setErreurRenommage("");
+    setRenommageId(compte.id);
+    setNomRenommage(compte.nom);
+  }
+
+  async function sauvegarderRenommage(id, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!nomRenommage.trim()) return;
+    setErreurRenommage("");
+    const res = await fetch(`/api/comptabilite/comptes/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom: nomRenommage.trim() }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurRenommage(data.erreur || "Erreur lors du renommage.");
+      return;
+    }
+    setRenommageId(null);
     router.refresh();
   }
 
@@ -169,12 +199,28 @@ export default function PlanComptableClient({ comptes, labelsType }) {
               {comptesType.map((c) => (
                 <Link key={c.id} href={`/gerant/comptabilite/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                   <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginRight: 6 }}>{c.numero}</span>
-                      <span style={{ fontSize: 13 }}>{c.nom}</span>
+                      {renommageId === c.id ? (
+                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                          <input
+                            value={nomRenommage}
+                            onChange={(e) => setNomRenommage(e.target.value)}
+                            autoFocus
+                            style={{ fontSize: 13, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                          />
+                          <button onClick={(e) => sauvegarderRenommage(c.id, e)} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>✓</button>
+                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenommageId(null); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✕</button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 13 }}>{c.nom}</span>
+                      )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ fontSize: 13, fontWeight: 700 }}>{c.solde.toFixed(2)} $</span>
+                      {estDeveloppeur && renommageId !== c.id && (
+                        <button onClick={(e) => commencerRenommage(c, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✏️</button>
+                      )}
                       {c.nbEcritures === 0 && (
                         <button onClick={(e) => desactiverCompte(c.id, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✕</button>
                       )}
@@ -183,6 +229,9 @@ export default function PlanComptableClient({ comptes, labelsType }) {
                 </Link>
               ))}
             </div>
+            {comptesType.some((c) => c.id === renommageId) && erreurRenommage && (
+              <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurRenommage}</p>
+            )}
           </div>
         );
       })}

@@ -30,10 +30,18 @@ export default async function Comptabilite() {
     return { id: c.id, numero: c.numero, nom: c.nom, type: c.type, solde, nbEcritures: c.lignes.length };
   });
 
+  // Renommer un poste (nom seulement, jamais le numéro) est réservé au
+  // développeur — même règle que dans app/api/comptabilite/comptes/[id]/route.js
+  let estDeveloppeur = session.role === "DEVELOPPEUR";
+  if (!estDeveloppeur) {
+    const moi = await prisma.user.findUnique({ where: { id: session.id }, select: { estSuperAdmin: true } });
+    estDeveloppeur = moi?.estSuperAdmin || false;
+  }
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <PlanComptableClient comptes={comptesAvecSolde} labelsType={LABELS_TYPE} />
+      <PlanComptableClient comptes={comptesAvecSolde} labelsType={LABELS_TYPE} estDeveloppeur={estDeveloppeur} />
     </div>
   );
 }
