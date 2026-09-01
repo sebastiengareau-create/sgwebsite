@@ -35,7 +35,8 @@ export default async function ImprimerBon({ params }) {
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
-  const toutesEntreesTemps = bon.problemes.flatMap((pr) => pr.entreesTemps);
+  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
+  const toutesEntreesTemps = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
   const parEmploye = {};
   for (const t of toutesEntreesTemps) {
     if (!parEmploye[t.employeId]) parEmploye[t.employeId] = { employe: t.employe, heures: 0 };
@@ -52,9 +53,12 @@ export default async function ImprimerBon({ params }) {
   const tauxHoraireClient = estFacturee ? bon.facture.tauxHoraireUtilise : Number(dict.taux_horaire_client || 195);
   const totalHeures = estFacturee ? bon.facture.heuresFacturees : Object.values(parEmploye).reduce((s, l) => s + l.heures, 0);
   const totalMainOeuvre = estFacturee ? bon.facture.totalMainOeuvre : totalHeures * tauxHoraireClient;
+  const totalAutresRevenus = estFacturee
+    ? (bon.facture.totalAutresRevenus || 0)
+    : bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE").reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
   const sousTotalAvantEscompte = estFacturee
     ? bon.facture.totalFacture + (bon.facture.escompteApplique || 0)
-    : totalPieces + totalMainOeuvre;
+    : totalPieces + totalMainOeuvre + totalAutresRevenus;
   const escompteApplique = estFacturee
     ? (bon.facture.escompteApplique || 0)
     : Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
@@ -140,9 +144,11 @@ export default async function ImprimerBon({ params }) {
           Détail des travaux
         </div>
         {bon.problemes.map((pr, idx) => {
-          const heuresTache = pr.entreesTemps
-            .filter((t) => t.fin)
-            .reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
+          const estMainOeuvre = (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE";
+          const heuresTache = estMainOeuvre
+            ? pr.entreesTemps.filter((t) => t.fin).reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0)
+            : 0;
+          const montantManuel = !estMainOeuvre ? (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1) : 0;
           return (
           <div key={pr.id} style={{ marginBottom: 16, pageBreakInside: "avoid" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
@@ -152,7 +158,15 @@ export default async function ImprimerBon({ params }) {
                   {fmtHeures(heuresTache)} × {tauxHoraireClient.toFixed(2)} $ = {(heuresTache * tauxHoraireClient).toFixed(2)} $
                 </span>
               )}
+              {!estMainOeuvre && montantManuel > 0.005 && (
+                <span style={{ fontSize: 12, color: "#666", fontWeight: 400, whiteSpace: "nowrap" }}>
+                  {pr.factureQte || 1} × {(pr.facturePrixUnitaire || 0).toFixed(2)} $ = {montantManuel.toFixed(2)} $
+                </span>
+              )}
             </div>
+            {!estMainOeuvre && pr.factureDescription && (
+              <div style={{ fontSize: 11.5, color: "#888", marginTop: 2 }}>{pr.factureDescription}</div>
+            )}
 
             {pr.pieces.length > 0 && (
               <table style={{ width: "100%", fontSize: 12, marginTop: 6, borderCollapse: "collapse" }}>
@@ -193,6 +207,7 @@ export default async function ImprimerBon({ params }) {
 
         <div style={{ marginTop: 16, marginLeft: "auto", width: 260 }}>
           <LigneTotal label="Main-d'œuvre" valeur={totalMainOeuvre} />
+          {totalAutresRevenus > 0 && <LigneTotal label="Autres services" valeur={totalAutresRevenus} />}
           <LigneTotal label="Pièces" valeur={totalPieces} />
           <LigneTotal label="Sous-total" valeur={sousTotalAvantEscompte} gras={escompteApplique === 0} bordureHaut />
           {escompteApplique > 0 && (

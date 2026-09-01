@@ -97,6 +97,7 @@ model Facture {
   statut             String    @default("IMPAYEE") // "IMPAYEE" | "PAYEE" | "ANNULEE"
   totalPieces        Float
   totalMainOeuvre    Float
+  totalAutresRevenus Float     @default(0) // remorquage, alignement, entreposage, autre — lignes de facturation manuelle
   escompteApplique   Float     @default(0)
   totalFacture       Float
   tauxHoraireUtilise Float
@@ -112,6 +113,12 @@ model Probleme {
   id          String     @id @default(cuid())
   description String
   categorieRevenu String @default("MAIN_OEUVRE") // "MAIN_OEUVRE" | "ALIGNEMENT" | "REMORQUAGE" | "ENTREPOSAGE" | "AUTRE"
+  // Facturation manuelle — utilisée seulement quand categorieRevenu != MAIN_OEUVRE
+  // (ces postes ne se facturent pas au client sur les heures poinçonnées ;
+  // le poinçon reste actif pour la paie, mais le montant facturé vient d'ici)
+  factureDescription  String?
+  facturePrixUnitaire Float?
+  factureQte          Float?     @default(1)
   bonId       String
   bon         BonTravail @relation(fields: [bonId], references: [id], onDelete: Cascade)
   photos      Photo[]

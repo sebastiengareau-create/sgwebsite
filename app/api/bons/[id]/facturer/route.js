@@ -29,17 +29,26 @@ export async function POST(request, { params }) {
   const tpsTaux = Number(dict.tps_taux || 5);
   const tvqTaux = Number(dict.tvq_taux || 9.975);
 
-  const toutesEntreesTemps = bon.problemes.flatMap((pr) => pr.entreesTemps);
+  // Main-d'œuvre : facturée sur les heures poinçonnées, seulement pour les
+  // tâches restées sur le poste par défaut. Les autres postes de revenu
+  // (remorquage, alignement, entreposage, autre) se facturent sur la ligne
+  // manuelle saisie sur la tâche — le poinçon reste actif pour la paie, mais
+  // ne détermine plus le montant facturé au client pour ces tâches-là.
+  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
+  const entreesTempsMainOeuvre = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
 
   const totalPieces = bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0),
     0
   );
-  const heuresFacturees = toutesEntreesTemps
+  const heuresFacturees = entreesTempsMainOeuvre
     .filter((t) => t.fin)
     .reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
   const totalMainOeuvre = heuresFacturees * tauxHoraireClient;
-  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre;
+  const totalAutresRevenus = bon.problemes
+    .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
+    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
+  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus;
   const escompte = Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte); // jamais négatif
   const totalFacture = sousTotalAvantEscompte - escompte;
 
@@ -64,6 +73,7 @@ export async function POST(request, { params }) {
         numero,
         totalPieces,
         totalMainOeuvre,
+        totalAutresRevenus,
         escompteApplique: escompte,
         totalFacture,
         tauxHoraireUtilise: tauxHoraireClient,

@@ -184,17 +184,24 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
     await appel(`/api/bons/${bon.id}/problemes/${problemeId}`, { method: "DELETE" });
   }
 
-  const toutesEntreesTemps = bon.problemes.flatMap((pr) => pr.entreesTemps);
+  // Main-d'œuvre : seulement les tâches restées sur le poste par défaut —
+  // les autres postes de revenu (remorquage, alignement…) se facturent sur
+  // leur ligne manuelle, pas sur les heures poinçonnées
+  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
+  const toutesEntreesTempsMainOeuvre = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
   const totalPieces = bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0),
     0
   );
-  const totalHeuresTerminees = toutesEntreesTemps
+  const totalHeuresTerminees = toutesEntreesTempsMainOeuvre
     .filter((t) => t.fin)
     .reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
-  const heuresEnCours = toutesEntreesTemps.some((t) => !t.fin);
+  const heuresEnCours = toutesEntreesTempsMainOeuvre.some((t) => !t.fin);
   const totalMainOeuvre = totalHeuresTerminees * tauxHoraireClient;
-  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre;
+  const totalAutresRevenus = bon.problemes
+    .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
+    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
+  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus;
   const [escompteInput, setEscompteInput] = useState(String(bon.escompteMontant || 0));
   const [escompteRaisonInput, setEscompteRaisonInput] = useState(bon.escompteRaison || "");
   const escompteApplique = Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
@@ -276,6 +283,12 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
               <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {bon.facture.tauxHoraireUtilise.toFixed(2)} $/h)</span>
               <span style={{ fontWeight: 600 }}>{bon.facture.totalMainOeuvre.toFixed(2)} $</span>
             </div>
+            {bon.facture.totalAutresRevenus > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                <span style={{ color: "var(--text-muted)" }}>Autres services</span>
+                <span style={{ fontWeight: 600 }}>{bon.facture.totalAutresRevenus.toFixed(2)} $</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
               <span style={{ color: "var(--text-muted)" }}>Pièces</span>
               <span style={{ fontWeight: 600 }}>{bon.facture.totalPieces.toFixed(2)} $</span>
@@ -363,6 +376,12 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, tauxHora
               <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {tauxHoraireClient.toFixed(2)} $/h){heuresEnCours ? " *" : ""}</span>
               <span style={{ fontWeight: 600 }}>{totalMainOeuvre.toFixed(2)} $</span>
             </div>
+            {totalAutresRevenus > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                <span style={{ color: "var(--text-muted)" }}>Autres services</span>
+                <span style={{ fontWeight: 600 }}>{totalAutresRevenus.toFixed(2)} $</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
               <span style={{ color: "var(--text-muted)" }}>Pièces</span>
               <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
@@ -487,6 +506,9 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, peutModif
   const [pieceEnEdition, setPieceEnEdition] = useState(null);
   const [editPrix, setEditPrix] = useState("");
   const [editQte, setEditQte] = useState("");
+  const [editDescriptionFacturation, setEditDescriptionFacturation] = useState(probleme.factureDescription || "");
+  const [editPrixFacturation, setEditPrixFacturation] = useState(probleme.facturePrixUnitaire != null ? String(probleme.facturePrixUnitaire) : "");
+  const [editQteFacturation, setEditQteFacturation] = useState(String(probleme.factureQte ?? 1));
 
   const piecesDisponibles = inventaire.filter((p) => p.qte > 0);
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
@@ -573,6 +595,21 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, peutModif
     onRafraichir();
   }
 
+  async function sauvegarderFacturation() {
+    setEnCours(true);
+    await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        factureDescription: editDescriptionFacturation,
+        facturePrixUnitaire: parseFloat(editPrixFacturation) || 0,
+        factureQte: parseFloat(editQteFacturation) || 1,
+      }),
+    });
+    setEnCours(false);
+    onRafraichir();
+  }
+
   async function ajouterPiece() {
     setErreurPiece("");
     setConfirmationPiece("");
@@ -648,10 +685,44 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, peutModif
         </select>
       )}
 
+      {peutModifier && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (
+        <div style={{ marginTop: 8, background: "var(--bg)", borderRadius: 8, padding: 8 }}>
+          <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>
+            💵 Facturation de cette tâche (ne dépend pas du poinçon)
+          </div>
+          <input
+            value={editDescriptionFacturation}
+            onChange={(e) => setEditDescriptionFacturation(e.target.value)}
+            placeholder="Description à facturer (ex. Remorquage aller-retour)"
+            style={{ ...champPetit, width: "100%", marginBottom: 6 }}
+          />
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input
+              type="number" min={0} step="0.01" value={editPrixFacturation}
+              onChange={(e) => setEditPrixFacturation(e.target.value)}
+              placeholder="Prix unitaire" style={{ ...champPetit, flex: 1 }}
+            />
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>×</span>
+            <input
+              type="number" min={0} step="1" value={editQteFacturation}
+              onChange={(e) => setEditQteFacturation(e.target.value)}
+              placeholder="Unités" style={{ ...champPetit, width: 56, textAlign: "center" }}
+            />
+            <button onClick={sauvegarderFacturation} disabled={enCours} style={{ ...boutonTexte, color: "var(--accent)" }}>✓</button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12 }}>
+            <span style={{ color: "var(--text-muted)" }}>Total de cette ligne</span>
+            <span style={{ fontWeight: 700 }}>{((parseFloat(editPrixFacturation) || 0) * (parseFloat(editQteFacturation) || 0)).toFixed(2)} $</span>
+          </div>
+        </div>
+      )}
+
       {/* Horodateur propre à cette tâche */}
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lignesTemps.length > 0 ? 6 : 0 }}>
-          <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>⏱ Temps sur cette tâche</span>
+          <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>
+            ⏱ Temps sur cette tâche{probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" ? " (pour la paie — ne facture pas le client)" : ""}
+          </span>
           {peutPoinconner && (
             <button
               onClick={togglePoincon}

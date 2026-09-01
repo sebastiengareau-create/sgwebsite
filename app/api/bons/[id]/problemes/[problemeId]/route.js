@@ -10,12 +10,20 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { categorieRevenu } = await request.json();
-  if (!CATEGORIES_VALIDES.includes(categorieRevenu)) {
-    return NextResponse.json({ erreur: "Catégorie invalide." }, { status: 400 });
-  }
+  const { categorieRevenu, factureDescription, facturePrixUnitaire, factureQte } = await request.json();
 
-  const probleme = await prisma.probleme.update({ where: { id: params.problemeId }, data: { categorieRevenu } });
+  const data = {};
+  if (categorieRevenu !== undefined) {
+    if (!CATEGORIES_VALIDES.includes(categorieRevenu)) {
+      return NextResponse.json({ erreur: "Catégorie invalide." }, { status: 400 });
+    }
+    data.categorieRevenu = categorieRevenu;
+  }
+  if (factureDescription !== undefined) data.factureDescription = factureDescription || null;
+  if (facturePrixUnitaire !== undefined) data.facturePrixUnitaire = Number(facturePrixUnitaire) || 0;
+  if (factureQte !== undefined) data.factureQte = Number(factureQte) || 1;
+
+  const probleme = await prisma.probleme.update({ where: { id: params.problemeId }, data });
   return NextResponse.json(probleme);
 }
 
