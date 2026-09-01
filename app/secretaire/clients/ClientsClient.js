@@ -27,9 +27,12 @@ export default function ClientsClient({ clients }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau client"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
+      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 4 }}>
         {clients.length} client{clients.length !== 1 ? "s" : ""} au total. Touche un client pour voir ses détails.
       </p>
+      <Link href="/gerant/comptabilite/rapports/comptes-clients" target="_blank" style={{ display: "inline-block", fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", marginBottom: 12 }}>
+        📋 Comptes clients (âgé) →
+      </Link>
 
       {afficherFormulaire && (
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />

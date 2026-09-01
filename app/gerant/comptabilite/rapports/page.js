@@ -17,8 +17,6 @@ export default async function RapportsComptables() {
     { href: "/gerant/comptabilite/rapports/balance-verification", icone: "🧮", titre: "Balance de vérification", description: "Tous les comptes, débits et crédits" },
     { href: "/gerant/comptabilite/rapports/tps-tvq", icone: "🧾", titre: "Remise TPS/TVQ", description: "Net à remettre pour une période" },
     { href: "/gerant/comptabilite/rapports/das", icone: "🏛️", titre: "DAS à remettre", description: "ARC et Revenu Québec — impôts, RRQ, RQAP, AE" },
-    { href: "/gerant/comptabilite/rapports/comptes-clients", icone: "📋", titre: "Comptes clients (âgé)", description: "Qui te doit de l'argent, par ancienneté" },
-    { href: "/gerant/comptabilite/rapports/comptes-fournisseurs", icone: "📋", titre: "Comptes fournisseurs (âgé)", description: "Qui payer en priorité, par ancienneté" },
   ];
 
   return (

@@ -19,7 +19,7 @@ function trancheDe(jours) {
 export default async function RapportComptesFournisseurs() {
   const session = await obtenirSession();
   const { nomEntreprise, adresseLigne1, adresseLigne2 } = await obtenirInfosEntreprise();
-  if (!(await aAccesSection(session, "comptabilite"))) redirect("/login");
+  if (!(await aAccesSection(session, "fournisseurs"))) redirect("/gerant");
 
   const depenses = await prisma.depense.findMany({
     where: { statut: "IMPAYEE" },

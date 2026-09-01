@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux }) {
   const router = useRouter();
@@ -35,6 +36,10 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalDu.toFixed(2)} $</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total dû aux fournisseurs</div>
       </div>
+
+      <Link href="/gerant/comptabilite/rapports/comptes-fournisseurs" target="_blank" style={{ display: "inline-block", fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", marginBottom: 16 }}>
+        📋 Comptes fournisseurs (âgé) →
+      </Link>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <button onClick={() => setOngletGestion(ongletGestion === "fournisseurs" ? null : "fournisseurs")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
