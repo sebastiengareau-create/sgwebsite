@@ -4,13 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const STATUTS_DEPENSE = {
+  IMPAYEE: { label: "Impayée", color: "#C9A227" },
+  PAYEE: { label: "Payée", color: "#6FA96B" },
+};
+
 export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux }) {
   const router = useRouter();
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [depenseAPayer, setDepenseAPayer] = useState(null); // id de la dépense en train d'être payée
+  const [filtre, setFiltre] = useState("TOUTES");
 
   const totalDu = depenses.filter((d) => d.statut === "IMPAYEE").reduce((s, d) => s + d.montant, 0);
+  const depensesFiltrees = depenses.filter((d) => filtre === "TOUTES" || d.statut === filtre);
 
   async function supprimerDepense(id) {
     if (!window.confirm("Supprimer cette dépense ? Retire aussi les écritures comptables liées.")) return;
@@ -68,8 +75,24 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
       )}
 
       <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8, marginTop: 8 }}>Dépenses récentes</h2>
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto" }}>
+        {["IMPAYEE", "PAYEE", "TOUTES"].map((f) => (
+          <button
+            key={f}
+            onClick={() => setFiltre(f)}
+            style={{
+              fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, whiteSpace: "nowrap", cursor: "pointer",
+              background: filtre === f ? "var(--accent)" : "var(--surface)",
+              color: filtre === f ? "#17150f" : "var(--text-muted)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {f === "TOUTES" ? "Tous" : STATUTS_DEPENSE[f].label}
+          </button>
+        ))}
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {depenses.map((d) => (
+        {depensesFiltrees.map((d) => (
           <div key={d.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, borderLeft: `3px solid ${d.statut === "PAYEE" ? "var(--success)" : "var(--danger)"}` }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>{d.fournisseur.nom}</span>
@@ -105,7 +128,11 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
             )}
           </div>
         ))}
-        {depenses.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune dépense encore.</p>}
+        {depensesFiltrees.length === 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            {depenses.length === 0 ? "Aucune dépense encore." : "Aucune dépense pour ce filtre."}
+          </p>
+        )}
       </div>
     </div>
   );

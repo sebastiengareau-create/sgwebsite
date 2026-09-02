@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 export async function POST(request, { params }) {
   const session = await obtenirSession();
@@ -20,6 +21,9 @@ export async function POST(request, { params }) {
 
     const probleme = await prisma.probleme.findUnique({ where: { id: problemeId } });
     if (!probleme) return NextResponse.json({ erreur: "Tâche introuvable." }, { status: 404 });
+    if (await bonEstVerrouille(probleme.bonId)) {
+      return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
+    }
 
     const active = await prisma.entreeTemps.findFirst({ where: { employeId, problemeId, fin: null } });
 

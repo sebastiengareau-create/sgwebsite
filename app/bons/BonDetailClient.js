@@ -61,6 +61,10 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
 
+  // Un bon facturé est figé — plus rien n'est modifiable dessus (tâches,
+  // pièces, temps, photos, poste). Seul "Annuler la facture" le débloque.
+  const factureExiste = !!bon.facture;
+
   async function supprimerBon() {
     if (!window.confirm(`Supprimer définitivement le bon #${bon.numero} ? Les pièces utilisées seront remises en stock. Cette action est irréversible.`)) return;
     setEnCours(true);
@@ -111,7 +115,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   }
 
   async function creerFacture() {
-    if (!window.confirm("Émettre la facture officielle pour ce bon ? Le montant sera figé même si le bon est modifié après.")) return;
+    if (!window.confirm("Émettre la facture officielle pour ce bon ? Le bon ne sera plus modifiable ensuite (tu pourras toujours annuler la facture pour le débloquer).")) return;
     setErreurFacture("");
     setAvertissementFacture("");
     setEnCours(true);
@@ -146,7 +150,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   }
 
   async function supprimerFacture() {
-    if (!window.confirm("Supprimer complètement cette facture ? À utiliser seulement en période de test — en usage réel, préfère « Annuler » pour garder la trace. Cette action est irréversible.")) return;
+    if (!window.confirm("Annuler cette facture pour débloquer le bon ? Le bon redevient modifiable et repasse à « En cours ». La facture et ses écritures comptables sont retirées définitivement — si tu dois garder une trace du montant, imprime-la avant. Pour garder une trace tout en gardant le bon verrouillé, utilise plutôt « Annuler » ci-dessus.")) return;
     setEnCours(true);
     const res = await fetch(`/api/factures/${bon.facture.id}`, { method: "DELETE" });
     setEnCours(false);
@@ -242,7 +246,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
           >
             🖨️ {bon.facture ? "Facture" : "Bon de commande"}
           </Link>
-          {peutModifier && (
+          {peutModifier && !factureExiste && (
             <button
               onClick={supprimerBon}
               disabled={enCours}
@@ -265,6 +269,13 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
         </div>
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
+
+      {factureExiste && (
+        <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
+          🔒 Ce bon est facturé — plus aucune modification possible (tâches, pièces, temps, photos). Il reste entièrement consultable.
+          {estGerant && " Pour le corriger, annule la facture ci-dessous."}
+        </div>
+      )}
 
       <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-muted)" }}>
         Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise.
@@ -366,7 +377,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
                 disabled={enCours}
                 style={{ width: "100%", marginTop: 8, padding: 8, borderRadius: 8, border: "1px dashed var(--danger)", background: "none", color: "var(--danger)", fontSize: 11, cursor: "pointer" }}
               >
-                🗑️ Supprimer la facture (période de test)
+                ↩️ Annuler la facture (débloque le bon pour le modifier)
               </button>
             )}
           </>
@@ -466,14 +477,15 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
             peutPoinconner={peutPoinconner}
             estGerant={estGerant}
             moi={moi}
-            peutSupprimer={peutModifier && bon.problemes.length > 1}
+            verrouille={factureExiste}
+            peutSupprimer={peutModifier && !factureExiste && bon.problemes.length > 1}
             onSupprimer={() => supprimerProbleme(pr.id)}
             onRafraichir={() => router.refresh()}
           />
         ))}
       </div>
 
-      {peutModifier && (
+      {peutModifier && !factureExiste && (
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <input
             value={nouveauProbleme}
@@ -488,7 +500,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, peutSupprimer, onSupprimer, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
   const [qtePiece, setQtePiece] = useState(1);
   const [erreurPiece, setErreurPiece] = useState("");
@@ -690,7 +702,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
         {peutSupprimer && <button onClick={onSupprimer} style={boutonTexte}>✕</button>}
       </div>
 
-      {peutModifier && (
+      {peutModifier && !verrouille && (
         <select
           value={probleme.categorieRevenu || "MAIN_OEUVRE"}
           onChange={(e) => changerCategorie(e.target.value)}
@@ -703,15 +715,22 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
           ))}
         </select>
       )}
+      {verrouille && (
+        <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-muted)" }}>
+          Poste : {probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE"
+            ? (postesRevenu.find((c) => c.numero === probleme.categorieRevenu)?.nom || probleme.categorieRevenu)
+            : "🔧 Main-d'œuvre"}
+        </div>
+      )}
       {erreurCategorie && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreurCategorie}</p>}
 
-      {peutModifier && estGerant && (
+      {peutModifier && !verrouille && estGerant && (
         <Link href="/gerant/comptabilite" target="_blank" style={{ display: "inline-block", marginTop: 4, fontSize: 10, color: "var(--text-muted)", textDecoration: "underline" }}>
           + Ajouter/retirer un poste (Plan comptable)
         </Link>
       )}
 
-      {peutModifier && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (
+      {peutModifier && !verrouille && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (
         <div style={{ marginTop: 8, background: "var(--bg)", borderRadius: 8, padding: 8 }}>
           <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>
             💵 Facturation de cette tâche (ne dépend pas du poinçon)
@@ -744,6 +763,16 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
           {confirmationFacturation && <p style={{ fontSize: 11, color: "var(--success)", marginTop: 6 }}>{confirmationFacturation}</p>}
         </div>
       )}
+      {verrouille && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (
+        <div style={{ marginTop: 8, background: "var(--bg)", borderRadius: 8, padding: 8 }}>
+          <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>💵 Facturation de cette tâche</div>
+          {probleme.factureDescription && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{probleme.factureDescription}</div>}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+            <span style={{ color: "var(--text-muted)" }}>{probleme.factureQte || 1} × {(probleme.facturePrixUnitaire || 0).toFixed(2)} $</span>
+            <span style={{ fontWeight: 700 }}>{((probleme.facturePrixUnitaire || 0) * (probleme.factureQte || 1)).toFixed(2)} $</span>
+          </div>
+        </div>
+      )}
 
       {/* Horodateur propre à cette tâche */}
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
@@ -751,7 +780,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
           <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>
             ⏱ Temps sur cette tâche{probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" ? " (pour la paie — ne facture pas le client)" : ""}
           </span>
-          {peutPoinconner && (
+          {peutPoinconner && !verrouille && (
             <button
               onClick={togglePoincon}
               disabled={enCoursPoincon}
@@ -796,10 +825,12 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
                     <span style={{ color: "var(--text-muted)" }}>
                       {t.employe.nom} · {new Date(t.debut).toLocaleString("fr-CA", { dateStyle: "short", timeStyle: "short" })} → {new Date(t.fin).toLocaleTimeString("fr-CA", { timeStyle: "short" })} ({fmtHeures(dureeHeures(t.debut, t.fin))})
                     </span>
-                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                      <button onClick={() => { setEntreeEnEdition(t.id); setEditDebut(versInputLocal(t.debut)); setEditFin(versInputLocal(t.fin)); }} style={boutonTexte}>✏️</button>
-                      <button onClick={() => supprimerEntreeTemps(t.id)} style={{ ...boutonTexte, color: "var(--danger)" }}>✕</button>
-                    </div>
+                    {!verrouille && (
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => { setEntreeEnEdition(t.id); setEditDebut(versInputLocal(t.debut)); setEditFin(versInputLocal(t.fin)); }} style={boutonTexte}>✏️</button>
+                        <button onClick={() => supprimerEntreeTemps(t.id)} style={{ ...boutonTexte, color: "var(--danger)" }}>✕</button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -808,7 +839,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
         )}
 
         {/* Ajouter du temps manuellement — pour un employé qui a oublié de poinçonner */}
-        {peutModifier && mecaniciens && mecaniciens.length > 0 && (
+        {peutModifier && !verrouille && mecaniciens && mecaniciens.length > 0 && (
           <div style={{ marginTop: 8 }}>
             {afficherTempsManuel ? (
               <div style={{ background: "var(--bg)", borderRadius: 8, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
@@ -836,7 +867,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
       {/* Photos */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{probleme.photos.length} photo(s)</span>
-        <BoutonPhoto onFichier={gererFichierPhoto} enCours={envoiPhoto} />
+        {!verrouille && <BoutonPhoto onFichier={gererFichierPhoto} enCours={envoiPhoto} />}
       </div>
       {erreurPhoto && <p style={{ color: "var(--danger)", fontSize: 11, marginTop: 6 }}>{erreurPhoto}</p>}
       {probleme.photos.length > 0 && (
@@ -879,10 +910,12 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600 }}>{(l.qte * l.prix).toFixed(2)} $</span>
-                        {peutModifier && (
-                          <button onClick={() => { setPieceEnEdition(l.id); setEditPrix(String(l.prix)); setEditQte(String(l.qte)); }} style={boutonTexte}>✏️</button>
+                        {!verrouille && (
+                          <>
+                            <button onClick={() => { setPieceEnEdition(l.id); setEditPrix(String(l.prix)); setEditQte(String(l.qte)); }} style={boutonTexte}>✏️</button>
+                            <button onClick={() => retirerPiece(l.id)} style={boutonTexte}>✕</button>
+                          </>
                         )}
-                        <button onClick={() => retirerPiece(l.id)} style={boutonTexte}>✕</button>
                       </div>
                     </div>
                   )}
@@ -891,20 +924,22 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 6 }}>
-            <select value={pieceChoisie} onChange={(e) => setPieceChoisie(e.target.value)} style={{ ...champStyle, fontSize: 12, padding: "7px 8px" }}>
-              <option value="">Choisir une pièce…</option>
-              {piecesDisponibles.map((p) => (
-                <option key={p.id} value={p.id}>{p.nom} — {p.qte} en stock</option>
-              ))}
-            </select>
-            <input
-              type="number" min={1} value={qtePiece}
-              onChange={(e) => setQtePiece(Math.max(1, parseInt(e.target.value) || 1))}
-              style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
-            />
-            <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
-          </div>
+          {!verrouille && (
+            <div style={{ display: "flex", gap: 6 }}>
+              <select value={pieceChoisie} onChange={(e) => setPieceChoisie(e.target.value)} style={{ ...champStyle, fontSize: 12, padding: "7px 8px" }}>
+                <option value="">Choisir une pièce…</option>
+                {piecesDisponibles.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nom} — {p.qte} en stock</option>
+                ))}
+              </select>
+              <input
+                type="number" min={1} value={qtePiece}
+                onChange={(e) => setQtePiece(Math.max(1, parseInt(e.target.value) || 1))}
+                style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
+              />
+              <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
+            </div>
+          )}
           {erreurPiece && <p style={{ color: "var(--danger)", fontSize: 11, marginTop: 6 }}>{erreurPiece}</p>}
           {confirmationPiece && <p style={{ color: "var(--success)", fontSize: 11, marginTop: 6 }}>{confirmationPiece}</p>}
         </div>

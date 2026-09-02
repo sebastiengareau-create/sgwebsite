@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 export async function POST(request, { params }) {
   const session = await obtenirSession();
   if (!session) return NextResponse.json({ erreur: "Non connecté." }, { status: 401 });
+  if (await bonEstVerrouille(params.id)) {
+    return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
+  }
 
   const { problemeId, dataUrl } = await request.json();
   if (!problemeId || !dataUrl) {

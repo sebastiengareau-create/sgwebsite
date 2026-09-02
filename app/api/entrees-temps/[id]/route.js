@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+
+  const entreeExistante = await prisma.entreeTemps.findUnique({ where: { id: params.id }, include: { probleme: true } });
+  if (!entreeExistante) return NextResponse.json({ erreur: "Entrée introuvable." }, { status: 404 });
+  if (await bonEstVerrouille(entreeExistante.probleme.bonId)) {
+    return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
   const { debut, fin } = await request.json();
@@ -26,6 +33,12 @@ export async function DELETE(request, { params }) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+
+  const entreeExistante = await prisma.entreeTemps.findUnique({ where: { id: params.id }, include: { probleme: true } });
+  if (!entreeExistante) return NextResponse.json({ erreur: "Entrée introuvable." }, { status: 404 });
+  if (await bonEstVerrouille(entreeExistante.probleme.bonId)) {
+    return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
   await prisma.entreeTemps.delete({ where: { id: params.id } });

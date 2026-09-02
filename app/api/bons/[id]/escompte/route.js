@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+  if (await bonEstVerrouille(params.id)) {
+    return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
   const { montant, raison } = await request.json();
