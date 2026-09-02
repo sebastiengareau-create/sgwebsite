@@ -65,6 +65,49 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   // pièces, temps, photos, poste). Seul "Annuler la facture" le débloque.
   const factureExiste = !!bon.facture;
 
+  // Taux par défaut des Paramètres, sauf si ce bon précis a un taux ajusté
+  const tauxHoraireEffectif = bon.tauxHoraireOverride ?? tauxHoraireClient;
+  const [tauxHoraireInput, setTauxHoraireInput] = useState(String(bon.tauxHoraireOverride ?? tauxHoraireClient));
+  const [erreurTauxHoraire, setErreurTauxHoraire] = useState("");
+  const [afficherTauxHoraire, setAfficherTauxHoraire] = useState(false);
+
+  async function sauvegarderTauxHoraire() {
+    setErreurTauxHoraire("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bon.id}/taux-horaire`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taux: tauxHoraireInput.replace(",", ".") }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurTauxHoraire(data.erreur || "Erreur lors de la sauvegarde.");
+      return;
+    }
+    setAfficherTauxHoraire(false);
+    router.refresh();
+  }
+
+  async function reinitialiserTauxHoraire() {
+    setErreurTauxHoraire("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bon.id}/taux-horaire`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taux: null }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurTauxHoraire(data.erreur || "Erreur lors de la sauvegarde.");
+      return;
+    }
+    setTauxHoraireInput(String(tauxHoraireClient));
+    setAfficherTauxHoraire(false);
+    router.refresh();
+  }
+
   async function supprimerBon() {
     if (!window.confirm(`Supprimer définitivement le bon #${bon.numero} ? Les pièces utilisées seront remises en stock. Cette action est irréversible.`)) return;
     setEnCours(true);
@@ -201,7 +244,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
     .filter((t) => t.fin)
     .reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
   const heuresEnCours = toutesEntreesTempsMainOeuvre.some((t) => !t.fin);
-  const totalMainOeuvre = totalHeuresTerminees * tauxHoraireClient;
+  const totalMainOeuvre = totalHeuresTerminees * tauxHoraireEffectif;
   const totalAutresRevenus = bon.problemes
     .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
     .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
@@ -384,9 +427,31 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
         ) : (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-              <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {tauxHoraireClient.toFixed(2)} $/h){heuresEnCours ? " *" : ""}</span>
+              <span style={{ color: "var(--text-muted)" }}>
+                Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {tauxHoraireEffectif.toFixed(2)} $/h){heuresEnCours ? " *" : ""}
+                {peutModifier && (
+                  <button onClick={() => setAfficherTauxHoraire((v) => !v)} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", marginLeft: 4, padding: 0 }}>✏️</button>
+                )}
+              </span>
               <span style={{ fontWeight: 600 }}>{totalMainOeuvre.toFixed(2)} $</span>
             </div>
+            {afficherTauxHoraire && (
+              <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+                <input
+                  type="number" min={0} step="0.01" value={tauxHoraireInput}
+                  onChange={(e) => setTauxHoraireInput(e.target.value)}
+                  style={{ width: 80, padding: "5px 7px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12 }}
+                />
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>$/h</span>
+                <button onClick={sauvegarderTauxHoraire} disabled={enCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>✓</button>
+                {bon.tauxHoraireOverride != null && (
+                  <button onClick={reinitialiserTauxHoraire} disabled={enCours} style={{ fontSize: 10.5, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                    Revenir au défaut ({tauxHoraireClient.toFixed(2)} $)
+                  </button>
+                )}
+              </div>
+            )}
+            {erreurTauxHoraire && <p style={{ fontSize: 11, color: "var(--danger)", marginBottom: 6 }}>{erreurTauxHoraire}</p>}
             {totalAutresRevenus > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                 <span style={{ color: "var(--text-muted)" }}>Autres services</span>

@@ -25,7 +25,7 @@ export async function POST(request, { params }) {
 
   const parametres = await prisma.parametre.findMany();
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
-  const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
+  const tauxHoraireClient = bon.tauxHoraireOverride ?? Number(dict.taux_horaire_client || 195);
   const tpsTaux = Number(dict.tps_taux || 5);
   const tvqTaux = Number(dict.tvq_taux || 9.975);
 

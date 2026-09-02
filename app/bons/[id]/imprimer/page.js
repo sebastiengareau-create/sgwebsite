@@ -14,6 +14,7 @@ function fmtHeures(h) {
 
 const STATUTS = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
 const STATUTS_FACTURE = { IMPAYEE: "Impayée", PAYEE: "Payée", ANNULEE: "Annulée" };
+const COLONNES_TRAVAUX = "1fr 55px 45px 65px 75px"; // description | hrs | qté | prix | total
 
 export default async function ImprimerBon({ params }) {
   const session = await obtenirSession();
@@ -50,7 +51,7 @@ export default async function ImprimerBon({ params }) {
   const totalPieces = estFacturee
     ? bon.facture.totalPieces
     : bon.problemes.reduce((s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0), 0);
-  const tauxHoraireClient = estFacturee ? bon.facture.tauxHoraireUtilise : Number(dict.taux_horaire_client || 195);
+  const tauxHoraireClient = estFacturee ? bon.facture.tauxHoraireUtilise : (bon.tauxHoraireOverride ?? Number(dict.taux_horaire_client || 195));
   const totalHeures = estFacturee ? bon.facture.heuresFacturees : Object.values(parEmploye).reduce((s, l) => s + l.heures, 0);
   const totalMainOeuvre = estFacturee ? bon.facture.totalMainOeuvre : totalHeures * tauxHoraireClient;
   const totalAutresRevenus = estFacturee
@@ -140,8 +141,12 @@ export default async function ImprimerBon({ params }) {
           )}
         </div>
 
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 8 }}>
-          Détail des travaux
+        <div style={{ display: "grid", gridTemplateColumns: COLONNES_TRAVAUX, alignItems: "end", marginBottom: 8 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888" }}>Détail des travaux</div>
+          <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Hrs</div>
+          <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Qté</div>
+          <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Prix</div>
+          <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Total</div>
         </div>
         {bon.problemes.map((pr, idx) => {
           const estMainOeuvre = (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE";
@@ -150,38 +155,18 @@ export default async function ImprimerBon({ params }) {
             : 0;
           const montantManuel = !estMainOeuvre ? (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1) : 0;
           return (
-          <div key={pr.id} style={{ marginBottom: 16, pageBreakInside: "avoid" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
-              <span>{idx + 1}. {pr.description}</span>
-              {heuresTache > 0 && (
-                <span style={{ fontSize: 12, color: "#666", fontWeight: 400, whiteSpace: "nowrap" }}>
-                  {fmtHeures(heuresTache)} × {tauxHoraireClient.toFixed(2)} $ = {(heuresTache * tauxHoraireClient).toFixed(2)} $
-                </span>
-              )}
-              {!estMainOeuvre && montantManuel > 0.005 && (
-                <span style={{ fontSize: 12, color: "#666", fontWeight: 400, whiteSpace: "nowrap" }}>
-                  {pr.factureQte || 1} × {(pr.facturePrixUnitaire || 0).toFixed(2)} $ = {montantManuel.toFixed(2)} $
-                </span>
-              )}
-            </div>
-            {!estMainOeuvre && pr.factureDescription && (
-              <div style={{ fontSize: 11.5, color: "#888", marginTop: 2 }}>{pr.factureDescription}</div>
-            )}
+          <div key={pr.id} style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{idx + 1}. {pr.description}</div>
 
-            {pr.pieces.length > 0 && (
-              <table style={{ width: "100%", fontSize: 12, marginTop: 6, borderCollapse: "collapse" }}>
-                <tbody>
-                  {pr.pieces.map((l) => (
-                    <tr key={l.id}>
-                      <td style={{ padding: "2px 0", color: "#444" }}>{l.piece.nom}</td>
-                      <td style={{ padding: "2px 0", textAlign: "center", width: 50 }}>{l.qte} ×</td>
-                      <td style={{ padding: "2px 0", textAlign: "right", width: 70 }}>{l.prix.toFixed(2)} $</td>
-                      <td style={{ padding: "2px 0", textAlign: "right", width: 80, fontWeight: 600 }}>{(l.qte * l.prix).toFixed(2)} $</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {heuresTache > 0.005 && (
+              <LigneTravail description="Main-d'œuvre" hrs={fmtHeures(heuresTache)} prix={tauxHoraireClient} total={heuresTache * tauxHoraireClient} />
             )}
+            {!estMainOeuvre && montantManuel > 0.005 && (
+              <LigneTravail description={pr.factureDescription || "Service"} qte={pr.factureQte || 1} prix={pr.facturePrixUnitaire || 0} total={montantManuel} />
+            )}
+            {pr.pieces.map((l) => (
+              <LigneTravail key={l.id} description={l.piece.nom} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />
+            ))}
 
             {pr.photos.length > 0 && (
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -228,6 +213,18 @@ export default async function ImprimerBon({ params }) {
           {nomEntreprise} — document généré le {new Date().toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
         </p>
       </div>
+    </div>
+  );
+}
+
+function LigneTravail({ description, hrs, qte, prix, total }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: COLONNES_TRAVAUX, fontSize: 12, padding: "2px 0" }}>
+      <span style={{ color: "#444" }}>{description}</span>
+      <span style={{ textAlign: "right" }}>{hrs || ""}</span>
+      <span style={{ textAlign: "right" }}>{qte || ""}</span>
+      <span style={{ textAlign: "right" }}>{prix.toFixed(2)} $</span>
+      <span style={{ textAlign: "right", fontWeight: 600 }}>{total.toFixed(2)} $</span>
     </div>
   );
 }

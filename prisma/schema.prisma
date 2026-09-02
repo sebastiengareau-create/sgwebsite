@@ -81,6 +81,7 @@ model BonTravail {
   rendezVous   RendezVous?
   escompteMontant Float     @default(0) // remise manuelle en dollars, appliquée avant taxes
   escompteRaison  String?
+  tauxHoraireOverride Float? // remplace le taux horaire par défaut des Paramètres pour ce bon précis, si fixé
   creeLe       DateTime     @default(now())
 }
 
