@@ -30,8 +30,13 @@ export default function ClientsClient({ clients }) {
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 4 }}>
         {clients.length} client{clients.length !== 1 ? "s" : ""} au total. Touche un client pour voir ses détails.
       </p>
-      <Link href="/gerant/comptabilite/rapports/comptes-clients" target="_blank" style={{ display: "inline-block", fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", marginBottom: 12 }}>
-        📋 Comptes clients (âgé) →
+      <Link
+        href="/gerant/comptabilite/rapports/comptes-clients"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 12 }}
+      >
+        💰 Rapport de comptes à recevoir
       </Link>
 
       {afficherFormulaire && (

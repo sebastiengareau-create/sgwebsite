@@ -56,7 +56,7 @@ export default async function RapportComptesClients() {
         <div style={{ borderBottom: "2px solid #17150f", paddingBottom: 16, marginBottom: 24 }}>
           <h1 style={{ fontSize: 22, margin: 0 }}>{nomEntreprise}</h1>
           <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0" }}>{adresseLigne1}, {adresseLigne2}</p>
-          <p style={{ fontSize: 16, fontWeight: 700, marginTop: 12, marginBottom: 0 }}>Comptes clients — rapport âgé</p>
+          <p style={{ fontSize: 16, fontWeight: 700, marginTop: 12, marginBottom: 0 }}>Rapport de comptes à recevoir</p>
           <p style={{ fontSize: 11.5, color: "#666", margin: "2px 0 0" }}>
             Au {maintenant.toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
           </p>

@@ -37,8 +37,13 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total dû aux fournisseurs</div>
       </div>
 
-      <Link href="/gerant/comptabilite/rapports/comptes-fournisseurs" target="_blank" style={{ display: "inline-block", fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", marginBottom: 16 }}>
-        📋 Comptes fournisseurs (âgé) →
+      <Link
+        href="/gerant/comptabilite/rapports/comptes-fournisseurs"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
+      >
+        💳 Rapport de comptes à payer
       </Link>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
