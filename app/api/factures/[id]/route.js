@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { posterFacturePayee } from "@/lib/comptabilite";
+import { posterFacturePayee, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
@@ -54,7 +54,19 @@ export async function DELETE(request, { params }) {
   const facture = await prisma.facture.findUnique({ where: { id: params.id } });
   if (!facture) return NextResponse.json({ erreur: "Facture introuvable." }, { status: 404 });
 
+  try {
+    await verifierPeriodeModifiable(facture.dateEmission, { nouvellePiece: false });
+  } catch (e) {
+    return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
+  }
+
   await prisma.$transaction(async (tx) => {
+    // Retire aussi les écritures comptables liées (émission ET paiement si
+    // déjà marquée payée) — sinon elles restent orphelines, et si une
+    // prochaine facture réutilise ce même numéro (le numéro suivant se base
+    // sur les factures encore existantes), le journal se retrouve avec deux
+    // écritures pour le même numéro de facture
+    await tx.ecritureComptable.deleteMany({ where: { source: { in: ["FACTURE_EMISE", "FACTURE_PAYEE"] }, sourceId: params.id } });
     await tx.facture.delete({ where: { id: params.id } });
     // Le bon redevient "En cours" — il n'est plus considéré terminé sans facture
     await tx.bonTravail.update({ where: { id: facture.bonId }, data: { statut: "EN_COURS" } });
