@@ -128,6 +128,13 @@ export default function AdministrateurClient({ modules, verrouilleInit }) {
           </div>
         )}
       </div>
+
+      <Link
+        href="/gerant/administrateur/reinitialisation"
+        style={{ display: "block", textAlign: "center", marginTop: 10, padding: 14, borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700, background: "none", border: "1px dashed var(--danger)", color: "var(--danger)" }}
+      >
+        🧨 Réinitialisation — effacer les données
+      </Link>
     </div>
   );
 }

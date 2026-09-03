@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CLE_COURRIEL } from "@/lib/planificateurSauvegarde";
 import EnTete from "../../../components/EnTete";
 import SauvegardeClient from "./SauvegardeClient";
 
@@ -14,10 +15,12 @@ export default async function Sauvegarde() {
     peutRestaurer = utilisateur?.estSuperAdmin || false;
   }
 
+  const parametreCourriel = peutRestaurer ? await prisma.parametre.findUnique({ where: { cle: CLE_COURRIEL } }) : null;
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SauvegardeClient peutRestaurer={peutRestaurer} />
+      <SauvegardeClient peutRestaurer={peutRestaurer} courrielAutoInit={parametreCourriel?.valeur || ""} />
     </div>
   );
 }

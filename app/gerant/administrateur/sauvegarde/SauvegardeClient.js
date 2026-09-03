@@ -3,13 +3,38 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 
-export default function SauvegardeClient({ peutRestaurer }) {
+export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
   const [telechargementEnCours, setTelechargementEnCours] = useState(false);
   const [fichierChoisi, setFichierChoisi] = useState(null);
   const [phraseConfirmation, setPhraseConfirmation] = useState("");
   const [restaurationEnCours, setRestaurationEnCours] = useState(false);
   const [message, setMessage] = useState(null); // { type: "succes"|"erreur", texte }
   const inputFichierRef = useRef(null);
+
+  const [courrielAuto, setCourrielAuto] = useState(courrielAutoInit || "");
+  const [courrielAutoEnCours, setCourrielAutoEnCours] = useState(false);
+  const [messageCourrielAuto, setMessageCourrielAuto] = useState(null);
+
+  async function sauvegarderCourrielAuto() {
+    setCourrielAutoEnCours(true);
+    setMessageCourrielAuto(null);
+    const res = await fetch("/api/administrateur/sauvegarde-auto", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courriel: courrielAuto }),
+    });
+    setCourrielAutoEnCours(false);
+    if (!res.ok) {
+      setMessageCourrielAuto({ type: "erreur", texte: "Erreur lors de la sauvegarde." });
+      return;
+    }
+    const data = await res.json();
+    setCourrielAuto(data.courriel);
+    setMessageCourrielAuto({
+      type: "succes",
+      texte: data.courriel ? "Sauvegarde automatique activée ✓" : "Sauvegarde automatique désactivée — le téléchargement manuel reste disponible.",
+    });
+  }
 
   async function telecharger() {
     setTelechargementEnCours(true);
@@ -87,6 +112,39 @@ export default function SauvegardeClient({ peutRestaurer }) {
           {telechargementEnCours ? "Préparation…" : "⬇️ Télécharger la sauvegarde"}
         </button>
       </div>
+
+      {peutRestaurer && (
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>📧 Sauvegarde automatique quotidienne</div>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+          Le serveur n'a pas d'espace de stockage permanent où choisir un chemin — la sauvegarde du jour t'est plutôt
+          envoyée par courriel automatiquement, une fois par jour. Laisse le champ vide pour désactiver et garder
+          seulement le téléchargement manuel ci-dessus.
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            type="email"
+            value={courrielAuto}
+            onChange={(e) => setCourrielAuto(e.target.value)}
+            placeholder="courriel@exemple.com"
+            style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" }}
+          />
+          <button
+            onClick={sauvegarderCourrielAuto}
+            disabled={courrielAutoEnCours}
+            className="bouton-3d"
+            style={{ padding: "0 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+          >
+            {courrielAutoEnCours ? "…" : "✓ Enregistrer"}
+          </button>
+        </div>
+        {messageCourrielAuto && (
+          <p style={{ fontSize: 12, color: messageCourrielAuto.type === "succes" ? "var(--success)" : "var(--danger)", marginTop: 8 }}>
+            {messageCourrielAuto.texte}
+          </p>
+        )}
+      </div>
+      )}
 
       {peutRestaurer && (
       <div style={{ background: "var(--surface)", border: "1px solid var(--danger)", borderRadius: 10, padding: 16 }}>
