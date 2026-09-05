@@ -22,6 +22,11 @@ function moisPrecedent(annee, mois) {
 // mois de réserve de liquidités (30 pts), ratio d'endettement fournisseurs
 // vs actifs liquides+à recevoir (30 pts).
 function calculerSanteFinanciere({ revenus, depenses, beneficeNet, soldeBancaire, clientsARecevoir, fournisseursAPayer }) {
+  const aucuneDonnee = !revenus && !depenses && !soldeBancaire && !clientsARecevoir && !fournisseursAPayer;
+  if (aucuneDonnee) {
+    return { score: 0, label: "Aucune donnée", ratioEndettement: 0, margePct: 0 };
+  }
+
   const margePct = revenus > 0 ? beneficeNet / revenus : 0;
   const margeScore = Math.max(0, Math.min(40, (margePct / 0.25) * 40));
 
