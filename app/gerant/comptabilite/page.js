@@ -2,11 +2,13 @@ import { redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assurerPlanComptable } from "@/lib/comptabilite";
+import { dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../../components/EnTete";
 import PlanComptableClient from "./PlanComptableClient";
 
 const NORMAL_DEBIT = ["ACTIF", "DEPENSE"]; // ces types augmentent au débit
 const LABELS_TYPE = { ACTIF: "Actif", PASSIF: "Passif", CAPITAUX_PROPRES: "Capitaux propres", REVENU: "Revenus", DEPENSE: "Dépenses" };
+const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 export default async function Comptabilite() {
   const session = await obtenirSession();
@@ -38,10 +40,13 @@ export default async function Comptabilite() {
     estDeveloppeur = moi?.estSuperAdmin || false;
   }
 
+  const [annee, mois] = dateAujourdhuiQuebec().split("-");
+  const periodeLabel = `${NOMS_MOIS[parseInt(mois, 10) - 1]} ${annee}`;
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <PlanComptableClient comptes={comptesAvecSolde} labelsType={LABELS_TYPE} estDeveloppeur={estDeveloppeur} />
+      <PlanComptableClient comptes={comptesAvecSolde} labelsType={LABELS_TYPE} estDeveloppeur={estDeveloppeur} periodeLabel={periodeLabel} />
     </div>
   );
 }
