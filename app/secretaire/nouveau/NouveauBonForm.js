@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 export default function NouveauBon({ clientsExistants }) {
   const router = useRouter();
   const [clientSelectionne, setClientSelectionne] = useState(null);
+  const [vehiculeSelectionne, setVehiculeSelectionne] = useState(null);
   const [rechercheClient, setRechercheClient] = useState("");
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const boiteRechercheRef = useRef(null);
@@ -26,6 +27,11 @@ export default function NouveauBon({ clientsExistants }) {
   const [clientVille, setClientVille] = useState("");
   const [clientCodePostal, setClientCodePostal] = useState("");
 
+  const [marque, setMarque] = useState("");
+  const [modele, setModele] = useState("");
+  const [annee, setAnnee] = useState("");
+  const [vin, setVin] = useState("");
+  const [plaque, setPlaque] = useState("");
   const [problemes, setProblemes] = useState([""]);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -40,16 +46,35 @@ export default function NouveauBon({ clientsExistants }) {
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
+    setVehiculeSelectionne(null);
+    // Un seul véhicule chez ce client → le pré-sélectionner tout de suite
+    if (c.vehicules.length === 1) choisirVehicule(c.vehicules[0]);
+  }
+
+  function choisirVehicule(v) {
+    setVehiculeSelectionne(v);
+    setMarque(v.marque);
+    setModele(v.modele);
+    setAnnee(v.annee || "");
+    setVin(v.vin || "");
+    setPlaque(v.plaque || "");
+  }
+
+  function nouveauVehiculePourCeClient() {
+    setVehiculeSelectionne(null);
+    setMarque(""); setModele(""); setAnnee(""); setVin(""); setPlaque("");
   }
 
   function changerClientPourNouveau() {
     setClientSelectionne(null);
+    setVehiculeSelectionne(null);
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
     setClientAdresse("");
     setClientVille("");
     setClientCodePostal("");
+    setMarque(""); setModele(""); setAnnee(""); setVin(""); setPlaque("");
   }
 
   function changerProbleme(index, valeur) {
@@ -61,6 +86,9 @@ export default function NouveauBon({ clientsExistants }) {
   function supprimerLigneProbleme(index) {
     setProblemes((prev) => prev.filter((_, i) => i !== index));
   }
+
+  const vinPropre = vin.trim().toUpperCase();
+  const vinInvalide = vinPropre.length > 0 && vinPropre.length !== 17;
 
   async function creer(e) {
     e.preventDefault();
@@ -75,6 +103,14 @@ export default function NouveauBon({ clientsExistants }) {
       setErreur("Indique le nom du client, ou choisis-en un existant.");
       return;
     }
+    if (!vehiculeSelectionne && (!marque.trim() || !modele.trim())) {
+      setErreur("Indique la marque et le modèle du véhicule, ou choisis-en un existant.");
+      return;
+    }
+    if (vinInvalide) {
+      setErreur("Le NIV doit contenir exactement 17 caractères (ou être laissé vide).");
+      return;
+    }
 
     setEnCours(true);
     const res = await fetch("/api/bons", {
@@ -83,6 +119,8 @@ export default function NouveauBon({ clientsExistants }) {
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
+        vehiculeId: vehiculeSelectionne?.id,
+        marque, modele, annee, vin: vinPropre, plaque,
         problemes: lignesValides,
       }),
     });
@@ -138,6 +176,7 @@ export default function NouveauBon({ clientsExistants }) {
                   <div style={{ fontWeight: 600 }}>{c.nom}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     {[c.telephone, c.ville].filter(Boolean).join(" · ")}
+                    {c.vehicules.length > 0 && ` · ${c.vehicules.length} véhicule(s)`}
                   </div>
                 </button>
               ))}
@@ -153,6 +192,66 @@ export default function NouveauBon({ clientsExistants }) {
           <div style={{ display: "flex", gap: 8 }}>
             <Champ label="Ville" value={clientVille} onChange={setClientVille} style={{ flex: 1 }} />
             <Champ label="Code postal" value={clientCodePostal} onChange={(v) => setClientCodePostal(v.toUpperCase())} style={{ width: 110 }} />
+          </div>
+        </>
+      )}
+
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
+
+      {clientSelectionne && clientSelectionne.vehicules.length > 0 && !vehiculeSelectionne && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Véhicules connus de ce client :</span>
+          {clientSelectionne.vehicules.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => choisirVehicule(v)}
+              style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}
+            >
+              🚗 {v.marque} {v.modele} {v.annee} {v.plaque ? `· ${v.plaque}` : ""}
+            </button>
+          ))}
+          <button type="button" onClick={nouveauVehiculePourCeClient} style={{ ...boutonAjoutLigne, textAlign: "center" }}>
+            + Nouveau véhicule pour ce client
+          </button>
+        </div>
+      )}
+
+      {vehiculeSelectionne && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>
+            🚗 {vehiculeSelectionne.marque} {vehiculeSelectionne.modele} {vehiculeSelectionne.annee}
+          </div>
+          <button type="button" onClick={nouveauVehiculePourCeClient} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
+            Changer
+          </button>
+        </div>
+      )}
+
+      {!vehiculeSelectionne && (
+        <>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Champ label="Marque" value={marque} onChange={setMarque} requis style={{ flex: 1 }} />
+            <Champ label="Modèle" value={modele} onChange={setModele} requis style={{ flex: 1 }} />
+            <Champ label="Année" value={annee} onChange={setAnnee} type="number" style={{ width: 90 }} />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>NIV (17 caractères)</label>
+              <input
+                value={vin}
+                onChange={(e) => setVin(e.target.value.toUpperCase())}
+                maxLength={17}
+                placeholder="Ex : 1HGCM82633A004352"
+                style={{ ...champInput, borderColor: vinInvalide ? "var(--danger)" : "var(--border)", fontFamily: "monospace", letterSpacing: "0.03em" }}
+              />
+              {vin && (
+                <div style={{ fontSize: 10.5, color: vinInvalide ? "var(--danger)" : "var(--text-muted)", marginTop: -2, marginBottom: 6 }}>
+                  {vin.length}/17 caractères
+                </div>
+              )}
+            </div>
+            <Champ label="Plaque" value={plaque} onChange={setPlaque} style={{ width: 110 }} />
           </div>
         </>
       )}
