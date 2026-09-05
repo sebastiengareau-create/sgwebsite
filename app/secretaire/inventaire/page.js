@@ -14,7 +14,7 @@ export default async function GestionInventaire() {
 
   const [pieces, categories, comptesRevenu] = await Promise.all([
     prisma.piece.findMany({ orderBy: { nom: "asc" } }),
-    prisma.categorieInventaire.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
+    prisma.categorieInventaire.findMany({ orderBy: [{ actif: "desc" }, { nom: "asc" }] }),
     prisma.compte.findMany({ where: { type: "REVENU", actif: true }, orderBy: { numero: "asc" } }),
   ]);
 

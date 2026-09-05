@@ -54,7 +54,7 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, pe
       />
 
       {afficherFormulaire && (
-        <FormulaireCreation categories={categories} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
+        <FormulaireCreation categories={categories.filter((c) => c.actif)} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
@@ -90,6 +90,9 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   const [compteRevenuNumero, setCompteRevenuNumero] = useState(comptesRevenu[0]?.numero || "");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
+  const [editionId, setEditionId] = useState(null);
+  const [nomEdition, setNomEdition] = useState("");
+  const [compteEdition, setCompteEdition] = useState("");
 
   async function creer(e) {
     e.preventDefault();
@@ -123,14 +126,71 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
     onModifie();
   }
 
+  async function reactiver(id) {
+    await fetch(`/api/inventaire/categories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actif: true }),
+    });
+    onModifie();
+  }
+
+  function commencerEdition(c) {
+    setEditionId(c.id);
+    setNomEdition(c.nom);
+    setCompteEdition(c.compteRevenuNumero);
+  }
+
+  async function enregistrerEdition(id) {
+    if (!nomEdition.trim()) return;
+    setEnCours(true);
+    await fetch(`/api/inventaire/categories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom: nomEdition.trim(), compteRevenuNumero: compteEdition }),
+    });
+    setEnCours(false);
+    setEditionId(null);
+    onModifie();
+  }
+
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Catégories existantes</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
         {categories.map((c) => (
-          <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
-            <span>{c.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>→ {c.compteRevenuNumero}</span></span>
-            <button onClick={() => desactiver(c.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12 }}>✕</button>
+          <div key={c.id} style={{ opacity: c.actif ? 1 : 0.55 }}>
+            {editionId === c.id ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 8 }}>
+                <input value={nomEdition} onChange={(e) => setNomEdition(e.target.value)} style={{ ...champStyle, marginBottom: 0, fontSize: 12.5 }} />
+                <select value={compteEdition} onChange={(e) => setCompteEdition(e.target.value)} style={{ ...champStyle, marginBottom: 0, fontSize: 12.5 }}>
+                  {comptesRevenu.map((co) => <option key={co.id} value={co.numero}>{co.numero} — {co.nom}</option>)}
+                  {!comptesRevenu.some((co) => co.numero === c.compteRevenuNumero) && (
+                    <option value={c.compteRevenuNumero}>{c.compteRevenuNumero} — (actuel)</option>
+                  )}
+                </select>
+                <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+                  <button type="button" onClick={() => enregistrerEdition(c.id)} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: "6px 8px", borderRadius: 6, fontSize: 11.5, fontWeight: 700 }}>
+                    Enregistrer
+                  </button>
+                  <button type="button" onClick={() => setEditionId(null)} style={{ flex: 1, padding: "6px 8px", borderRadius: 6, fontSize: 11.5, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
+                <span>{c.nom}{!c.actif && " (inactive)"} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>→ {c.compteRevenuNumero}</span></span>
+                <span style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button onClick={() => commencerEdition(c)} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12 }}>✏️</button>
+                  {c.actif ? (
+                    <button onClick={() => desactiver(c.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12 }}>✕</button>
+                  ) : (
+                    <button onClick={() => reactiver(c.id)} style={{ background: "none", border: "none", color: "var(--success)", cursor: "pointer", fontSize: 11 }}>Réactiver</button>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
