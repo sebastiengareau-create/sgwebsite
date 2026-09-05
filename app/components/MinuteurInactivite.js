@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const DELAI_INACTIVITE_MS = 20 * 60 * 1000; // 20 minutes sans aucune action
+const DELAI_INACTIVITE_MS = 120 * 60 * 1000; // 120 minutes sans aucune action
 const INTERVALLE_VERIF_MS = 60 * 1000; // vérifie une fois par minute
 const EVENEMENTS_ACTIVITE = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
 

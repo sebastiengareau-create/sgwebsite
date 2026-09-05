@@ -115,6 +115,13 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
         + Soldes d'ouverture
       </Link>
       <Link
+        href="/gerant/comptabilite/ecriture-manuelle"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
+      >
+        ✍️ Écriture supplémentaire
+      </Link>
+      <Link
         href="/gerant/comptabilite/rapprochement"
         className="bouton-3d-sombre"
         style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}

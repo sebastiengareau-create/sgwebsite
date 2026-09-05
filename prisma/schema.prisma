@@ -234,7 +234,8 @@ model Compte {
 // 2 lignes (débit/crédit) qui doivent toujours s'équilibrer entre elles.
 model EcritureComptable {
   id          String   @id @default(cuid())
-  numero      String   @unique // ex : "EC-0001"
+  numero      String   @unique // ex : "EC-0001" — toujours généré par le logiciel
+  reference   String?  // ex : "AJ-000125" — texte libre fourni par l'utilisateur (écritures manuelles seulement)
   date        DateTime
   description String
   source      String?  // "FACTURE" | "MANUEL" | etc. — d'où vient l'écriture, pour traçabilité

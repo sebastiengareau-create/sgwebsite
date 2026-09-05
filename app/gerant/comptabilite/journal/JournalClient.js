@@ -39,7 +39,15 @@ export default function JournalClient({ ecritures }) {
     <div className="conteneur-page">
       <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
       <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>Journal général</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>{ecritures.length} écriture(s), générées automatiquement.</p>
+      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>{ecritures.length} écriture(s) — automatiques (factures, paie, dépenses…) et manuelles.</p>
+
+      <Link
+        href="/gerant/comptabilite/ecriture-manuelle"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", marginBottom: 16, padding: 12, borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700 }}
+      >
+        ✍️ Nouvelle écriture supplémentaire
+      </Link>
 
       {ecritures.length > 0 && (
         <button
@@ -54,9 +62,14 @@ export default function JournalClient({ ecritures }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {ecritures.map((e) => (
           <div key={e.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)" }}>
-              <span style={{ fontFamily: "monospace" }}>{e.numero}</span>
-              <span>{new Date(e.date).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "var(--text-muted)" }}>
+              <span style={{ fontFamily: "monospace" }}>{e.numero}{e.reference ? ` · ${e.reference}` : ""}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: e.source === "MANUEL" ? "var(--accent)" : "var(--text-muted)" }}>
+                  {e.source === "MANUEL" ? "✍️ Manuelle" : "🤖 Auto"}
+                </span>
+                {new Date(e.date).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
+              </span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, marginBottom: 2 }}>{e.description}</div>
             {e.creePar && <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 6 }}>par {e.creePar}</div>}
