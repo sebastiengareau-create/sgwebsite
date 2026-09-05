@@ -9,7 +9,10 @@ export default async function Sauvegarde() {
   const session = await obtenirSession();
   if (!estGerantOuDev(session)) redirect("/gerant");
 
-  let peutRestaurer = session.role === "DEVELOPPEUR";
+  // Le gérant peut restaurer et configurer la sauvegarde automatique — la
+  // réinitialisation complète (voir Administrateur) reste réservée au
+  // développeur/super-admin, elle est bien plus dangereuse.
+  let peutRestaurer = estGerantOuDev(session);
   if (!peutRestaurer) {
     const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { estSuperAdmin: true } });
     peutRestaurer = utilisateur?.estSuperAdmin || false;

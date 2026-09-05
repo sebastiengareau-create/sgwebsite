@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { CLE_COURRIEL } from "@/lib/planificateurSauvegarde";
 
 async function estAutorise(session) {
   if (!session) return false;
-  if (session.role === "DEVELOPPEUR") return true;
+  if (estGerantOuDev(session)) return true;
   const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { estSuperAdmin: true } });
   return utilisateur?.estSuperAdmin || false;
 }

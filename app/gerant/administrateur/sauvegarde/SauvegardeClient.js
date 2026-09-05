@@ -90,7 +90,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
 
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/administrateur" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Administrateur</Link>
+      <Link href="/gerant/parametres" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Paramètres</Link>
       <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>💾 Sauvegarde</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
         Toutes les données de l'installation (clients, bons, factures, comptabilité, etc.) dans un seul fichier
