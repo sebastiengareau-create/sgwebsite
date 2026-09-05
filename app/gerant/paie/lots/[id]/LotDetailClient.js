@@ -117,6 +117,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
       </div>
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 16 }}>
         {new Date(lot.periodeDebut).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} → {new Date(lot.periodeFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
+        {lot.dateVersementPrevue && ` · Versement le ${new Date(lot.dateVersementPrevue).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}`}
         {lot.typePaie === "VACANCES" && " · 🏖️ Paie de vacances"}
         {lot.creePar && ` · créé par ${lot.creePar}`}
       </p>

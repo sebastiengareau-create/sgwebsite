@@ -289,6 +289,7 @@ model LotPaie {
   numero         String    @unique // "PAIE-0007"
   periodeDebut   DateTime
   periodeFin     DateTime
+  dateVersementPrevue DateTime? // choisie à la création — la même pour chaque paie du lot, même si un employé est ajouté après coup
   typePaie       String    @default("REGULIERE") // "REGULIERE" | "VACANCES"
   statut         String    @default("BROUILLON") // "BROUILLON" | "COMPTABILISEE"
   creePar        String?

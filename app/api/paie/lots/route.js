@@ -9,10 +9,11 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { typePaie, periodeDebut, periodeFin, employeIds } = await request.json();
+  const { typePaie, periodeDebut, periodeFin, dateVersement, employeIds } = await request.json();
   if (!periodeDebut || !periodeFin || !Array.isArray(employeIds) || employeIds.length === 0) {
     return NextResponse.json({ erreur: "Période et au moins un employé sont requis." }, { status: 400 });
   }
+  const dateVersementFinale = dateVersement ? new Date(dateVersement) : new Date(periodeFin);
 
   const typePaieFinal = typePaie === "VACANCES" ? "VACANCES" : "REGULIERE";
 
@@ -38,6 +39,7 @@ export async function POST(request) {
       numero,
       periodeDebut: new Date(periodeDebut),
       periodeFin: new Date(periodeFin),
+      dateVersementPrevue: dateVersementFinale,
       typePaie: typePaieFinal,
       creePar: session.nom,
       paies: {
@@ -45,6 +47,7 @@ export async function POST(request) {
           employeId: r.employeId,
           periodeDebut: new Date(periodeDebut),
           periodeFin: new Date(periodeFin),
+          dateVersement: dateVersementFinale,
           heuresTravaillees: r.heuresTravaillees,
           heuresHorodateur: r.heuresHorodateur,
           boni: r.boni,

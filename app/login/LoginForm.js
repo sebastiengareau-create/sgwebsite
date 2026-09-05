@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 export default function LoginForm({ nomEntreprise }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deconnecteInactivite = searchParams.get("deconnecte") === "inactivite";
   const [courriel, setCourriel] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState("");
@@ -39,6 +41,12 @@ export default function LoginForm({ nomEntreprise }) {
         </div>
         <h1 style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>{nomEntreprise}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>Connecte-toi pour continuer</p>
+
+        {deconnecteInactivite && (
+          <p style={{ color: "var(--accent)", fontSize: 12.5, marginBottom: 16, textAlign: "center" }}>
+            Déconnecté après une période d'inactivité.
+          </p>
+        )}
 
         <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Courriel</label>
         <input

@@ -3,6 +3,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
+import MinuteurInactivite from "./MinuteurInactivite";
 
 // Chaque section "empruntable" (configurable dans Administrateur → Rôles et
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
@@ -66,6 +67,7 @@ export default async function EnTete({ nom, role }) {
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 20, background: "var(--bg)" }}>
+      <MinuteurInactivite />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <MenuHamburger liens={liens} />

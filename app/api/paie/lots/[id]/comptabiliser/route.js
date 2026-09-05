@@ -36,7 +36,10 @@ export async function POST(request, { params }) {
   for (const paie of lot.paies) {
     const paieVersee = await prisma.paie.update({
       where: { id: paie.id },
-      data: { statut: "VERSEE", dateVersement: maintenant },
+      // dateVersement reste celle choisie à la création du lot (voir
+      // app/api/paie/lots/route.js) — comptabiliser ne l'écrase plus, ce
+      // n'est pas forcément la même date que le moment du traitement
+      data: { statut: "VERSEE" },
     });
     try {
       await posterPaie(paieVersee, session.nom);

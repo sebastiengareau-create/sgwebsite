@@ -9,6 +9,7 @@ export default function NouveauLotClient({ employes }) {
   const router = useRouter();
   const [periodeDebut, setPeriodeDebut] = useState("");
   const [periodeFin, setPeriodeFin] = useState(dateAujourdhuiQuebec());
+  const [dateVersement, setDateVersement] = useState(dateAujourdhuiQuebec());
   const [typePaie, setTypePaie] = useState("REGULIERE");
   const [selectionnes, setSelectionnes] = useState(() => new Set(employes.map((e) => e.id)));
   const [erreur, setErreur] = useState("");
@@ -41,6 +42,7 @@ export default function NouveauLotClient({ employes }) {
         typePaie,
         periodeDebut: `${periodeDebut}T00:00:00`,
         periodeFin: `${periodeFin}T23:59:59`,
+        dateVersement: `${dateVersement}T00:00:00`,
         employeIds: Array.from(selectionnes),
       }),
     });
@@ -80,6 +82,12 @@ export default function NouveauLotClient({ employes }) {
             <input type="date" value={periodeFin} onChange={(e) => setPeriodeFin(e.target.value)} style={champStyle} />
           </div>
         </div>
+
+        <label style={labelStyle}>Date du versement</label>
+        <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: -2, marginBottom: 6 }}>
+          La même pour tout le lot, même si un employé est ajouté après coup.
+        </p>
+        <input type="date" value={dateVersement} onChange={(e) => setDateVersement(e.target.value)} style={champStyle} />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <label style={{ ...labelStyle, marginTop: 0 }}>Employés ({selectionnes.size}/{employes.length})</label>

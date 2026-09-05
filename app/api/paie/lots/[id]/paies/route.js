@@ -36,6 +36,7 @@ export async function POST(request, { params }) {
       lotId: lot.id,
       periodeDebut: lot.periodeDebut,
       periodeFin: lot.periodeFin,
+      dateVersement: lot.dateVersementPrevue || lot.periodeFin,
       heuresTravaillees: resultat.heuresTravaillees,
       heuresHorodateur: resultat.heuresHorodateur,
       boni: resultat.boni,
