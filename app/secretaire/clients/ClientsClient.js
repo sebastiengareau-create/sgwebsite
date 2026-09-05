@@ -100,6 +100,7 @@ function FormulaireCreation({ onCree }) {
   const [adresse, setAdresse] = useState("");
   const [ville, setVille] = useState("");
   const [codePostal, setCodePostal] = useState("");
+  const [garantieProlongee, setGarantieProlongee] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -110,7 +111,7 @@ function FormulaireCreation({ onCree }) {
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -131,6 +132,12 @@ function FormulaireCreation({ onCree }) {
         <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1 }} />
         <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
       </div>
+      <input
+        placeholder="Garantie prolongée — numéro de contrat (optionnel)"
+        value={garantieProlongee}
+        onChange={(e) => setGarantieProlongee(e.target.value)}
+        style={champStyle}
+      />
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 8, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
         {enCours ? "Création…" : "Créer le client"}
