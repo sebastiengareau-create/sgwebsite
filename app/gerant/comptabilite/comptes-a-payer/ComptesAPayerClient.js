@@ -33,7 +33,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
   return (
     <div className="conteneur-page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>🏢 Fournisseurs</h1>
+        <h1 style={{ fontSize: 20 }}>💳 Comptes à payer</h1>
         <button onClick={() => setAfficherFormulaire((v) => !v)} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
           {afficherFormulaire ? "Annuler" : "+ Dépense"}
         </button>
@@ -43,6 +43,14 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalDu.toFixed(2)} $</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total dû aux fournisseurs</div>
       </div>
+
+      <Link
+        href="/gerant/fournisseurs"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
+      >
+        🏢 Voir tous les fournisseurs
+      </Link>
 
       <Link
         href="/gerant/comptabilite/rapports/comptes-fournisseurs"

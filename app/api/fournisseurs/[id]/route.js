@@ -18,3 +18,21 @@ export async function PATCH(request, { params }) {
   const fournisseur = await prisma.fournisseur.update({ where: { id: params.id }, data });
   return NextResponse.json(fournisseur);
 }
+
+export async function DELETE(request, { params }) {
+  const session = await obtenirSession();
+  if (!(await aAccesSection(session, "fournisseurs"))) {
+    return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+
+  const depenses = await prisma.depense.count({ where: { fournisseurId: params.id } });
+  if (depenses > 0) {
+    return NextResponse.json(
+      { erreur: "Ce fournisseur a des dépenses associées — désactive-le plutôt que de le supprimer, pour ne pas perdre cet historique." },
+      { status: 409 }
+    );
+  }
+
+  await prisma.fournisseur.delete({ where: { id: params.id } });
+  return NextResponse.json({ ok: true });
+}

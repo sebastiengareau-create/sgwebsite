@@ -3,6 +3,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../components/EnTete";
 import OperationsTabs from "../components/OperationsTabs";
+import FacturationPeriodes from "../components/FacturationPeriodes";
 import ResumeOperations from "../components/ResumeOperations";
 import ListeBonsClient from "./ListeBonsClient";
 
@@ -22,6 +23,7 @@ export default async function EspaceSecretaire({ searchParams }) {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <OperationsTabs />
+      <FacturationPeriodes />
       <ResumeOperations />
       <ListeBonsClient bons={bons} filtreActuel={filtre} />
     </div>

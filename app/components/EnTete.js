@@ -12,7 +12,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "🧑‍🤝‍🧑" },
-  { cle: "fournisseurs", href: "/gerant/comptabilite/comptes-a-payer", label: "Fournisseurs", icone: "🏢" },
+  { cle: "fournisseurs", href: "/gerant/fournisseurs", label: "Fournisseurs", icone: "🏢" },
   { cle: "inventaire", href: "/secretaire/inventaire", label: "Inventaire", icone: "📦" },
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "💰", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "🧾", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
