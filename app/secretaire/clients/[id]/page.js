@@ -14,6 +14,7 @@ export default async function DetailClientPage({ params }) {
     include: {
       bons: { include: { facture: true }, orderBy: { creeLe: "desc" } },
       soumissions: { orderBy: { creeLe: "desc" } },
+      vehicules: true,
     },
   });
   if (!client) notFound();

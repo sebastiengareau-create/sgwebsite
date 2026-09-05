@@ -123,6 +123,24 @@ export default function ClientDetailClient({ client }) {
           </div>
 
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
+            <SectionTitre>Véhicules ({client.vehicules.length})</SectionTitre>
+            {client.vehicules.length === 0 ? (
+              <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun véhicule encore.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {client.vehicules.map((v) => (
+                  <div key={v.id} style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
+                    <div style={{ fontWeight: 600 }}>🚗 {v.marque} {v.modele} {v.annee || ""}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                      {[v.plaque && `Plaque : ${v.plaque}`, v.vin && `NIV : ${v.vin}`].filter(Boolean).join(" · ") || "Aucun détail supplémentaire"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
             <SectionTitre>Bons de commande ({client.bons.length})</SectionTitre>
             {client.bons.length === 0 ? (
               <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun bon encore.</p>
