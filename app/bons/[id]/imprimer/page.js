@@ -26,6 +26,7 @@ export default async function ImprimerBon({ params }) {
       where: { id: params.id },
       include: {
         client: true,
+        vehicule: true,
         problemes: { orderBy: { id: "asc" }, include: { photos: true, pieces: { include: { piece: true } }, entreesTemps: { include: { employe: true } } } },
         facture: true,
       },
@@ -133,6 +134,9 @@ export default async function ImprimerBon({ params }) {
           {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
           {(bon.client.adresse || bon.client.ville) && (
             <div style={{ fontSize: 13 }}>{[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>
+          )}
+          {bon.vehicule && (
+            <div style={{ fontSize: 13, marginTop: 4 }}>🚗 {[bon.vehicule.marque, bon.vehicule.modele, bon.vehicule.annee].filter(Boolean).join(" ")}</div>
           )}
           {bon.client.garantieProlongee && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
