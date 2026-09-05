@@ -19,6 +19,7 @@ export default function ClientDetailClient({ client }) {
   const [adresse, setAdresse] = useState(client.adresse || "");
   const [ville, setVille] = useState(client.ville || "");
   const [codePostal, setCodePostal] = useState(client.codePostal || "");
+  const [garantieProlongee, setGarantieProlongee] = useState(client.garantieProlongee || "");
 
   async function sauvegarder(e) {
     e.preventDefault();
@@ -27,7 +28,7 @@ export default function ClientDetailClient({ client }) {
     const res = await fetch(`/api/clients/${client.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -97,9 +98,11 @@ export default function ClientDetailClient({ client }) {
             </div>
             <div style={{ width: 110 }}>
               <label style={labelStyle}>Code postal</label>
-              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, marginBottom: 12 }} />
+              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={champStyle} />
             </div>
           </div>
+          <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
+          <input value={garantieProlongee} onChange={(e) => setGarantieProlongee(e.target.value)} style={{ ...champStyle, marginBottom: 12 }} />
 
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
