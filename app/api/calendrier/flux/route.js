@@ -41,6 +41,7 @@ export async function GET(request) {
     const description = [
       r.clientTelephone ? `Téléphone : ${r.clientTelephone}` : null,
       r.vehiculeInfo ? `Véhicule : ${r.vehiculeInfo}` : null,
+      r.note ? `Note : ${r.note}` : null,
     ].filter(Boolean).join("\\n");
 
     return [

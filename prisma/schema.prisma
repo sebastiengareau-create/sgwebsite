@@ -208,6 +208,7 @@ model RendezVous {
   clientNom       String
   clientTelephone String?
   vehiculeInfo    String?
+  note            String? // ex: rendez-vous d'affaire sans lien avec un service au véhicule
   date            DateTime // date et heure du rendez-vous
   dureeMinutes    Int         @default(60)
   motif           String

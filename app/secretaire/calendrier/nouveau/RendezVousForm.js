@@ -14,6 +14,7 @@ export default function RendezVousForm({ clientsExistants }) {
   const [clientNom, setClientNom] = useState("");
   const [clientTelephone, setClientTelephone] = useState("");
   const [vehiculeInfo, setVehiculeInfo] = useState("");
+  const [note, setNote] = useState("");
   const [date, setDate] = useState(dateAujourdhuiQuebec());
   const [heure, setHeure] = useState("09:00");
   const [dureeMinutes, setDureeMinutes] = useState("60");
@@ -63,7 +64,7 @@ export default function RendezVousForm({ clientsExistants }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
-        clientNom: nomFinal, clientTelephone, vehiculeInfo,
+        clientNom: nomFinal, clientTelephone, vehiculeInfo, note,
         date: `${date}T${heure}:00`,
         dureeMinutes, motif,
       }),
@@ -118,6 +119,7 @@ export default function RendezVousForm({ clientsExistants }) {
         <input placeholder="Téléphone" value={clientTelephone} onChange={(e) => setClientTelephone(e.target.value)} style={champInput} />
       )}
       <input placeholder="Véhicule (ex : Honda Civic 2019)" value={vehiculeInfo} onChange={(e) => setVehiculeInfo(e.target.value)} style={champInput} />
+      <input placeholder="Note (ex : rendez-vous d'affaire, pas lié à un service)" value={note} onChange={(e) => setNote(e.target.value)} style={champInput} />
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Rendez-vous</div>
       <div style={{ display: "flex", gap: 8 }}>

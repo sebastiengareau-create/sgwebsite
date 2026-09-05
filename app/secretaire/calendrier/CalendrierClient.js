@@ -255,6 +255,7 @@ function CarteRendezVous({ rdv, onChange, compact }) {
       </div>
       <div style={{ fontWeight: 600, marginTop: 2 }}>{rdv.clientNom}</div>
       {rdv.vehiculeInfo && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{rdv.vehiculeInfo}</div>}
+      {rdv.note && <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>{rdv.note}</div>}
       <div style={{ fontSize: 13, marginTop: 4 }}>{rdv.motif}</div>
       {rdv.clientTelephone && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{rdv.clientTelephone}</div>}
 
