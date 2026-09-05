@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../components/EnTete";
 import OperationsTabs from "../../components/OperationsTabs";
+import FacturationPeriodes from "../../components/FacturationPeriodes";
 import ResumeOperations from "../../components/ResumeOperations";
 import FacturesClient from "./FacturesClient";
 
@@ -19,6 +20,7 @@ export default async function ListeFactures() {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <OperationsTabs />
+      <FacturationPeriodes />
       <ResumeOperations />
       <FacturesClient factures={factures} />
     </div>

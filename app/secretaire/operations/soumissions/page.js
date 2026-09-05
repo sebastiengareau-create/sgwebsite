@@ -3,6 +3,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
 import OperationsTabs from "../../../components/OperationsTabs";
+import FacturationPeriodes from "../../../components/FacturationPeriodes";
 import ResumeOperations from "../../../components/ResumeOperations";
 import SoumissionsListe from "./SoumissionsListe";
 
@@ -23,6 +24,7 @@ export default async function ListeSoumissions() {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <OperationsTabs />
+      <FacturationPeriodes />
       <ResumeOperations />
       <SoumissionsListe soumissions={soumissions} tauxHoraireClient={tauxHoraireClient} />
     </div>
