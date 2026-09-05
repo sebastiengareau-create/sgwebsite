@@ -7,7 +7,17 @@ import Link from "next/link";
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
-export default function PlanComptableClient({ comptes, labelsType, estDeveloppeur }) {
+const OUTILS = [
+  { href: "/gerant/comptabilite/fermeture", icone: "🔒", label: "Fermeture de période" },
+  { href: "/gerant/comptabilite/ouverture", icone: "📂", label: "Soldes d'ouverture" },
+  { href: "/gerant/comptabilite/ecriture-manuelle", icone: "✍️", label: "Écriture supplémentaire" },
+  { href: "/gerant/comptabilite/rapprochement", icone: "🏦", label: "Rapprochement bancaire" },
+  { href: "/gerant/comptabilite/immobilisations", icone: "🏗️", label: "Immobilisations" },
+  { href: "/gerant/comptabilite/remise-gouvernementale", icone: "🏛️", label: "Remise gouvernementale" },
+  { href: "/gerant/comptabilite/rapports", icone: "📄", label: "Rapports imprimables" },
+];
+
+export default function PlanComptableClient({ comptes, labelsType, estDeveloppeur, periodeLabel }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [numero, setNumero] = useState("");
@@ -19,11 +29,16 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
   const [nomRenommage, setNomRenommage] = useState("");
   const [erreurRenommage, setErreurRenommage] = useState("");
 
+  const typesPresents = ORDRE_TYPE.filter((t) => comptes.some((c) => c.type === t));
+  const [ongletType, setOngletType] = useState(typesPresents[0] || "ACTIF");
+
   const totalActif = comptes.filter((c) => c.type === "ACTIF").reduce((s, c) => s + c.solde, 0);
   const totalPassif = comptes.filter((c) => c.type === "PASSIF").reduce((s, c) => s + c.solde, 0);
   const totalRevenu = comptes.filter((c) => c.type === "REVENU").reduce((s, c) => s + c.solde, 0);
   const totalDepense = comptes.filter((c) => c.type === "DEPENSE").reduce((s, c) => s + c.solde, 0);
   const profitNet = totalRevenu - totalDepense;
+
+  const comptesOnglet = comptes.filter((c) => c.type === ongletType);
 
   async function creerCompte(e) {
     e.preventDefault();
@@ -89,77 +104,67 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
         <h1 style={{ fontSize: 20 }}>Comptabilité</h1>
         <Link href="/gerant/comptabilite/journal" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
           📖 Journal
         </Link>
       </div>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Période en cours : {periodeLabel}</p>
 
-      <Link
-        href="/gerant/comptabilite/fermeture"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        🔒 Fermeture de période
-      </Link>
-      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-        <Link href="/gerant/comptabilite/etat-resultats" className="bouton-3d" style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>💰 Revenus totaux</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: "var(--success)" }}>{totalRevenu.toFixed(2)} $</div>
+        </div>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>📈 Profit net (à ce jour)</div>
+          <div style={{ fontSize: 24, fontWeight: 700, color: profitNet >= 0 ? "var(--success)" : "var(--danger)" }}>{profitNet.toFixed(2)} $</div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <Link href="/gerant/comptabilite/etat-resultats" className="bouton-3d" style={{ flex: 1, textAlign: "center", padding: 12, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
           📊 État des résultats
         </Link>
-        <Link href="/gerant/comptabilite/bilan" className="bouton-3d" style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+        <Link href="/gerant/comptabilite/bilan" className="bouton-3d" style={{ flex: 1, textAlign: "center", padding: 12, borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
           ⚖️ Bilan
         </Link>
       </div>
-      <Link href="/gerant/comptabilite/ouverture" style={{ display: "block", textAlign: "center", fontSize: 12, color: "var(--text-muted)", textDecoration: "underline", marginBottom: 12 }}>
-        + Soldes d'ouverture
-      </Link>
-      <Link
-        href="/gerant/comptabilite/ecriture-manuelle"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        ✍️ Écriture supplémentaire
-      </Link>
-      <Link
-        href="/gerant/comptabilite/rapprochement"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        🏦 Rapprochement bancaire
-      </Link>
-      <Link
-        href="/gerant/comptabilite/immobilisations"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        🏗️ Immobilisations
-      </Link>
-      <Link
-        href="/gerant/comptabilite/remise-gouvernementale"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        🏛️ Payer une remise gouvernementale
-      </Link>
-      <Link
-        href="/gerant/comptabilite/rapports"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
-      >
-        📄 Rapports imprimables
-      </Link>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Plan comptable — les écritures se génèrent automatiquement à partir de tes factures.
-      </p>
 
-      <button
-        onClick={() => setAfficherFormulaire((v) => !v)}
-        className="bouton-3d-sombre"
-        style={{ width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 16 }}
-      >
-        {afficherFormulaire ? "Annuler" : "+ Nouveau compte"}
-      </button>
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 8 }}>
+        Outils
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 24 }}>
+        {OUTILS.map((o) => (
+          <Link
+            key={o.href}
+            href={o.href}
+            className="bouton-3d-sombre"
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "12px 6px", borderRadius: 10, textDecoration: "none", textAlign: "center", minHeight: 74,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>{o.icone}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.2 }}>{o.label}</span>
+          </Link>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>Plan comptable</div>
+          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Les écritures se génèrent automatiquement à partir de tes factures.</p>
+        </div>
+        <button
+          onClick={() => setAfficherFormulaire((v) => !v)}
+          className="bouton-3d-sombre"
+          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}
+        >
+          {afficherFormulaire ? "Annuler" : "+ Compte"}
+        </button>
+      </div>
 
       {afficherFormulaire && (
         <form onSubmit={creerCompte} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
@@ -183,65 +188,65 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
         </form>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{totalRevenu.toFixed(2)} $</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Revenus totaux</div>
-        </div>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: profitNet >= 0 ? "var(--success)" : "var(--danger)" }}>{profitNet.toFixed(2)} $</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Profit net (à ce jour)</div>
-        </div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 12 }}>
+        {typesPresents.map((t) => (
+          <button
+            key={t}
+            onClick={() => setOngletType(t)}
+            className={ongletType === t ? "bouton-3d" : "bouton-3d-sombre"}
+            style={{ fontSize: 12, fontWeight: 700, padding: "8px 14px", borderRadius: 10, whiteSpace: "nowrap", flexShrink: 0 }}
+          >
+            {labelsType[t]}
+          </button>
+        ))}
       </div>
 
-      {ORDRE_TYPE.map((type) => {
-        const comptesType = comptes.filter((c) => c.type === type);
-        if (comptesType.length === 0) return null;
-        return (
-          <div key={type} style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: COULEUR_TYPE[type], fontWeight: 700, marginBottom: 8 }}>
-              {labelsType[type]}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {comptesType.map((c) => (
-                <Link key={c.id} href={`/gerant/comptabilite/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginRight: 6 }}>{c.numero}</span>
-                      {renommageId === c.id ? (
-                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                          <input
-                            value={nomRenommage}
-                            onChange={(e) => setNomRenommage(e.target.value)}
-                            autoFocus
-                            style={{ fontSize: 13, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
-                          />
-                          <button onClick={(e) => sauvegarderRenommage(c.id, e)} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>✓</button>
-                          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenommageId(null); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✕</button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: 13 }}>{c.nom}</span>
-                      )}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 11, textTransform: "uppercase", color: COULEUR_TYPE[ongletType], fontWeight: 700, marginBottom: 8 }}>
+          {labelsType[ongletType]}
+        </div>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+          {comptesOnglet.map((c, i) => (
+            <Link key={c.id} href={`/gerant/comptabilite/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <div style={{
+                background: i % 2 === 0 ? "var(--surface)" : "var(--bg)",
+                borderTop: i === 0 ? "none" : "1px solid var(--border)",
+                padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginRight: 6 }}>{c.numero}</span>
+                  {renommageId === c.id ? (
+                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                      <input
+                        value={nomRenommage}
+                        onChange={(e) => setNomRenommage(e.target.value)}
+                        autoFocus
+                        style={{ fontSize: 13, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
+                      />
+                      <button onClick={(e) => sauvegarderRenommage(c.id, e)} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>✓</button>
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRenommageId(null); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✕</button>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>{c.solde.toFixed(2)} $</span>
-                      {estDeveloppeur && renommageId !== c.id && (
-                        <button onClick={(e) => commencerRenommage(c, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✏️</button>
-                      )}
-                      {c.nbEcritures === 0 && (
-                        <button onClick={(e) => desactiverCompte(c.id, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>✕</button>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            {comptesType.some((c) => c.id === renommageId) && erreurRenommage && (
-              <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurRenommage}</p>
-            )}
-          </div>
-        );
-      })}
+                  ) : (
+                    <span style={{ fontSize: 13 }}>{c.nom}</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{c.solde.toFixed(2)} $</span>
+                  {estDeveloppeur && renommageId !== c.id && (
+                    <button onClick={(e) => commencerRenommage(c, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer", padding: 4 }}>✏️</button>
+                  )}
+                  {c.nbEcritures === 0 && (
+                    <button onClick={(e) => desactiverCompte(c.id, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer", padding: 4 }}>✕</button>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+        {comptesOnglet.some((c) => c.id === renommageId) && erreurRenommage && (
+          <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurRenommage}</p>
+        )}
+      </div>
 
       <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 10 }}>
         Actif total : {totalActif.toFixed(2)} $ · Passif total : {totalPassif.toFixed(2)} $
