@@ -108,6 +108,7 @@ export default function NouveauBon({ clientsExistants }) {
             <div style={{ fontSize: 13, fontWeight: 600 }}>{clientSelectionne.nom}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
               {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
+              {clientSelectionne.garantieProlongee && <> · 🛡️ Garantie #{clientSelectionne.garantieProlongee}</>}
             </div>
           </div>
           <button type="button" onClick={changerClientPourNouveau} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
