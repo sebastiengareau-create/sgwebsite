@@ -15,7 +15,7 @@ export default function OperationsTabs() {
   return (
     <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "12px 16px 0" }}>
       <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>Bons de commande / Factures</div>
-      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, overflowX: "auto", paddingBottom: 14 }}>
         {ONGLETS.map((o) => {
           const actif = pathname === o.href || (o.href === "/secretaire/operations/soumissions" && pathname.startsWith("/secretaire/operations/soumissions"));
           return (
