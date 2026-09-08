@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import BoutonFlottantNouveau from "../components/BoutonFlottantNouveau";
-import BandeauSection from "../components/BandeauSection";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -24,8 +23,6 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
 
   return (
     <div style={{ padding: 16, maxWidth: vue === "tableau" ? 1100 : 480, margin: "0 auto", width: "100%" }}>
-      <BandeauSection icone="🔧" titre="Bons de commande" sousTitre="Crée les bons, assigne les mécaniciens, gère les pièces et l'inventaire." />
-
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
           <button
