@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 export default function ClientsClient({ clients }) {
   const router = useRouter();
@@ -18,8 +19,9 @@ export default function ClientsClient({ clients }) {
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Clients</h1>
+      <BandeauSection icone="🧑‍🤝‍🧑" titre="Clients" sousTitre="Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -28,9 +30,6 @@ export default function ClientsClient({ clients }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau client"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions.
-      </p>
       <Link
         href="/gerant/comptabilite/rapports/comptes-clients"
         target="_blank"

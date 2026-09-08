@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -126,7 +127,8 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
     router.push(`/gerant/rapports?date=${nouvelleDate}`);
   }
 
-  const dateAffichee = new Date(`${dateStr}T12:00:00`).toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const dateAfficheeBrute = new Date(`${dateStr}T12:00:00`).toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const dateAffichee = dateAfficheeBrute.charAt(0).toUpperCase() + dateAfficheeBrute.slice(1);
 
   // Coût : sur les heures PRÉVUES, mais seulement pour les employés PRÉSENTS
   // (au moins un poinçon démarré ce jour-là) — un employé absent (aucun
@@ -141,11 +143,11 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
 
   return (
     <div className="conteneur-page">
-      <h1 style={{ fontSize: 20, marginBottom: 4 }}>Rapport journalier</h1>
-      <Link href="/gerant/rapports/rentabilite" style={{ display: "inline-block", fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", marginBottom: 8 }}>
-        📈 Voir la rentabilité par période →
-      </Link>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12, textTransform: "capitalize" }}>{dateAffichee} · {heuresAttendues}h prévues</p>
+      <BandeauSection icone="📈" titre="Rapport journalier" sousTitre={`${dateAffichee} · ${heuresAttendues}h prévues`}>
+        <Link href="/gerant/rapports/rentabilite" style={{ display: "inline-block", marginTop: 12, fontSize: 12, fontWeight: 600, color: "#fff", textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)", padding: "6px 12px", borderRadius: 8 }}>
+          📊 Voir la rentabilité par période →
+        </Link>
+      </BandeauSection>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
         <button onClick={() => changerDate(decaler(dateStr, -1))} style={boutonJour}>← Veille</button>

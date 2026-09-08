@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 const STATUT_INFO = {
   BROUILLON: { icone: "🟡", label: "Brouillon", couleur: "#C9A227" },
@@ -33,29 +34,16 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
 
   return (
     <div className="conteneur-page" style={{ maxWidth: 1000 }}>
-      {/* Bandeau d'accueil */}
-      <div style={{
-        position: "relative", overflow: "hidden", borderRadius: 16, padding: "22px 20px", marginBottom: 16,
-        background: "linear-gradient(135deg, #241b0f 0%, var(--accent-ombre) 100%)", border: "1px solid var(--border)",
-      }}>
-        <div style={{ position: "absolute", right: -18, top: "50%", transform: "translateY(-50%)", fontSize: 92, opacity: 0.16, lineHeight: 1 }}>
-          🧾
-        </div>
-        <div style={{ position: "relative" }}>
-          <h1 style={{ fontSize: 21, margin: 0, color: "#fff" }}>🧾 Paie</h1>
-          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, margin: "4px 0 0" }}>
-            Gérez facilement vos employés, vos heures et vos paiements.
-          </p>
-          {prochainePaie && (
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "6px 12px",
-              background: "rgba(0,0,0,0.28)", borderRadius: 999, fontSize: 12, fontWeight: 600, color: "#fff",
-            }}>
-              📅 Prochaine paie : {fmtDate(`${prochainePaie.dateStr}T12:00:00`)}
-            </div>
-          )}
-        </div>
-      </div>
+      <BandeauSection icone="🧾" titre="Paie" sousTitre="Gérez facilement vos employés, vos heures et vos paiements.">
+        {prochainePaie && (
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, padding: "6px 12px",
+            background: "rgba(0,0,0,0.28)", borderRadius: 999, fontSize: 12, fontWeight: 600, color: "#fff",
+          }}>
+            📅 Prochaine paie : {fmtDate(`${prochainePaie.dateStr}T12:00:00`)}
+          </div>
+        )}
+      </BandeauSection>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
         <Link href="/gerant/paie/journal" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none" }}>

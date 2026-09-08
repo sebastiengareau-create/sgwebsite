@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
@@ -104,13 +105,11 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-        <h1 style={{ fontSize: 20 }}>Comptabilité</h1>
-        <Link href="/gerant/comptabilite/journal" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
+      <BandeauSection icone="💰" titre="Comptabilité" sousTitre={`Période en cours : ${periodeLabel}`}>
+        <Link href="/gerant/comptabilite/journal" style={{ display: "inline-block", marginTop: 12, fontSize: 12, fontWeight: 600, color: "#fff", textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)", padding: "6px 12px", borderRadius: 8 }}>
           📖 Journal
         </Link>
-      </div>
-      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Période en cours : {periodeLabel}</p>
+      </BandeauSection>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>

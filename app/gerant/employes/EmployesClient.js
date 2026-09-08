@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 export default function EmployesClient({ employes, moi, nomsRoles }) {
   const router = useRouter();
@@ -10,8 +11,9 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Gestion des employés</h1>
+      <BandeauSection icone="👥" titre="Gestion des employés" sousTitre="Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -20,9 +22,6 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau compte"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie.
-      </p>
 
       {afficherFormulaire && (
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} />
