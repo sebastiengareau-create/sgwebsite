@@ -20,7 +20,7 @@ export default async function RapportRentabilite({ searchParams }) {
   const debut = new Date(`${debutStr}T00:00:00`);
   const fin = new Date(`${finStr}T23:59:59`);
 
-  const [employes, entreesBon, entreesInternes, parametreTaux] = await Promise.all([
+  const [employes, entreesBon, entreesInternes, parametreCout, parametreTauxClient] = await Promise.all([
     prisma.user.findMany({ where: { actif: true, role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
       where: { fin: { not: null }, debut: { gte: debut, lte: fin } },
@@ -28,9 +28,11 @@ export default async function RapportRentabilite({ searchParams }) {
     }),
     prisma.entreeTempsInterne.findMany({ where: { fin: { not: null }, debut: { gte: debut, lte: fin } } }),
     prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
+    prisma.parametre.findUnique({ where: { cle: "taux_horaire_client" } }),
   ]);
 
-  const tauxCoutGlobal = Number(parametreTaux?.valeur || 95);
+  const tauxCoutGlobal = Number(parametreCout?.valeur || 95);
+  const tauxClientDefaut = Number(parametreTauxClient?.valeur || 195);
 
   const parEmploye = employes.map((e) => {
     const siennesBon = entreesBon.filter((t) => t.employeId === e.id);
@@ -40,16 +42,18 @@ export default async function RapportRentabilite({ searchParams }) {
     const heuresInternes = siennesInternes.reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
     const heuresTotales = heuresBon + heuresInternes;
 
-    // Le revenu se calcule seulement sur les heures d'un bon RÉELLEMENT
-    // FACTURÉ, au taux qui a vraiment été chargé sur cette facture — pas
-    // une simple estimation, un vrai montant réparti entre les mécaniciens
-    // qui ont partagé le bon
+    // Le revenu compte toutes les heures liées à un bon : au taux RÉEL de
+    // la facture quand le bon est déjà facturé, sinon au taux horaire
+    // client par défaut — pour donner une marge estimée presque en temps
+    // réel plutôt qu'un trou dans les chiffres tant que la facture n'est
+    // pas encore émise (le montant se corrige tout seul une fois facturé).
     const siennesFacturees = siennesBon.filter((t) => t.probleme.bon.facture);
-    const heuresFacturables = siennesFacturees.reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
-    const revenuGenere = siennesFacturees.reduce(
-      (s, t) => s + dureeHeures(t.debut, t.fin) * t.probleme.bon.facture.tauxHoraireUtilise,
-      0
-    );
+    const siennesNonFacturees = siennesBon.filter((t) => !t.probleme.bon.facture);
+    const heuresEstimees = siennesNonFacturees.reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
+    const heuresFacturables = heuresBon;
+    const revenuGenere =
+      siennesFacturees.reduce((s, t) => s + dureeHeures(t.debut, t.fin) * t.probleme.bon.facture.tauxHoraireUtilise, 0) +
+      heuresEstimees * tauxClientDefaut;
 
     const tauxCout = e.tauxHoraireEmploye || tauxCoutGlobal;
     const coutReel = heuresTotales * tauxCout;
@@ -59,6 +63,7 @@ export default async function RapportRentabilite({ searchParams }) {
       employe: e,
       heuresTotales,
       heuresFacturables,
+      heuresEstimees,
       heuresInternes,
       revenuGenere,
       coutReel,

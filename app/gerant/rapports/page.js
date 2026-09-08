@@ -20,9 +20,13 @@ export default async function RapportJournalier({ searchParams }) {
   const [an, mois, jour] = dateStr.split("-").map(Number);
   const jourSemaine = CLES_JOURS[new Date(Date.UTC(an, mois - 1, jour)).getUTCDay()];
 
+  // Un gérant peut lui aussi poinçonner sur un bon (voir peutPoinconner dans
+  // app/bons/[id]/page.js) — s'il n'était pas inclus ici, ses heures
+  // facturées seraient bel et bien enregistrées mais absentes du rapport et
+  // du revenu total de l'équipe.
   const [parametres, mecaniciens, entrees, entreesInternes] = await Promise.all([
     prisma.parametre.findMany(),
-    prisma.user.findMany({ where: { role: "MECANICIEN" }, orderBy: { nom: "asc" } }),
+    prisma.user.findMany({ where: { role: { in: ["MECANICIEN", "GERANT"] } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
       where: { debut: { gte: debutJour, lte: finJour } },
       include: {
