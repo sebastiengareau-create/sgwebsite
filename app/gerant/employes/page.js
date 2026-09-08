@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev, nomAffichageRole } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../components/EnTete";
@@ -6,7 +6,7 @@ import EmployesClient from "./EmployesClient";
 
 export default async function GestionEmployes() {
   const session = await obtenirSession();
-  if (!estGerantOuDev(session)) redirect("/gerant");
+  if (!(await aAccesSection(session, "employes"))) redirect("/gerant");
 
   const employes = await prisma.user.findMany({ orderBy: { nom: "asc" } });
   const nomsRoles = {

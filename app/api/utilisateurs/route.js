@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
 
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!session || !estGerantOuDev(session)) {
+  if (!session || !(await aAccesSection(session, "employes"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
@@ -15,6 +15,12 @@ export async function POST(request) {
   } = await request.json();
   if (!nom || !courriel || !motDePasse || !["GERANT", "SECRETAIRE", "MECANICIEN"].includes(role)) {
     return NextResponse.json({ erreur: "Champs manquants ou invalides." }, { status: 400 });
+  }
+  // Créer un compte Gérant reste réservé aux gérants eux-mêmes — l'accès
+  // "employes" délégué (ex: à une secrétaire) permet de gérer le personnel,
+  // pas de créer un compte avec les pleins pouvoirs.
+  if (role === "GERANT" && !estGerantOuDev(session)) {
+    return NextResponse.json({ erreur: "Seul un gérant peut créer un compte Gérant." }, { status: 403 });
   }
   if (motDePasse.length < 4 || motDePasse.length > 12) {
     return NextResponse.json({ erreur: "Le mot de passe doit avoir entre 4 et 12 caractères." }, { status: 400 });

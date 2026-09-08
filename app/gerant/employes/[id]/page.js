@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev, nomAffichageRole } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
@@ -6,7 +6,7 @@ import EmployeDetailClient from "./EmployeDetailClient";
 
 export default async function DetailEmploye({ params }) {
   const session = await obtenirSession();
-  if (!estGerantOuDev(session)) redirect("/gerant");
+  if (!(await aAccesSection(session, "employes"))) redirect("/gerant");
 
   const [employe, paies, modulePaie] = await Promise.all([
     prisma.user.findUnique({ where: { id: params.id } }),

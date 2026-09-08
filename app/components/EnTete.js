@@ -16,6 +16,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "inventaire", href: "/secretaire/inventaire", label: "Inventaire", icone: "📦" },
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "💰", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "🧾", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
+  { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "👥" },
 ];
 
 export default async function EnTete({ nom, role }) {
@@ -47,9 +48,6 @@ export default async function EnTete({ nom, role }) {
   }
   if (role === "MECANICIEN" || estGerantOuDev(session)) {
     liens.push({ href: "/mecanicien", label: "Horodateur", icone: "⏱️" });
-  }
-  if (estGerantOuDev(session)) {
-    liens.push({ href: "/gerant/employes", label: "Employés", icone: "👥" });
   }
 
   // Sections empruntables — vérifiées une par une via le même système que
