@@ -10,8 +10,9 @@ function fmt(montant) {
 const COULEUR_NIVEAU = { danger: "var(--danger)", avertissement: "#C9A227", info: "var(--success)" };
 const FOND_NIVEAU = { danger: "rgba(193,91,74,0.12)", avertissement: "rgba(201,162,39,0.12)", info: "rgba(111,169,107,0.12)" };
 
-export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes }) {
+export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes, rentabilite }) {
   const [vueGraphique, setVueGraphique] = useState("revenus"); // "revenus" | "depenses" | "benefice"
+  const [periodeRentabilite, setPeriodeRentabilite] = useState("mois"); // "mois" | "annee"
 
   const moisPrecUrl = mois === 1 ? { annee: annee - 1, mois: 12 } : { annee, mois: mois - 1 };
   const moisSuivUrl = mois === 12 ? { annee: annee + 1, mois: 1 } : { annee, mois: mois + 1 };
@@ -96,6 +97,9 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
         </div>
       </div>
 
+      {/* Analyse de rentabilité */}
+      <CarteRentabilite rentabilite={rentabilite} nomMois={nomMois} annee={annee} periode={periodeRentabilite} onChangerPeriode={setPeriodeRentabilite} />
+
       {/* À surveiller */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>⚠️ À surveiller aujourd'hui</div>
@@ -177,5 +181,87 @@ function BoutonAction({ icone, label, href }) {
       <span style={{ fontSize: 20 }}>{icone}</span>
       <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)" }}>{label}</span>
     </Link>
+  );
+}
+
+// Revenus par poste (main-d'œuvre, pièces, remorquage…) et coûts par poste
+// (salaires, charges employeur, coûtant des pièces, électricité, loyer…),
+// puis les chiffres qui en découlent. Le seuil de rentabilité est le total
+// des coûts de la période (revenu minimum pour ne pas être déficitaire) —
+// l'excédent/déficit est donc mathématiquement la même chose que le
+// bénéfice net, juste présenté par rapport à ce seuil plutôt qu'à zéro.
+function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPeriode }) {
+  const donnees = periode === "annee" ? rentabilite.annee : rentabilite.mois;
+  const { revenus, depenses, totalRevenus, totalDepenses } = donnees;
+  const benefice = totalRevenus - totalDepenses;
+  const margePct = totalRevenus > 0 ? (benefice / totalRevenus) * 100 : 0;
+  const seuilRentabilite = totalDepenses;
+  const excedent = totalRevenus - seuilRentabilite;
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>📊 Analyse de rentabilité</span>
+        <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>
+          <button
+            onClick={() => onChangerPeriode("mois")}
+            style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: periode === "mois" ? "var(--accent)" : "none", color: periode === "mois" ? "#17150f" : "var(--text-muted)" }}
+          >
+            {nomMois}
+          </button>
+          <button
+            onClick={() => onChangerPeriode("annee")}
+            style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: periode === "annee" ? "var(--accent)" : "none", color: periode === "annee" ? "#17150f" : "var(--text-muted)" }}
+          >
+            Année {annee}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 16 }}>
+        <SectionPostes titre="Revenus" postes={revenus} total={totalRevenus} couleur="var(--success)" />
+        <SectionPostes titre="Coûts" postes={depenses} total={totalDepenses} couleur="var(--danger)" />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <Metrique label="Total revenus" valeur={fmt(totalRevenus)} />
+        <Metrique label="Total coûts" valeur={fmt(totalDepenses)} />
+        <Metrique label="Bénéfice" valeur={fmt(benefice)} couleur={benefice >= 0 ? "var(--success)" : "var(--danger)"} />
+        <Metrique label="Marge" valeur={`${margePct.toFixed(1)} %`} couleur={margePct >= 0 ? "var(--success)" : "var(--danger)"} />
+        <Metrique label="Seuil de rentabilité" valeur={fmt(seuilRentabilite)} sousLabel="Revenu min. pour ne pas être déficitaire" />
+        <Metrique label={excedent >= 0 ? "Excédent" : "Déficit"} valeur={fmt(Math.abs(excedent))} couleur={excedent >= 0 ? "var(--success)" : "var(--danger)"} />
+      </div>
+    </div>
+  );
+}
+
+function SectionPostes({ titre, postes, total, couleur }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>{titre}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {postes.map((p) => (
+          <div key={p.numero} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
+            <span style={{ color: "var(--text-muted)" }}>{p.nom}</span>
+            <span style={{ fontWeight: 600 }}>{fmt(p.montant)}</span>
+          </div>
+        ))}
+        {postes.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", margin: 0 }}>Aucune donnée</p>}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)", color: couleur }}>
+        <span>Total</span>
+        <span>{fmt(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+function Metrique({ label, valeur, couleur, sousLabel }) {
+  return (
+    <div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: couleur || "var(--text)" }}>{valeur}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</div>
+      {sousLabel && <div style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 1 }}>{sousLabel}</div>}
+    </div>
   );
 }
