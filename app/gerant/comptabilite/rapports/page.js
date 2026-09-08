@@ -17,6 +17,7 @@ export default async function RapportsComptables() {
     { href: "/gerant/comptabilite/rapports/balance-verification", icone: "🧮", titre: "Balance de vérification", description: "Tous les comptes, débits et crédits" },
     { href: "/gerant/comptabilite/rapports/tps-tvq", icone: "🧾", titre: "Remise TPS/TVQ", description: "Net à remettre pour une période" },
     { href: "/gerant/comptabilite/rapports/das", icone: "🏛️", titre: "DAS à remettre", description: "ARC et Revenu Québec — impôts, RRQ, RQAP, AE" },
+    { href: "/gerant/comptabilite/rapports/inventaire", icone: "📦", titre: "Inventaire", description: "Pièces, quantités, coûtant, vendant et marge" },
   ];
 
   return (
