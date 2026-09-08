@@ -228,6 +228,12 @@ model Compte {
   nom       String
   type      String   // "ACTIF" | "PASSIF" | "CAPITAUX_PROPRES" | "REVENU" | "DEPENSE"
   actif     Boolean  @default(true)
+  // Classification d'un poste de DÉPENSE pour le seuil de rentabilité —
+  // "FIXE" | "VARIABLE", non applicable aux autres types. Vide = traité
+  // comme FIXE par défaut (voir lib/rapportsComptables.js), pour que le
+  // seuil affiché avant toute classification reste égal au total des
+  // coûts (comportement actuel), plutôt que de tomber silencieusement à 0.
+  typeCharge String?
   lignes    LigneEcriture[]
 }
 

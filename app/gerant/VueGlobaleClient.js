@@ -186,17 +186,20 @@ function BoutonAction({ icone, label, href }) {
 
 // Revenus par poste (main-d'œuvre, pièces, remorquage…) et coûts par poste
 // (salaires, charges employeur, coûtant des pièces, électricité, loyer…),
-// puis les chiffres qui en découlent. Le seuil de rentabilité est le total
-// des coûts de la période (revenu minimum pour ne pas être déficitaire) —
-// l'excédent/déficit est donc mathématiquement la même chose que le
-// bénéfice net, juste présenté par rapport à ce seuil plutôt qu'à zéro.
+// puis les chiffres qui en découlent. Seuil de rentabilité au sens classique
+// (point mort) : charges fixes ÷ taux de marge sur coûts variables — voir
+// Comptabilité → Plan comptable pour classer chaque poste de dépense en
+// Fixe ou Variable (par défaut : tout est Fixe sauf le coûtant des pièces).
 function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPeriode }) {
   const donnees = periode === "annee" ? rentabilite.annee : rentabilite.mois;
-  const { revenus, depenses, totalRevenus, totalDepenses } = donnees;
+  const { revenus, depenses, totalRevenus, totalDepenses, totalChargesFixes, totalChargesVariables } = donnees;
   const benefice = totalRevenus - totalDepenses;
   const margePct = totalRevenus > 0 ? (benefice / totalRevenus) * 100 : 0;
-  const seuilRentabilite = totalDepenses;
-  const excedent = totalRevenus - seuilRentabilite;
+
+  const tauxMargeVariable = totalRevenus > 0 ? (totalRevenus - totalChargesVariables) / totalRevenus : null;
+  const seuilCalculable = tauxMargeVariable !== null && tauxMargeVariable > 0;
+  const seuilRentabilite = seuilCalculable ? totalChargesFixes / tauxMargeVariable : null;
+  const excedent = seuilCalculable ? totalRevenus - seuilRentabilite : null;
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
@@ -220,7 +223,7 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 16 }}>
         <SectionPostes titre="Revenus" postes={revenus} total={totalRevenus} couleur="var(--success)" />
-        <SectionPostes titre="Coûts" postes={depenses} total={totalDepenses} couleur="var(--danger)" />
+        <SectionPostes titre="Coûts" postes={depenses} total={totalDepenses} couleur="var(--danger)" sousTotal={`Fixes ${fmt(totalChargesFixes)} · Variables ${fmt(totalChargesVariables)}`} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
@@ -228,21 +231,38 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
         <Metrique label="Total coûts" valeur={fmt(totalDepenses)} />
         <Metrique label="Bénéfice" valeur={fmt(benefice)} couleur={benefice >= 0 ? "var(--success)" : "var(--danger)"} />
         <Metrique label="Marge" valeur={`${margePct.toFixed(1)} %`} couleur={margePct >= 0 ? "var(--success)" : "var(--danger)"} />
-        <Metrique label="Seuil de rentabilité" valeur={fmt(seuilRentabilite)} sousLabel="Revenu min. pour ne pas être déficitaire" />
-        <Metrique label={excedent >= 0 ? "Excédent" : "Déficit"} valeur={fmt(Math.abs(excedent))} couleur={excedent >= 0 ? "var(--success)" : "var(--danger)"} />
+        {seuilCalculable ? (
+          <>
+            <Metrique label="Seuil de rentabilité" valeur={fmt(seuilRentabilite)} sousLabel="Revenu min. pour couvrir charges fixes et variables" />
+            <Metrique label={excedent >= 0 ? "Excédent" : "Déficit"} valeur={fmt(Math.abs(excedent))} couleur={excedent >= 0 ? "var(--success)" : "var(--danger)"} sousLabel="Par rapport au seuil de rentabilité" />
+          </>
+        ) : (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              Seuil de rentabilité non calculable — {totalRevenus <= 0 ? "aucun revenu sur cette période." : "les charges variables dépassent les revenus."}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function SectionPostes({ titre, postes, total, couleur }) {
+function SectionPostes({ titre, postes, total, couleur, sousTotal }) {
   return (
     <div>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>{titre}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {postes.map((p) => (
-          <div key={p.numero} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5 }}>
-            <span style={{ color: "var(--text-muted)" }}>{p.nom}</span>
+          <div key={p.numero} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
+            <span style={{ color: "var(--text-muted)" }}>
+              {p.nom}
+              {p.typeCharge && (
+                <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 5, color: p.typeCharge === "VARIABLE" ? "var(--accent)" : "var(--text-muted)" }}>
+                  ({p.typeCharge === "VARIABLE" ? "Var." : "Fixe"})
+                </span>
+              )}
+            </span>
             <span style={{ fontWeight: 600 }}>{fmt(p.montant)}</span>
           </div>
         ))}
@@ -252,6 +272,7 @@ function SectionPostes({ titre, postes, total, couleur }) {
         <span>Total</span>
         <span>{fmt(total)}</span>
       </div>
+      {sousTotal && <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 3, textAlign: "right" }}>{sousTotal}</div>}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default async function Comptabilite() {
     const totalDebit = c.lignes.reduce((s, l) => s + l.debit, 0);
     const totalCredit = c.lignes.reduce((s, l) => s + l.credit, 0);
     const solde = NORMAL_DEBIT.includes(c.type) ? totalDebit - totalCredit : totalCredit - totalDebit;
-    return { id: c.id, numero: c.numero, nom: c.nom, type: c.type, solde, nbEcritures: c.lignes.length };
+    return { id: c.id, numero: c.numero, nom: c.nom, type: c.type, solde, nbEcritures: c.lignes.length, typeCharge: c.typeCharge };
   });
 
   // Renommer un poste (nom seulement, jamais le numéro) est réservé au
