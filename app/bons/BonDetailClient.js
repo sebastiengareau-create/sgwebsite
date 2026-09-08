@@ -56,7 +56,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, tauxHoraireClient, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -257,6 +257,25 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   const tvqEstime = totalFacture * (tvqTaux / 100);
   const totalAvecTaxesEstime = totalFacture + tpsEstime + tvqEstime;
 
+  // Rentabilité de la facture : coûtant réel des pièces vendues + coût réel
+  // de la main-d'œuvre (heures poinçonnées sur ce bon × vrai taux horaire de
+  // chaque employé, pas le taux facturé au client) — comparé au montant
+  // facturé avant taxes.
+  const coutPieces = bon.problemes.reduce(
+    (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * (l.piece?.coutant || 0), 0),
+    0
+  );
+  const coutMainOeuvre = bon.problemes.reduce(
+    (s, pr) => s + pr.entreesTemps
+      .filter((t) => t.fin)
+      .reduce((s2, t) => s2 + dureeHeures(t.debut, t.fin) * (t.employe?.tauxHoraireEmploye || coutHoraireMecanicien), 0),
+    0
+  );
+  const totalDepensesFacture = coutPieces + coutMainOeuvre;
+  const factureAvantTaxesPourRentabilite = bon.facture ? bon.facture.totalFacture : totalFacture;
+  const ratioDepenses = factureAvantTaxesPourRentabilite > 0 ? (totalDepensesFacture / factureAvantTaxesPourRentabilite) * 100 : 0;
+  const rentabilitePourcent = 100 - ratioDepenses;
+
   async function sauvegarderEscompte() {
     setEnCours(true);
     await fetch(`/api/bons/${bon.id}/escompte`, {
@@ -369,6 +388,34 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
               <span style={{ fontWeight: 700 }}>Total (taxes incluses)</span>
               <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{bon.facture.totalAvecTaxes.toFixed(2)} $</span>
             </div>
+
+            {estGerant && (
+              <div style={{ marginTop: 4, marginBottom: 12, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                  📊 Rentabilité de cette facture
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Coûtant des pièces vendues</span>
+                  <span>{coutPieces.toFixed(2)} $</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Coût réel main-d'œuvre (taux employés)</span>
+                  <span>{coutMainOeuvre.toFixed(2)} $</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)", marginBottom: 6 }}>
+                  <span style={{ color: "var(--text-muted)" }}>Total des dépenses</span>
+                  <span style={{ fontWeight: 600 }}>{totalDepensesFacture.toFixed(2)} $</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Rentabilité (dépenses = {ratioDepenses.toFixed(0)}% de la facture avant taxes)
+                  </span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: rentabilitePourcent >= 0 ? "var(--success)" : "var(--danger)" }}>
+                    {rentabilitePourcent.toFixed(0)} %
+                  </span>
+                </div>
+              </div>
+            )}
 
             {peutModifier && (
               <div style={{ marginBottom: 12 }}>

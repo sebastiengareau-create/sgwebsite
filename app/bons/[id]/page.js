@@ -42,6 +42,7 @@ export default async function DetailBonPage({ params }) {
   const parametres = await prisma.parametre.findMany();
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
+  const coutHoraireMecanicien = Number(dict.cout_horaire_mecanicien || 95);
   const tpsTaux = Number(dict.tps_taux || 5);
   const tvqTaux = Number(dict.tvq_taux || 9.975);
   const peutModifier = await aAccesSection(session, "operations");
@@ -56,6 +57,7 @@ export default async function DetailBonPage({ params }) {
         mecaniciens={mecaniciens}
         postesRevenu={postesRevenu}
         tauxHoraireClient={tauxHoraireClient}
+        coutHoraireMecanicien={coutHoraireMecanicien}
         tpsTaux={tpsTaux}
         tvqTaux={tvqTaux}
         peutModifier={peutModifier}
