@@ -45,15 +45,6 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         )}
       </BandeauSection>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
-        <Link href="/gerant/paie/journal" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none" }}>
-          📖 Journal / sommaire →
-        </Link>
-        <Link href="/gerant/paie/cumulatifs" target="_blank" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none" }}>
-          🖨️ Cumulatifs →
-        </Link>
-      </div>
-
       <div style={{ background: "#3a2620", border: "1px solid var(--danger)", borderRadius: 10, padding: 12, marginBottom: 20 }}>
         <p style={{ fontSize: 11.5, color: "#f2c4b8", lineHeight: 1.5, margin: 0 }}>
           ⚠️ <strong>Estimation seulement.</strong> Calculée avec la méthode d'annualisation (taux officiels 2026), mais
@@ -142,7 +133,7 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>🚀 Actions rapides</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
           <BoutonAction icone="🧮" label="Calculer la paie" href="/gerant/paie/nouveau" />
-          <BoutonAction icone="👤" label="Ajouter un employé" href="/gerant/employes" />
+          <BoutonAction icone="👤" label="Ajouter un employé" href="/gerant/employes?nouveau=1" />
           <BoutonAction icone="👥" label="Gérer les employés" href="/gerant/employes" />
           <BoutonAction icone="📖" label="Journal / sommaire" href="/gerant/paie/journal" />
           <BoutonAction icone="🖨️" label="Cumulatifs" href="/gerant/paie/cumulatifs" />

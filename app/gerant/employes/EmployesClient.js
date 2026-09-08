@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 
 export default function EmployesClient({ employes, moi, nomsRoles }) {
   const router = useRouter();
-  const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const searchParams = useSearchParams();
+  const [afficherFormulaire, setAfficherFormulaire] = useState(searchParams.get("nouveau") === "1");
 
   return (
     <div className="conteneur-page">
