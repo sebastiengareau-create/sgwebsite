@@ -18,10 +18,11 @@ export async function GET() {
   const pieces = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
 
   const lignesCsv = [
-    ["No pièce", "Description", "Qté", "Coûtant", "Vendant", "Marge"].join(";"),
+    ["No pièce", "Description", "Qté", "Coûtant", "Vendant", "Marge", "Marge %"].join(";"),
   ];
   for (const p of pieces) {
     const marge = p.prix - p.coutant;
+    const margePct = p.prix > 0 ? (marge / p.prix) * 100 : 0;
     lignesCsv.push([
       echapperCsv(p.numero),
       echapperCsv(p.nom),
@@ -29,6 +30,7 @@ export async function GET() {
       p.coutant.toFixed(2).replace(".", ","),
       p.prix.toFixed(2).replace(".", ","),
       marge.toFixed(2).replace(".", ","),
+      margePct.toFixed(1).replace(".", ","),
     ].join(";"));
   }
 

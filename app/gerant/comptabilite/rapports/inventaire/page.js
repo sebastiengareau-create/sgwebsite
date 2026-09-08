@@ -19,6 +19,7 @@ export default async function RapportInventaire() {
   const totalValeurCoutant = pieces.reduce((s, p) => s + p.qte * p.coutant, 0);
   const totalValeurVendant = pieces.reduce((s, p) => s + p.qte * p.prix, 0);
   const totalMarge = pieces.reduce((s, p) => s + p.qte * (p.prix - p.coutant), 0);
+  const totalMargePct = totalValeurVendant > 0 ? (totalMarge / totalValeurVendant) * 100 : 0;
 
   return (
     <div>
@@ -53,6 +54,7 @@ export default async function RapportInventaire() {
           <tbody>
             {pieces.map((p) => {
               const marge = p.prix - p.coutant;
+              const margePct = p.prix > 0 ? (marge / p.prix) * 100 : 0;
               return (
                 <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
                   <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{p.numero}</td>
@@ -60,7 +62,7 @@ export default async function RapportInventaire() {
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.qte}</td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.coutant.toFixed(2)} $</td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.prix.toFixed(2)} $</td>
-                  <td style={{ padding: "6px 4px", textAlign: "right", color: marge < 0 ? "#a83232" : "#17150f" }}>{marge.toFixed(2)} $</td>
+                  <td style={{ padding: "6px 4px", textAlign: "right", color: marge < 0 ? "#a83232" : "#17150f" }}>{marge.toFixed(2)} $ ({margePct.toFixed(1)} %)</td>
                 </tr>
               );
             })}
@@ -74,7 +76,7 @@ export default async function RapportInventaire() {
               <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalQte}</td>
               <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalValeurCoutant.toFixed(2)} $</td>
               <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalValeurVendant.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalMarge.toFixed(2)} $</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalMarge.toFixed(2)} $ ({totalMargePct.toFixed(1)} %)</td>
             </tr>
           </tfoot>
         </table>
