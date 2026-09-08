@@ -33,6 +33,15 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, pe
         </button>
       </div>
 
+      <Link
+        href="/gerant/comptabilite/rapports/inventaire"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
+      >
+        📄 Rapport d'inventaire (PDF / Excel / imprimer)
+      </Link>
+
       {peutGererCategories && (
         <button
           onClick={() => setAfficherCategories((v) => !v)}

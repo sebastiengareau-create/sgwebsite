@@ -5,7 +5,7 @@ import { genererPdfRapportInventaire } from "@/lib/pdfRapportInventaire";
 
 export async function GET() {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "comptabilite"))) {
+  if (!(await aAccesSection(session, "comptabilite")) && !(await aAccesSection(session, "inventaire"))) {
     return new Response(JSON.stringify({ erreur: "Accès refusé." }), { status: 403 });
   }
 

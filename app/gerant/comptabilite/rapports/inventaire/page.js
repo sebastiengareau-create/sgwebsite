@@ -7,7 +7,11 @@ import BoutonsExportInventaire from "./BoutonsExportInventaire";
 export default async function RapportInventaire() {
   const session = await obtenirSession();
   const { nomEntreprise, adresseLigne1, adresseLigne2 } = await obtenirInfosEntreprise();
-  if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
+  // Accessible via Comptabilité → Rapports OU Inventaire — quiconque gère le
+  // stock a besoin de ce rapport, pas seulement quelqu'un avec accès compta.
+  if (!(await aAccesSection(session, "comptabilite")) && !(await aAccesSection(session, "inventaire"))) {
+    redirect("/gerant");
+  }
 
   const pieces = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
 
