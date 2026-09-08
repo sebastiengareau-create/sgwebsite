@@ -42,9 +42,14 @@ export default function FermetureClient({ periodes, annee }) {
     <div className="conteneur-page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <h1 style={{ fontSize: 20 }}>Fermeture de période</h1>
-        <Link href="/gerant/comptabilite/fermeture/historique" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
-          📜 Journal
-        </Link>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/gerant/comptabilite/procedure" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
+            📋 Procédure
+          </Link>
+          <Link href="/gerant/comptabilite/fermeture/historique" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
+            📜 Journal
+          </Link>
+        </div>
       </div>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
         Ferme les livres d'un mois pour empêcher toute modification comptable accidentelle une fois vérifié.

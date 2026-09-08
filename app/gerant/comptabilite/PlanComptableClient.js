@@ -9,6 +9,7 @@ const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
 const OUTILS = [
+  { href: "/gerant/comptabilite/procedure", icone: "📋", label: "Procédure de fermeture" },
   { href: "/gerant/comptabilite/fermeture", icone: "🔒", label: "Fermeture de période" },
   { href: "/gerant/comptabilite/ouverture", icone: "📂", label: "Soldes d'ouverture" },
   { href: "/gerant/comptabilite/ecriture-manuelle", icone: "✍️", label: "Écriture supplémentaire" },
