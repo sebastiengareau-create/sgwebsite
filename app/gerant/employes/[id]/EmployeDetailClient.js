@@ -158,10 +158,10 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
         <>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
             <SectionTitre>Coordonnées</SectionTitre>
-            <Champ label="Téléphone" valeur={employe.telephone} />
-            <Champ label="Adresse" valeur={employe.adresse} />
-            <Champ label="Assignation" valeur={employe.assignation} />
             <Champ label="Numéro d'employé" valeur={employe.numeroEmploye} />
+            <Champ label="Adresse" valeur={employe.adresse} />
+            <Champ label="Téléphone" valeur={employe.telephone} />
+            <Champ label="Assignation" valeur={employe.assignation} />
             <Champ label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
           </div>
 

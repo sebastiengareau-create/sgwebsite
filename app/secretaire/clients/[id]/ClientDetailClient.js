@@ -120,6 +120,7 @@ export default function ClientDetailClient({ client }) {
         <>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
             <SectionTitre>Coordonnées</SectionTitre>
+            <Champ label="Numéro" valeur={client.numero} />
             <Champ label="Téléphone" valeur={client.telephone} />
             <Champ label="Adresse" valeur={client.adresse} />
             <Champ label="Ville" valeur={[client.ville, client.codePostal].filter(Boolean).join(" ") || null} />
