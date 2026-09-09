@@ -115,6 +115,12 @@ function CarteEmploye({ d }) {
         <span>{fmtHeures(d.heuresFacturables)} facturables sur {fmtHeures(d.heuresTotales)} travaillées</span>
         {margePct !== null && <span>Marge {margePct.toFixed(0)}%</span>}
       </div>
+
+      {d.heuresEstimees > 0 && (
+        <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>
+          dont {fmtHeures(d.heuresEstimees)} estimées (bon pas encore facturé)
+        </div>
+      )}
     </div>
   );
 }

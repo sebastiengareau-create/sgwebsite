@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 export default function EmployesClient({ employes, moi, nomsRoles }) {
   const router = useRouter();
-  const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const searchParams = useSearchParams();
+  const [afficherFormulaire, setAfficherFormulaire] = useState(searchParams.get("nouveau") === "1");
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Gestion des employés</h1>
+      <BandeauSection icone="👥" titre="Gestion des employés" sousTitre="Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -20,9 +23,6 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau compte"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie.
-      </p>
 
       {afficherFormulaire && (
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} />
@@ -73,7 +73,6 @@ function FormulaireCreation({ onCree, nomsRoles }) {
   const [telephone, setTelephone] = useState("");
   const [adresse, setAdresse] = useState("");
   const [assignation, setAssignation] = useState("");
-  const [numeroEmploye, setNumeroEmploye] = useState("");
   const [dateEmbauche, setDateEmbauche] = useState("");
   const [typeRemuneration, setTypeRemuneration] = useState("HORAIRE");
   const [tauxHoraireEmploye, setTauxHoraireEmploye] = useState("");
@@ -92,7 +91,7 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nom, courriel, motDePasse, role, pin: pin || undefined,
-        telephone, adresse, assignation, numeroEmploye, dateEmbauche,
+        telephone, adresse, assignation, dateEmbauche,
         typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
       }),
     });
@@ -120,7 +119,6 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
-      <input placeholder="Numéro d'employé" value={numeroEmploye} onChange={(e) => setNumeroEmploye(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Date d'embauche</label>
       <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
 

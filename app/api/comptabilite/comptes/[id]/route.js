@@ -29,6 +29,15 @@ export async function PATCH(request, { params }) {
     data.actif = body.actif;
   }
 
+  // Classification fixe/variable — utilisée pour le seuil de rentabilité de
+  // la Vue d'ensemble, seulement pertinente pour un poste de DÉPENSE.
+  if (body.typeCharge === "FIXE" || body.typeCharge === "VARIABLE") {
+    if (!(await aAccesSection(session, "comptabilite"))) {
+      return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+    }
+    data.typeCharge = body.typeCharge;
+  }
+
   const compte = await prisma.compte.update({ where: { id: params.id }, data });
   return NextResponse.json(compte);
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { prochainNumeroClient } from "@/lib/numerotation";
 
 export async function POST(request, { params }) {
   const session = await obtenirSession();
@@ -15,7 +16,7 @@ export async function POST(request, { params }) {
   let clientId = rdv.clientId;
   if (!clientId) {
     const client = await prisma.client.create({
-      data: { nom: rdv.clientNom, telephone: rdv.clientTelephone || null },
+      data: { numero: await prochainNumeroClient(), nom: rdv.clientNom, telephone: rdv.clientTelephone || null },
     });
     clientId = client.id;
   }

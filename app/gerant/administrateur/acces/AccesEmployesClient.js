@@ -12,6 +12,7 @@ const SECTIONS = [
   { cle: "inventaire", label: "📦 Inventaire" },
   { cle: "comptabilite", label: "💰 Comptabilité" },
   { cle: "paie", label: "🧾 Paie" },
+  { cle: "employes", label: "👥 Employés" },
 ];
 const ROLES_CONFIGURABLES = ["SECRETAIRE", "MECANICIEN"];
 

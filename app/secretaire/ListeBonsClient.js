@@ -23,8 +23,7 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
 
   return (
     <div style={{ padding: 16, maxWidth: vue === "tableau" ? 1100 : 480, margin: "0 auto", width: "100%" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Bons de commande</h1>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
           <button
             onClick={() => setVue("liste")}
@@ -40,9 +39,6 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
           </button>
         </div>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Crée les bons, assigne les mécaniciens, gère les pièces et l'inventaire.
-      </p>
 
       <input
         value={recherche}

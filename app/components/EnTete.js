@@ -9,13 +9,14 @@ import MinuteurInactivite from "./MinuteurInactivite";
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
 // chaque bloc de rôle séparément.
 const SECTIONS_EMPRUNTABLES = [
-  { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
+  { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "🧑‍🤝‍🧑" },
   { cle: "fournisseurs", href: "/gerant/fournisseurs", label: "Fournisseurs", icone: "🏢" },
   { cle: "inventaire", href: "/secretaire/inventaire", label: "Inventaire", icone: "📦" },
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "💰", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "🧾", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
+  { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "👥" },
 ];
 
 export default async function EnTete({ nom, role }) {
@@ -43,7 +44,7 @@ export default async function EnTete({ nom, role }) {
   const liens = [];
   if (estGerantOuDev(session)) {
     liens.push({ href: "/gerant", label: "Vue d'ensemble", icone: "📊" });
-    liens.push({ href: "/gerant/employes", label: "Employés", icone: "👥" });
+    liens.push({ href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" });
   }
   if (role === "MECANICIEN" || estGerantOuDev(session)) {
     liens.push({ href: "/mecanicien", label: "Horodateur", icone: "⏱️" });
@@ -60,7 +61,6 @@ export default async function EnTete({ nom, role }) {
   }
 
   if (estGerantOuDev(session)) {
-    liens.push({ href: "/gerant/rapports", label: "Rapports", icone: "📈" });
     liens.push({ href: "/gerant/parametres", label: "Paramètres", icone: "⚙️" });
   }
   if (estSuperAdmin) liens.push({ href: "/gerant/administrateur", label: "Administrateur", icone: "🛡️", accent: true });

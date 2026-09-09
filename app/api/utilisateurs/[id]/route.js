@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
-  if (!session || !estGerantOuDev(session)) {
+  if (!session || !(await aAccesSection(session, "employes"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
@@ -19,7 +19,15 @@ export async function PATCH(request, { params }) {
     }
     data.courriel = body.courriel;
   }
-  if (body.role && ["GERANT", "SECRETAIRE", "MECANICIEN"].includes(body.role)) data.role = body.role;
+  if (body.role && ["GERANT", "SECRETAIRE", "MECANICIEN"].includes(body.role)) {
+    // Passer un compte Gérant (ou en sortir) reste réservé aux gérants —
+    // l'accès "employes" délégué ne doit pas permettre de s'auto-promouvoir
+    // ni de promouvoir quelqu'un d'autre aux pleins pouvoirs.
+    if ((body.role === "GERANT" || params.id === session.id) && !estGerantOuDev(session)) {
+      return NextResponse.json({ erreur: "Seul un gérant peut changer ce rôle." }, { status: 403 });
+    }
+    data.role = body.role;
+  }
   if (typeof body.actif === "boolean") {
     if (params.id === session.id && body.actif === false) {
       return NextResponse.json({ erreur: "Tu ne peux pas désactiver ton propre compte." }, { status: 400 });
@@ -41,16 +49,6 @@ export async function PATCH(request, { params }) {
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
   if (body.assignation !== undefined) data.assignation = body.assignation || null;
   if (body.dateEmbauche !== undefined) data.dateEmbauche = body.dateEmbauche ? new Date(body.dateEmbauche) : null;
-  if (body.numeroEmploye !== undefined) {
-    const valeur = body.numeroEmploye || null;
-    if (valeur) {
-      const existant = await prisma.user.findFirst({ where: { numeroEmploye: valeur, NOT: { id: params.id } } });
-      if (existant) {
-        return NextResponse.json({ erreur: "Ce numéro d'employé est déjà utilisé." }, { status: 409 });
-      }
-    }
-    data.numeroEmploye = valeur;
-  }
 
   if (body.accesSections !== undefined) {
     // Réservé au développeur ou à un gérant avec le statut super-admin —
@@ -70,7 +68,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   const session = await obtenirSession();
-  if (!session || !estGerantOuDev(session)) {
+  if (!session || !(await aAccesSection(session, "employes"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
   if (params.id === session.id) {

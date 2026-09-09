@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 export default function InventaireClient({ pieces, categories, comptesRevenu, peutGererCategories }) {
   const router = useRouter();
@@ -20,8 +21,9 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, pe
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Inventaire</h1>
+      <BandeauSection icone="📦" titre="Inventaire" sousTitre="Crée, ajuste ou retire des pièces. Le stock se déduit automatiquement quand une pièce est utilisée sur un bon de travail." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -30,9 +32,15 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, pe
           {afficherFormulaire ? "Annuler" : "+ Nouvelle pièce"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Crée, ajuste ou retire des pièces. Le stock se déduit automatiquement quand une pièce est utilisée sur un bon de travail.
-      </p>
+
+      <Link
+        href="/gerant/comptabilite/rapports/inventaire"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
+      >
+        📄 Rapport d'inventaire (PDF / Excel / imprimer)
+      </Link>
 
       {peutGererCategories && (
         <button

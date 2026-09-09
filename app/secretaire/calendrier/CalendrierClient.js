@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
+import BandeauSection from "../../components/BandeauSection";
 
 const JOURS_LABEL = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const DEBUT_GRILLE = 7; // 7h
@@ -52,8 +53,9 @@ export default function CalendrierClient({ jours, rendezVous, dateSelectionnee }
 
   return (
     <div style={{ padding: 16, maxWidth: vue === "grille" ? 1100 : 480, margin: "0 auto", width: "100%" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h1 style={{ fontSize: 20 }}>Calendrier</h1>
+      <BandeauSection icone="📅" titre="Calendrier" sousTitre="Rendez-vous et disponibilités de l'atelier." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
           <button onClick={() => setVue("grille")} style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 7, border: "none", cursor: "pointer", background: vue === "grille" ? "var(--accent)" : "none", color: vue === "grille" ? "#17150f" : "var(--text-muted)" }}>
             ▦ Grille
@@ -255,6 +257,7 @@ function CarteRendezVous({ rdv, onChange, compact }) {
       </div>
       <div style={{ fontWeight: 600, marginTop: 2 }}>{rdv.clientNom}</div>
       {rdv.vehiculeInfo && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{rdv.vehiculeInfo}</div>}
+      {rdv.note && <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>{rdv.note}</div>}
       <div style={{ fontSize: 13, marginTop: 4 }}>{rdv.motif}</div>
       {rdv.clientTelephone && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{rdv.clientTelephone}</div>}
 

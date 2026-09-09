@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 export default function FournisseursClient({ fournisseurs }) {
   const router = useRouter();
@@ -18,8 +19,9 @@ export default function FournisseursClient({ fournisseurs }) {
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Fournisseurs</h1>
+      <BandeauSection icone="🏢" titre="Fournisseurs" sousTitre="Touche un fournisseur pour voir sa fiche complète — coordonnées, historique de dépenses." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -28,9 +30,6 @@ export default function FournisseursClient({ fournisseurs }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau fournisseur"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Touche un fournisseur pour voir sa fiche complète — coordonnées, historique de dépenses.
-      </p>
       <Link
         href="/gerant/comptabilite/comptes-a-payer"
         className="bouton-3d-sombre"
@@ -65,7 +64,10 @@ export default function FournisseursClient({ fournisseurs }) {
                 {f.nom.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{f.nom}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>
+                  {f.nom}
+                  {f.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{f.numero}</span>}
+                </div>
                 <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[f.telephone, f.courriel, f.adresse].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>

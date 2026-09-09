@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
 const OUTILS = [
+  { href: "/gerant/comptabilite/procedure", icone: "📋", label: "Procédure de fermeture" },
   { href: "/gerant/comptabilite/fermeture", icone: "🔒", label: "Fermeture de période" },
   { href: "/gerant/comptabilite/ouverture", icone: "📂", label: "Soldes d'ouverture" },
   { href: "/gerant/comptabilite/ecriture-manuelle", icone: "✍️", label: "Écriture supplémentaire" },
@@ -75,6 +77,18 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
     router.refresh();
   }
 
+  async function basculerTypeCharge(compte, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const nouveau = (compte.typeCharge || "FIXE") === "FIXE" ? "VARIABLE" : "FIXE";
+    await fetch(`/api/comptabilite/comptes/${compte.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ typeCharge: nouveau }),
+    });
+    router.refresh();
+  }
+
   function commencerRenommage(compte, e) {
     e.preventDefault();
     e.stopPropagation();
@@ -104,13 +118,11 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
-        <h1 style={{ fontSize: 20 }}>Comptabilité</h1>
-        <Link href="/gerant/comptabilite/journal" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
+      <BandeauSection icone="💰" titre="Comptabilité" sousTitre={`Période en cours : ${periodeLabel}`}>
+        <Link href="/gerant/comptabilite/journal" style={{ display: "inline-block", marginTop: 12, fontSize: 12, fontWeight: 600, color: "#fff", textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)", padding: "6px 12px", borderRadius: 8 }}>
           📖 Journal
         </Link>
-      </div>
-      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Période en cours : {periodeLabel}</p>
+      </BandeauSection>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
@@ -232,6 +244,20 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{c.solde.toFixed(2)} $</span>
+                  {ongletType === "DEPENSE" && (
+                    <button
+                      onClick={(e) => basculerTypeCharge(c, e)}
+                      title="Utilisé pour le seuil de rentabilité (Vue d'ensemble) — clique pour changer"
+                      style={{
+                        fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, cursor: "pointer",
+                        border: `1px solid ${(c.typeCharge || "FIXE") === "VARIABLE" ? "var(--accent)" : "var(--border)"}`,
+                        background: (c.typeCharge || "FIXE") === "VARIABLE" ? "rgba(232,163,61,0.15)" : "var(--bg)",
+                        color: (c.typeCharge || "FIXE") === "VARIABLE" ? "var(--accent)" : "var(--text-muted)",
+                      }}
+                    >
+                      {(c.typeCharge || "FIXE") === "VARIABLE" ? "Variable" : "Fixe"}
+                    </button>
+                  )}
                   {estDeveloppeur && renommageId !== c.id && (
                     <button onClick={(e) => commencerRenommage(c, e)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, cursor: "pointer", padding: 4 }}>✏️</button>
                   )}

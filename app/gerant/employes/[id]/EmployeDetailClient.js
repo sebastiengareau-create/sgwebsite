@@ -16,7 +16,6 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [telephone, setTelephone] = useState(employe.telephone || "");
   const [adresse, setAdresse] = useState(employe.adresse || "");
   const [assignation, setAssignation] = useState(employe.assignation || "");
-  const [numeroEmploye, setNumeroEmploye] = useState(employe.numeroEmploye || "");
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
   const [typeRemuneration, setTypeRemuneration] = useState(employe.typeRemuneration || "HORAIRE");
@@ -28,7 +27,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, assignation, numeroEmploye, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
+    const body = { nom, courriel, role, telephone, adresse, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
       method: "PATCH",
@@ -114,8 +113,6 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <input value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Assignation (poste, spécialité, secteur…)</label>
           <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" style={champStyle} />
-          <label style={labelStyle}>Numéro d'employé</label>
-          <input value={numeroEmploye} onChange={(e) => setNumeroEmploye(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Date d'embauche</label>
           <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Nouveau mot de passe (laisse vide pour ne pas changer)</label>

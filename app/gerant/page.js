@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { limitesMoisQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
-import { calculerResumeFermeture, calculerResumeRevenusDepenses } from "@/lib/rapportsComptables";
+import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailRevenusDepenses } from "@/lib/rapportsComptables";
 import EnTete from "../components/EnTete";
 import LiveTimer from "../components/LiveTimer";
 import VueGlobaleClient from "./VueGlobaleClient";
@@ -60,6 +60,8 @@ export default async function EspaceGerant({ searchParams }) {
   const { debut, fin } = limitesMoisQuebec(annee, mois);
   const prec = moisPrecedent(annee, mois);
   const { debut: debutPrec, fin: finPrec } = limitesMoisQuebec(prec.annee, prec.mois);
+  const { debut: debutAnnee } = limitesMoisQuebec(annee, 1);
+  const { fin: finAnnee } = limitesMoisQuebec(annee, 12);
   const maintenant = new Date();
   const dansUneSemaine = new Date(maintenant.getTime() + 7 * JOUR_MS);
   const ilYA30Jours = new Date(maintenant.getTime() - 30 * JOUR_MS);
@@ -74,6 +76,7 @@ export default async function EspaceGerant({ searchParams }) {
 
   const [
     resumeCourant, resumePrecedent, historiqueBrut,
+    detailMois, detailAnnee,
     facturesImpayeesCount, fournisseursImpayesDistincts,
     facturesEnRetard, depensesEcheanceProche, dernierePaie,
     enAttente, enCours, inventaire, poinconsActifs, poinconsInternesActifs,
@@ -81,6 +84,8 @@ export default async function EspaceGerant({ searchParams }) {
     calculerResumeFermeture({ debut, fin }),
     calculerResumeFermeture({ debut: debutPrec, fin: finPrec }),
     Promise.all(moisGraphique.map((m) => calculerResumeRevenusDepenses(limitesMoisQuebec(m.annee, m.mois)))),
+    calculerDetailRevenusDepenses({ debut, fin }),
+    calculerDetailRevenusDepenses({ debut: debutAnnee, fin: finAnnee }),
     prisma.facture.count({ where: { statut: "IMPAYEE", dateEmission: { lte: fin } } }),
     prisma.depense.findMany({ where: { statut: "IMPAYEE", dateFacture: { lte: fin } }, select: { fournisseurId: true }, distinct: ["fournisseurId"] }),
     prisma.facture.aggregate({ where: { statut: "IMPAYEE", dateEmission: { lte: ilYA30Jours } }, _sum: { totalAvecTaxes: true }, _count: true }),
@@ -166,6 +171,7 @@ export default async function EspaceGerant({ searchParams }) {
         graphique={graphique}
         sante={sante}
         alertes={alertes}
+        rentabilite={{ mois: detailMois, annee: detailAnnee }}
       />
 
       <div className="conteneur-page" style={{ marginTop: 8 }}>

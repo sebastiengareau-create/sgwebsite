@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../components/BandeauSection";
 
 export default function ClientsClient({ clients }) {
   const router = useRouter();
@@ -18,8 +19,9 @@ export default function ClientsClient({ clients }) {
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Clients</h1>
+      <BandeauSection icone="🧑‍🤝‍🧑" titre="Clients" sousTitre="Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions." />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -28,9 +30,6 @@ export default function ClientsClient({ clients }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau client"}
         </button>
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions.
-      </p>
       <Link
         href="/gerant/comptabilite/rapports/comptes-clients"
         target="_blank"
@@ -66,7 +65,10 @@ export default function ClientsClient({ clients }) {
                 {c.nom.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{c.nom}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>
+                  {c.nom}
+                  {c.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{c.numero}</span>}
+                </div>
                 <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[c.telephone, c.adresse, [c.ville, c.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>

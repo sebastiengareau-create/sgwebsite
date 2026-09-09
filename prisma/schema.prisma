@@ -28,7 +28,7 @@ model User {
   telephone    String?
   adresse      String?
   assignation  String? // ex. spécialité, poste, secteur assigné — texte libre
-  numeroEmploye String? @unique
+  numeroEmploye String? @unique // numéro séquentiel auto-généré, ex. "EMP-0001"
   dateEmbauche  DateTime?
   // Niveau d'accès distinct du rôle "Gérant" — jamais exposé dans les
   // formulaires de création/modification d'employé, ne peut être activé
@@ -55,6 +55,7 @@ model User {
 
 model Client {
   id                 String       @id @default(cuid())
+  numero             String?      @unique // numéro séquentiel auto-généré, ex. "CLI-0001"
   nom                String
   telephone          String?
   courriel           String?
@@ -226,6 +227,7 @@ model RendezVous {
   clientNom       String
   clientTelephone String?
   vehiculeInfo    String?
+  note            String? // ex: rendez-vous d'affaire sans lien avec un service au véhicule
   date            DateTime // date et heure du rendez-vous
   dureeMinutes    Int         @default(60)
   motif           String
@@ -245,6 +247,12 @@ model Compte {
   nom       String
   type      String   // "ACTIF" | "PASSIF" | "CAPITAUX_PROPRES" | "REVENU" | "DEPENSE"
   actif     Boolean  @default(true)
+  // Classification d'un poste de DÉPENSE pour le seuil de rentabilité —
+  // "FIXE" | "VARIABLE", non applicable aux autres types. Vide = traité
+  // comme FIXE par défaut (voir lib/rapportsComptables.js), pour que le
+  // seuil affiché avant toute classification reste égal au total des
+  // coûts (comportement actuel), plutôt que de tomber silencieusement à 0.
+  typeCharge String?
   lignes    LigneEcriture[]
 }
 
@@ -371,6 +379,7 @@ model RapprochementBancaire {
 
 model Fournisseur {
   id        String    @id @default(cuid())
+  numero    String?   @unique // numéro séquentiel auto-généré, ex. "FOUR-0001"
   nom       String
   telephone String?
   courriel  String?

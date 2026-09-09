@@ -8,7 +8,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { clientId, clientNom, clientTelephone, vehiculeInfo, date, dureeMinutes, motif } = await request.json();
+  const { clientId, clientNom, clientTelephone, vehiculeInfo, note, date, dureeMinutes, motif } = await request.json();
   if (!clientNom || !date || !motif) {
     return NextResponse.json({ erreur: "Nom du client, date et motif requis." }, { status: 400 });
   }
@@ -19,6 +19,7 @@ export async function POST(request) {
       clientNom,
       clientTelephone: clientTelephone || null,
       vehiculeInfo: vehiculeInfo || null,
+      note: note || null,
       date: new Date(date),
       dureeMinutes: Number(dureeMinutes) || 60,
       motif,
