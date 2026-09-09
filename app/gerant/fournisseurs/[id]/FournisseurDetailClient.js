@@ -109,6 +109,7 @@ export default function FournisseurDetailClient({ fournisseur }) {
         <>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
             <SectionTitre>Coordonnées</SectionTitre>
+            <Champ label="Numéro" valeur={fournisseur.numero} />
             <Champ label="Téléphone" valeur={fournisseur.telephone} />
             <Champ label="Courriel" valeur={fournisseur.courriel} />
             <Champ label="Adresse" valeur={fournisseur.adresse} />
