@@ -28,7 +28,7 @@ model User {
   telephone    String?
   adresse      String?
   assignation  String? // ex. spécialité, poste, secteur assigné — texte libre
-  numeroEmploye String? @unique
+  numeroEmploye String? @unique // numéro séquentiel auto-généré, ex. "EMP-0001"
   dateEmbauche  DateTime?
   // Niveau d'accès distinct du rôle "Gérant" — jamais exposé dans les
   // formulaires de création/modification d'employé, ne peut être activé
@@ -55,6 +55,7 @@ model User {
 
 model Client {
   id                 String       @id @default(cuid())
+  numero             String?      @unique // numéro séquentiel auto-généré, ex. "CLI-0001"
   nom                String
   telephone          String?
   courriel           String?
@@ -360,6 +361,7 @@ model RapprochementBancaire {
 
 model Fournisseur {
   id        String    @id @default(cuid())
+  numero    String?   @unique // numéro séquentiel auto-généré, ex. "FOUR-0001"
   nom       String
   telephone String?
   courriel  String?

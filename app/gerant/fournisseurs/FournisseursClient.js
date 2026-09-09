@@ -64,7 +64,10 @@ export default function FournisseursClient({ fournisseurs }) {
                 {f.nom.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{f.nom}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>
+                  {f.nom}
+                  {f.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{f.numero}</span>}
+                </div>
                 <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[f.telephone, f.courriel, f.adresse].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>

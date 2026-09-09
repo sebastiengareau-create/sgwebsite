@@ -73,7 +73,6 @@ function FormulaireCreation({ onCree, nomsRoles }) {
   const [telephone, setTelephone] = useState("");
   const [adresse, setAdresse] = useState("");
   const [assignation, setAssignation] = useState("");
-  const [numeroEmploye, setNumeroEmploye] = useState("");
   const [dateEmbauche, setDateEmbauche] = useState("");
   const [typeRemuneration, setTypeRemuneration] = useState("HORAIRE");
   const [tauxHoraireEmploye, setTauxHoraireEmploye] = useState("");
@@ -92,7 +91,7 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nom, courriel, motDePasse, role, pin: pin || undefined,
-        telephone, adresse, assignation, numeroEmploye, dateEmbauche,
+        telephone, adresse, assignation, dateEmbauche,
         typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
       }),
     });
@@ -120,7 +119,6 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
-      <input placeholder="Numéro d'employé" value={numeroEmploye} onChange={(e) => setNumeroEmploye(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Date d'embauche</label>
       <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
 

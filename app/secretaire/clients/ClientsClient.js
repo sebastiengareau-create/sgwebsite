@@ -65,7 +65,10 @@ export default function ClientsClient({ clients }) {
                 {c.nom.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{c.nom}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>
+                  {c.nom}
+                  {c.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{c.numero}</span>}
+                </div>
                 <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[c.telephone, c.adresse, [c.ville, c.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>

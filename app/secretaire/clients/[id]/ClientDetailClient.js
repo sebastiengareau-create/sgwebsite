@@ -66,7 +66,10 @@ export default function ClientDetailClient({ client }) {
           </div>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{client.nom}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{client.courriel || "Aucun courriel"}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              {client.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, marginRight: 6 }}>#{client.numero}</span>}
+              {client.courriel || "Aucun courriel"}
+            </div>
           </div>
         </div>
         {client.garantieProlongee && (

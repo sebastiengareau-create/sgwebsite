@@ -69,7 +69,10 @@ export default function FournisseurDetailClient({ fournisseur }) {
           </div>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{fournisseur.nom}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{fournisseur.courriel || "Aucun courriel"}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              {fournisseur.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, marginRight: 6 }}>#{fournisseur.numero}</span>}
+              {fournisseur.courriel || "Aucun courriel"}
+            </div>
           </div>
         </div>
         {!fournisseur.actif && (

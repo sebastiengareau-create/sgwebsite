@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
+import { prochainNumeroEmploye } from "@/lib/numerotation";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -10,7 +11,7 @@ export async function POST(request) {
 
   const {
     nom, courriel, motDePasse, role, pin,
-    telephone, adresse, assignation, numeroEmploye, dateEmbauche,
+    telephone, adresse, assignation, dateEmbauche,
     typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
   } = await request.json();
   if (!nom || !courriel || !motDePasse || !["GERANT", "SECRETAIRE", "MECANICIEN"].includes(role)) {
@@ -31,13 +32,6 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Ce courriel est déjà utilisé." }, { status: 409 });
   }
 
-  if (numeroEmploye) {
-    const numeroExistant = await prisma.user.findFirst({ where: { numeroEmploye } });
-    if (numeroExistant) {
-      return NextResponse.json({ erreur: "Ce numéro d'employé est déjà utilisé." }, { status: 409 });
-    }
-  }
-
   const utilisateur = await prisma.user.create({
     data: {
       nom,
@@ -48,7 +42,7 @@ export async function POST(request) {
       telephone: telephone || null,
       adresse: adresse || null,
       assignation: assignation || null,
-      numeroEmploye: numeroEmploye || null,
+      numeroEmploye: await prochainNumeroEmploye(),
       dateEmbauche: dateEmbauche ? new Date(dateEmbauche) : null,
       typeRemuneration: ["HORAIRE", "SALAIRE"].includes(typeRemuneration) ? typeRemuneration : "HORAIRE",
       tauxHoraireEmploye: tauxHoraireEmploye ? Number(tauxHoraireEmploye) : null,
