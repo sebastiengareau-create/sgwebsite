@@ -9,14 +9,15 @@ const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
 const OUTILS = [
+  { href: "/gerant/comptabilite/caisse-banque", icone: "💰", label: "Caisse & Banque" },
   { href: "/gerant/comptabilite/procedure", icone: "📋", label: "Procédure de fermeture" },
   { href: "/gerant/comptabilite/fermeture", icone: "🔒", label: "Fermeture de période" },
-  { href: "/gerant/comptabilite/ouverture", icone: "📂", label: "Soldes d'ouverture" },
   { href: "/gerant/comptabilite/ecriture-manuelle", icone: "✍️", label: "Écriture supplémentaire" },
   { href: "/gerant/comptabilite/caisse-banque/rapprochement", icone: "🏦", label: "Conciliation bancaire" },
   { href: "/gerant/comptabilite/immobilisations", icone: "🏗️", label: "Immobilisations" },
   { href: "/gerant/comptabilite/remise-gouvernementale", icone: "🏛️", label: "Remise gouvernementale" },
   { href: "/gerant/comptabilite/rapports", icone: "📄", label: "Rapports imprimables" },
+  { href: "/gerant/comptabilite/ouverture", icone: "📂", label: "Soldes d'ouverture" },
 ];
 
 export default function PlanComptableClient({ comptes, labelsType, estDeveloppeur, periodeLabel }) {
@@ -123,18 +124,6 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
           📖 Journal
         </Link>
       </BandeauSection>
-
-      <Link
-        href="/gerant/comptabilite/caisse-banque"
-        className="bouton-3d"
-        style={{ display: "flex", alignItems: "center", gap: 10, padding: 16, borderRadius: 12, textDecoration: "none", marginBottom: 14 }}
-      >
-        <span style={{ fontSize: 26 }}>💰</span>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700 }}>Caisse & Banque</div>
-          <div style={{ fontSize: 11.5, opacity: 0.85 }}>Comptes, liquidités et transactions</div>
-        </div>
-      </Link>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
