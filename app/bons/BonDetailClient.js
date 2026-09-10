@@ -128,6 +128,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   const [afficherPaiementFacture, setAfficherPaiementFacture] = useState(false);
   const [compteTresorerieIdFacture, setCompteTresorerieIdFacture] = useState(compteParDefaut(comptesTresorerie));
   const [modePaiementFacture, setModePaiementFacture] = useState("CARTE_DEBIT");
+  const [referenceFacture, setReferenceFacture] = useState("");
   const [erreurPaiementFacture, setErreurPaiementFacture] = useState("");
   const [envoiCourrielEnCours, setEnvoiCourrielEnCours] = useState(false);
   const [messageCourriel, setMessageCourriel] = useState(null);
@@ -181,13 +182,13 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
     router.refresh();
   }
 
-  async function changerStatutFacture(statut, compteTresorerieId, modePaiement) {
+  async function changerStatutFacture(statut, compteTresorerieId, modePaiement, reference) {
     setAvertissementFacture("");
     setEnCours(true);
     const res = await fetch(`/api/factures/${bon.facture.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut, compteTresorerieId, modePaiement }),
+      body: JSON.stringify({ statut, compteTresorerieId, modePaiement, reference }),
     });
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
@@ -479,11 +480,16 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
                   compteTresorerieId={compteTresorerieIdFacture} setCompteTresorerieId={setCompteTresorerieIdFacture}
                   modePaiement={modePaiementFacture} setModePaiement={setModePaiementFacture}
                 />
+                <input
+                  placeholder="No de chèque ou de transaction (optionnel)" value={referenceFacture}
+                  onChange={(e) => setReferenceFacture(e.target.value)}
+                  style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
+                />
                 {erreurPaiementFacture && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreurPaiementFacture}</p>}
                 <div style={{ display: "flex", gap: 6 }}>
                   <button
                     onClick={async () => {
-                      const err = await changerStatutFacture("PAYEE", compteTresorerieIdFacture, modePaiementFacture);
+                      const err = await changerStatutFacture("PAYEE", compteTresorerieIdFacture, modePaiementFacture, referenceFacture);
                       setErreurPaiementFacture(err || "");
                     }}
                     disabled={enCours || !compteTresorerieIdFacture}

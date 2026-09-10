@@ -112,6 +112,7 @@ model Facture {
   modePaiement       String?   // "COMPTANT" | "CARTE_DEBIT" | "CARTE_CREDIT" | "VIREMENT" | "INTERAC" | "CHEQUE" | "AUTRE" — rempli seulement une fois payée
   compteTresorerieId String?   // compte où l'encaissement a été déposé, rempli seulement une fois payée
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
+  referenceVersement String?   // numéro de chèque ou de transaction, optionnel — même champ que Depense
 }
 
 model Probleme {

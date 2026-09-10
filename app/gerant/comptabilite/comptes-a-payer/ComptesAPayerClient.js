@@ -15,6 +15,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [depenseAPayer, setDepenseAPayer] = useState(null); // id de la dépense en train d'être payée
+  const [depenseEnEdition, setDepenseEnEdition] = useState(null); // id de la dépense en train d'être corrigée
   const [filtre, setFiltre] = useState("TOUTES");
 
   const totalDu = depenses.filter((d) => d.statut === "IMPAYEE").reduce((s, d) => s + d.montant, 0);
@@ -122,9 +123,14 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
               <span style={{ fontSize: 15, fontWeight: 700 }}>{d.montant.toFixed(2)} $</span>
               <div style={{ display: "flex", gap: 8 }}>
-                {d.statut === "IMPAYEE" && depenseAPayer !== d.id && (
+                {d.statut === "IMPAYEE" && depenseAPayer !== d.id && depenseEnEdition !== d.id && (
                   <button onClick={() => setDepenseAPayer(d.id)} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
                     Marquer payée
+                  </button>
+                )}
+                {depenseAPayer !== d.id && (
+                  <button onClick={() => setDepenseEnEdition(depenseEnEdition === d.id ? null : d.id)} style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
+                    ✏️
                   </button>
                 )}
                 <button onClick={() => supprimerDepense(d.id)} style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
@@ -134,6 +140,12 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
             </div>
             {depenseAPayer === d.id && (
               <FormulairePaiementDepense depense={d} comptesTresorerie={comptesTresorerie} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
+            )}
+            {depenseEnEdition === d.id && (
+              <FormulaireEditionDepense
+                depense={d} fournisseurs={fournisseurs} categories={categories}
+                onTermine={() => { setDepenseEnEdition(null); router.refresh(); }} onAnnuler={() => setDepenseEnEdition(null)}
+              />
             )}
           </div>
         ))}
@@ -188,6 +200,73 @@ function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAn
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={confirmer} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
           {enCours ? "…" : "✓ Confirmer le paiement"}
+        </button>
+        <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+          Annuler
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FormulaireEditionDepense({ depense, fournisseurs, categories, onTermine, onAnnuler }) {
+  const [fournisseurId, setFournisseurId] = useState(depense.fournisseurId);
+  const [categorieDepenseId, setCategorieDepenseId] = useState(depense.categorieDepenseId);
+  const [description, setDescription] = useState(depense.description);
+  const [montant, setMontant] = useState(String(depense.montant));
+  const [tpsPayee, setTpsPayee] = useState(String(depense.tpsPayee || 0));
+  const [tvqPayee, setTvqPayee] = useState(String(depense.tvqPayee || 0));
+  const [dateFacture, setDateFacture] = useState(new Date(depense.dateFacture).toISOString().slice(0, 10));
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  async function sauvegarder() {
+    setErreur("");
+    if (!description.trim() || !montant || Number(montant) <= 0) {
+      setErreur("Description et montant requis.");
+      return;
+    }
+    setEnCours(true);
+    const res = await fetch(`/api/depenses/${depense.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fournisseurId, categorieDepenseId, description, montant, tpsPayee, tvqPayee, dateFacture }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    onTermine();
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
+        {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+      </select>
+      <select value={categorieDepenseId} onChange={(e) => setCategorieDepenseId(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
+        {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+      </select>
+      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" style={{ ...champStyle, marginBottom: 0 }} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <input type="number" min={0} step="0.01" value={montant} onChange={(e) => setMontant(e.target.value)} placeholder="Montant" style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+        <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input type="number" min={0} step="0.01" value={tpsPayee} onChange={(e) => setTpsPayee(e.target.value)} placeholder="TPS" style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+        <input type="number" min={0} step="0.01" value={tvqPayee} onChange={(e) => setTvqPayee(e.target.value)} placeholder="TVQ" style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+      </div>
+      {depense.statut === "PAYEE" && (
+        <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: 0 }}>
+          Déjà payée — l'écriture de paiement sera ajustée automatiquement si le montant change.
+        </p>
+      )}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+          {enCours ? "…" : "✓ Sauvegarder la correction"}
         </button>
         <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
           Annuler

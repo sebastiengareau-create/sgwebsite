@@ -29,12 +29,12 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
   const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalFacture, 0);
   const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalFacture, 0);
 
-  async function marquerPayee(id, compteTresorerieId, modePaiement) {
+  async function marquerPayee(id, compteTresorerieId, modePaiement, reference) {
     setAvertissement("");
     const res = await fetch(`/api/factures/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut: "PAYEE", compteTresorerieId, modePaiement }),
+      body: JSON.stringify({ statut: "PAYEE", compteTresorerieId, modePaiement, reference }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return data.erreur || "Erreur.";
@@ -113,6 +113,9 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
             </div>
             <div style={{ fontWeight: 600, marginTop: 2 }}>{f.bon.client.nom}</div>
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
+            {f.statut === "PAYEE" && f.referenceVersement && (
+              <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {f.referenceVersement}</div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
               <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalFacture.toFixed(2)} $</span>
               {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
@@ -128,7 +131,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
             {factureAPayer === f.id && (
               <FormulaireEncaissement
                 comptesTresorerie={comptesTresorerie}
-                onConfirmer={(compteTresorerieId, modePaiement) => marquerPayee(f.id, compteTresorerieId, modePaiement)}
+                onConfirmer={(compteTresorerieId, modePaiement, reference) => marquerPayee(f.id, compteTresorerieId, modePaiement, reference)}
                 onAnnuler={() => setFactureAPayer(null)}
               />
             )}
@@ -150,6 +153,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
 function FormulaireEncaissement({ comptesTresorerie, onConfirmer, onAnnuler }) {
   const [compteTresorerieId, setCompteTresorerieId] = useState(compteParDefaut(comptesTresorerie));
   const [modePaiement, setModePaiement] = useState("CARTE_DEBIT");
+  const [reference, setReference] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -157,7 +161,7 @@ function FormulaireEncaissement({ comptesTresorerie, onConfirmer, onAnnuler }) {
     if (!compteTresorerieId) { setErreur("Aucun compte de trésorerie disponible."); return; }
     setErreur("");
     setEnCours(true);
-    const erreurRes = await onConfirmer(compteTresorerieId, modePaiement);
+    const erreurRes = await onConfirmer(compteTresorerieId, modePaiement, reference);
     setEnCours(false);
     if (erreurRes) setErreur(erreurRes);
   }
@@ -168,6 +172,11 @@ function FormulaireEncaissement({ comptesTresorerie, onConfirmer, onAnnuler }) {
         comptes={comptesTresorerie}
         compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
         modePaiement={modePaiement} setModePaiement={setModePaiement}
+      />
+      <input
+        placeholder="No de chèque ou de transaction (optionnel)" value={reference}
+        onChange={(e) => setReference(e.target.value)}
+        style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
       />
       {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 6 }}>

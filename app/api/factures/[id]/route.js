@@ -9,7 +9,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { statut, compteTresorerieId, modePaiement } = await request.json();
+  const { statut, compteTresorerieId, modePaiement, reference } = await request.json();
   if (!["IMPAYEE", "PAYEE", "ANNULEE"].includes(statut)) {
     return NextResponse.json({ erreur: "Statut invalide." }, { status: 400 });
   }
@@ -32,6 +32,7 @@ export async function PATCH(request, { params }) {
       datePaiement: statut === "PAYEE" ? new Date() : null,
       compteTresorerieId: statut === "PAYEE" ? compteTresorerieId : null,
       modePaiement: statut === "PAYEE" ? (modePaiement || null) : null,
+      referenceVersement: statut === "PAYEE" ? (reference || null) : null,
     },
   });
 
