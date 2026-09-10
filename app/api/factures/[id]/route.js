@@ -9,18 +9,29 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { statut } = await request.json();
+  const { statut, compteTresorerieId, modePaiement } = await request.json();
   if (!["IMPAYEE", "PAYEE", "ANNULEE"].includes(statut)) {
     return NextResponse.json({ erreur: "Statut invalide." }, { status: 400 });
   }
 
   const ancienneFacture = await prisma.facture.findUnique({ where: { id: params.id } });
 
+  let compteTresorerie = null;
+  if (statut === "PAYEE") {
+    if (!compteTresorerieId) {
+      return NextResponse.json({ erreur: "Choisis un compte pour l'encaissement." }, { status: 400 });
+    }
+    compteTresorerie = await prisma.compteTresorerie.findUnique({ where: { id: compteTresorerieId }, include: { compte: true } });
+    if (!compteTresorerie) return NextResponse.json({ erreur: "Compte introuvable." }, { status: 400 });
+  }
+
   const facture = await prisma.facture.update({
     where: { id: params.id },
     data: {
       statut,
       datePaiement: statut === "PAYEE" ? new Date() : null,
+      compteTresorerieId: statut === "PAYEE" ? compteTresorerieId : null,
+      modePaiement: statut === "PAYEE" ? (modePaiement || null) : null,
     },
   });
 
@@ -29,7 +40,7 @@ export async function PATCH(request, { params }) {
   let avertissementComptable = null;
   if (statut === "PAYEE" && ancienneFacture?.statut !== "PAYEE") {
     try {
-      await posterFacturePayee(facture, session.nom);
+      await posterFacturePayee(facture, session.nom, compteTresorerie.compte.numero, modePaiement);
     } catch (e) {
       if (e.message.startsWith("PERIODE_LOCK:")) {
         avertissementComptable = e.message.replace("PERIODE_LOCK:", "").split("\n")[0];

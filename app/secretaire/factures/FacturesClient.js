@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
+import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
 
 const STATUTS = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
@@ -11,11 +12,12 @@ const STATUTS = {
   ANNULEE: { label: "Annulée", color: "#C15B4A" },
 };
 
-export default function FacturesClient({ factures }) {
+export default function FacturesClient({ factures, comptesTresorerie }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState("IMPAYEE");
   const [recherche, setRecherche] = useState("");
   const [avertissement, setAvertissement] = useState("");
+  const [factureAPayer, setFactureAPayer] = useState(null); // id de la facture en train d'être marquée payée
 
   const facturesFiltrees = factures.filter((f) => {
     if (filtre !== "TOUTES" && f.statut !== filtre) return false;
@@ -27,18 +29,21 @@ export default function FacturesClient({ factures }) {
   const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalFacture, 0);
   const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalFacture, 0);
 
-  async function marquerPayee(id) {
+  async function marquerPayee(id, compteTresorerieId, modePaiement) {
     setAvertissement("");
     const res = await fetch(`/api/factures/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut: "PAYEE" }),
+      body: JSON.stringify({ statut: "PAYEE", compteTresorerieId, modePaiement }),
     });
     const data = await res.json().catch(() => ({}));
+    if (!res.ok) return data.erreur || "Erreur.";
     if (data.avertissementComptable) {
       setAvertissement(`Facture marquée payée, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
     }
+    setFactureAPayer(null);
     router.refresh();
+    return null;
   }
 
   return (
@@ -110,9 +115,9 @@ export default function FacturesClient({ factures }) {
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
               <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalFacture.toFixed(2)} $</span>
-              {f.statut === "IMPAYEE" && (
+              {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
                 <button
-                  onClick={() => marquerPayee(f.id)}
+                  onClick={() => setFactureAPayer(f.id)}
                   className="bouton-3d"
                   style={{ fontSize: 11, fontWeight: 700, padding: "7px 12px", borderRadius: 8 }}
                 >
@@ -120,6 +125,13 @@ export default function FacturesClient({ factures }) {
                 </button>
               )}
             </div>
+            {factureAPayer === f.id && (
+              <FormulaireEncaissement
+                comptesTresorerie={comptesTresorerie}
+                onConfirmer={(compteTresorerieId, modePaiement) => marquerPayee(f.id, compteTresorerieId, modePaiement)}
+                onAnnuler={() => setFactureAPayer(null)}
+              />
+            )}
           </div>
           );
         })}
@@ -131,6 +143,41 @@ export default function FacturesClient({ factures }) {
         )}
       </div>
       <BoutonFlottantNouveau />
+    </div>
+  );
+}
+
+function FormulaireEncaissement({ comptesTresorerie, onConfirmer, onAnnuler }) {
+  const [compteTresorerieId, setCompteTresorerieId] = useState(compteParDefaut(comptesTresorerie));
+  const [modePaiement, setModePaiement] = useState("CARTE_DEBIT");
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  async function confirmer() {
+    if (!compteTresorerieId) { setErreur("Aucun compte de trésorerie disponible."); return; }
+    setErreur("");
+    setEnCours(true);
+    const erreurRes = await onConfirmer(compteTresorerieId, modePaiement);
+    setEnCours(false);
+    if (erreurRes) setErreur(erreurRes);
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <SelecteurCompteMode
+        comptes={comptesTresorerie}
+        compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
+        modePaiement={modePaiement} setModePaiement={setModePaiement}
+      />
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={confirmer} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+          {enCours ? "…" : "✓ Confirmer l'encaissement"}
+        </button>
+        <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+          Annuler
+        </button>
+      </div>
     </div>
   );
 }

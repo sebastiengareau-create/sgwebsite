@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import SelecteurCompteMode, { compteParDefaut } from "../../../components/SelecteurCompteMode";
 
 const STATUTS_DEPENSE = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
   PAYEE: { label: "Payée", color: "#6FA96B" },
 };
 
-export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux }) {
+export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie }) {
   const router = useRouter();
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
@@ -132,7 +133,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
               </div>
             </div>
             {depenseAPayer === d.id && (
-              <FormulairePaiementDepense depense={d} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
+              <FormulairePaiementDepense depense={d} comptesTresorerie={comptesTresorerie} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
             )}
           </div>
         ))}
@@ -146,29 +147,44 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
   );
 }
 
-function FormulairePaiementDepense({ depense, onTermine, onAnnuler }) {
+function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAnnuler }) {
   const [reference, setReference] = useState("");
+  const [compteTresorerieId, setCompteTresorerieId] = useState(compteParDefaut(comptesTresorerie));
+  const [modePaiement, setModePaiement] = useState("VIREMENT");
+  const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
   async function confirmer() {
+    if (!compteTresorerieId) { setErreur("Aucun compte de trésorerie disponible."); return; }
+    setErreur("");
     setEnCours(true);
-    await fetch(`/api/depenses/${depense.id}`, {
+    const res = await fetch(`/api/depenses/${depense.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut: "PAYEE", reference }),
+      body: JSON.stringify({ statut: "PAYEE", reference, compteTresorerieId, modePaiement }),
     });
     setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
     onTermine();
   }
 
   return (
     <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+      <SelecteurCompteMode
+        comptes={comptesTresorerie}
+        compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
+        modePaiement={modePaiement} setModePaiement={setModePaiement}
+      />
       <input
         placeholder="No de chèque ou de transaction (optionnel)" value={reference}
         onChange={(e) => setReference(e.target.value)}
         style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
-        autoFocus
       />
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={confirmer} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
           {enCours ? "…" : "✓ Confirmer le paiement"}

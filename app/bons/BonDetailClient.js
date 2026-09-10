@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -56,7 +57,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -124,6 +125,10 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
 
   const [erreurFacture, setErreurFacture] = useState("");
   const [avertissementFacture, setAvertissementFacture] = useState("");
+  const [afficherPaiementFacture, setAfficherPaiementFacture] = useState(false);
+  const [compteTresorerieIdFacture, setCompteTresorerieIdFacture] = useState(compteParDefaut(comptesTresorerie));
+  const [modePaiementFacture, setModePaiementFacture] = useState("CARTE_DEBIT");
+  const [erreurPaiementFacture, setErreurPaiementFacture] = useState("");
   const [envoiCourrielEnCours, setEnvoiCourrielEnCours] = useState(false);
   const [messageCourriel, setMessageCourriel] = useState(null);
   const [demanderCourriel, setDemanderCourriel] = useState(false);
@@ -176,20 +181,23 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
     router.refresh();
   }
 
-  async function changerStatutFacture(statut) {
+  async function changerStatutFacture(statut, compteTresorerieId, modePaiement) {
     setAvertissementFacture("");
     setEnCours(true);
     const res = await fetch(`/api/factures/${bon.facture.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut }),
+      body: JSON.stringify({ statut, compteTresorerieId, modePaiement }),
     });
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
+    if (!res.ok) return data.erreur || "Erreur.";
     if (data.avertissementComptable) {
       setAvertissementFacture(`Statut mis à jour, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
     }
+    setAfficherPaiementFacture(false);
     router.refresh();
+    return null;
   }
 
   async function supprimerFacture() {
@@ -447,17 +455,46 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
             {peutModifier && bon.facture.statut !== "ANNULEE" && (
               <div style={{ display: "flex", gap: 8 }}>
                 {bon.facture.statut === "IMPAYEE" ? (
-                  <button onClick={() => changerStatutFacture("PAYEE")} disabled={enCours} style={{ ...boutonAjout, flex: 1, background: "var(--success)", color: "#17150f", border: "none", fontWeight: 700 }}>
-                    Marquer payée
-                  </button>
+                  !afficherPaiementFacture && (
+                    <button onClick={() => setAfficherPaiementFacture(true)} disabled={enCours} style={{ ...boutonAjout, flex: 1, background: "var(--success)", color: "#17150f", border: "none", fontWeight: 700 }}>
+                      Marquer payée
+                    </button>
+                  )
                 ) : (
                   <button onClick={() => changerStatutFacture("IMPAYEE")} disabled={enCours} style={{ ...boutonAjout, flex: 1 }}>
                     Marquer impayée
                   </button>
                 )}
-                <button onClick={() => changerStatutFacture("ANNULEE")} disabled={enCours} style={{ ...boutonAjout, color: "var(--danger)" }}>
-                  Annuler
-                </button>
+                {!(bon.facture.statut === "IMPAYEE" && afficherPaiementFacture) && (
+                  <button onClick={() => changerStatutFacture("ANNULEE")} disabled={enCours} style={{ ...boutonAjout, color: "var(--danger)" }}>
+                    Annuler
+                  </button>
+                )}
+              </div>
+            )}
+            {bon.facture.statut === "IMPAYEE" && afficherPaiementFacture && (
+              <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                <SelecteurCompteMode
+                  comptes={comptesTresorerie}
+                  compteTresorerieId={compteTresorerieIdFacture} setCompteTresorerieId={setCompteTresorerieIdFacture}
+                  modePaiement={modePaiementFacture} setModePaiement={setModePaiementFacture}
+                />
+                {erreurPaiementFacture && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreurPaiementFacture}</p>}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={async () => {
+                      const err = await changerStatutFacture("PAYEE", compteTresorerieIdFacture, modePaiementFacture);
+                      setErreurPaiementFacture(err || "");
+                    }}
+                    disabled={enCours || !compteTresorerieIdFacture}
+                    className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}
+                  >
+                    {enCours ? "…" : "✓ Confirmer l'encaissement"}
+                  </button>
+                  <button onClick={() => { setAfficherPaiementFacture(false); setErreurPaiementFacture(""); }} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+                    Annuler
+                  </button>
+                </div>
               </div>
             )}
             {avertissementFacture && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8 }}>⚠️ {avertissementFacture}</p>}

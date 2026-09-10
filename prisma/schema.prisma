@@ -109,6 +109,9 @@ model Facture {
   totalAvecTaxes     Float     @default(0)
   dateEmission       DateTime  @default(now())
   datePaiement       DateTime?
+  modePaiement       String?   // "COMPTANT" | "CARTE_DEBIT" | "CARTE_CREDIT" | "VIREMENT" | "INTERAC" | "CHEQUE" | "AUTRE" — rempli seulement une fois payée
+  compteTresorerieId String?   // compte où l'encaissement a été déposé, rempli seulement une fois payée
+  compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
 }
 
 model Probleme {
@@ -236,6 +239,28 @@ model Compte {
   // coûts (comportement actuel), plutôt que de tomber silencieusement à 0.
   typeCharge String?
   lignes    LigneEcriture[]
+  compteTresorerie CompteTresorerie?
+}
+
+// Compte de trésorerie — couche d'affichage/gestion par-dessus un compte du plan
+// comptable (relié 1-à-1), pour la section Caisse & Banque. La comptabilité en
+// partie double reste inchangée : c'est toujours le Compte relié qui porte les
+// écritures ; ce modèle sert seulement à regrouper/afficher les comptes réels
+// (caisse, banque, cartes) et leur solde relevé manuellement.
+model CompteTresorerie {
+  id            String    @id @default(cuid())
+  nom           String    // ex : "Caisse principale" — distinct du nom du Compte GL
+  categorie     String    // "CAISSE" | "BANQUE" | "CARTE_CREDIT"
+  compteId      String    @unique
+  compte        Compte    @relation(fields: [compteId], references: [id])
+  soldeReleve   Float     @default(0) // dernier solde connu selon la banque/relevé, entré manuellement
+  soldeReleveLe DateTime?
+  ordre         Int       @default(0)
+  actif         Boolean   @default(true)
+  creeLe        DateTime  @default(now())
+  factures      Facture[]
+  depenses      Depense[]
+  rapprochements RapprochementBancaire[]
 }
 
 // Une écriture comptable = une transaction complète, composée d'au moins
@@ -349,12 +374,14 @@ model CategorieInventaire {
 }
 
 model RapprochementBancaire {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
+  compteTresorerieId  String?   // compte concilié — vide seulement pour l'historique créé avant la généralisation par compte
+  compteTresorerie    CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   dateRapprochement   DateTime
   soldeReleve         Float
   soldeLivres         Float
   ecart               Float
-  creeLe              DateTime @default(now())
+  creeLe              DateTime  @default(now())
 }
 
 // ---------- COMPTES À PAYER ----------
@@ -397,6 +424,9 @@ model Depense {
   statut             String            @default("IMPAYEE") // "IMPAYEE" | "PAYEE"
   datePaiement       DateTime?
   referenceVersement String?           // numéro de chèque ou de transaction
+  modePaiement       String?           // "COMPTANT" | "CARTE_DEBIT" | "CARTE_CREDIT" | "VIREMENT" | "INTERAC" | "CHEQUE" | "AUTRE" — rempli seulement une fois payée
+  compteTresorerieId String?           // compte d'où le paiement est sorti, rempli seulement une fois payée
+  compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   creeLe             DateTime          @default(now())
 }
 
