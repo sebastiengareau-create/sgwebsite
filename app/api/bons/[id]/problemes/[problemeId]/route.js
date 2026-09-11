@@ -13,9 +13,15 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
-  const { categorieRevenu, factureDescription, facturePrixUnitaire, factureQte } = await request.json();
+  const { description, categorieRevenu, factureDescription, facturePrixUnitaire, factureQte } = await request.json();
 
   const data = {};
+  if (description !== undefined) {
+    if (!description || !description.trim()) {
+      return NextResponse.json({ erreur: "La description ne peut pas être vide." }, { status: 400 });
+    }
+    data.description = description.trim();
+  }
   if (categorieRevenu !== undefined) {
     if (categorieRevenu !== "MAIN_OEUVRE") {
       if (COMPTES_REVENU_RESERVES.includes(categorieRevenu)) {

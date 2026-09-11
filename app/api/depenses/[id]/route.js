@@ -11,7 +11,7 @@ export async function PATCH(request, { params }) {
 
   const corps = await request.json();
 
-  // Corriger les champs (poste, montant, fournisseur…) — distinct du
+  // Corriger les champs (postes, montants, fournisseur…) — distinct du
   // changement de statut ci-dessous, reconnu par l'absence de `statut`.
   if (corps.statut === undefined) {
     return modifierDepense(params.id, corps, session);
@@ -62,12 +62,14 @@ export async function PATCH(request, { params }) {
 // Corrige les champs d'une dépense déjà créée (ex : mauvais poste choisi au
 // départ) — régénère l'écriture "reçue" avec les valeurs corrigées, et
 // l'écriture "payée" aussi si le montant a changé sur une dépense déjà payée
-// (le poste seul n'affecte jamais l'écriture de paiement, qui ne touche que
-// Comptes fournisseurs et le compte de trésorerie choisi).
+// (les postes seuls n'affectent jamais l'écriture de paiement, qui ne touche
+// que Comptes fournisseurs et le compte de trésorerie choisi). Les lignes
+// (fractionnement par poste) sont toujours remplacées en bloc — plus simple
+// et sûr que de tenter de faire correspondre l'ancien et le nouveau détail.
 async function modifierDepense(id, corps, session) {
-  const { fournisseurId, categorieDepenseId, description, montant, tpsPayee, tvqPayee, dateFacture } = corps;
+  const { fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture } = corps;
 
-  const depense = await prisma.depense.findUnique({ where: { id } });
+  const depense = await prisma.depense.findUnique({ where: { id }, include: { lignes: true } });
   if (!depense) return NextResponse.json({ erreur: "Dépense introuvable." }, { status: 404 });
 
   const nouvelleDate = dateFacture ? new Date(dateFacture) : depense.dateFacture;
@@ -78,35 +80,74 @@ async function modifierDepense(id, corps, session) {
     return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
-  let categorie = null;
-  if (categorieDepenseId) {
-    categorie = await prisma.categorieDepense.findUnique({ where: { id: categorieDepenseId } });
-    if (!categorie) return NextResponse.json({ erreur: "Poste de dépense introuvable." }, { status: 400 });
-  } else {
-    categorie = await prisma.categorieDepense.findUnique({ where: { id: depense.categorieDepenseId } });
+  const lignesValides = lignes !== undefined
+    ? (lignes || []).filter((l) => l.categorieDepenseId && Number(l.montant) > 0)
+    : null;
+  if (lignesValides !== null && lignesValides.length === 0) {
+    return NextResponse.json({ erreur: "Au moins une ligne (poste + montant) est requise." }, { status: 400 });
   }
 
-  const nouveauMontant = montant !== undefined ? Number(montant) : depense.montant;
+  let categorieParId = {};
+  if (lignesValides) {
+    const categories = await prisma.categorieDepense.findMany({
+      where: { id: { in: lignesValides.map((l) => l.categorieDepenseId) } },
+    });
+    categorieParId = Object.fromEntries(categories.map((c) => [c.id, c]));
+    if (lignesValides.some((l) => !categorieParId[l.categorieDepenseId])) {
+      return NextResponse.json({ erreur: "Poste de dépense introuvable." }, { status: 400 });
+    }
+  }
 
-  const depenseMaj = await prisma.depense.update({
-    where: { id },
-    data: {
-      fournisseurId: fournisseurId || depense.fournisseurId,
-      categorieDepenseId: categorieDepenseId || depense.categorieDepenseId,
-      description: description !== undefined ? description : depense.description,
-      montant: nouveauMontant,
-      tpsPayee: tpsPayee !== undefined ? Number(tpsPayee) || 0 : depense.tpsPayee,
-      tvqPayee: tvqPayee !== undefined ? Number(tvqPayee) || 0 : depense.tvqPayee,
-      dateFacture: nouvelleDate,
-    },
+  const nouveauTps = tpsPayee !== undefined ? Number(tpsPayee) || 0 : depense.tpsPayee;
+  const nouveauTvq = tvqPayee !== undefined ? Number(tvqPayee) || 0 : depense.tvqPayee;
+  const sommeLignes = lignesValides
+    ? lignesValides.reduce((s, l) => s + Number(l.montant), 0)
+    : depense.lignes.reduce((s, l) => s + l.montant, 0);
+  const nouveauMontant = sommeLignes + nouveauTps + nouveauTvq;
+
+  const depenseMaj = await prisma.$transaction(async (tx) => {
+    if (lignesValides) {
+      await tx.ligneDepense.deleteMany({ where: { depenseId: id } });
+    }
+    return tx.depense.update({
+      where: { id },
+      data: {
+        fournisseurId: fournisseurId || depense.fournisseurId,
+        description: description !== undefined ? description : depense.description,
+        montant: nouveauMontant,
+        tpsPayee: nouveauTps,
+        tvqPayee: nouveauTvq,
+        dateFacture: nouvelleDate,
+        ...(lignesValides && {
+          lignes: {
+            create: lignesValides.map((l) => ({
+              categorieDepenseId: l.categorieDepenseId,
+              montant: Number(l.montant),
+              description: l.description || null,
+            })),
+          },
+        }),
+      },
+      include: { lignes: { include: { categorieDepense: true } } },
+    });
   });
 
-  // Régénère l'écriture "reçue" (celle qui débite le poste et crédite
+  // Régénère l'écriture "reçue" (celle qui débite les postes et crédite
   // Comptes fournisseurs) avec les valeurs corrigées — l'ancienne est
   // retirée d'abord pour ne jamais en garder deux pour la même dépense.
   await prisma.ecritureComptable.deleteMany({ where: { source: "DEPENSE_RECUE", sourceId: id } });
   try {
-    await posterDepenseRecue({ ...depenseMaj, compteDepenseNumero: categorie.compteDepenseNumero }, session.nom);
+    await posterDepenseRecue(
+      {
+        ...depenseMaj,
+        lignesPourEcriture: depenseMaj.lignes.map((l) => ({
+          compteDepenseNumero: l.categorieDepense.compteDepenseNumero,
+          montant: l.montant,
+          description: l.description,
+        })),
+      },
+      session.nom
+    );
   } catch (e) {
     console.error("Erreur comptabilisation dépense corrigée :", e);
   }
@@ -143,7 +184,8 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ erreur: e.message.replace("PERIODE_LOCK:", "") }, { status: 423 });
   }
 
-  // Retire aussi les écritures comptables liées, pour garder les livres cohérents
+  // Retire aussi les écritures comptables liées, pour garder les livres
+  // cohérents (les lignes de fractionnement partent en cascade avec la dépense)
   await prisma.ecritureComptable.deleteMany({ where: { source: { in: ["DEPENSE_RECUE", "DEPENSE_PAYEE"] }, sourceId: params.id } });
   await prisma.depense.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });

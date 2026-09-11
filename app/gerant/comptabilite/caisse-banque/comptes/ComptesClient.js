@@ -61,6 +61,8 @@ export default function ComptesClient({ comptes, comptesGlDisponibles }) {
 function LigneCompte({ compte, onModifie }) {
   const [soldeReleve, setSoldeReleve] = useState(compte.soldeReleve.toFixed(2));
   const [enCours, setEnCours] = useState(false);
+  const [editionNom, setEditionNom] = useState(false);
+  const [nomEnEdition, setNomEnEdition] = useState(compte.nom);
 
   async function sauvegarderSolde() {
     setEnCours(true);
@@ -70,6 +72,19 @@ function LigneCompte({ compte, onModifie }) {
       body: JSON.stringify({ soldeReleve }),
     });
     setEnCours(false);
+    onModifie();
+  }
+
+  async function sauvegarderNom() {
+    if (!nomEnEdition.trim()) return;
+    setEnCours(true);
+    await fetch(`/api/comptabilite/tresorerie/comptes/${compte.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom: nomEnEdition.trim() }),
+    });
+    setEnCours(false);
+    setEditionNom(false);
     onModifie();
   }
 
@@ -88,10 +103,24 @@ function LigneCompte({ compte, onModifie }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, opacity: compte.actif ? 1 : 0.55 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{compte.nom}{!compte.actif && " (inactif)"}</div>
-          <div style={{ fontSize: 10.5, color: "var(--text-muted)", fontFamily: "monospace" }}>{compte.compteNumero} — {compte.compteNom}</div>
-        </div>
+        {editionNom ? (
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flex: 1 }}>
+            <input
+              value={nomEnEdition} onChange={(e) => setNomEnEdition(e.target.value)} autoFocus
+              style={{ flex: 1, padding: "5px 7px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}
+            />
+            <button onClick={sauvegarderNom} disabled={enCours} style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12 }}>✓</button>
+            <button onClick={() => { setEditionNom(false); setNomEnEdition(compte.nom); }} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 12 }}>Annuler</button>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              {compte.nom}{!compte.actif && " (inactif)"}
+              <button onClick={() => { setNomEnEdition(compte.nom); setEditionNom(true); }} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", marginLeft: 6, padding: 0 }}>✏️</button>
+            </div>
+            <div style={{ fontSize: 10.5, color: "var(--text-muted)", fontFamily: "monospace" }}>{compte.compteNumero} — {compte.compteNom}</div>
+          </div>
+        )}
         <button onClick={basculerActif} style={{ background: "none", border: "none", color: compte.actif ? "var(--danger)" : "var(--accent)", cursor: "pointer", fontSize: 12 }}>
           {compte.actif ? "✕" : "↺"}
         </button>

@@ -681,6 +681,9 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   const [erreurFacturation, setErreurFacturation] = useState("");
   const [confirmationFacturation, setConfirmationFacturation] = useState("");
   const [erreurCategorie, setErreurCategorie] = useState("");
+  const [editionNom, setEditionNom] = useState(false);
+  const [nomEnEdition, setNomEnEdition] = useState(probleme.description);
+  const [erreurNom, setErreurNom] = useState("");
 
   const piecesDisponibles = inventaire.filter((p) => p.qte > 0);
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
@@ -753,6 +756,28 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
     });
     setEnCours(false);
     setPieceEnEdition(null);
+    onRafraichir();
+  }
+
+  async function sauvegarderNom() {
+    setErreurNom("");
+    if (!nomEnEdition.trim()) {
+      setErreurNom("La description ne peut pas être vide.");
+      return;
+    }
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: nomEnEdition.trim() }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurNom(data.erreur || "Erreur lors de la sauvegarde.");
+      return;
+    }
+    setEditionNom(false);
     onRafraichir();
   }
 
@@ -852,10 +877,30 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontSize: 14 }}><strong style={{ color: "var(--text-muted)" }}>{index + 1}.</strong> {probleme.description}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+        {editionNom ? (
+          <div style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <strong style={{ color: "var(--text-muted)", fontSize: 14 }}>{index + 1}.</strong>
+            <input
+              value={nomEnEdition}
+              onChange={(e) => setNomEnEdition(e.target.value)}
+              autoFocus
+              style={{ ...champPetit, flex: 1, minWidth: 120, fontSize: 13 }}
+            />
+            <button onClick={sauvegarderNom} disabled={enCours} style={{ ...boutonTexte, color: "var(--accent)" }}>✓</button>
+            <button onClick={() => { setEditionNom(false); setNomEnEdition(probleme.description); setErreurNom(""); }} style={boutonTexte}>Annuler</button>
+          </div>
+        ) : (
+          <span style={{ fontSize: 14 }}>
+            <strong style={{ color: "var(--text-muted)" }}>{index + 1}.</strong> {probleme.description}
+            {peutModifier && !verrouille && (
+              <button onClick={() => { setNomEnEdition(probleme.description); setEditionNom(true); }} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", marginLeft: 6, padding: 0 }}>✏️</button>
+            )}
+          </span>
+        )}
         {peutSupprimer && <button onClick={onSupprimer} style={boutonTexte}>✕</button>}
       </div>
+      {erreurNom && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreurNom}</p>}
 
       {peutModifier && !verrouille && (
         <select

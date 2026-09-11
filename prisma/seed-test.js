@@ -89,16 +89,16 @@ async function main() {
     const depense = await prisma.depense.create({
       data: {
         fournisseurId: d.fournisseurId,
-        categorieDepenseId: d.categorie.id,
         description: d.description,
         montant: d.montant,
         dateFacture: new Date(d.dateFacture),
         dateEcheance: d.dateEcheance ? new Date(d.dateEcheance) : null,
         statut: d.statut,
         datePaiement: d.datePaiement ? new Date(d.datePaiement) : null,
+        lignes: { create: [{ categorieDepenseId: d.categorie.id, montant: d.montant }] },
       },
     });
-    await posterDepenseRecue({ ...depense, compteDepenseNumero: d.categorie.compteDepenseNumero }, CREE_PAR);
+    await posterDepenseRecue({ ...depense, lignesPourEcriture: [{ compteDepenseNumero: d.categorie.compteDepenseNumero, montant: d.montant }] }, CREE_PAR);
     if (d.statut === "PAYEE") await posterDepensePayee(depense, CREE_PAR);
   }
   console.log(`   ${depensesAPoster.length} dépenses créées et postées.`);

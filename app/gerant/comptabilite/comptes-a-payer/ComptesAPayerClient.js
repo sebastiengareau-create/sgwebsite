@@ -110,7 +110,14 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
                 {d.statut === "PAYEE" ? "Payée" : "Impayée"}
               </span>
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.description} · {d.categorieDepense.nom}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.description} · {d.lignes.map((l) => l.categorieDepense.nom).join(", ")}</div>
+            {d.lignes.length > 1 && (
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+                {d.lignes.map((l) => (
+                  <span key={l.id}>· {l.categorieDepense.nom}{l.description ? ` (${l.description})` : ""} — {l.montant.toFixed(2)} $</span>
+                ))}
+              </div>
+            )}
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{new Date(d.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
             {(d.tpsPayee > 0 || d.tvqPayee > 0) && (
               <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
@@ -143,7 +150,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
             )}
             {depenseEnEdition === d.id && (
               <FormulaireEditionDepense
-                depense={d} fournisseurs={fournisseurs} categories={categories}
+                depense={d} fournisseurs={fournisseurs} categories={categories} tpsTaux={tpsTaux} tvqTaux={tvqTaux}
                 onTermine={() => { setDepenseEnEdition(null); router.refresh(); }} onAnnuler={() => setDepenseEnEdition(null)}
               />
             )}
@@ -209,28 +216,47 @@ function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAn
   );
 }
 
-function FormulaireEditionDepense({ depense, fournisseurs, categories, onTermine, onAnnuler }) {
+function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, tvqTaux, onTermine, onAnnuler }) {
   const [fournisseurId, setFournisseurId] = useState(depense.fournisseurId);
-  const [categorieDepenseId, setCategorieDepenseId] = useState(depense.categorieDepenseId);
   const [description, setDescription] = useState(depense.description);
-  const [montant, setMontant] = useState(String(depense.montant));
+  const [lignes, setLignes] = useState(
+    depense.lignes.map((l) => ({ categorieDepenseId: l.categorieDepenseId, montant: String(l.montant), description: l.description || "" }))
+  );
   const [tpsPayee, setTpsPayee] = useState(String(depense.tpsPayee || 0));
   const [tvqPayee, setTvqPayee] = useState(String(depense.tvqPayee || 0));
   const [dateFacture, setDateFacture] = useState(new Date(depense.dateFacture).toISOString().slice(0, 10));
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
+  const sousTotal = lignes.reduce((s, l) => s + (Number(l.montant) || 0), 0);
+  const grandTotal = sousTotal + (Number(tpsPayee) || 0) + (Number(tvqPayee) || 0);
+
+  function modifierLigne(index, champ, valeur) {
+    setLignes((prev) => prev.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
+  }
+  function ajouterLigne() {
+    setLignes((prev) => [...prev, { categorieDepenseId: categories[0]?.id || "", montant: "", description: "" }]);
+  }
+  function retirerLigne(index) {
+    setLignes((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function sauvegarder() {
     setErreur("");
-    if (!description.trim() || !montant || Number(montant) <= 0) {
-      setErreur("Description et montant requis.");
+    const manquants = [];
+    if (!description.trim()) manquants.push("Description");
+    if (lignes.length === 0 || lignes.some((l) => !l.categorieDepenseId || !l.montant || Number(l.montant) <= 0)) {
+      manquants.push("Poste et montant de chaque ligne");
+    }
+    if (manquants.length > 0) {
+      setErreur(`Champ(s) manquant(s) : ${manquants.join(", ")}.`);
       return;
     }
     setEnCours(true);
     const res = await fetch(`/api/depenses/${depense.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fournisseurId, categorieDepenseId, description, montant, tpsPayee, tvqPayee, dateFacture }),
+      body: JSON.stringify({ fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -246,17 +272,37 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, onTermine
       <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
         {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
       </select>
-      <select value={categorieDepenseId} onChange={(e) => setCategorieDepenseId(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
-        {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-      </select>
       <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" style={{ ...champStyle, marginBottom: 0 }} />
-      <div style={{ display: "flex", gap: 6 }}>
-        <input type="number" min={0} step="0.01" value={montant} onChange={(e) => setMontant(e.target.value)} placeholder="Montant" style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
-        <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {lignes.map((l, i) => (
+          <LigneDepenseInput
+            key={i} ligne={l} index={i} categories={categories}
+            onChange={modifierLigne} onRetirer={retirerLigne} peutRetirer={lignes.length > 1}
+          />
+        ))}
+        <button type="button" onClick={ajouterLigne} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "1px dashed var(--border)", borderRadius: 6, padding: "5px 8px", cursor: "pointer", alignSelf: "flex-start" }}>
+          + Ajouter une ligne (autre poste)
+        </button>
+      </div>
+
+      <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          onClick={() => { setTpsPayee((sousTotal * (tpsTaux / 100)).toFixed(2)); setTvqPayee((sousTotal * (tvqTaux / 100)).toFixed(2)); }}
+          style={{ fontSize: 10.5, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+        >
+          Calculer les taxes à partir des lignes
+        </button>
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <input type="number" min={0} step="0.01" value={tpsPayee} onChange={(e) => setTpsPayee(e.target.value)} placeholder="TPS" style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
         <input type="number" min={0} step="0.01" value={tvqPayee} onChange={(e) => setTvqPayee(e.target.value)} placeholder="TVQ" style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+        <span style={{ color: "var(--text-muted)" }}>Total (lignes + taxes)</span>
+        <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)} $</span>
       </div>
       {depense.statut === "PAYEE" && (
         <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: 0 }}>
@@ -272,6 +318,29 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, onTermine
           Annuler
         </button>
       </div>
+    </div>
+  );
+}
+
+function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer }) {
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <select value={ligne.categorieDepenseId} onChange={(e) => onChange(index, "categorieDepenseId", e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.2 }}>
+        {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+      </select>
+      <input
+        placeholder="Note (optionnel)" value={ligne.description}
+        onChange={(e) => onChange(index, "description", e.target.value)}
+        style={{ ...champStyle, marginBottom: 0, flex: 1 }}
+      />
+      <input
+        type="number" min={0} step="0.01" placeholder="Montant"
+        value={ligne.montant} onChange={(e) => onChange(index, "montant", e.target.value)}
+        style={{ ...champStyle, marginBottom: 0, width: 90 }}
+      />
+      {peutRetirer && (
+        <button type="button" onClick={() => onRetirer(index)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, padding: "0 2px" }}>✕</button>
+      )}
     </div>
   );
 }
@@ -465,23 +534,30 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
 function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
   const [categories, setCategories] = useState(categoriesInitiales);
   const [fournisseurId, setFournisseurId] = useState(fournisseurs[0]?.id || "");
-  const [categorieDepenseId, setCategorieDepenseId] = useState(categoriesInitiales[0]?.id || "");
   const [description, setDescription] = useState("");
-  const [montant, setMontant] = useState("");
+  const [lignes, setLignes] = useState([{ categorieDepenseId: categoriesInitiales[0]?.id || "", montant: "", description: "" }]);
   const [tpsPayee, setTpsPayee] = useState("");
   const [tvqPayee, setTvqPayee] = useState("");
   const [dateFacture, setDateFacture] = useState(new Date().toISOString().slice(0, 10));
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
+  const sousTotal = lignes.reduce((s, l) => s + (Number(l.montant) || 0), 0);
+  const grandTotal = sousTotal + (Number(tpsPayee) || 0) + (Number(tvqPayee) || 0);
+
+  function modifierLigne(index, champ, valeur) {
+    setLignes((prev) => prev.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
+  }
+  function ajouterLigne() {
+    setLignes((prev) => [...prev, { categorieDepenseId: categories[0]?.id || "", montant: "", description: "" }]);
+  }
+  function retirerLigne(index) {
+    setLignes((prev) => prev.filter((_, i) => i !== index));
+  }
   function calculerTaxesAutomatiquement() {
-    const total = Number(montant);
-    if (!total) return;
-    // Le montant entré est le total taxes incluses — on retrouve la portion
-    // de taxe à partir des taux configurés dans Paramètres
-    const avantTaxes = total / (1 + tpsTaux / 100 + tvqTaux / 100);
-    setTpsPayee((avantTaxes * (tpsTaux / 100)).toFixed(2));
-    setTvqPayee((avantTaxes * (tvqTaux / 100)).toFixed(2));
+    if (!sousTotal) return;
+    setTpsPayee((sousTotal * (tpsTaux / 100)).toFixed(2));
+    setTvqPayee((sousTotal * (tvqTaux / 100)).toFixed(2));
   }
 
   const [afficherNouveauPoste, setAfficherNouveauPoste] = useState(false);
@@ -505,7 +581,6 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
     }
     const nouveauPoste = await res.json();
     setCategories((prev) => [...prev, nouveauPoste]);
-    setCategorieDepenseId(nouveauPoste.id);
     setNomNouveauPoste("");
     setAfficherNouveauPoste(false);
     onCategorieCreee(); // rafraîchit la vraie liste côté serveur, pour que ça reste après réouverture
@@ -516,9 +591,10 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
     setErreur("");
     const manquants = [];
     if (!fournisseurId) manquants.push("Fournisseur");
-    if (!categorieDepenseId) manquants.push("Poste de dépense");
     if (!description.trim()) manquants.push("Description");
-    if (!montant || Number(montant) <= 0) manquants.push("Montant");
+    if (lignes.length === 0 || lignes.some((l) => !l.categorieDepenseId || !l.montant || Number(l.montant) <= 0)) {
+      manquants.push("Poste et montant de chaque ligne");
+    }
     if (manquants.length > 0) {
       setErreur(`Champ(s) manquant(s) : ${manquants.join(", ")}.`);
       return;
@@ -527,7 +603,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
     const res = await fetch("/api/depenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fournisseurId, categorieDepenseId, description, montant, tpsPayee, tvqPayee, dateFacture }),
+      body: JSON.stringify({ fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -549,47 +625,48 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
         {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
       </select>
 
-      <label style={labelStyle}>Poste de dépense</label>
-      {afficherNouveauPoste ? (
-        <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginBottom: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-          <input placeholder="Nom du poste (ex : Loyer) — compte créé automatiquement" value={nomNouveauPoste} onChange={(e) => setNomNouveauPoste(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
-          <div style={{ display: "flex", gap: 6 }}>
-            <button type="button" onClick={creerPoste} disabled={creationPosteEnCours} style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
-              {creationPosteEnCours ? "…" : "✓ Créer et utiliser"}
+      <label style={labelStyle}>Description de la facture</label>
+      <input placeholder="Ex : Facture #1234" value={description} onChange={(e) => setDescription(e.target.value)} style={champStyle} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <label style={{ ...labelStyle, marginBottom: 0 }}>Postes de dépenses — un même fournisseur peut être fractionné sur plusieurs postes</label>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 6 }}>
+        {lignes.map((l, i) => (
+          <LigneDepenseInput
+            key={i} ligne={l} index={i} categories={categories}
+            onChange={modifierLigne} onRetirer={retirerLigne} peutRetirer={lignes.length > 1}
+          />
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <button type="button" onClick={ajouterLigne} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "1px dashed var(--border)", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}>
+          + Ajouter une ligne (autre poste)
+        </button>
+        {afficherNouveauPoste ? (
+          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+            <input placeholder="Nom du nouveau poste" value={nomNouveauPoste} onChange={(e) => setNomNouveauPoste(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
+            <button type="button" onClick={creerPoste} disabled={creationPosteEnCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "0 10px", borderRadius: 6, cursor: "pointer" }}>
+              {creationPosteEnCours ? "…" : "✓ Créer"}
             </button>
-            <button type="button" onClick={() => setAfficherNouveauPoste(false)} style={{ flex: 1, fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
+            <button type="button" onClick={() => setAfficherNouveauPoste(false)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "0 10px", borderRadius: 6, cursor: "pointer" }}>
               Annuler
             </button>
           </div>
-        </div>
-      ) : (
-        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-          <select value={categorieDepenseId} onChange={(e) => setCategorieDepenseId(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1 }}>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
+        ) : (
           <button type="button" onClick={() => setAfficherNouveauPoste(true)} className="bouton-3d-sombre" style={{ padding: "0 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-            + Nouveau
+            + Nouveau poste
           </button>
-        </div>
-      )}
-
-      <label style={labelStyle}>Description</label>
-      <input placeholder="Ex : Loyer août 2026" value={description} onChange={(e) => setDescription(e.target.value)} style={champStyle} />
-      <div style={{ display: "flex", gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Montant total ($) — taxes incluses</label>
-          <input type="number" min={0} step="0.01" value={montant} onChange={(e) => setMontant(e.target.value)} style={champStyle} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Date de la facture</label>
-          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
-        </div>
+        )}
       </div>
+
+      <label style={labelStyle}>Date de la facture</label>
+      <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <label style={{ ...labelStyle, marginBottom: 0 }}>Taxes payées (optionnel — récupérables)</label>
         <button type="button" onClick={calculerTaxesAutomatiquement} style={{ fontSize: 10.5, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-          Calculer à partir du total
+          Calculer à partir des lignes
         </button>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
@@ -599,6 +676,10 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
         <div style={{ flex: 1 }}>
           <input type="number" min={0} step="0.01" placeholder={`TVQ (${tvqTaux}%)`} value={tvqPayee} onChange={(e) => setTvqPayee(e.target.value)} style={champStyle} />
         </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
+        <span style={{ color: "var(--text-muted)" }}>Total dû au fournisseur</span>
+        <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)} $</span>
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
