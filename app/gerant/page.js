@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { limitesMoisQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
+import { limitesMoisQuebec, dateAujourdhuiQuebec, dateQuebecStr } from "@/lib/temps";
 import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailRevenusDepenses } from "@/lib/rapportsComptables";
 import EnTete from "../components/EnTete";
 import LiveTimer from "../components/LiveTimer";
@@ -89,7 +89,7 @@ export default async function EspaceGerant({ searchParams }) {
     prisma.depense.findMany({ where: { statut: "IMPAYEE", dateFacture: { lte: fin } }, select: { fournisseurId: true }, distinct: ["fournisseurId"] }),
     prisma.facture.aggregate({ where: { statut: "IMPAYEE", dateEmission: { lte: ilYA30Jours } }, _sum: { totalAvecTaxes: true }, _count: true }),
     prisma.depense.aggregate({ where: { statut: "IMPAYEE", dateEcheance: { gte: maintenant, lte: dansUneSemaine } }, _sum: { montant: true }, _count: true }),
-    prisma.paie.findFirst({ where: { statut: { not: "CORRIGEE" } }, orderBy: { periodeFin: "desc" } }),
+    prisma.paie.findFirst({ where: { statut: { not: "CORRIGEE" } }, orderBy: { dateVersement: "desc" } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
     prisma.piece.findMany(),
@@ -135,9 +135,19 @@ export default async function EspaceGerant({ searchParams }) {
 
   const sante = calculerSanteFinanciere(resumeCourant);
 
+  // Ajoute des jours à une journée civile Québec en restant ancré à midi
+  // UTC — sinon l'ajout en millisecondes bruts peut retomber à minuit UTC,
+  // qui affiche la veille une fois formaté en heure du Québec.
+  function joursPlusTardQuebec(date, jours) {
+    const d = new Date(`${dateQuebecStr(date)}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + jours);
+    return d;
+  }
+
   let paieProchaine = null;
   if (dernierePaie) {
-    paieProchaine = new Date(new Date(dernierePaie.periodeFin).getTime() + 14 * JOUR_MS);
+    const derniereDateVersement = dernierePaie.dateVersement || dernierePaie.periodeFin;
+    paieProchaine = joursPlusTardQuebec(derniereDateVersement, 14);
   }
 
   const alertes = [];

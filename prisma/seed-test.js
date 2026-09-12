@@ -30,6 +30,12 @@ function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
 
+// "YYYY-MM-DD" ancré à midi UTC — sinon minuit UTC recule d'un jour une fois
+// affiché en heure du Québec (voir app/api/paie/lots/route.js).
+function jourCivil(dateStr) {
+  return new Date(`${dateStr}T12:00:00Z`);
+}
+
 // Ajoute une pièce utilisée ET déduit le stock — même effet que la vraie
 // route POST /api/bons/[id]/pieces, pour que les quantités en inventaire
 // restent cohérentes avec ce qui a été "consommé" par les bons de test.
@@ -364,12 +370,12 @@ async function main() {
     const numero = await prochainNumero("lotPaie", "PAIE-");
     const lot = await prisma.lotPaie.create({
       data: {
-        numero, periodeDebut: new Date(periodeDebut), periodeFin: new Date(periodeFin),
-        dateVersementPrevue: new Date(dateVersement), typePaie: "REGULIERE", creePar: CREE_PAR,
+        numero, periodeDebut: jourCivil(periodeDebut), periodeFin: jourCivil(periodeFin),
+        dateVersementPrevue: jourCivil(dateVersement), typePaie: "REGULIERE", creePar: CREE_PAR,
         paies: {
           create: resultats.map((r) => ({
-            employeId: r.employeId, periodeDebut: new Date(periodeDebut), periodeFin: new Date(periodeFin),
-            dateVersement: new Date(dateVersement),
+            employeId: r.employeId, periodeDebut: jourCivil(periodeDebut), periodeFin: jourCivil(periodeFin),
+            dateVersement: jourCivil(dateVersement),
             heuresTravaillees: r.heuresTravaillees, heuresHorodateur: r.heuresHorodateur, boni: r.boni,
             salaireBrut: r.salaireBrutPeriode, rrqEmploye: r.rrqEmploye, rqapEmploye: r.rqapEmploye,
             aeEmploye: r.aeEmploye, impotFederal: r.impotFederal, impotQuebec: r.impotQuebec,
@@ -386,7 +392,7 @@ async function main() {
       for (const paie of lot.paies) {
         try { await posterPaie(paie, CREE_PAR); } catch (e) { console.log(`   ⚠ Comptabilisation paie ${paie.employe.nom} : ${e.message}`); }
       }
-      await prisma.lotPaie.update({ where: { id: lot.id }, data: { statut: "COMPTABILISEE", comptabiliseLe: new Date(dateVersement) } });
+      await prisma.lotPaie.update({ where: { id: lot.id }, data: { statut: "COMPTABILISEE", comptabiliseLe: jourCivil(dateVersement) } });
     }
     console.log(`   Lot ${numero} (${comptabiliser ? "comptabilisé" : "brouillon"}) — ${lot.paies.length} employé(s).`);
   }
