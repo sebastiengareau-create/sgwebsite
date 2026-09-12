@@ -10,7 +10,6 @@ import VueGlobaleClient from "./VueGlobaleClient";
 
 const NOMS_MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const NOMS_MOIS_COURT = ["Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
-const INTERVALLE_JOURS_PAIE = { HEBDOMADAIRE: 7, BIHEBDOMADAIRE: 14, BIMENSUEL: 15, MENSUEL: 30 };
 const JOUR_MS = 86400000;
 
 function moisPrecedent(annee, mois) {
@@ -90,7 +89,7 @@ export default async function EspaceGerant({ searchParams }) {
     prisma.depense.findMany({ where: { statut: "IMPAYEE", dateFacture: { lte: fin } }, select: { fournisseurId: true }, distinct: ["fournisseurId"] }),
     prisma.facture.aggregate({ where: { statut: "IMPAYEE", dateEmission: { lte: ilYA30Jours } }, _sum: { totalAvecTaxes: true }, _count: true }),
     prisma.depense.aggregate({ where: { statut: "IMPAYEE", dateEcheance: { gte: maintenant, lte: dansUneSemaine } }, _sum: { montant: true }, _count: true }),
-    prisma.paie.findFirst({ where: { statut: { not: "CORRIGEE" } }, orderBy: { periodeFin: "desc" }, include: { employe: true } }),
+    prisma.paie.findFirst({ where: { statut: { not: "CORRIGEE" } }, orderBy: { periodeFin: "desc" } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
     prisma.piece.findMany(),
@@ -138,8 +137,7 @@ export default async function EspaceGerant({ searchParams }) {
 
   let paieProchaine = null;
   if (dernierePaie) {
-    const intervalle = INTERVALLE_JOURS_PAIE[dernierePaie.employe?.frequencePaie] || 14;
-    paieProchaine = new Date(new Date(dernierePaie.periodeFin).getTime() + intervalle * JOUR_MS);
+    paieProchaine = new Date(new Date(dernierePaie.periodeFin).getTime() + 14 * JOUR_MS);
   }
 
   const alertes = [];

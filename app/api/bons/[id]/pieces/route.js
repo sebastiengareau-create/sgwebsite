@@ -19,7 +19,7 @@ export async function POST(request, { params }) {
   }
 
   // Sécurité : la ligne de problème doit vraiment appartenir à ce bon
-  const probleme = await prisma.probleme.findUnique({ where: { id: problemeId } });
+  const probleme = await prisma.probleme.findUnique({ where: { id: problemeId }, include: { bon: { include: { client: true } } } });
   if (!probleme || probleme.bonId !== params.id) {
     return NextResponse.json({ erreur: "Ligne de problème introuvable." }, { status: 404 });
   }
@@ -30,7 +30,19 @@ export async function POST(request, { params }) {
       if (!piece) throw new Error("INTROUVABLE");
       if (piece.qte < quantite) throw new Error("STOCK_INSUFFISANT");
 
-      await tx.piece.update({ where: { id: pieceId }, data: { qte: piece.qte - quantite } });
+      const nouvelleQte = piece.qte - quantite;
+      await tx.piece.update({
+        where: { id: pieceId },
+        data: {
+          qte: nouvelleQte,
+          mouvements: {
+            create: {
+              type: "VENTE", qte: -quantite, solde: nouvelleQte,
+              note: `Bon #${probleme.bon.numero} — ${probleme.bon.client.nom}`, creePar: session.nom,
+            },
+          },
+        },
+      });
 
       const existante = await tx.pieceUtilisee.findFirst({ where: { problemeId, pieceId } });
       if (existante) {

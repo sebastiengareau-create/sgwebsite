@@ -145,17 +145,24 @@ model Photo {
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------
 
 model Piece {
-  id        String          @id @default(cuid())
-  nom       String
-  numero    String          @unique
-  qte       Int             @default(0)
-  qteMin    Int             @default(0)
-  prix      Float // prix de vente (facturé au client)
-  coutant   Float           @default(0) // prix coûtant (payé au fournisseur) — pour le coût des marchandises vendues
-  categorie String          @default("PIECE") // pour répartir les revenus, voir CategorieInventaire
-  qbId      String? // référence article QuickBooks
-  syncLe    DateTime        @default(now())
-  utilisee  PieceUtilisee[]
+  id            String                @id @default(cuid())
+  nom           String
+  numero        String                @unique
+  qte           Int                   @default(0)
+  qteMin        Int                   @default(0)
+  qteMax        Int? // seuil de réapprovisionnement suggéré — informatif seulement
+  emplacement   String? // ex. "A-03-02", texte libre
+  prix          Float // prix de vente (facturé au client)
+  coutant       Float                 @default(0) // coût moyen pondéré, payé au fournisseur — pour le coût des marchandises vendues
+  categorie     String                @default("PIECE") // pour répartir les revenus, voir CategorieInventaire
+  fournisseurId String? // fournisseur habituel, optionnel
+  fournisseur   Fournisseur?          @relation(fields: [fournisseurId], references: [id])
+  qbId          String? // référence article QuickBooks
+  syncLe        DateTime              @default(now())
+  utilisee      PieceUtilisee[]
+  lignesDepense LigneDepense[] // réceptions de stock liées à des factures fournisseur
+  mouvements    MouvementInventaire[]
+  historique    HistoriquePiece[]
 }
 
 model PieceUtilisee {
@@ -166,6 +173,38 @@ model PieceUtilisee {
   piece      Piece    @relation(fields: [pieceId], references: [id])
   qte        Int
   prix       Float // prix figé au moment de l'ajout (historique de facturation)
+}
+
+// Journal des mouvements de stock (ventes, réceptions, ajustements manuels) —
+// un solde figé à chaque ligne pour reconstituer l'historique sans recalcul.
+// pieceUtiliseeId/ligneDepenseId sont de simples références informatives
+// (pas de vraie relation Prisma) pour ne pas alourdir ces deux modèles.
+model MouvementInventaire {
+  id              String   @id @default(cuid())
+  pieceId         String
+  piece           Piece    @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  type            String // "RECEPTION" | "VENTE" | "AJUSTEMENT"
+  qte             Int // delta : positif pour une entrée, négatif pour une sortie
+  solde           Int // solde du stock immédiatement après ce mouvement
+  note            String? // ex. "Bon #1032 — Jean Tremblay" ou "Facture — Pièces XYZ"
+  pieceUtiliseeId String? // référence informative vers la ligne de vente (bon), si applicable
+  ligneDepenseId  String? // référence informative vers la ligne de facture fournisseur, si applicable
+  creePar         String?
+  creeLe          DateTime @default(now())
+}
+
+// Historique des modifications faites directement sur la fiche d'un article
+// (prix, seuils, emplacement, fournisseur…) — distinct des mouvements de
+// stock qui, eux, ne concernent que la quantité.
+model HistoriquePiece {
+  id             String   @id @default(cuid())
+  pieceId        String
+  piece          Piece    @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  champ          String // ex. "prix", "coutant", "qteMin", "emplacement"
+  ancienneValeur String?
+  nouvelleValeur String?
+  modifiePar     String?
+  modifieLe      DateTime @default(now())
 }
 
 // ---------- PARAMÈTRES (valeurs clés configurables, ex. taux horaire facturé) ----------
@@ -388,15 +427,16 @@ model RapprochementBancaire {
 // ---------- COMPTES À PAYER ----------
 
 model Fournisseur {
-  id        String    @id @default(cuid())
-  numero    String?   @unique // numéro séquentiel auto-généré, ex. "FOUR-0001"
-  nom       String
-  telephone String?
-  courriel  String?
-  adresse   String?
-  actif     Boolean   @default(true)
-  depenses  Depense[]
-  creeLe    DateTime  @default(now())
+  id           String    @id @default(cuid())
+  numero       String?   @unique // numéro séquentiel auto-généré, ex. "FOUR-0001"
+  nom          String
+  telephone    String?
+  courriel     String?
+  adresse      String?
+  actif        Boolean   @default(true)
+  depenses     Depense[]
+  piecesDefaut Piece[] // articles d'inventaire dont c'est le fournisseur habituel
+  creeLe       DateTime  @default(now())
 }
 
 // Postes de dépenses — chacun relié à un compte du plan comptable,
@@ -443,6 +483,12 @@ model LigneDepense {
   categorieDepense   CategorieDepense @relation(fields: [categorieDepenseId], references: [id])
   description        String?
   montant            Float
+  // Réception de stock optionnelle — fixée à la création de la dépense
+  // seulement (voir app/api/depenses/route.js) ; corriger la dépense
+  // ensuite ne rejoue pas l'ajustement de stock.
+  pieceId            String?
+  piece              Piece?           @relation(fields: [pieceId], references: [id])
+  qteRecue           Int?
 }
 
 // ---------- IMMOBILISATIONS ET AMORTISSEMENT ----------

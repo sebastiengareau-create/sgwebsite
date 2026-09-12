@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { posterDepenseRecue, posterDepensePayee, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
+// Voir app/api/depenses/route.js : ancre une date-seule à midi UTC pour
+// qu'elle retombe sur le même jour civil peu importe le fuseau d'affichage.
+function jourCivil(dateStr) {
+  return new Date(`${dateStr.slice(0, 10)}T12:00:00Z`);
+}
+
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) {
@@ -72,7 +78,7 @@ async function modifierDepense(id, corps, session) {
   const depense = await prisma.depense.findUnique({ where: { id }, include: { lignes: true } });
   if (!depense) return NextResponse.json({ erreur: "Dépense introuvable." }, { status: 404 });
 
-  const nouvelleDate = dateFacture ? new Date(dateFacture) : depense.dateFacture;
+  const nouvelleDate = dateFacture ? jourCivil(dateFacture) : depense.dateFacture;
   try {
     await verifierPeriodeModifiable(depense.dateFacture, { nouvellePiece: false });
     if (dateFacture) await verifierPeriodeModifiable(nouvelleDate, { nouvellePiece: true });
@@ -119,11 +125,17 @@ async function modifierDepense(id, corps, session) {
         tvqPayee: nouveauTvq,
         dateFacture: nouvelleDate,
         ...(lignesValides && {
+          // pieceId/qteRecue passent tels quels si présents (la réception de
+          // stock déjà appliquée à la création n'est pas rejouée ici — voir
+          // app/api/depenses/route.js — mais le lien ne doit pas se perdre
+          // juste parce qu'une autre ligne a été corrigée).
           lignes: {
             create: lignesValides.map((l) => ({
               categorieDepenseId: l.categorieDepenseId,
               montant: Number(l.montant),
               description: l.description || null,
+              pieceId: l.pieceId || null,
+              qteRecue: l.pieceId ? (Number(l.qteRecue) || null) : null,
             })),
           },
         }),

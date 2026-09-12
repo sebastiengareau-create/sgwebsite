@@ -12,16 +12,17 @@ export default async function GestionInventaire() {
   await assurerPlanComptable();
   await assurerCategoriesInventaire();
 
-  const [pieces, categories, comptesRevenu] = await Promise.all([
+  const [pieces, categories, comptesRevenu, fournisseurs] = await Promise.all([
     prisma.piece.findMany({ orderBy: { nom: "asc" } }),
     prisma.categorieInventaire.findMany({ orderBy: [{ actif: "desc" }, { nom: "asc" }] }),
     prisma.compte.findMany({ where: { type: "REVENU", actif: true }, orderBy: { numero: "asc" } }),
+    prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
   ]);
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <InventaireClient pieces={pieces} categories={categories} comptesRevenu={comptesRevenu} peutGererCategories={estGerantOuDev(session)} />
+      <InventaireClient pieces={pieces} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} peutGererCategories={estGerantOuDev(session)} />
     </div>
   );
 }

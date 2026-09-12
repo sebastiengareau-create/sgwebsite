@@ -657,7 +657,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
 
 function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
-  const [qtePiece, setQtePiece] = useState(1);
+  const [qtePiece, setQtePiece] = useState("1");
   const [erreurPiece, setErreurPiece] = useState("");
   const [confirmationPiece, setConfirmationPiece] = useState("");
   const [erreurPhoto, setErreurPhoto] = useState("");
@@ -830,7 +830,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
     const res = await fetch(`/api/bons/${bonId}/pieces`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: qtePiece }),
+      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1) }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -839,7 +839,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
       return;
     }
     setPieceChoisie("");
-    setQtePiece(1);
+    setQtePiece("1");
     setConfirmationPiece("Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 2500);
@@ -1134,7 +1134,8 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
               </select>
               <input
                 type="number" min={1} value={qtePiece}
-                onChange={(e) => setQtePiece(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setQtePiece(e.target.value)}
+                onBlur={() => setQtePiece(String(Math.max(1, parseInt(qtePiece) || 1)))}
                 style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
               />
               <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>

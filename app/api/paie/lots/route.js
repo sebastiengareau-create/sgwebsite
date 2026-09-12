@@ -3,6 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { calculerPaiePourEmploye } from "@/lib/paie";
 
+// Ces dates sont des journées civiles (Québec), pas des instants précis — on
+// les ancre à midi UTC pour qu'elles retombent sur le même jour peu importe
+// le fuseau horaire de lecture (le serveur tourne en UTC, l'affichage en
+// heure du Québec est en retard, sinon minuit UTC recule d'un jour une fois
+// affiché à Montréal).
+function jourCivil(dateStr) {
+  return new Date(`${dateStr.slice(0, 10)}T12:00:00Z`);
+}
+
 export async function POST(request) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
@@ -13,7 +22,7 @@ export async function POST(request) {
   if (!periodeDebut || !periodeFin || !Array.isArray(employeIds) || employeIds.length === 0) {
     return NextResponse.json({ erreur: "Période et au moins un employé sont requis." }, { status: 400 });
   }
-  const dateVersementFinale = dateVersement ? new Date(dateVersement) : new Date(periodeFin);
+  const dateVersementFinale = jourCivil(dateVersement || periodeFin);
 
   const typePaieFinal = typePaie === "VACANCES" ? "VACANCES" : "REGULIERE";
 
@@ -37,16 +46,16 @@ export async function POST(request) {
   const lot = await prisma.lotPaie.create({
     data: {
       numero,
-      periodeDebut: new Date(periodeDebut),
-      periodeFin: new Date(periodeFin),
+      periodeDebut: jourCivil(periodeDebut),
+      periodeFin: jourCivil(periodeFin),
       dateVersementPrevue: dateVersementFinale,
       typePaie: typePaieFinal,
       creePar: session.nom,
       paies: {
         create: resultats.map((r) => ({
           employeId: r.employeId,
-          periodeDebut: new Date(periodeDebut),
-          periodeFin: new Date(periodeFin),
+          periodeDebut: jourCivil(periodeDebut),
+          periodeFin: jourCivil(periodeFin),
           dateVersement: dateVersementFinale,
           heuresTravaillees: r.heuresTravaillees,
           heuresHorodateur: r.heuresHorodateur,

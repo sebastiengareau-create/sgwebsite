@@ -10,7 +10,7 @@ const STATUTS_DEPENSE = {
   PAYEE: { label: "Payée", color: "#6FA96B" },
 };
 
-export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie }) {
+export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces }) {
   const router = useRouter();
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
@@ -77,7 +77,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
 
       {afficherFormulaire && (
         <FormulaireDepense
-          fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense}
+          fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense} pieces={pieces}
           tpsTaux={tpsTaux} tvqTaux={tvqTaux}
           onCree={() => { setAfficherFormulaire(false); router.refresh(); }}
           onCategorieCreee={() => router.refresh()}
@@ -220,7 +220,10 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
   const [fournisseurId, setFournisseurId] = useState(depense.fournisseurId);
   const [description, setDescription] = useState(depense.description);
   const [lignes, setLignes] = useState(
-    depense.lignes.map((l) => ({ categorieDepenseId: l.categorieDepenseId, montant: String(l.montant), description: l.description || "" }))
+    depense.lignes.map((l) => ({
+      categorieDepenseId: l.categorieDepenseId, montant: String(l.montant), description: l.description || "",
+      pieceId: l.pieceId || null, qteRecue: l.qteRecue || "",
+    }))
   );
   const [tpsPayee, setTpsPayee] = useState(String(depense.tpsPayee || 0));
   const [tvqPayee, setTvqPayee] = useState(String(depense.tvqPayee || 0));
@@ -322,24 +325,51 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
   );
 }
 
-function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer }) {
+function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer, pieces }) {
+  const pieceLiee = !pieces && ligne.pieceId ? true : false;
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      <select value={ligne.categorieDepenseId} onChange={(e) => onChange(index, "categorieDepenseId", e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.2 }}>
-        {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-      </select>
-      <input
-        placeholder="Note (optionnel)" value={ligne.description}
-        onChange={(e) => onChange(index, "description", e.target.value)}
-        style={{ ...champStyle, marginBottom: 0, flex: 1 }}
-      />
-      <input
-        type="number" min={0} step="0.01" placeholder="Montant"
-        value={ligne.montant} onChange={(e) => onChange(index, "montant", e.target.value)}
-        style={{ ...champStyle, marginBottom: 0, width: 90 }}
-      />
-      {peutRetirer && (
-        <button type="button" onClick={() => onRetirer(index)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, padding: "0 2px" }}>✕</button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <select value={ligne.categorieDepenseId} onChange={(e) => onChange(index, "categorieDepenseId", e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.2 }}>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+        </select>
+        <input
+          placeholder="Note (optionnel)" value={ligne.description}
+          onChange={(e) => onChange(index, "description", e.target.value)}
+          style={{ ...champStyle, marginBottom: 0, flex: 1 }}
+        />
+        <input
+          type="number" min={0} step="0.01" placeholder="Montant"
+          value={ligne.montant} onChange={(e) => onChange(index, "montant", e.target.value)}
+          style={{ ...champStyle, marginBottom: 0, width: 90 }}
+        />
+        {peutRetirer && (
+          <button type="button" onClick={() => onRetirer(index)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, padding: "0 2px" }}>✕</button>
+        )}
+      </div>
+      {pieces && (
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <select
+            value={ligne.pieceId || ""}
+            onChange={(e) => onChange(index, "pieceId", e.target.value || null)}
+            style={{ ...champStyle, marginBottom: 0, flex: 1.2, fontSize: 11.5, color: "var(--text-muted)" }}
+          >
+            <option value="">— pas de réception d'inventaire —</option>
+            {pieces.map((p) => <option key={p.id} value={p.id}>{p.nom} ({p.numero}) — {p.qte} en stock</option>)}
+          </select>
+          {ligne.pieceId && (
+            <input
+              type="number" min={1} step="1" placeholder="Qté reçue"
+              value={ligne.qteRecue || ""} onChange={(e) => onChange(index, "qteRecue", e.target.value)}
+              style={{ ...champStyle, marginBottom: 0, width: 90, fontSize: 11.5 }}
+            />
+          )}
+        </div>
+      )}
+      {pieceLiee && (
+        <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+          📦 Réception déjà appliquée à l'inventaire ({ligne.qteRecue} unité{ligne.qteRecue > 1 ? "s" : ""}) — non modifiable ici.
+        </div>
       )}
     </div>
   );
@@ -531,11 +561,11 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
   );
 }
 
-function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
+function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
   const [categories, setCategories] = useState(categoriesInitiales);
   const [fournisseurId, setFournisseurId] = useState(fournisseurs[0]?.id || "");
   const [description, setDescription] = useState("");
-  const [lignes, setLignes] = useState([{ categorieDepenseId: categoriesInitiales[0]?.id || "", montant: "", description: "" }]);
+  const [lignes, setLignes] = useState([{ categorieDepenseId: categoriesInitiales[0]?.id || "", montant: "", description: "", pieceId: null, qteRecue: "" }]);
   const [tpsPayee, setTpsPayee] = useState("");
   const [tvqPayee, setTvqPayee] = useState("");
   const [dateFacture, setDateFacture] = useState(new Date().toISOString().slice(0, 10));
@@ -549,7 +579,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
     setLignes((prev) => prev.map((l, i) => (i === index ? { ...l, [champ]: valeur } : l)));
   }
   function ajouterLigne() {
-    setLignes((prev) => [...prev, { categorieDepenseId: categories[0]?.id || "", montant: "", description: "" }]);
+    setLignes((prev) => [...prev, { categorieDepenseId: categories[0]?.id || "", montant: "", description: "", pieceId: null, qteRecue: "" }]);
   }
   function retirerLigne(index) {
     setLignes((prev) => prev.filter((_, i) => i !== index));
@@ -595,6 +625,9 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
     if (lignes.length === 0 || lignes.some((l) => !l.categorieDepenseId || !l.montant || Number(l.montant) <= 0)) {
       manquants.push("Poste et montant de chaque ligne");
     }
+    if (lignes.some((l) => l.pieceId && !(Number(l.qteRecue) > 0))) {
+      manquants.push("Quantité reçue pour chaque ligne liée à une pièce");
+    }
     if (manquants.length > 0) {
       setErreur(`Champ(s) manquant(s) : ${manquants.join(", ")}.`);
       return;
@@ -634,7 +667,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 6 }}>
         {lignes.map((l, i) => (
           <LigneDepenseInput
-            key={i} ligne={l} index={i} categories={categories}
+            key={i} ligne={l} index={i} categories={categories} pieces={pieces}
             onChange={modifierLigne} onRetirer={retirerLigne} peutRetirer={lignes.length > 1}
           />
         ))}

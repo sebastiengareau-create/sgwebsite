@@ -16,7 +16,7 @@ export async function PATCH(request, { params }) {
 
   const ligne = await prisma.pieceUtilisee.findUnique({
     where: { id: params.pieceUtiliseeId },
-    include: { probleme: true },
+    include: { probleme: { include: { bon: { include: { client: true } } } } },
   });
   if (!ligne || ligne.probleme.bonId !== params.id) {
     return NextResponse.json({ erreur: "Ligne introuvable." }, { status: 404 });
@@ -41,7 +41,19 @@ export async function PATCH(request, { params }) {
         if (difference !== 0) {
           const piece = await tx.piece.findUnique({ where: { id: ligne.pieceId } });
           if (difference > 0 && piece.qte < difference) throw new Error("STOCK_INSUFFISANT");
-          await tx.piece.update({ where: { id: ligne.pieceId }, data: { qte: piece.qte - difference } });
+          const nouvelleQtePiece = piece.qte - difference;
+          await tx.piece.update({
+            where: { id: ligne.pieceId },
+            data: {
+              qte: nouvelleQtePiece,
+              mouvements: {
+                create: {
+                  type: "VENTE", qte: -difference, solde: nouvelleQtePiece,
+                  note: `Correction — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom}`, creePar: session.nom,
+                },
+              },
+            },
+          });
         }
         await tx.pieceUtilisee.update({ where: { id: ligne.id }, data: { ...data, qte: nouvelleQte } });
       });
@@ -71,11 +83,24 @@ export async function DELETE(request, { params }) {
   await prisma.$transaction(async (tx) => {
     const ligne = await tx.pieceUtilisee.findUnique({
       where: { id: params.pieceUtiliseeId },
-      include: { probleme: true },
+      include: { probleme: { include: { bon: { include: { client: true } } } } },
     });
     if (!ligne || ligne.probleme.bonId !== params.id) return; // pas la bonne ligne
 
-    await tx.piece.update({ where: { id: ligne.pieceId }, data: { qte: { increment: ligne.qte } } });
+    const piece = await tx.piece.findUnique({ where: { id: ligne.pieceId } });
+    const nouvelleQte = piece.qte + ligne.qte;
+    await tx.piece.update({
+      where: { id: ligne.pieceId },
+      data: {
+        qte: nouvelleQte,
+        mouvements: {
+          create: {
+            type: "VENTE", qte: ligne.qte, solde: nouvelleQte,
+            note: `Retrait — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom}`, creePar: session.nom,
+          },
+        },
+      },
+    });
     await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
   });
 
