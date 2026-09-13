@@ -10,7 +10,7 @@ const STATUTS_DEPENSE = {
   PAYEE: { label: "Payée", color: "#6FA96B" },
 };
 
-export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces }) {
+export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces, categorieInventaireId }) {
   const router = useRouter();
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
@@ -78,6 +78,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
       {afficherFormulaire && (
         <FormulaireDepense
           fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense} pieces={pieces}
+          categorieInventaireId={categorieInventaireId}
           tpsTaux={tpsTaux} tvqTaux={tvqTaux}
           onCree={() => { setAfficherFormulaire(false); router.refresh(); }}
           onCategorieCreee={() => router.refresh()}
@@ -325,14 +326,29 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
   );
 }
 
-function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer, pieces }) {
-  const pieceLiee = !pieces && ligne.pieceId ? true : false;
+function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer, pieces, categorieInventaireId }) {
+  const pieceLiee = !!ligne.pieceId;
+
+  // Une ligne liée à une pièce débite toujours l'actif Inventaire (1200), peu
+  // importe le poste de dépense normalement choisi — ce n'est pas une charge
+  // tant que la pièce n'est pas vendue (voir lib/comptabilite.js).
+  function choisirPiece(pieceId) {
+    onChange(index, "pieceId", pieceId || null);
+    onChange(index, "categorieDepenseId", pieceId ? categorieInventaireId : (categories[0]?.id || ""));
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <select value={ligne.categorieDepenseId} onChange={(e) => onChange(index, "categorieDepenseId", e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.2 }}>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-        </select>
+        {pieceLiee ? (
+          <div style={{ ...champStyle, marginBottom: 0, flex: 1.2, display: "flex", alignItems: "center", color: "var(--text-muted)", fontSize: 12 }}>
+            📦 Inventaire de pièces (actif)
+          </div>
+        ) : (
+          <select value={ligne.categorieDepenseId} onChange={(e) => onChange(index, "categorieDepenseId", e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.2 }}>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+          </select>
+        )}
         <input
           placeholder="Note (optionnel)" value={ligne.description}
           onChange={(e) => onChange(index, "description", e.target.value)}
@@ -351,7 +367,7 @@ function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peut
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <select
             value={ligne.pieceId || ""}
-            onChange={(e) => onChange(index, "pieceId", e.target.value || null)}
+            onChange={(e) => choisirPiece(e.target.value)}
             style={{ ...champStyle, marginBottom: 0, flex: 1.2, fontSize: 11.5, color: "var(--text-muted)" }}
           >
             <option value="">— pas de réception d'inventaire —</option>
@@ -366,7 +382,7 @@ function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peut
           )}
         </div>
       )}
-      {pieceLiee && (
+      {!pieces && pieceLiee && (
         <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
           📦 Réception déjà appliquée à l'inventaire ({ligne.qteRecue} unité{ligne.qteRecue > 1 ? "s" : ""}) — non modifiable ici.
         </div>
@@ -561,7 +577,7 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
   );
 }
 
-function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
+function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, categorieInventaireId, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
   const [categories, setCategories] = useState(categoriesInitiales);
   const [fournisseurId, setFournisseurId] = useState(fournisseurs[0]?.id || "");
   const [description, setDescription] = useState("");
@@ -667,7 +683,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 6 }}>
         {lignes.map((l, i) => (
           <LigneDepenseInput
-            key={i} ligne={l} index={i} categories={categories} pieces={pieces}
+            key={i} ligne={l} index={i} categories={categories} pieces={pieces} categorieInventaireId={categorieInventaireId}
             onChange={modifierLigne} onRetirer={retirerLigne} peutRetirer={lignes.length > 1}
           />
         ))}
