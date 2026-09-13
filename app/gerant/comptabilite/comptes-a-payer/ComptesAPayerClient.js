@@ -326,15 +326,50 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
   );
 }
 
-function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer, pieces, categorieInventaireId }) {
+function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peutRetirer, pieces, categorieInventaireId, onNouvellePiece }) {
   const pieceLiee = !!ligne.pieceId;
+  const [creationPieceEnCours, setCreationPieceEnCours] = useState(false);
+  const [nouvelleNom, setNouvelleNom] = useState("");
+  const [nouveauNumero, setNouveauNumero] = useState("");
+  const [nouveauPrix, setNouveauPrix] = useState("");
+  const [erreurNouvellePiece, setErreurNouvellePiece] = useState("");
+  const [creationEnCours, setCreationEnCours] = useState(false);
 
   // Une ligne liée à une pièce débite toujours l'actif Inventaire (1200), peu
   // importe le poste de dépense normalement choisi — ce n'est pas une charge
   // tant que la pièce n'est pas vendue (voir lib/comptabilite.js).
-  function choisirPiece(pieceId) {
-    onChange(index, "pieceId", pieceId || null);
-    onChange(index, "categorieDepenseId", pieceId ? categorieInventaireId : (categories[0]?.id || ""));
+  function choisirPiece(valeur) {
+    if (valeur === "__nouvelle__") {
+      setCreationPieceEnCours(true);
+      return;
+    }
+    onChange(index, "pieceId", valeur || null);
+    onChange(index, "categorieDepenseId", valeur ? categorieInventaireId : (categories[0]?.id || ""));
+  }
+
+  async function creerNouvellePiece() {
+    setErreurNouvellePiece("");
+    if (!nouvelleNom.trim() || !nouveauNumero.trim() || !nouveauPrix) {
+      setErreurNouvellePiece("Nom, numéro et prix de vente sont requis.");
+      return;
+    }
+    setCreationEnCours(true);
+    const res = await fetch("/api/inventaire", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nom: nouvelleNom, numero: nouveauNumero, prix: nouveauPrix, qte: 0 }),
+    });
+    setCreationEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurNouvellePiece(data.erreur || "Erreur lors de la création.");
+      return;
+    }
+    const piece = await res.json();
+    onNouvellePiece(piece);
+    choisirPiece(piece.id);
+    setCreationPieceEnCours(false);
+    setNouvelleNom(""); setNouveauNumero(""); setNouveauPrix("");
   }
 
   return (
@@ -363,7 +398,7 @@ function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peut
           <button type="button" onClick={() => onRetirer(index)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 14, padding: "0 2px" }}>✕</button>
         )}
       </div>
-      {pieces && (
+      {pieces && !creationPieceEnCours && (
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <select
             value={ligne.pieceId || ""}
@@ -372,6 +407,7 @@ function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peut
           >
             <option value="">— pas de réception d'inventaire —</option>
             {pieces.map((p) => <option key={p.id} value={p.id}>{p.nom} ({p.numero}) — {p.qte} en stock</option>)}
+            <option value="__nouvelle__">+ Créer une nouvelle pièce…</option>
           </select>
           {ligne.pieceId && (
             <input
@@ -380,6 +416,27 @@ function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peut
               style={{ ...champStyle, marginBottom: 0, width: 90, fontSize: 11.5 }}
             />
           )}
+        </div>
+      )}
+      {creationPieceEnCours && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, background: "var(--bg)", borderRadius: 6, padding: 8 }}>
+          <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+            📦 Nouvel article — ajouté au stock à 0, puis reçu avec la quantité ci-dessous une fois créé.
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input placeholder="Nom de la pièce" value={nouvelleNom} onChange={(e) => setNouvelleNom(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.4, fontSize: 11.5 }} />
+            <input placeholder="Numéro" value={nouveauNumero} onChange={(e) => setNouveauNumero(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1, fontSize: 11.5 }} />
+            <input type="number" min={0} step="0.01" placeholder="Prix de vente" value={nouveauPrix} onChange={(e) => setNouveauPrix(e.target.value)} style={{ ...champStyle, marginBottom: 0, width: 90, fontSize: 11.5 }} />
+          </div>
+          {erreurNouvellePiece && <p style={{ color: "var(--danger)", fontSize: 10.5, margin: 0 }}>{erreurNouvellePiece}</p>}
+          <div style={{ display: "flex", gap: 6 }}>
+            <button type="button" onClick={creerNouvellePiece} disabled={creationEnCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "5px 10px", borderRadius: 6, cursor: "pointer" }}>
+              {creationEnCours ? "…" : "✓ Créer et lier"}
+            </button>
+            <button type="button" onClick={() => setCreationPieceEnCours(false)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "5px 10px", borderRadius: 6, cursor: "pointer" }}>
+              Annuler
+            </button>
+          </div>
         </div>
       )}
       {!pieces && pieceLiee && (
@@ -579,6 +636,7 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
 
 function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, categorieInventaireId, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
   const [categories, setCategories] = useState(categoriesInitiales);
+  const [piecesDisponibles, setPiecesDisponibles] = useState(pieces);
   const [fournisseurId, setFournisseurId] = useState(fournisseurs[0]?.id || "");
   const [description, setDescription] = useState("");
   const [lignes, setLignes] = useState([{ categorieDepenseId: categoriesInitiales[0]?.id || "", montant: "", description: "", pieceId: null, qteRecue: "" }]);
@@ -599,6 +657,9 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   }
   function retirerLigne(index) {
     setLignes((prev) => prev.filter((_, i) => i !== index));
+  }
+  function ajouterNouvellePiece(piece) {
+    setPiecesDisponibles((prev) => [...prev, piece].sort((a, b) => a.nom.localeCompare(b.nom)));
   }
   function calculerTaxesAutomatiquement() {
     if (!sousTotal) return;
@@ -683,8 +744,8 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 6 }}>
         {lignes.map((l, i) => (
           <LigneDepenseInput
-            key={i} ligne={l} index={i} categories={categories} pieces={pieces} categorieInventaireId={categorieInventaireId}
-            onChange={modifierLigne} onRetirer={retirerLigne} peutRetirer={lignes.length > 1}
+            key={i} ligne={l} index={i} categories={categories} pieces={piecesDisponibles} categorieInventaireId={categorieInventaireId}
+            onChange={modifierLigne} onRetirer={retirerLigne} peutRetirer={lignes.length > 1} onNouvellePiece={ajouterNouvellePiece}
           />
         ))}
       </div>
