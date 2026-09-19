@@ -1,6 +1,7 @@
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import EnTete from "../../components/EnTete";
 import OperationsTabs from "../../components/OperationsTabs";
 import FacturationPeriodes from "../../components/FacturationPeriodes";
@@ -15,6 +16,8 @@ export default async function ListeFactures() {
     include: { bon: { include: { client: true } } },
     orderBy: { dateEmission: "desc" },
   });
+  await assurerComptesTresorerie();
+  const comptesTresorerie = await obtenirComptesTresoreriePourSelection();
 
   return (
     <div>
@@ -22,7 +25,7 @@ export default async function ListeFactures() {
       <OperationsTabs />
       <FacturationPeriodes />
       <ResumeOperations />
-      <FacturesClient factures={factures} />
+      <FacturesClient factures={factures} comptesTresorerie={comptesTresorerie} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { dateHeureLocaleVersUTC } from "@/lib/temps";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
@@ -11,7 +12,7 @@ export async function PATCH(request, { params }) {
   const body = await request.json();
   const data = {};
   if (body.statut && ["CONFIRME", "ANNULE", "COMPLETE"].includes(body.statut)) data.statut = body.statut;
-  if (body.date) data.date = new Date(body.date);
+  if (body.date) data.date = dateHeureLocaleVersUTC(body.date);
   if (body.dureeMinutes) data.dureeMinutes = Number(body.dureeMinutes);
   if (body.motif) data.motif = body.motif;
 

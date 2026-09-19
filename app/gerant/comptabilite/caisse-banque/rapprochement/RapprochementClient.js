@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function RapprochementClient({ lignes, historique }) {
+export default function RapprochementClient({ comptesTresorerie, compteId, lignes, historique }) {
   const router = useRouter();
   const [soldeReleve, setSoldeReleve] = useState("");
   const [dateReleve, setDateReleve] = useState(new Date().toISOString().slice(0, 10));
@@ -16,6 +16,10 @@ export default function RapprochementClient({ lignes, historique }) {
   const soldePointe = useMemo(() => lignes.filter((l) => l.rapproche).reduce((s, l) => s + l.debit - l.credit, 0), [lignes]);
   const ecart = soldeReleve !== "" ? Number(soldeReleve) - soldeLivres : null;
   const ecartPointage = soldeReleve !== "" ? Number(soldeReleve) - soldePointe : null;
+
+  function changerCompte(id) {
+    router.push(`/gerant/comptabilite/caisse-banque/rapprochement?compte=${id}`);
+  }
 
   async function toggleLigne(id, actuel) {
     setEnCours(id);
@@ -29,13 +33,13 @@ export default function RapprochementClient({ lignes, historique }) {
   }
 
   async function finaliser() {
-    if (soldeReleve === "") return;
+    if (soldeReleve === "" || !compteId) return;
     if (!window.confirm(`Enregistrer ce rapprochement — solde des livres ${soldeLivres.toFixed(2)} $, relevé ${Number(soldeReleve).toFixed(2)} $, écart ${(Number(soldeReleve) - soldeLivres).toFixed(2)} $ ?`)) return;
     setEnregistrement(true);
     await fetch("/api/comptabilite/rapprochement", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dateRapprochement: dateReleve, soldeReleve, soldeLivres }),
+      body: JSON.stringify({ compteTresorerieId: compteId, dateRapprochement: dateReleve, soldeReleve, soldeLivres }),
     });
     setEnregistrement(false);
     setConfirmation("Rapprochement enregistré ✓");
@@ -45,11 +49,19 @@ export default function RapprochementClient({ lignes, historique }) {
 
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>🏦 Rapprochement bancaire</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Coche chaque transaction qui apparaît aussi sur ton relevé de banque, pour confirmer que les deux concordent.
+      <Link href="/gerant/comptabilite/caisse-banque" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Caisse & Banque</Link>
+      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>🏦 Conciliation</h1>
+      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
+        Coche chaque transaction qui apparaît aussi sur ton relevé, pour confirmer que les deux concordent.
       </p>
+
+      <select
+        value={compteId || ""}
+        onChange={(e) => changerCompte(e.target.value)}
+        style={{ ...champStyle, marginBottom: 16, fontWeight: 700 }}
+      >
+        {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+      </select>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
@@ -106,7 +118,7 @@ export default function RapprochementClient({ lignes, historique }) {
             </span>
           </label>
         ))}
-        {lignes.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune transaction sur le compte Banque encore.</p>}
+        {lignes.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune transaction sur ce compte encore.</p>}
       </div>
 
       {historique.length > 0 && (

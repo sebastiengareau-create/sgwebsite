@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 
-export default function InventaireClient({ pieces, categories, comptesRevenu, peutGererCategories }) {
+export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, peutGererCategories }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -62,7 +62,7 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, pe
       />
 
       {afficherFormulaire && (
-        <FormulaireCreation categories={categories.filter((c) => c.actif)} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
+        <FormulaireCreation categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
@@ -231,11 +231,14 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   );
 }
 
-function FormulaireCreation({ categories, onCree }) {
+function FormulaireCreation({ categories, fournisseurs, onCree }) {
   const [nom, setNom] = useState("");
   const [numero, setNumero] = useState("");
   const [qte, setQte] = useState("0");
   const [qteMin, setQteMin] = useState("0");
+  const [qteMax, setQteMax] = useState("");
+  const [emplacement, setEmplacement] = useState("");
+  const [fournisseurId, setFournisseurId] = useState("");
   const [prix, setPrix] = useState("");
   const [coutant, setCoutant] = useState("");
   const [categorie, setCategorie] = useState(categories[0]?.code || "PIECE");
@@ -249,7 +252,7 @@ function FormulaireCreation({ categories, onCree }) {
     const res = await fetch("/api/inventaire", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, numero, qte, qteMin, prix, coutant, categorie }),
+      body: JSON.stringify({ nom, numero, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -273,11 +276,28 @@ function FormulaireCreation({ categories, onCree }) {
           <label style={labelStyle}>Seuil minimum</label>
           <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} style={champStyle} />
         </div>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Seuil maximum</label>
+          <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" style={champStyle} />
+        </div>
       </div>
       <label style={labelStyle}>Prix unitaire ($)</label>
       <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => setPrix(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Prix coûtant ($) — optionnel, pour le calcul de marge</label>
       <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => setCoutant(e.target.value)} style={champStyle} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Emplacement — optionnel</label>
+          <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="ex. A-03-02" style={champStyle} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Fournisseur habituel — optionnel</label>
+          <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
+            <option value="">Aucun</option>
+            {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+          </select>
+        </div>
+      </div>
       <label style={labelStyle}>Catégorie</label>
       <select value={categorie} onChange={(e) => setCategorie(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
         {categories.map((c) => <option key={c.code} value={c.code}>{c.nom}</option>)}

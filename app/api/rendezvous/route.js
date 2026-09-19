@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { dateHeureLocaleVersUTC } from "@/lib/temps";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -20,7 +21,7 @@ export async function POST(request) {
       clientTelephone: clientTelephone || null,
       vehiculeInfo: vehiculeInfo || null,
       note: note || null,
-      date: new Date(date),
+      date: dateHeureLocaleVersUTC(date),
       dureeMinutes: Number(dureeMinutes) || 60,
       motif,
     },

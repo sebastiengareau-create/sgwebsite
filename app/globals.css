@@ -10,6 +10,24 @@
   --danger: #c15b4a;
   --success: #6fa96b;
   --bleu: #4f82c0;
+  --ombre-sombre: #100f0c;
+}
+
+/* Thème clair — fond blanc, activé via l'attribut data-theme sur <html>
+   (réglage propre à chaque employé, dans sa fiche — voir app/layout.js) */
+html[data-theme="light"] {
+  --bg: #f6f4ee;
+  --surface: #ffffff;
+  --border: #e1ddd0;
+  --accent: #e8a33d;
+  --accent-clair: #f5b15a;
+  --accent-ombre: #b8791f;
+  --text: #221f18;
+  --text-muted: #6c675a;
+  --danger: #b23f2c;
+  --success: #3c8a42;
+  --bleu: #3f6fa3;
+  --ombre-sombre: #d8d3c4;
 }
 
 * { box-sizing: border-box; }
@@ -54,17 +72,17 @@ a { color: inherit; }
   box-shadow: 0 0 0 var(--accent-ombre), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 .bouton-3d-sombre {
-  background: linear-gradient(180deg, #2c2a24, #201f1d);
+  background: linear-gradient(180deg, var(--border), var(--surface));
   color: var(--text);
   border: 1px solid var(--border);
-  box-shadow: 0 3px 0 #100f0c, 0 4px 10px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 3px 0 var(--ombre-sombre), 0 4px 10px rgba(0, 0, 0, 0.35);
   transform: translateY(0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   cursor: pointer;
 }
 .bouton-3d-sombre:active {
   transform: translateY(3px);
-  box-shadow: 0 0 0 #100f0c, 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 var(--ombre-sombre), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Conteneur de page commun — pleine largeur mobile inchangée, s'élargit

@@ -30,12 +30,24 @@ export async function generateMetadata() {
   };
 }
 
-export const viewport = {
-  themeColor: "#17150f",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-};
+// Thème propre à chaque employé (réglé par un gérant dans sa fiche) —
+// le développeur n'a pas de fiche employé, donc toujours sombre par défaut.
+async function obtenirTheme(session) {
+  if (!session || session.role === "DEVELOPPEUR") return "sombre";
+  const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { theme: true } });
+  return utilisateur?.theme === "clair" ? "clair" : "sombre";
+}
+
+export async function generateViewport() {
+  const session = await obtenirSession();
+  const theme = await obtenirTheme(session);
+  return {
+    themeColor: theme === "clair" ? "#f6f4ee" : "#17150f",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  };
+}
 
 export default async function RootLayout({ children }) {
   // Vérifié à cet endroit unique — couvre absolument toutes les pages d'un
@@ -48,8 +60,10 @@ export default async function RootLayout({ children }) {
     verrouille = parametre?.valeur === "actif";
   }
 
+  const theme = await obtenirTheme(session);
+
   return (
-    <html lang="fr">
+    <html lang="fr" data-theme={theme === "clair" ? "light" : "dark"}>
       <body>
         {verrouille ? <EcranVerrouille /> : children}
         {!verrouille && session && <AssistantSG />}

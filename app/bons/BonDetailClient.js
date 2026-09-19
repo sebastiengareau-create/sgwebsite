@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -56,7 +57,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -124,6 +125,11 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
 
   const [erreurFacture, setErreurFacture] = useState("");
   const [avertissementFacture, setAvertissementFacture] = useState("");
+  const [afficherPaiementFacture, setAfficherPaiementFacture] = useState(false);
+  const [compteTresorerieIdFacture, setCompteTresorerieIdFacture] = useState(compteParDefaut(comptesTresorerie));
+  const [modePaiementFacture, setModePaiementFacture] = useState("CARTE_DEBIT");
+  const [referenceFacture, setReferenceFacture] = useState("");
+  const [erreurPaiementFacture, setErreurPaiementFacture] = useState("");
   const [envoiCourrielEnCours, setEnvoiCourrielEnCours] = useState(false);
   const [messageCourriel, setMessageCourriel] = useState(null);
   const [demanderCourriel, setDemanderCourriel] = useState(false);
@@ -176,20 +182,23 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
     router.refresh();
   }
 
-  async function changerStatutFacture(statut) {
+  async function changerStatutFacture(statut, compteTresorerieId, modePaiement, reference) {
     setAvertissementFacture("");
     setEnCours(true);
     const res = await fetch(`/api/factures/${bon.facture.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut }),
+      body: JSON.stringify({ statut, compteTresorerieId, modePaiement, reference }),
     });
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
+    if (!res.ok) return data.erreur || "Erreur.";
     if (data.avertissementComptable) {
       setAvertissementFacture(`Statut mis à jour, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
     }
+    setAfficherPaiementFacture(false);
     router.refresh();
+    return null;
   }
 
   async function supprimerFacture() {
@@ -447,17 +456,51 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
             {peutModifier && bon.facture.statut !== "ANNULEE" && (
               <div style={{ display: "flex", gap: 8 }}>
                 {bon.facture.statut === "IMPAYEE" ? (
-                  <button onClick={() => changerStatutFacture("PAYEE")} disabled={enCours} style={{ ...boutonAjout, flex: 1, background: "var(--success)", color: "#17150f", border: "none", fontWeight: 700 }}>
-                    Marquer payée
-                  </button>
+                  !afficherPaiementFacture && (
+                    <button onClick={() => setAfficherPaiementFacture(true)} disabled={enCours} style={{ ...boutonAjout, flex: 1, background: "var(--success)", color: "#17150f", border: "none", fontWeight: 700 }}>
+                      Marquer payée
+                    </button>
+                  )
                 ) : (
                   <button onClick={() => changerStatutFacture("IMPAYEE")} disabled={enCours} style={{ ...boutonAjout, flex: 1 }}>
                     Marquer impayée
                   </button>
                 )}
-                <button onClick={() => changerStatutFacture("ANNULEE")} disabled={enCours} style={{ ...boutonAjout, color: "var(--danger)" }}>
-                  Annuler
-                </button>
+                {!(bon.facture.statut === "IMPAYEE" && afficherPaiementFacture) && (
+                  <button onClick={() => changerStatutFacture("ANNULEE")} disabled={enCours} style={{ ...boutonAjout, color: "var(--danger)" }}>
+                    Annuler
+                  </button>
+                )}
+              </div>
+            )}
+            {bon.facture.statut === "IMPAYEE" && afficherPaiementFacture && (
+              <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                <SelecteurCompteMode
+                  comptes={comptesTresorerie}
+                  compteTresorerieId={compteTresorerieIdFacture} setCompteTresorerieId={setCompteTresorerieIdFacture}
+                  modePaiement={modePaiementFacture} setModePaiement={setModePaiementFacture}
+                />
+                <input
+                  placeholder="No de chèque ou de transaction (optionnel)" value={referenceFacture}
+                  onChange={(e) => setReferenceFacture(e.target.value)}
+                  style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
+                />
+                {erreurPaiementFacture && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreurPaiementFacture}</p>}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    onClick={async () => {
+                      const err = await changerStatutFacture("PAYEE", compteTresorerieIdFacture, modePaiementFacture, referenceFacture);
+                      setErreurPaiementFacture(err || "");
+                    }}
+                    disabled={enCours || !compteTresorerieIdFacture}
+                    className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}
+                  >
+                    {enCours ? "…" : "✓ Confirmer l'encaissement"}
+                  </button>
+                  <button onClick={() => { setAfficherPaiementFacture(false); setErreurPaiementFacture(""); }} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+                    Annuler
+                  </button>
+                </div>
               </div>
             )}
             {avertissementFacture && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8 }}>⚠️ {avertissementFacture}</p>}
@@ -614,7 +657,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
 
 function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
-  const [qtePiece, setQtePiece] = useState(1);
+  const [qtePiece, setQtePiece] = useState("1");
   const [erreurPiece, setErreurPiece] = useState("");
   const [confirmationPiece, setConfirmationPiece] = useState("");
   const [erreurPhoto, setErreurPhoto] = useState("");
@@ -638,6 +681,9 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   const [erreurFacturation, setErreurFacturation] = useState("");
   const [confirmationFacturation, setConfirmationFacturation] = useState("");
   const [erreurCategorie, setErreurCategorie] = useState("");
+  const [editionNom, setEditionNom] = useState(false);
+  const [nomEnEdition, setNomEnEdition] = useState(probleme.description);
+  const [erreurNom, setErreurNom] = useState("");
 
   const piecesDisponibles = inventaire.filter((p) => p.qte > 0);
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
@@ -713,6 +759,28 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
     onRafraichir();
   }
 
+  async function sauvegarderNom() {
+    setErreurNom("");
+    if (!nomEnEdition.trim()) {
+      setErreurNom("La description ne peut pas être vide.");
+      return;
+    }
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: nomEnEdition.trim() }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurNom(data.erreur || "Erreur lors de la sauvegarde.");
+      return;
+    }
+    setEditionNom(false);
+    onRafraichir();
+  }
+
   async function changerCategorie(categorieRevenu) {
     setErreurCategorie("");
     setEnCours(true);
@@ -762,7 +830,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
     const res = await fetch(`/api/bons/${bonId}/pieces`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: qtePiece }),
+      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1) }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -771,7 +839,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
       return;
     }
     setPieceChoisie("");
-    setQtePiece(1);
+    setQtePiece("1");
     setConfirmationPiece("Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 2500);
@@ -809,10 +877,30 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
 
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontSize: 14 }}><strong style={{ color: "var(--text-muted)" }}>{index + 1}.</strong> {probleme.description}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+        {editionNom ? (
+          <div style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <strong style={{ color: "var(--text-muted)", fontSize: 14 }}>{index + 1}.</strong>
+            <input
+              value={nomEnEdition}
+              onChange={(e) => setNomEnEdition(e.target.value)}
+              autoFocus
+              style={{ ...champPetit, flex: 1, minWidth: 120, fontSize: 13 }}
+            />
+            <button onClick={sauvegarderNom} disabled={enCours} style={{ ...boutonTexte, color: "var(--accent)" }}>✓</button>
+            <button onClick={() => { setEditionNom(false); setNomEnEdition(probleme.description); setErreurNom(""); }} style={boutonTexte}>Annuler</button>
+          </div>
+        ) : (
+          <span style={{ fontSize: 14 }}>
+            <strong style={{ color: "var(--text-muted)" }}>{index + 1}.</strong> {probleme.description}
+            {peutModifier && !verrouille && (
+              <button onClick={() => { setNomEnEdition(probleme.description); setEditionNom(true); }} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", marginLeft: 6, padding: 0 }}>✏️</button>
+            )}
+          </span>
+        )}
         {peutSupprimer && <button onClick={onSupprimer} style={boutonTexte}>✕</button>}
       </div>
+      {erreurNom && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreurNom}</p>}
 
       {peutModifier && !verrouille && (
         <select
@@ -1046,7 +1134,8 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
               </select>
               <input
                 type="number" min={1} value={qtePiece}
-                onChange={(e) => setQtePiece(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setQtePiece(e.target.value)}
+                onBlur={() => setQtePiece(String(Math.max(1, parseInt(qtePiece) || 1)))}
                 style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
               />
               <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>

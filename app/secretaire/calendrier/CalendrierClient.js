@@ -11,6 +11,17 @@ const DEBUT_GRILLE = 7; // 7h
 const FIN_GRILLE = 19; // 19h
 const HAUTEUR_HEURE = 52; // px
 
+// Heure décimale (ex. 9.5 pour 9h30) d'une date, en heure du Québec — peu
+// importe le fuseau horaire du navigateur qui affiche la page.
+function heureQuebec(date) {
+  const parties = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Toronto", hourCycle: "h23", hour: "numeric", minute: "numeric",
+  }).formatToParts(date);
+  const h = Number(parties.find((p) => p.type === "hour").value);
+  const m = Number(parties.find((p) => p.type === "minute").value);
+  return h + m / 60;
+}
+
 function decaler(dateStr, jours) {
   const d = new Date(`${dateStr}T12:00:00`);
   d.setDate(d.getDate() + jours);
@@ -136,8 +147,7 @@ function GrilleSemaine({ jours, rdvParJour, couleursMotifs, rdvSelectionneId, on
   const hauteurTotale = heures.length * HAUTEUR_HEURE;
 
   function positionPourDate(date) {
-    const d = new Date(date);
-    const h = d.getHours() + d.getMinutes() / 60;
+    const h = heureQuebec(new Date(date));
     return Math.max(0, (h - DEBUT_GRILLE) * HAUTEUR_HEURE);
   }
 
