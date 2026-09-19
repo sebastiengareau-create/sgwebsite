@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
@@ -34,6 +34,28 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
 
   const typesPresents = ORDRE_TYPE.filter((t) => comptes.some((c) => c.type === t));
   const [ongletType, setOngletType] = useState(typesPresents[0] || "ACTIF");
+
+  // Suggère automatiquement le prochain numéro disponible pour le type
+  // choisi (comme la numérotation EMP-/CLI-/FOUR-) — l'utilisateur reste
+  // libre de le corriger, un numéro de compte ayant souvent un sens précis.
+  const dernierNumeroSuggere = useRef("");
+  useEffect(() => {
+    if (!afficherFormulaire) return;
+    let annule = false;
+    fetch(`/api/comptabilite/comptes/prochain-numero?type=${type}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (annule || !data?.numero) return;
+        // Capturé avant de muter la ref : l'updater ci-dessous peut s'exécuter
+        // après cette ligne, donc comparer à dernierNumeroSuggere.current
+        // directement comparerait la valeur au numéro qu'on est en train
+        // d'appliquer plutôt qu'à l'ancienne suggestion.
+        const suggestionPrecedente = dernierNumeroSuggere.current;
+        dernierNumeroSuggere.current = data.numero;
+        setNumero((actuel) => (actuel === "" || actuel === suggestionPrecedente ? data.numero : actuel));
+      });
+    return () => { annule = true; };
+  }, [afficherFormulaire, type]);
 
   const totalActif = comptes.filter((c) => c.type === "ACTIF").reduce((s, c) => s + c.solde, 0);
   const totalPassif = comptes.filter((c) => c.type === "PASSIF").reduce((s, c) => s + c.solde, 0);
