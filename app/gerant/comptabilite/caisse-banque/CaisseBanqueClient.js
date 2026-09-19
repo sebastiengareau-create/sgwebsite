@@ -21,7 +21,6 @@ export default function CaisseBanqueClient({ comptes, resume, entreesMois, sorti
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
         <Carte icone="💵" label="Solde caisse" valeur={resume.caisse} />
         <Carte icone="🏦" label="Solde bancaire" valeur={resume.banque} />
-        <Carte icone="💳" label="Cartes de crédit" valeur={resume.cartesCredit} couleur="var(--danger)" />
         <Carte icone="📊" label="Liquidités disponibles" valeur={resume.liquidites} accent />
       </div>
 
