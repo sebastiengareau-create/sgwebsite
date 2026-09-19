@@ -8,6 +8,7 @@ const ONGLETS = [
   { href: "/secretaire/operations/soumissions", label: "Soumissions", icone: "📝" },
   { href: "/secretaire", label: "Bons de commande", icone: "🔧" },
   { href: "/secretaire/factures", label: "Facture", icone: "🧾" },
+  { href: "/secretaire/factures/rapport-ventes", label: "Rapport de ventes", icone: "📊" },
 ];
 
 export default function OperationsTabs() {
