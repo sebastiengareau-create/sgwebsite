@@ -50,6 +50,18 @@ export async function PATCH(request, { params }) {
   if (body.assignation !== undefined) data.assignation = body.assignation || null;
   if (body.dateEmbauche !== undefined) data.dateEmbauche = body.dateEmbauche ? new Date(body.dateEmbauche) : null;
 
+  if (body.theme !== undefined) {
+    // Modifiable seulement par un gérant (ou le développeur) — un employé
+    // ne peut pas changer son propre affichage lui-même, ni celui d'un autre.
+    if (!estGerantOuDev(session)) {
+      return NextResponse.json({ erreur: "Seul un gérant peut modifier l'affichage." }, { status: 403 });
+    }
+    if (!["sombre", "clair"].includes(body.theme)) {
+      return NextResponse.json({ erreur: "Thème invalide." }, { status: 400 });
+    }
+    data.theme = body.theme;
+  }
+
   if (body.accesSections !== undefined) {
     // Réservé au développeur ou à un gérant avec le statut super-admin —
     // un gérant "normal" ne peut pas s'octroyer/octroyer des accès étendus

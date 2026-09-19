@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -23,11 +23,13 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [salaireAnnuel, setSalaireAnnuel] = useState(employe.salaireAnnuel ?? "");
   const [frequencePaie, setFrequencePaie] = useState(employe.frequencePaie || "BIHEBDOMADAIRE");
   const [tauxVacances, setTauxVacances] = useState(employe.tauxVacances ?? 4);
+  const [theme, setTheme] = useState(employe.theme || "sombre");
 
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
     const body = { nom, courriel, role, telephone, adresse, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
+    if (peutModifierTheme) body.theme = theme;
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
       method: "PATCH",
@@ -145,6 +147,33 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <label style={labelStyle}>Taux de vacances (%) — minimum légal QC : 4% (ou 6% après 3 ans)</label>
           <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} style={{ ...champStyle, marginBottom: 12 }} />
 
+          {peutModifierTheme && (
+            <>
+              <SectionTitre>Affichage</SectionTitre>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -4, marginBottom: 8 }}>
+                Ce que {estMoi ? "toi" : employe.nom} verras en te connectant — réglable seulement par un gérant.
+              </p>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setTheme("sombre")}
+                  className={theme !== "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+                  style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+                >
+                  🌙 Sombre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme("clair")}
+                  className={theme === "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+                  style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+                >
+                  ☀️ Clair
+                </button>
+              </div>
+            </>
+          )}
+
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
               {enCours ? "…" : "Sauvegarder"}
@@ -163,6 +192,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <Champ label="Téléphone" valeur={employe.telephone} />
             <Champ label="Assignation" valeur={employe.assignation} />
             <Champ label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
+            <Champ label="Affichage" valeur={employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} />
           </div>
 
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
