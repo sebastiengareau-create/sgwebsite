@@ -30,17 +30,30 @@ export async function generateMetadata() {
   };
 }
 
-// Thème propre à chaque employé (réglé par un gérant dans sa fiche) —
-// le développeur n'a pas de fiche employé, donc toujours sombre par défaut.
-async function obtenirTheme(session) {
-  if (!session || session.role === "DEVELOPPEUR") return "sombre";
-  const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { theme: true } });
-  return utilisateur?.theme === "clair" ? "clair" : "sombre";
+// Affichage propre à chaque employé (réglé par un gérant dans sa fiche). Le
+// développeur n'a pas de fiche employé (voir lib/auth.js) — son affichage
+// vit à part, dans Parametre (réglable dans Administrateur → Affichage).
+async function obtenirPreferencesAffichage(session) {
+  const defaut = { theme: "sombre", tailleTexte: "normal" };
+  if (!session) return defaut;
+  if (session.role === "DEVELOPPEUR") {
+    const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["theme_developpeur", "taille_texte_developpeur"] } } });
+    const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
+    return {
+      theme: dict.theme_developpeur === "clair" ? "clair" : "sombre",
+      tailleTexte: dict.taille_texte_developpeur === "grand" ? "grand" : "normal",
+    };
+  }
+  const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { theme: true, tailleTexte: true } });
+  return {
+    theme: utilisateur?.theme === "clair" ? "clair" : "sombre",
+    tailleTexte: utilisateur?.tailleTexte === "grand" ? "grand" : "normal",
+  };
 }
 
 export async function generateViewport() {
   const session = await obtenirSession();
-  const theme = await obtenirTheme(session);
+  const { theme } = await obtenirPreferencesAffichage(session);
   return {
     themeColor: theme === "clair" ? "#f6f4ee" : "#17150f",
     width: "device-width",
@@ -60,10 +73,10 @@ export default async function RootLayout({ children }) {
     verrouille = parametre?.valeur === "actif";
   }
 
-  const theme = await obtenirTheme(session);
+  const { theme, tailleTexte } = await obtenirPreferencesAffichage(session);
 
   return (
-    <html lang="fr" data-theme={theme === "clair" ? "light" : "dark"}>
+    <html lang="fr" data-theme={theme === "clair" ? "light" : "dark"} data-taille={tailleTexte === "grand" ? "grand" : "normal"}>
       <body>
         {verrouille ? <EcranVerrouille /> : children}
         {!verrouille && session && <AssistantSG />}

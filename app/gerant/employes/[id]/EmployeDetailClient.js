@@ -24,12 +24,13 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [frequencePaie, setFrequencePaie] = useState(employe.frequencePaie || "BIHEBDOMADAIRE");
   const [tauxVacances, setTauxVacances] = useState(employe.tauxVacances ?? 4);
   const [theme, setTheme] = useState(employe.theme || "sombre");
+  const [tailleTexte, setTailleTexte] = useState(employe.tailleTexte || "normal");
 
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
     const body = { nom, courriel, role, telephone, adresse, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
-    if (peutModifierTheme) body.theme = theme;
+    if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
       method: "PATCH",
@@ -151,9 +152,9 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <>
               <SectionTitre>Affichage</SectionTitre>
               <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -4, marginBottom: 8 }}>
-                Ce que {estMoi ? "toi" : employe.nom} verras en te connectant — réglable seulement par un gérant.
+                Réglable seulement par un gérant — appliqué automatiquement à la prochaine connexion de {estMoi ? "toi-même" : employe.nom}.
               </p>
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 <button
                   type="button"
                   onClick={() => setTheme("sombre")}
@@ -169,6 +170,24 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
                   style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
                 >
                   ☀️ Clair
+                </button>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setTailleTexte("normal")}
+                  className={tailleTexte !== "grand" ? "bouton-3d" : "bouton-3d-sombre"}
+                  style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+                >
+                  Texte normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTailleTexte("grand")}
+                  className={tailleTexte === "grand" ? "bouton-3d" : "bouton-3d-sombre"}
+                  style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 14, fontWeight: 700 }}
+                >
+                  Texte plus gros
                 </button>
               </div>
             </>
@@ -192,7 +211,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <Champ label="Téléphone" valeur={employe.telephone} />
             <Champ label="Assignation" valeur={employe.assignation} />
             <Champ label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
-            <Champ label="Affichage" valeur={employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} />
+            <Champ label="Affichage" valeur={`${employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
           </div>
 
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>

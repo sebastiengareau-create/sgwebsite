@@ -4,11 +4,41 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function AdministrateurClient({ modules, verrouilleInit }) {
+export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
   const [verrouillageEnCours, setVerrouillageEnCours] = useState(false);
+  const [theme, setTheme] = useState(themeInit);
+  const [themeEnCours, setThemeEnCours] = useState(false);
+  const [tailleTexte, setTailleTexte] = useState(tailleTexteInit);
+  const [tailleEnCours, setTailleEnCours] = useState(false);
+
+  async function choisirTheme(nouveauTheme) {
+    if (nouveauTheme === theme) return;
+    setThemeEnCours(true);
+    setTheme(nouveauTheme);
+    await fetch("/api/parametres", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme_developpeur: nouveauTheme }),
+    });
+    setThemeEnCours(false);
+    router.refresh();
+  }
+
+  async function choisirTailleTexte(nouvelleTaille) {
+    if (nouvelleTaille === tailleTexte) return;
+    setTailleEnCours(true);
+    setTailleTexte(nouvelleTaille);
+    await fetch("/api/parametres", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taille_texte_developpeur: nouvelleTaille }),
+    });
+    setTailleEnCours(false);
+    router.refresh();
+  }
 
   async function basculerVerrouillage() {
     const nouveauStatut = !verrouille;
@@ -74,6 +104,52 @@ export default function AdministrateurClient({ modules, verrouilleInit }) {
           </div>
         ))}
       </div>
+
+      {estDeveloppeur && (
+        <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>Affichage (toi seulement)</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => choisirTheme("sombre")}
+              disabled={themeEnCours}
+              className={theme !== "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+            >
+              🌙 Sombre
+            </button>
+            <button
+              type="button"
+              onClick={() => choisirTheme("clair")}
+              disabled={themeEnCours}
+              className={theme === "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+            >
+              ☀️ Clair
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => choisirTailleTexte("normal")}
+              disabled={tailleEnCours}
+              className={tailleTexte !== "grand" ? "bouton-3d" : "bouton-3d-sombre"}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+            >
+              Texte normal
+            </button>
+            <button
+              type="button"
+              onClick={() => choisirTailleTexte("grand")}
+              disabled={tailleEnCours}
+              className={tailleTexte === "grand" ? "bouton-3d" : "bouton-3d-sombre"}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 14, fontWeight: 700 }}
+            >
+              Texte plus gros
+            </button>
+          </div>
+        </div>
+      )}
 
       <Link
         href="/gerant/administrateur/sauvegarde"
