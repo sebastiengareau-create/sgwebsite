@@ -16,6 +16,7 @@ const SECTIONS = [
   { cle: "vue-ensemble", label: "📊 Vue d'ensemble" },
   { cle: "jobs-temps-reel", label: "📈 Jobs temps réel" },
   { cle: "horodateur", label: "⏱️ Horodateur" },
+  { cle: "parametres", label: "⚙️ Paramètres" },
 ];
 // NIVEAU4 (accès total, toujours) reste seul non configurable — GERANT est
 // maintenant configurable comme les autres, mais part avec tout activé par

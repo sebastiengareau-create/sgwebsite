@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, estGerantOuDev, aAccesSection, nomAffichageRole } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
 import MinuteurInactivite from "./MinuteurInactivite";
 
@@ -20,6 +20,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "💰", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "🧾", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
   { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "👥" },
+  { cle: "parametres", href: "/gerant/parametres", label: "Paramètres", icone: "⚙️" },
 ];
 
 export default async function EnTete({ nom, role }) {
@@ -56,9 +57,6 @@ export default async function EnTete({ nom, role }) {
     }
   }
 
-  if (estGerantOuDev(session)) {
-    liens.push({ href: "/gerant/parametres", label: "Paramètres", icone: "⚙️" });
-  }
   if (estSuperAdmin) liens.push({ href: "/gerant/administrateur", label: "Administrateur", icone: "🛡️", accent: true });
 
   return (

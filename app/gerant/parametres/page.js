@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
@@ -8,7 +8,11 @@ import TachesInternesSection from "./TachesInternesSection";
 
 export default async function Parametres() {
   const session = await obtenirSession();
-  if (!estGerantOuDev(session)) redirect("/gerant");
+  if (!(await aAccesSection(session, "parametres"))) {
+    // GERANT est configurable ici aussi — repli sûr si jamais décoché, pour
+    // éviter une boucle vers /gerant si "vue-ensemble" est aussi décoché.
+    redirect(session.role === "GERANT" ? "/secretaire" : "/gerant");
+  }
 
   const parametres = await prisma.parametre.findMany();
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
