@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirChecklistLot } from "@/lib/checklistLot";
 import EnTete from "../../../../components/EnTete";
@@ -21,7 +21,7 @@ export default async function LotPaieDetail({ params }) {
   if (lot.statut === "BROUILLON") {
     const idsDansLot = lot.paies.map((p) => p.employeId);
     employesDisponibles = await prisma.user.findMany({
-      where: { actif: true, role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] }, id: { notIn: idsDansLot } },
+      where: { actif: true, role: { in: ROLES_VALIDES }, id: { notIn: idsDansLot } },
       orderBy: { nom: "asc" },
     });
   }

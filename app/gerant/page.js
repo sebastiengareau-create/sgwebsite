@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { limitesMoisQuebec, dateAujourdhuiQuebec, dateQuebecStr } from "@/lib/temps";
 import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailRevenusDepenses } from "@/lib/rapportsComptables";
@@ -49,7 +49,12 @@ function calculerSanteFinanciere({ revenus, depenses, beneficeNet, soldeBancaire
 export default async function EspaceGerant({ searchParams }) {
   const session = await obtenirSession();
   if (!session) redirect("/login");
-  if (!estGerantOuDev(session)) redirect(`/${session.role.toLowerCase()}`);
+  if (!(await aAccesSection(session, "vue-ensemble"))) {
+    // GERANT est maintenant configurable ici aussi (voir aAccesSection) —
+    // s'il n'a pas cette section, on ne peut plus le renvoyer vers /gerant
+    // (boucle infinie), donc /secretaire comme repli sûr dans ce cas précis.
+    redirect(session.role === "GERANT" ? "/secretaire" : `/${session.role.toLowerCase()}`);
+  }
 
   const aujourdhuiStr = dateAujourdhuiQuebec();
   const [anCourant, moisCourantDefaut] = aujourdhuiStr.split("-").map(Number);

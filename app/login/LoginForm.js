@@ -29,7 +29,7 @@ export default function LoginForm({ nomEntreprise }) {
       return;
     }
     const { role } = await res.json();
-    router.push(role === "DEVELOPPEUR" ? "/gerant" : `/${role.toLowerCase()}`);
+    router.push(role === "DEVELOPPEUR" || role === "NIVEAU4" ? "/gerant" : `/${role.toLowerCase()}`);
     router.refresh();
   }
 

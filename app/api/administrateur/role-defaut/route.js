@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 
-const ROLES_CONFIGURABLES = ["SECRETAIRE", "MECANICIEN"];
+// NIVEAU4 (et DEVELOPPEUR) gardent un accès total non configurable — voir
+// aAccesSection dans lib/auth.js.
+const ROLES_CONFIGURABLES = ["GERANT", "SECRETAIRE", "MECANICIEN"];
 
 export async function PATCH(request) {
   const session = await obtenirSession();

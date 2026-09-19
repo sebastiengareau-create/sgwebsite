@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession } from "@/lib/auth";
-
-const ROLES_RENOMMABLES = ["GERANT", "SECRETAIRE", "MECANICIEN"];
+import { obtenirSession, ROLES_VALIDES } from "@/lib/auth";
 
 export async function PATCH(request) {
   const session = await obtenirSession();
@@ -16,7 +14,7 @@ export async function PATCH(request) {
   if (!autorise) return NextResponse.json({ erreur: "Seul le super-administrateur peut modifier ceci." }, { status: 403 });
 
   const { role, nom } = await request.json();
-  if (!ROLES_RENOMMABLES.includes(role)) {
+  if (!ROLES_VALIDES.includes(role)) {
     return NextResponse.json({ erreur: "Rôle invalide." }, { status: 400 });
   }
   if (!nom || !nom.trim()) {

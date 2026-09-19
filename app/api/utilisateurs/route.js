@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, niveauRole } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { prochainNumeroEmploye } from "@/lib/numerotation";
 
 export async function POST(request) {
@@ -14,13 +14,13 @@ export async function POST(request) {
     telephone, adresse, assignation, dateEmbauche,
     typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
   } = await request.json();
-  if (!nom || !courriel || !motDePasse || !["GERANT", "SECRETAIRE", "MECANICIEN"].includes(role)) {
+  if (!nom || !courriel || !motDePasse || !ROLES_VALIDES.includes(role)) {
     return NextResponse.json({ erreur: "Champs manquants ou invalides." }, { status: 400 });
   }
-  // Créer un compte reste limité au niveau de sécurité de l'appelant —
-  // l'accès "employes" délégué (ex: à une secrétaire) permet de gérer le
-  // personnel, pas de créer un compte avec un niveau plus élevé que le sien.
-  if (!estGerantOuDev(session) && niveauRole(role) > niveauRole(session.role)) {
+  // Créer un compte reste limité au niveau de sécurité de l'appelant — même
+  // un GERANT ne peut pas créer un compte niveau 4 ; seul le niveau 4 (accès
+  // total) ou le développeur le peuvent.
+  if (!estNiveauMaxOuDev(session) && niveauRole(role) > niveauRole(session.role)) {
     return NextResponse.json({ erreur: "Tu ne peux pas créer un compte avec un niveau de sécurité plus élevé que le tien." }, { status: 403 });
   }
   if (motDePasse.length < 4 || motDePasse.length > 12) {

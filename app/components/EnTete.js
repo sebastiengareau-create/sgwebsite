@@ -9,6 +9,8 @@ import MinuteurInactivite from "./MinuteurInactivite";
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
 // chaque bloc de rôle séparément.
 const SECTIONS_EMPRUNTABLES = [
+  { cle: "vue-ensemble", href: "/gerant", label: "Vue d'ensemble", icone: "📊" },
+  { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
   { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "🧑‍🤝‍🧑" },
@@ -42,10 +44,6 @@ export default async function EnTete({ nom, role }) {
   }
 
   const liens = [];
-  if (estGerantOuDev(session)) {
-    liens.push({ href: "/gerant", label: "Vue d'ensemble", icone: "📊" });
-    liens.push({ href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" });
-  }
   if (role === "MECANICIEN" || estGerantOuDev(session)) {
     liens.push({ href: "/mecanicien", label: "Horodateur", icone: "⏱️" });
   }

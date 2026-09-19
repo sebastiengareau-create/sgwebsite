@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
@@ -13,7 +13,7 @@ const CLES_JOURS = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"]; // aligné
 
 export default async function RapportJournalier({ searchParams }) {
   const session = await obtenirSession();
-  if (!estGerantOuDev(session)) redirect("/gerant");
+  if (!(await aAccesSection(session, "jobs-temps-reel"))) redirect("/gerant");
 
   const dateStr = searchParams?.date || dateAujourdhuiQuebec();
   const { debut: debutJour, fin: finJour } = limitesJourQuebec(dateStr);

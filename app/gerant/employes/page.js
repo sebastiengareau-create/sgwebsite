@@ -1,24 +1,19 @@
-import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev, niveauRole } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../components/EnTete";
 import EmployesClient from "./EmployesClient";
-
-const TOUS_ROLES = ["MECANICIEN", "SECRETAIRE", "GERANT"];
 
 export default async function GestionEmployes() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "employes"))) redirect("/gerant");
 
   const employes = await prisma.user.findMany({ orderBy: { nom: "asc" } });
-  const nomsRoles = {
-    GERANT: await nomAffichageRole("GERANT"),
-    SECRETAIRE: await nomAffichageRole("SECRETAIRE"),
-    MECANICIEN: await nomAffichageRole("MECANICIEN"),
-  };
-  // Un employé avec l'accès "employes" délégué (ex: une secrétaire) ne peut
-  // créer de compte qu'à son propre niveau de sécurité ou en dessous.
-  const rolesAssignables = estGerantOuDev(session) ? TOUS_ROLES : TOUS_ROLES.filter((r) => niveauRole(r) <= niveauRole(session.role));
+  const nomsRoles = Object.fromEntries(await Promise.all(ROLES_VALIDES.map(async (r) => [r, await nomAffichageRole(r)])));
+  // Un employé (même un GERANT) ne peut créer de compte qu'à son propre
+  // niveau de sécurité ou en dessous — seul le niveau 4/développeur voit
+  // tous les rôles.
+  const rolesAssignables = estNiveauMaxOuDev(session) ? ROLES_VALIDES : ROLES_VALIDES.filter((r) => niveauRole(r) <= niveauRole(session.role));
 
   return (
     <div>
