@@ -11,6 +11,7 @@ import MinuteurInactivite from "./MinuteurInactivite";
 const SECTIONS_EMPRUNTABLES = [
   { cle: "vue-ensemble", href: "/gerant", label: "Vue d'ensemble", icone: "📊" },
   { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" },
+  { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "⏱️" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
   { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "🧑‍🤝‍🧑" },
@@ -44,9 +45,6 @@ export default async function EnTete({ nom, role }) {
   }
 
   const liens = [];
-  if (role === "MECANICIEN" || estGerantOuDev(session)) {
-    liens.push({ href: "/mecanicien", label: "Horodateur", icone: "⏱️" });
-  }
 
   // Sections empruntables — vérifiées une par une via le même système que
   // les pages elles-mêmes utilisent, pour que le menu corresponde toujours
