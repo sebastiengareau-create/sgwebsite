@@ -62,6 +62,17 @@ export async function PATCH(request, { params }) {
     data.theme = body.theme;
   }
 
+  if (body.tailleTexte !== undefined) {
+    // Même restriction que le thème — voir ci-dessus.
+    if (!estGerantOuDev(session)) {
+      return NextResponse.json({ erreur: "Seul un gérant peut modifier l'affichage." }, { status: 403 });
+    }
+    if (!["normal", "grand"].includes(body.tailleTexte)) {
+      return NextResponse.json({ erreur: "Taille de texte invalide." }, { status: 400 });
+    }
+    data.tailleTexte = body.tailleTexte;
+  }
+
   if (body.accesSections !== undefined) {
     // Réservé au développeur ou à un gérant avec le statut super-admin —
     // un gérant "normal" ne peut pas s'octroyer/octroyer des accès étendus

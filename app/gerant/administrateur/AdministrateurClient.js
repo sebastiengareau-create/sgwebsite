@@ -4,13 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit }) {
+export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
   const [verrouillageEnCours, setVerrouillageEnCours] = useState(false);
   const [theme, setTheme] = useState(themeInit);
   const [themeEnCours, setThemeEnCours] = useState(false);
+  const [tailleTexte, setTailleTexte] = useState(tailleTexteInit);
+  const [tailleEnCours, setTailleEnCours] = useState(false);
 
   async function choisirTheme(nouveauTheme) {
     if (nouveauTheme === theme) return;
@@ -22,6 +24,19 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
       body: JSON.stringify({ theme_developpeur: nouveauTheme }),
     });
     setThemeEnCours(false);
+    router.refresh();
+  }
+
+  async function choisirTailleTexte(nouvelleTaille) {
+    if (nouvelleTaille === tailleTexte) return;
+    setTailleEnCours(true);
+    setTailleTexte(nouvelleTaille);
+    await fetch("/api/parametres", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taille_texte_developpeur: nouvelleTaille }),
+    });
+    setTailleEnCours(false);
     router.refresh();
   }
 
@@ -111,6 +126,26 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
               style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}
             >
               ☀️ Clair
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => choisirTailleTexte("normal")}
+              disabled={tailleEnCours}
+              className={tailleTexte !== "grand" ? "bouton-3d" : "bouton-3d-sombre"}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+            >
+              Texte normal
+            </button>
+            <button
+              type="button"
+              onClick={() => choisirTailleTexte("grand")}
+              disabled={tailleEnCours}
+              className={tailleTexte === "grand" ? "bouton-3d" : "bouton-3d-sombre"}
+              style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 14, fontWeight: 700 }}
+            >
+              Texte plus gros
             </button>
           </div>
         </div>

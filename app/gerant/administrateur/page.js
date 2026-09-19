@@ -16,7 +16,7 @@ export default async function Administrateur() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "compte_verrouille", "theme_developpeur"] } } });
+  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
   return (
@@ -31,6 +31,7 @@ export default async function Administrateur() {
         verrouilleInit={dict.compte_verrouille === "actif"}
         estDeveloppeur={session.role === "DEVELOPPEUR"}
         themeInit={dict.theme_developpeur === "clair" ? "clair" : "sombre"}
+        tailleTexteInit={dict.taille_texte_developpeur === "grand" ? "grand" : "normal"}
       />
     </div>
   );

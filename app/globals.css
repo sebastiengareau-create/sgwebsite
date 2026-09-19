@@ -39,6 +39,22 @@ body {
   font-family: -apple-system, "Segoe UI", Inter, sans-serif;
 }
 
+/* Texte plus gros — réglage propre à chaque employé, dans sa fiche (voir
+   app/layout.js). La plupart des tailles de texte du logiciel sont des
+   valeurs fixes en pixels dans le style de chaque composant (pas des unités
+   relatives) : agrandir la police racine seule n'aurait donc aucun effet.
+   `zoom` grossit tout l'affichage (texte, boutons, icônes) en conservant
+   la mise en page — équivalent à un zoom de navigateur, mais permanent. */
+html[data-taille="grand"] body {
+  zoom: 1.18;
+}
+/* Jamais sur les pages imprimées/PDF — uniquement l'affichage à l'écran */
+@media print {
+  html[data-taille="grand"] body {
+    zoom: 1;
+  }
+}
+
 input, select, button {
   font-family: inherit;
 }

@@ -31,6 +31,7 @@ model User {
   numeroEmploye      String?   @unique // numéro séquentiel auto-généré, ex. "EMP-0001"
   dateEmbauche       DateTime?
   theme              String    @default("sombre") // "sombre" | "clair" — modifiable seulement par un gérant, dans la fiche employé
+  tailleTexte        String    @default("normal") // "normal" | "grand" — modifiable seulement par un gérant, dans la fiche employé
   // Niveau d'accès distinct du rôle "Gérant" — jamais exposé dans les
   // formulaires de création/modification d'employé, ne peut être activé
   // que manuellement (voir prisma/rendre-super-admin.js). Même un futur
