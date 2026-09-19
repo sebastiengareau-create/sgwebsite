@@ -8,6 +8,18 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
+  const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+  if (!cible) {
+    return NextResponse.json({ erreur: "Employé introuvable." }, { status: 404 });
+  }
+  // Aucun champ (mot de passe, actif, etc.) ne doit être modifiable par un
+  // employé sur la fiche de quelqu'un d'un niveau de sécurité supérieur au
+  // sien — sinon une secrétaire (niveau 2) pourrait réinitialiser le mot de
+  // passe ou désactiver le compte d'un gérant (niveau 3). Gérant/dev jamais bloqués.
+  if (niveauRole(cible.role) > niveauRole(session.role) && !estGerantOuDev(session)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas modifier la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
+  }
+
   const body = await request.json();
   const data = {};
 
@@ -21,19 +33,17 @@ export async function PATCH(request, { params }) {
   }
   if (body.role && ["GERANT", "SECRETAIRE", "MECANICIEN"].includes(body.role)) {
     if (!estGerantOuDev(session)) {
-      const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
-      const changementReel = cible?.role !== body.role;
-      // L'accès "employes" délégué (ex: à une secrétaire) ne doit permettre
-      // ni de s'auto-promouvoir, ni de toucher au rôle de quelqu'un dont le
-      // niveau de sécurité actuel dépasse le sien, ni d'assigner un rôle
-      // plus élevé que le sien — vérifié seulement s'il y a un vrai
-      // changement, pour ne pas bloquer la sauvegarde du reste de la fiche
-      // (le formulaire renvoie toujours le rôle actuel avec le reste).
+      const changementReel = cible.role !== body.role;
+      // Le cas "cible déjà d'un niveau supérieur" est déjà bloqué plus haut.
+      // Reste à empêcher l'auto-promotion et l'assignation d'un rôle plus
+      // élevé que le sien — vérifié seulement s'il y a un vrai changement,
+      // pour ne pas bloquer la sauvegarde du reste de la fiche (le
+      // formulaire renvoie toujours le rôle actuel avec le reste).
       if (changementReel && params.id === session.id) {
         return NextResponse.json({ erreur: "Seul un gérant peut changer ce rôle." }, { status: 403 });
       }
-      if (changementReel && (niveauRole(cible?.role) > niveauRole(session.role) || niveauRole(body.role) > niveauRole(session.role))) {
-        return NextResponse.json({ erreur: "Tu ne peux pas modifier un niveau de sécurité plus élevé que le tien." }, { status: 403 });
+      if (changementReel && niveauRole(body.role) > niveauRole(session.role)) {
+        return NextResponse.json({ erreur: "Tu ne peux pas assigner un niveau de sécurité plus élevé que le tien." }, { status: 403 });
       }
     }
     data.role = body.role;
@@ -106,6 +116,14 @@ export async function DELETE(request, { params }) {
   }
   if (params.id === session.id) {
     return NextResponse.json({ erreur: "Tu ne peux pas supprimer ton propre compte." }, { status: 400 });
+  }
+
+  const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+  if (!cible) {
+    return NextResponse.json({ erreur: "Employé introuvable." }, { status: 404 });
+  }
+  if (niveauRole(cible.role) > niveauRole(session.role) && !estGerantOuDev(session)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas supprimer la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
   }
 
   const [entrees, photos] = await Promise.all([
