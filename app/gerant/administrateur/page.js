@@ -16,7 +16,7 @@ export default async function Administrateur() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "compte_verrouille"] } } });
+  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "compte_verrouille", "theme_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
   return (
@@ -29,6 +29,8 @@ export default async function Administrateur() {
           { id: "paie", label: "Paie", description: "Estimation de paie — RRQ, RQAP, AE, impôts (à valider avec WebRAS)", actif: dict.module_paie === "actif" },
         ]}
         verrouilleInit={dict.compte_verrouille === "actif"}
+        estDeveloppeur={session.role === "DEVELOPPEUR"}
+        themeInit={dict.theme_developpeur === "clair" ? "clair" : "sombre"}
       />
     </div>
   );

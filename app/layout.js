@@ -30,10 +30,15 @@ export async function generateMetadata() {
   };
 }
 
-// Thème propre à chaque employé (réglé par un gérant dans sa fiche) —
-// le développeur n'a pas de fiche employé, donc toujours sombre par défaut.
+// Thème propre à chaque employé (réglé par un gérant dans sa fiche). Le
+// développeur n'a pas de fiche employé (voir lib/auth.js) — son thème vit
+// à part, dans Parametre (réglable dans Administrateur → Affichage).
 async function obtenirTheme(session) {
-  if (!session || session.role === "DEVELOPPEUR") return "sombre";
+  if (!session) return "sombre";
+  if (session.role === "DEVELOPPEUR") {
+    const parametre = await prisma.parametre.findUnique({ where: { cle: "theme_developpeur" } });
+    return parametre?.valeur === "clair" ? "clair" : "sombre";
+  }
   const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { theme: true } });
   return utilisateur?.theme === "clair" ? "clair" : "sombre";
 }
