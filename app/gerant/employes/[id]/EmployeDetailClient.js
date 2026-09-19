@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, peutGererEmploye }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -250,21 +250,25 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-              ✏️ Modifier
-            </button>
-            {!estMoi && (
-              <button onClick={toggleActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, color: employe.actif ? "var(--danger)" : "var(--success)" }}>
-                {employe.actif ? "Désactiver" : "Réactiver"}
+          {peutGererEmploye ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
+                ✏️ Modifier
               </button>
-            )}
-            {!estMoi && (
-              <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
-                🗑️
-              </button>
-            )}
-          </div>
+              {!estMoi && (
+                <button onClick={toggleActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, color: employe.actif ? "var(--danger)" : "var(--success)" }}>
+                  {employe.actif ? "Désactiver" : "Réactiver"}
+                </button>
+              )}
+              {!estMoi && (
+                <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
+                  🗑️
+                </button>
+              )}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Tu n'as pas le niveau requis pour modifier cette fiche.</p>
+          )}
         </>
       )}
     </div>

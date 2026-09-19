@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, niveauRole } from "@/lib/auth";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
   if (!session || !(await aAccesSection(session, "employes"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+
+  const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+  if (!cible) {
+    return NextResponse.json({ erreur: "Employé introuvable." }, { status: 404 });
+  }
+  // Aucun champ (mot de passe, actif, etc.) ne doit être modifiable par un
+  // employé sur la fiche de quelqu'un d'un niveau de sécurité supérieur au
+  // sien — sinon une secrétaire (niveau 2) pourrait réinitialiser le mot de
+  // passe ou désactiver le compte d'un gérant (niveau 3). Gérant/dev jamais bloqués.
+  if (niveauRole(cible.role) > niveauRole(session.role) && !estGerantOuDev(session)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas modifier la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
   }
 
   const body = await request.json();
@@ -96,6 +108,14 @@ export async function DELETE(request, { params }) {
   }
   if (params.id === session.id) {
     return NextResponse.json({ erreur: "Tu ne peux pas supprimer ton propre compte." }, { status: 400 });
+  }
+
+  const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+  if (!cible) {
+    return NextResponse.json({ erreur: "Employé introuvable." }, { status: 404 });
+  }
+  if (niveauRole(cible.role) > niveauRole(session.role) && !estGerantOuDev(session)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas supprimer la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
   }
 
   const [entrees, photos] = await Promise.all([

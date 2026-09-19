@@ -1,4 +1,4 @@
-import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev, niveauRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
@@ -32,6 +32,7 @@ export default async function DetailEmploye({ params }) {
       <EmployeDetailClient
         employe={employe} paies={paies} estMoi={employe.id === session.id} paieActif={modulePaie?.valeur === "actif"}
         soldeVacances={soldeVacances} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
+        peutGererEmploye={estGerantOuDev(session) || niveauRole(employe.role) <= niveauRole(session.role)}
       />
     </div>
   );
