@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, niveauRole } from "@/lib/auth";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
@@ -20,11 +20,21 @@ export async function PATCH(request, { params }) {
     data.courriel = body.courriel;
   }
   if (body.role && ["GERANT", "SECRETAIRE", "MECANICIEN"].includes(body.role)) {
-    // Passer un compte Gérant (ou en sortir) reste réservé aux gérants —
-    // l'accès "employes" délégué ne doit pas permettre de s'auto-promouvoir
-    // ni de promouvoir quelqu'un d'autre aux pleins pouvoirs.
-    if ((body.role === "GERANT" || params.id === session.id) && !estGerantOuDev(session)) {
-      return NextResponse.json({ erreur: "Seul un gérant peut changer ce rôle." }, { status: 403 });
+    if (!estGerantOuDev(session)) {
+      const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+      const changementReel = cible?.role !== body.role;
+      // L'accès "employes" délégué (ex: à une secrétaire) ne doit permettre
+      // ni de s'auto-promouvoir, ni de toucher au rôle de quelqu'un dont le
+      // niveau de sécurité actuel dépasse le sien, ni d'assigner un rôle
+      // plus élevé que le sien — vérifié seulement s'il y a un vrai
+      // changement, pour ne pas bloquer la sauvegarde du reste de la fiche
+      // (le formulaire renvoie toujours le rôle actuel avec le reste).
+      if (changementReel && params.id === session.id) {
+        return NextResponse.json({ erreur: "Seul un gérant peut changer ce rôle." }, { status: 403 });
+      }
+      if (changementReel && (niveauRole(cible?.role) > niveauRole(session.role) || niveauRole(body.role) > niveauRole(session.role))) {
+        return NextResponse.json({ erreur: "Tu ne peux pas modifier un niveau de sécurité plus élevé que le tien." }, { status: 403 });
+      }
     }
     data.role = body.role;
   }

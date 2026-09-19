@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, rolesAssignables, peutModifierRole }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -105,11 +105,17 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <label style={labelStyle}>Courriel</label>
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Rôle</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
-            <option value="MECANICIEN">{nomsRoles.MECANICIEN}</option>
-            <option value="SECRETAIRE">{nomsRoles.SECRETAIRE}</option>
-            <option value="GERANT">{nomsRoles.GERANT}</option>
-          </select>
+          {peutModifierRole ? (
+            <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
+              {rolesAssignables.map((r) => (
+                <option key={r} value={r}>{nomsRoles[r]}</option>
+              ))}
+            </select>
+          ) : (
+            <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 0, marginBottom: 8 }}>
+              {nomsRoles[employe.role] || employe.role} — niveau de sécurité plus élevé que le tien, non modifiable.
+            </p>
+          )}
           <label style={labelStyle}>Téléphone</label>
           <input value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Adresse</label>

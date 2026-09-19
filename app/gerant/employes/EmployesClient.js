@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 
-export default function EmployesClient({ employes, moi, nomsRoles }) {
+export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [afficherFormulaire, setAfficherFormulaire] = useState(searchParams.get("nouveau") === "1");
@@ -25,7 +25,7 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
       </div>
 
       {afficherFormulaire && (
-        <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} />
+        <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
@@ -64,7 +64,7 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
   );
 }
 
-function FormulaireCreation({ onCree, nomsRoles }) {
+function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   const [nom, setNom] = useState("");
   const [courriel, setCourriel] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -111,9 +111,9 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       <input required type="email" placeholder="Courriel" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
       <input required type="password" minLength={4} maxLength={12} placeholder="Mot de passe (4 à 12 caractères)" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} style={champStyle} />
       <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
-        <option value="MECANICIEN">{nomsRoles.MECANICIEN}</option>
-        <option value="SECRETAIRE">{nomsRoles.SECRETAIRE}</option>
-        <option value="GERANT">{nomsRoles.GERANT}</option>
+        {rolesAssignables.map((r) => (
+          <option key={r} value={r}>{nomsRoles[r]}</option>
+        ))}
       </select>
       <input placeholder="Code PIN (optionnel, 4 chiffres)" value={pin} onChange={(e) => setPin(e.target.value)} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />

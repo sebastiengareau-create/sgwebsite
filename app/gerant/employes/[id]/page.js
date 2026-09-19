@@ -1,8 +1,10 @@
-import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev, niveauRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import EmployeDetailClient from "./EmployeDetailClient";
+
+const TOUS_ROLES = ["MECANICIEN", "SECRETAIRE", "GERANT"];
 
 export default async function DetailEmploye({ params }) {
   const session = await obtenirSession();
@@ -25,6 +27,11 @@ export default async function DetailEmploye({ params }) {
     SECRETAIRE: await nomAffichageRole("SECRETAIRE"),
     MECANICIEN: await nomAffichageRole("MECANICIEN"),
   };
+  // Même règle que la création : un employé avec l'accès "employes" délégué
+  // ne peut ni assigner un rôle au-dessus du sien, ni toucher au rôle de
+  // quelqu'un dont le niveau actuel dépasse déjà le sien.
+  const rolesAssignables = estGerantOuDev(session) ? TOUS_ROLES : TOUS_ROLES.filter((r) => niveauRole(r) <= niveauRole(session.role));
+  const peutModifierRole = estGerantOuDev(session) || niveauRole(employe.role) <= niveauRole(session.role);
 
   return (
     <div>
@@ -32,6 +39,7 @@ export default async function DetailEmploye({ params }) {
       <EmployeDetailClient
         employe={employe} paies={paies} estMoi={employe.id === session.id} paieActif={modulePaie?.valeur === "actif"}
         soldeVacances={soldeVacances} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
+        rolesAssignables={rolesAssignables} peutModifierRole={peutModifierRole}
       />
     </div>
   );

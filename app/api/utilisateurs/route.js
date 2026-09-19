@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, niveauRole } from "@/lib/auth";
 import { prochainNumeroEmploye } from "@/lib/numerotation";
 
 export async function POST(request) {
@@ -17,11 +17,11 @@ export async function POST(request) {
   if (!nom || !courriel || !motDePasse || !["GERANT", "SECRETAIRE", "MECANICIEN"].includes(role)) {
     return NextResponse.json({ erreur: "Champs manquants ou invalides." }, { status: 400 });
   }
-  // Créer un compte Gérant reste réservé aux gérants eux-mêmes — l'accès
-  // "employes" délégué (ex: à une secrétaire) permet de gérer le personnel,
-  // pas de créer un compte avec les pleins pouvoirs.
-  if (role === "GERANT" && !estGerantOuDev(session)) {
-    return NextResponse.json({ erreur: "Seul un gérant peut créer un compte Gérant." }, { status: 403 });
+  // Créer un compte reste limité au niveau de sécurité de l'appelant —
+  // l'accès "employes" délégué (ex: à une secrétaire) permet de gérer le
+  // personnel, pas de créer un compte avec un niveau plus élevé que le sien.
+  if (!estGerantOuDev(session) && niveauRole(role) > niveauRole(session.role)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas créer un compte avec un niveau de sécurité plus élevé que le tien." }, { status: 403 });
   }
   if (motDePasse.length < 4 || motDePasse.length > 12) {
     return NextResponse.json({ erreur: "Le mot de passe doit avoir entre 4 et 12 caractères." }, { status: 400 });
