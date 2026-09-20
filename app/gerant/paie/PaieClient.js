@@ -57,6 +57,10 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         </p>
       </div>
 
+      <Link href="/gerant/paie/nouveau" className="bouton-3d" style={{ display: "block", textAlign: "center", padding: 13, borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 20 }}>
+        + Nouveau lot de paie
+      </Link>
+
       {/* KPI */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
         <CarteKpi icone="👥" label="Employés" valeur={String(employesActifs)} sousLabel="Actifs" href="/gerant/employes" />
@@ -162,10 +166,6 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
           <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun lot de paie encore.</p>
         )}
       </div>
-
-      <Link href="/gerant/paie/nouveau" className="bouton-3d" style={{ display: "block", textAlign: "center", padding: 13, borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none", marginTop: 20 }}>
-        + Nouveau lot de paie
-      </Link>
     </div>
   );
 }
