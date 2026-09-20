@@ -65,6 +65,7 @@ export async function PATCH(request, { params }) {
   if (body.typeRemuneration && ["HORAIRE", "SALAIRE"].includes(body.typeRemuneration)) data.typeRemuneration = body.typeRemuneration;
   if (body.tauxHoraireEmploye !== undefined) data.tauxHoraireEmploye = body.tauxHoraireEmploye === "" ? null : Number(body.tauxHoraireEmploye);
   if (body.salaireAnnuel !== undefined) data.salaireAnnuel = body.salaireAnnuel === "" ? null : Number(body.salaireAnnuel);
+  if (body.salaireImposable !== undefined) data.salaireImposable = body.salaireImposable === "" ? null : Number(body.salaireImposable);
   if (body.frequencePaie && ["HEBDOMADAIRE", "BIHEBDOMADAIRE", "BIMENSUEL", "MENSUEL"].includes(body.frequencePaie)) data.frequencePaie = body.frequencePaie;
   if (body.tauxVacances !== undefined && body.tauxVacances !== "") data.tauxVacances = Number(body.tauxVacances);
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
