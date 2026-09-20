@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, salaireImposableParDefaut }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -21,7 +21,6 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [typeRemuneration, setTypeRemuneration] = useState(employe.typeRemuneration || "HORAIRE");
   const [tauxHoraireEmploye, setTauxHoraireEmploye] = useState(employe.tauxHoraireEmploye ?? "");
   const [salaireAnnuel, setSalaireAnnuel] = useState(employe.salaireAnnuel ?? "");
-  const [salaireImposable, setSalaireImposable] = useState(employe.salaireImposable ?? salaireImposableParDefaut ?? "");
   const [frequencePaie, setFrequencePaie] = useState(employe.frequencePaie || "BIHEBDOMADAIRE");
   const [tauxVacances, setTauxVacances] = useState(employe.tauxVacances ?? 4);
   const [theme, setTheme] = useState(employe.theme || "sombre");
@@ -30,7 +29,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, salaireImposable, frequencePaie, tauxVacances };
+    const body = { nom, courriel, role, telephone, adresse, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
@@ -138,11 +137,6 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <>
               <label style={labelStyle}>Taux horaire spécifique (vide = taux global des Paramètres)</label>
               <input type="number" min={0} step="0.01" value={tauxHoraireEmploye} onChange={(e) => setTauxHoraireEmploye(e.target.value)} style={champStyle} />
-              <label style={labelStyle}>Salaire imposable (base annuelle pour l'impôt sur chaque paie)</label>
-              <input type="number" min={0} step="0.01" value={salaireImposable} onChange={(e) => setSalaireImposable(e.target.value)} style={champStyle} />
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -4, marginBottom: 8 }}>
-                Rempli par défaut avec le taux horaire × l'horaire d'ouverture du commerce — ajuste si ce n'est pas représentatif (ex : temps partiel).
-              </p>
             </>
           ) : (
             <>
@@ -232,10 +226,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             {employe.typeRemuneration === "SALAIRE" ? (
               <Champ label="Salaire annuel" valeur={employe.salaireAnnuel ? `${employe.salaireAnnuel.toFixed(2)} $` : null} />
             ) : (
-              <>
-                <Champ label="Taux horaire" valeur={employe.tauxHoraireEmploye ? `${employe.tauxHoraireEmploye.toFixed(2)} $/h (spécifique)` : "Taux global des Paramètres"} />
-                <Champ label="Salaire imposable" valeur={`${(employe.salaireImposable ?? salaireImposableParDefaut).toFixed(2)} $/an`} />
-              </>
+              <Champ label="Taux horaire" valeur={employe.tauxHoraireEmploye ? `${employe.tauxHoraireEmploye.toFixed(2)} $/h (spécifique)` : "Taux global des Paramètres"} />
             )}
             <Champ label="Fréquence de paie" valeur={{ HEBDOMADAIRE: "Chaque semaine", BIHEBDOMADAIRE: "Aux 2 semaines", BIMENSUEL: "2 fois par mois", MENSUEL: "Chaque mois" }[employe.frequencePaie]} />
             <Champ label="Taux de vacances" valeur={`${employe.tauxVacances}%`} />

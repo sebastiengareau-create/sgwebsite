@@ -1,6 +1,5 @@
 import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { estimerSalaireImposableParDefaut } from "@/lib/paie";
 import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import EmployeDetailClient from "./EmployeDetailClient";
@@ -9,19 +8,12 @@ export default async function DetailEmploye({ params }) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "employes"))) redirect("/gerant");
 
-  const [employe, paies, modulePaie, parametreTaux] = await Promise.all([
+  const [employe, paies, modulePaie] = await Promise.all([
     prisma.user.findUnique({ where: { id: params.id } }),
     prisma.paie.findMany({ where: { employeId: params.id }, orderBy: { periodeFin: "desc" }, take: 10 }),
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
-    prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
   ]);
   if (!employe) notFound();
-
-  // Valeur de départ du champ "Salaire imposable" quand il n'a jamais été
-  // rempli — le taux horaire effectif de l'employé (le sien, sinon le taux
-  // global) × l'horaire d'ouverture du commerce (voir lib/paie.js).
-  const tauxEffectif = employe.tauxHoraireEmploye || Number(parametreTaux?.valeur || 95);
-  const salaireImposableParDefaut = await estimerSalaireImposableParDefaut(tauxEffectif);
 
   const [accumule, dejaVerse] = await Promise.all([
     prisma.paie.aggregate({ where: { employeId: params.id, statut: { not: "CORRIGEE" }, typePaie: "REGULIERE" }, _sum: { vacancesAccumulees: true } }),
@@ -43,7 +35,6 @@ export default async function DetailEmploye({ params }) {
         employe={employe} paies={paies} estMoi={employe.id === session.id} paieActif={modulePaie?.valeur === "actif"}
         soldeVacances={soldeVacances} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
         rolesAssignables={rolesAssignables} peutGererEmploye={peutGererEmploye}
-        salaireImposableParDefaut={salaireImposableParDefaut}
       />
     </div>
   );

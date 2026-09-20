@@ -43,7 +43,6 @@ model User {
   typeRemuneration   String    @default("HORAIRE") // "HORAIRE" | "SALAIRE"
   tauxHoraireEmploye Float? // si vide, utilise le taux global (cout_horaire_mecanicien)
   salaireAnnuel      Float? // pour un employé salarié (montant fixe)
-  salaireImposable   Float? // base annuelle utilisée pour déterminer le palier d'impôt à chaque paie — si vide, on retombe sur salaireAnnuel (salarié) ou la moyenne des heures réelles de l'année (horaire)
   frequencePaie      String    @default("BIHEBDOMADAIRE") // "HEBDOMADAIRE" | "BIHEBDOMADAIRE" | "BIMENSUEL" | "MENSUEL"
   tauxVacances       Float     @default(4) // % du salaire brut accumulé en vacances (minimum légal QC : 4%, ou 6% après 3 ans)
   creeLe             DateTime  @default(now())
