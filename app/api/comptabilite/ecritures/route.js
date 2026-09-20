@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
+import { obtenirSession } from "@/lib/auth";
 export async function DELETE() {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "comptabilite"))) {
-    return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  // Réservé au développeur — pensé pour vider une période de test, jamais
+  // un usage de gérant en production réelle.
+  if (session?.role !== "DEVELOPPEUR") {
+    return NextResponse.json({ erreur: "Seul le développeur peut tout réinitialiser." }, { status: 403 });
   }
 
   const periodeProtegee = await prisma.periodeComptable.findFirst({ where: { statut: { not: "OUVERTE" } } });

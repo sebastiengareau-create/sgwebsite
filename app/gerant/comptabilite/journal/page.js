@@ -16,7 +16,7 @@ export default async function Journal() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <JournalClient ecritures={ecritures} />
+      <JournalClient ecritures={ecritures} estDev={session.role === "DEVELOPPEUR"} />
     </div>
   );
 }
