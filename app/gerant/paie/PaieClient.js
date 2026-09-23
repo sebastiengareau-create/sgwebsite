@@ -230,6 +230,18 @@ function CarteLot({ lot }) {
       <div style={{ fontSize: 12.5, marginTop: 6 }}>
         {lot.nbEmployes} employé{lot.nbEmployes !== 1 ? "s" : ""} · {lot.totalBrut.toFixed(2)} $ brut · {lot.totalDeductions.toFixed(2)} $ retenues · <strong>{lot.totalNet.toFixed(2)} $ net</strong>
       </div>
+      {lot.statut === "BROUILLON" && lot.paies?.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
+          {lot.paies.map((p) => (
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 11.5 }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {p.nom}{p.assignation ? <span style={{ color: "var(--text-muted)" }}> · {p.assignation}</span> : null}
+              </span>
+              <span style={{ fontWeight: 700, flexShrink: 0 }}>{p.salaireNet.toFixed(2)} $</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

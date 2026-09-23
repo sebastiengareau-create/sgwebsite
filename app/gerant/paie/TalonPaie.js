@@ -14,8 +14,16 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>{paie.employe.nom}</div>
-          <div style={{ fontSize: 11, color: "#666" }}>
+          {paie.heuresTravaillees > 0 && (
+            <div style={{ fontSize: 11, color: "#666", marginTop: 3 }}>
+              Heures travaillées : {paie.heuresTravaillees.toFixed(2)} h · Cumulatif {anneeCourante} : {cumulatif.heures.toFixed(2)} h
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "#666", marginTop: 6 }}>
             Période : {new Date(paie.periodeDebut).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} au {new Date(paie.periodeFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>
+            Salaire net : {paie.salaireNet.toFixed(2)} $
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -52,11 +60,6 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
       {!estVacances && paie.vacancesAccumulees > 0 && (
         <p style={{ fontSize: 11, color: "#666", marginTop: 14 }}>
           Vacances accumulées cette paie : {paie.vacancesAccumulees.toFixed(2)} $
-        </p>
-      )}
-      {paie.heuresTravaillees > 0 && (
-        <p style={{ fontSize: 11, color: "#666", marginTop: 4 }}>
-          Heures travaillées : {paie.heuresTravaillees.toFixed(2)} h
         </p>
       )}
 

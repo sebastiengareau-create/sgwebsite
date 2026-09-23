@@ -34,8 +34,9 @@ export default async function TalonDePaie({ params }) {
       impotFederal: acc.impotFederal + p.impotFederal,
       impotQuebec: acc.impotQuebec + p.impotQuebec,
       net: acc.net + p.salaireNet,
+      heures: acc.heures + p.heuresTravaillees,
     }),
-    { brut: 0, rrq: 0, rqap: 0, ae: 0, impotFederal: 0, impotQuebec: 0, net: 0 }
+    { brut: 0, rrq: 0, rqap: 0, ae: 0, impotFederal: 0, impotQuebec: 0, net: 0, heures: 0 }
   );
 
   return (

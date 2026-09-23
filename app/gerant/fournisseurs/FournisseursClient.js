@@ -37,6 +37,14 @@ export default function FournisseursClient({ fournisseurs }) {
       >
         💳 Comptes à payer / Dépenses
       </Link>
+      <Link
+        href="/gerant/comptabilite/rapports/fournisseurs"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
+      >
+        📄 Liste des fournisseurs (PDF / Excel / imprimer)
+      </Link>
 
       {afficherFormulaire && (
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />

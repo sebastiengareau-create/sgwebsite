@@ -39,6 +39,12 @@ export default async function Paie() {
     totalBrut: lot.paies.reduce((s, p) => s + p.salaireBrut, 0),
     totalDeductions: lot.paies.reduce((s, p) => s + p.totalDeductions, 0),
     totalNet: lot.paies.reduce((s, p) => s + p.salaireNet, 0),
+    paies: lot.paies.map((p) => ({
+      id: p.id,
+      nom: p.employe.nom,
+      assignation: p.employe.assignation,
+      salaireNet: p.salaireNet,
+    })),
   }));
 
   // Comparaison sur les lots de paie régulière seulement (une paie de
