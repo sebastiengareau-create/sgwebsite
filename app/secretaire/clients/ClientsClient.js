@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
@@ -9,6 +9,28 @@ export default function ClientsClient({ clients }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const fichierRef = useRef(null);
+  const [importEnCours, setImportEnCours] = useState(false);
+  const [resultatImport, setResultatImport] = useState(null);
+
+  async function importerFichier(e) {
+    const fichier = e.target.files[0];
+    if (!fichier) return;
+    setImportEnCours(true);
+    setResultatImport(null);
+    const donnees = new FormData();
+    donnees.append("fichier", fichier);
+    const res = await fetch("/api/clients/importer", { method: "POST", body: donnees });
+    const data = await res.json().catch(() => ({}));
+    setImportEnCours(false);
+    e.target.value = "";
+    if (!res.ok) {
+      setResultatImport({ erreur: data.erreur || "Erreur lors de l'import." });
+      return;
+    }
+    setResultatImport(data);
+    router.refresh();
+  }
 
   const clientsFiltres = clients.filter((c) => {
     const q = recherche.trim().toLowerCase();
@@ -21,7 +43,16 @@ export default function ClientsClient({ clients }) {
     <div className="conteneur-page">
       <BandeauSection icone="🧑‍🤝‍🧑" titre="Clients" sousTitre="Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 12 }}>
+        <input ref={fichierRef} type="file" accept=".xlsx,.xls,.csv" onChange={importerFichier} style={{ display: "none" }} />
+        <button
+          onClick={() => fichierRef.current?.click()}
+          disabled={importEnCours}
+          className="bouton-3d-sombre"
+          style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}
+        >
+          {importEnCours ? "Import…" : "📥 Importer depuis Excel"}
+        </button>
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -30,6 +61,38 @@ export default function ClientsClient({ clients }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau client"}
         </button>
       </div>
+
+      {resultatImport && (
+        <div style={{
+          background: resultatImport.erreur ? "rgba(193,91,74,0.12)" : "rgba(111,169,107,0.12)",
+          border: `1px solid ${resultatImport.erreur ? "var(--danger)" : "var(--success)"}`,
+          borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 12.5,
+        }}>
+          {resultatImport.erreur ? (
+            <p style={{ margin: 0 }}>⚠️ {resultatImport.erreur}</p>
+          ) : (
+            <>
+              <p style={{ margin: 0, fontWeight: 700 }}>
+                ✅ {resultatImport.importes} client{resultatImport.importes !== 1 ? "s" : ""} importé{resultatImport.importes !== 1 ? "s" : ""}
+              </p>
+              {resultatImport.doublons.length > 0 && (
+                <p style={{ margin: "4px 0 0", color: "var(--text-muted)" }}>
+                  {resultatImport.doublons.length} ignoré{resultatImport.doublons.length !== 1 ? "s" : ""} (déjà existant{resultatImport.doublons.length !== 1 ? "s" : ""}) : {resultatImport.doublons.join(", ")}
+                </p>
+              )}
+              {resultatImport.ignores.length > 0 && (
+                <p style={{ margin: "4px 0 0", color: "var(--danger)" }}>
+                  {resultatImport.ignores.join(" · ")}
+                </p>
+              )}
+            </>
+          )}
+          <button onClick={() => setResultatImport(null)} style={{ marginTop: 6, background: "none", border: "none", color: "var(--accent)", fontSize: 11.5, cursor: "pointer", padding: 0 }}>
+            Fermer
+          </button>
+        </div>
+      )}
+
       <Link
         href="/gerant/comptabilite/rapports/comptes-clients"
         target="_blank"
