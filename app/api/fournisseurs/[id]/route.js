@@ -13,6 +13,8 @@ export async function PATCH(request, { params }) {
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
   if (body.courriel !== undefined) data.courriel = body.courriel || null;
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
+  if (body.ville !== undefined) data.ville = body.ville || null;
+  if (body.codePostal !== undefined) data.codePostal = body.codePostal || null;
   if (typeof body.actif === "boolean") data.actif = body.actif;
 
   const fournisseur = await prisma.fournisseur.update({ where: { id: params.id }, data });

@@ -18,15 +18,15 @@ export async function GET() {
   const fournisseurs = await prisma.fournisseur.findMany({ orderBy: { nom: "asc" } });
 
   const lignesCsv = [
-    ["No fournisseur", "Nom", "Téléphone", "Courriel", "Adresse", "Statut"].join(";"),
+    ["No fournisseur", "Nom", "Adresse", "Téléphone", "Courriel", "Statut"].join(";"),
   ];
   for (const f of fournisseurs) {
     lignesCsv.push([
       echapperCsv(f.numero),
       echapperCsv(f.nom),
+      echapperCsv([f.adresse, f.ville, f.codePostal].filter(Boolean).join(", ")),
       echapperCsv(f.telephone),
       echapperCsv(f.courriel),
-      echapperCsv(f.adresse),
       f.actif ? "Actif" : "Inactif",
     ].join(";"));
   }

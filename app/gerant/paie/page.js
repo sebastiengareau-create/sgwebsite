@@ -64,7 +64,8 @@ export default async function Paie() {
         paies: dernierLotComplet.paies.map((p) => ({
           id: p.id,
           nom: p.employe.nom,
-          role: p.employe.role,
+          assignation: p.employe.assignation,
+          typeRemuneration: p.employe.typeRemuneration,
           heuresTravaillees: p.heuresTravaillees,
           heuresHorodateur: p.heuresHorodateur,
           salaireBrut: p.salaireBrut,

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection, nomAffichageRole, ROLES_VALIDES } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 
 function echapperCsv(valeur) {
   const texte = String(valeur ?? "");
@@ -16,16 +16,15 @@ export async function GET() {
   }
 
   const employes = await prisma.user.findMany({ orderBy: { nom: "asc" } });
-  const nomsRoles = Object.fromEntries(await Promise.all(ROLES_VALIDES.map(async (r) => [r, await nomAffichageRole(r)])));
 
   const lignesCsv = [
-    ["No employé", "Nom", "Rôle", "Assignation", "Téléphone", "Courriel", "Statut"].join(";"),
+    ["No employé", "Nom", "Adresse", "Assignation", "Téléphone", "Courriel", "Statut"].join(";"),
   ];
   for (const e of employes) {
     lignesCsv.push([
       echapperCsv(e.numeroEmploye),
       echapperCsv(e.nom),
-      echapperCsv(nomsRoles[e.role] || e.role),
+      echapperCsv([e.adresse, e.ville, e.codePostal].filter(Boolean).join(", ")),
       echapperCsv(e.assignation),
       echapperCsv(e.telephone),
       echapperCsv(e.courriel),

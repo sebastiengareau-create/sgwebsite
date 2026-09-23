@@ -11,7 +11,7 @@ export async function POST(request) {
 
   const {
     nom, courriel, motDePasse, role, pin,
-    telephone, adresse, assignation, dateEmbauche,
+    telephone, adresse, ville, codePostal, assignation, dateEmbauche,
     typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
   } = await request.json();
   if (!nom || !courriel || !motDePasse || !ROLES_VALIDES.includes(role)) {
@@ -41,6 +41,8 @@ export async function POST(request) {
       pin: pin || null,
       telephone: telephone || null,
       adresse: adresse || null,
+      ville: ville || null,
+      codePostal: codePostal || null,
       assignation: assignation || null,
       numeroEmploye: await prochainNumeroEmploye(),
       dateEmbauche: dateEmbauche ? new Date(dateEmbauche) : null,

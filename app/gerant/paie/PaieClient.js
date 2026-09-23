@@ -10,8 +10,6 @@ const STATUT_INFO = {
   COMPTABILISEE: { icone: "⚫", label: "Comptabilisée", couleur: "var(--text-muted)" },
 };
 
-const NOMS_ROLE = { GERANT: "Gérant", SECRETAIRE: "Secrétaire", MECANICIEN: "Mécanicien" };
-
 const COULEUR_NIVEAU = { danger: "var(--danger)", avertissement: "#C9A227", info: "var(--success)" };
 const FOND_NIVEAU = { danger: "rgba(193,91,74,0.12)", avertissement: "rgba(201,162,39,0.12)", info: "rgba(111,169,107,0.12)" };
 
@@ -101,7 +99,9 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nom}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{NOMS_ROLE[p.role] || p.role} · {p.heuresTravaillees.toFixed(2)} h</div>
+                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                      {p.assignation || "—"} · {p.typeRemuneration === "SALAIRE" ? `${p.salaireBrut.toFixed(2)} $ brut` : `${p.heuresTravaillees.toFixed(2)} h`}
+                    </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700 }}>{fmt(p.salaireNet)}</div>

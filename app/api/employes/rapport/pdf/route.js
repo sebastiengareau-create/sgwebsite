@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection, nomAffichageRole, ROLES_VALIDES } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { genererPdfRapportEmployes } from "@/lib/pdfRapportEmployes";
 
@@ -13,9 +13,8 @@ export async function GET() {
     prisma.user.findMany({ orderBy: { nom: "asc" } }),
     obtenirInfosEntreprise(),
   ]);
-  const nomsRoles = Object.fromEntries(await Promise.all(ROLES_VALIDES.map(async (r) => [r, await nomAffichageRole(r)])));
 
-  const pdf = await genererPdfRapportEmployes(employes, nomsRoles, nomEntreprise);
+  const pdf = await genererPdfRapportEmployes(employes, nomEntreprise);
   const nomFichier = `liste-employes-${new Date().toISOString().slice(0, 10)}.pdf`;
 
   return new Response(pdf, {

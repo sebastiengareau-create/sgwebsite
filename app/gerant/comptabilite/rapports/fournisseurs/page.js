@@ -37,9 +37,9 @@ export default async function RapportFournisseurs() {
             <tr style={{ borderBottom: "1px solid #17150f" }}>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>No fournisseur</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Nom</th>
+              <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Adresse</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Téléphone</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Courriel</th>
-              <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Adresse</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Statut</th>
             </tr>
           </thead>
@@ -48,9 +48,9 @@ export default async function RapportFournisseurs() {
               <tr key={f.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{f.numero || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{f.nom}</td>
+                <td style={{ padding: "6px 4px" }}>{[f.adresse, f.ville, f.codePostal].filter(Boolean).join(", ") || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{f.telephone || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{f.courriel || "—"}</td>
-                <td style={{ padding: "6px 4px" }}>{f.adresse || "—"}</td>
                 <td style={{ padding: "6px 4px", color: f.actif ? "#17150f" : "#a83232" }}>{f.actif ? "Actif" : "Inactif"}</td>
               </tr>
             ))}

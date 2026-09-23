@@ -69,6 +69,8 @@ export async function PATCH(request, { params }) {
   if (body.tauxVacances !== undefined && body.tauxVacances !== "") data.tauxVacances = Number(body.tauxVacances);
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
+  if (body.ville !== undefined) data.ville = body.ville || null;
+  if (body.codePostal !== undefined) data.codePostal = body.codePostal || null;
   if (body.assignation !== undefined) data.assignation = body.assignation || null;
   if (body.dateEmbauche !== undefined) data.dateEmbauche = body.dateEmbauche ? new Date(body.dateEmbauche) : null;
 

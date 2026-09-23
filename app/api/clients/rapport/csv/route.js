@@ -21,15 +21,15 @@ export async function GET() {
   });
 
   const lignesCsv = [
-    ["No client", "Nom", "Téléphone", "Courriel", "Ville", "Bons"].join(";"),
+    ["No client", "Nom", "Adresse", "Téléphone", "Courriel", "Bons"].join(";"),
   ];
   for (const c of clients) {
     lignesCsv.push([
       echapperCsv(c.numero),
       echapperCsv(c.nom),
+      echapperCsv([c.adresse, c.ville, c.codePostal].filter(Boolean).join(", ")),
       echapperCsv(c.telephone),
       echapperCsv(c.courriel),
-      echapperCsv(c.ville),
       c._count.bons,
     ].join(";"));
   }

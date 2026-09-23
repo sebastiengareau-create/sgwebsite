@@ -40,9 +40,9 @@ export default async function RapportClients() {
             <tr style={{ borderBottom: "1px solid #17150f" }}>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>No client</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Nom</th>
+              <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Adresse</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Téléphone</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Courriel</th>
-              <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Ville</th>
               <th style={{ textAlign: "right", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Bons</th>
             </tr>
           </thead>
@@ -51,9 +51,9 @@ export default async function RapportClients() {
               <tr key={c.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{c.numero || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{c.nom}</td>
+                <td style={{ padding: "6px 4px" }}>{[c.adresse, c.ville, c.codePostal].filter(Boolean).join(", ") || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{c.telephone || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{c.courriel || "—"}</td>
-                <td style={{ padding: "6px 4px" }}>{c.ville || "—"}</td>
                 <td style={{ padding: "6px 4px", textAlign: "right" }}>{c._count.bons}</td>
               </tr>
             ))}

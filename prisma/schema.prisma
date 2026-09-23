@@ -27,6 +27,8 @@ model User {
   actif              Boolean   @default(true)
   telephone          String?
   adresse            String?
+  ville              String?
+  codePostal         String?
   assignation        String? // ex. spécialité, poste, secteur assigné — texte libre
   numeroEmploye      String?   @unique // numéro séquentiel auto-généré, ex. "EMP-0001"
   dateEmbauche       DateTime?
@@ -435,6 +437,8 @@ model Fournisseur {
   telephone    String?
   courriel     String?
   adresse      String?
+  ville        String?
+  codePostal   String?
   actif        Boolean   @default(true)
   depenses     Depense[]
   piecesDefaut Piece[] // articles d'inventaire dont c'est le fournisseur habituel

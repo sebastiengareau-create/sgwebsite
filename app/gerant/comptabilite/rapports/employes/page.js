@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, aAccesSection, nomAffichageRole, ROLES_VALIDES } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonsExportListe from "../BoutonsExportListe";
@@ -12,7 +12,6 @@ export default async function RapportEmployes() {
   }
 
   const employes = await prisma.user.findMany({ orderBy: { nom: "asc" } });
-  const nomsRoles = Object.fromEntries(await Promise.all(ROLES_VALIDES.map(async (r) => [r, await nomAffichageRole(r)])));
 
   return (
     <div>
@@ -38,7 +37,7 @@ export default async function RapportEmployes() {
             <tr style={{ borderBottom: "1px solid #17150f" }}>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>No employé</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Nom</th>
-              <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Rôle</th>
+              <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Adresse</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Assignation</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Téléphone</th>
               <th style={{ textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "#888" }}>Courriel</th>
@@ -50,7 +49,7 @@ export default async function RapportEmployes() {
               <tr key={e.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{e.numeroEmploye || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{e.nom}</td>
-                <td style={{ padding: "6px 4px" }}>{nomsRoles[e.role] || e.role}</td>
+                <td style={{ padding: "6px 4px" }}>{[e.adresse, e.ville, e.codePostal].filter(Boolean).join(", ") || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{e.assignation || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{e.telephone || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{e.courriel || "—"}</td>

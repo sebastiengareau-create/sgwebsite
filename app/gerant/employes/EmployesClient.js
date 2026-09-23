@@ -81,6 +81,8 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   const [pin, setPin] = useState("");
   const [telephone, setTelephone] = useState("");
   const [adresse, setAdresse] = useState("");
+  const [ville, setVille] = useState("");
+  const [codePostal, setCodePostal] = useState("");
   const [assignation, setAssignation] = useState("");
   const [dateEmbauche, setDateEmbauche] = useState("");
   const [typeRemuneration, setTypeRemuneration] = useState("HORAIRE");
@@ -100,7 +102,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nom, courriel, motDePasse, role, pin: pin || undefined,
-        telephone, adresse, assignation, dateEmbauche,
+        telephone, adresse, ville, codePostal, assignation, dateEmbauche,
         typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
       }),
     });
@@ -127,6 +129,10 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
       <input placeholder="Code PIN (optionnel, 4 chiffres)" value={pin} onChange={(e) => setPin(e.target.value)} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1 }} />
+        <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
+      </div>
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Date d'embauche</label>
       <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />

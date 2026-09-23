@@ -14,6 +14,8 @@ export default function FournisseurDetailClient({ fournisseur }) {
   const [telephone, setTelephone] = useState(fournisseur.telephone || "");
   const [courriel, setCourriel] = useState(fournisseur.courriel || "");
   const [adresse, setAdresse] = useState(fournisseur.adresse || "");
+  const [ville, setVille] = useState(fournisseur.ville || "");
+  const [codePostal, setCodePostal] = useState(fournisseur.codePostal || "");
 
   async function sauvegarder() {
     setErreur("");
@@ -21,7 +23,7 @@ export default function FournisseurDetailClient({ fournisseur }) {
     const res = await fetch(`/api/fournisseurs/${fournisseur.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -94,7 +96,17 @@ export default function FournisseurDetailClient({ fournisseur }) {
           <label style={labelStyle}>Courriel</label>
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Adresse</label>
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} style={{ ...champStyle, marginBottom: 12 }} />
+          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Ville</label>
+              <input value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+            </div>
+            <div style={{ width: 110 }}>
+              <label style={labelStyle}>Code postal</label>
+              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, marginBottom: 0 }} />
+            </div>
+          </div>
 
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
@@ -113,6 +125,7 @@ export default function FournisseurDetailClient({ fournisseur }) {
             <Champ label="Téléphone" valeur={fournisseur.telephone} />
             <Champ label="Courriel" valeur={fournisseur.courriel} />
             <Champ label="Adresse" valeur={fournisseur.adresse} />
+            <Champ label="Ville" valeur={[fournisseur.ville, fournisseur.codePostal].filter(Boolean).join(" ") || null} />
           </div>
 
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
