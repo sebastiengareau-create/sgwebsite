@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { alignerInventaireAuGL } from "@/lib/comptabilite";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -38,5 +39,14 @@ export async function POST(request) {
       }),
     },
   });
-  return NextResponse.json(piece);
+
+  // La pièce est déjà créée à ce stade — un échec comptable (ex. période
+  // fermée) ne doit pas l'annuler, il est seulement signalé.
+  let avertissementComptable = null;
+  try {
+    await alignerInventaireAuGL(session.nom, `Nouvelle pièce ${piece.numero}`);
+  } catch (e) {
+    avertissementComptable = e.message.replace(/^PERIODE_LOCK:/, "");
+  }
+  return NextResponse.json({ ...piece, avertissementComptable });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { alignerInventaireAuGL } from "@/lib/comptabilite";
 import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
 
 const ALIAS_CHAMPS = {
@@ -59,6 +60,7 @@ export async function POST(request) {
   let importes = 0;
   const doublons = [];
   const ignores = [];
+  const piecesCreees = [];
 
   for (let numLigne = 2; numLigne <= feuille.rowCount; numLigne++) {
     const ligne = feuille.getRow(numLigne);
@@ -89,7 +91,7 @@ export async function POST(request) {
 
     const qteInitiale = versNombre(donnees.qte) || 0;
 
-    await prisma.piece.create({
+    const piece = await prisma.piece.create({
       data: {
         nom,
         numero,
@@ -109,7 +111,16 @@ export async function POST(request) {
       },
     });
     numerosExistants.add(numero.toLowerCase());
+    piecesCreees.push(piece);
     importes++;
+  }
+
+  // Une seule écriture pour tout le lot (plutôt qu'une par pièce) — les
+  // pièces sont déjà créées, un échec comptable est seulement signalé.
+  try {
+    await alignerInventaireAuGL(session.nom, `Import de ${piecesCreees.length} pièce${piecesCreees.length !== 1 ? "s" : ""}`);
+  } catch (e) {
+    ignores.push(`Écriture comptable non créée : ${e.message.replace(/^PERIODE_LOCK:/, "")}`);
   }
 
   return NextResponse.json({ importes, doublons, ignores });
