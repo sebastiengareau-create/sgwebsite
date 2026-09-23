@@ -5,7 +5,8 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 
-export default async function RapportDas({ searchParams }) {
+export default async function RapportDas(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   const { nomEntreprise, adresseLigne1, adresseLigne2 } = await obtenirInfosEntreprise();
   if (!(await aAccesSection(session, "comptabilite"))) redirect("/login");

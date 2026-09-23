@@ -70,7 +70,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
       )}
 
       {groupes.map((groupe) => (
-        <div key={groupe} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 12 }}>
+        <div key={groupe} className="carte carte-m" style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10, fontWeight: 700 }}>{groupe}</div>
           {soldes.filter((c) => c.groupe === groupe).map((c) => (
             <div key={c.numero} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>

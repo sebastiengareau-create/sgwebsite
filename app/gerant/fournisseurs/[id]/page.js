@@ -4,7 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import FournisseurDetailClient from "./FournisseurDetailClient";
 
-export default async function FicheFournisseur({ params }) {
+export default async function FicheFournisseur(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) redirect("/gerant");
 

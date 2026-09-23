@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { posterFacturePayee, verifierPeriodeModifiable } from "@/lib/comptabilite";
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -54,7 +55,8 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({ ...facture, avertissementComptable });
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   // Restreint au gérant seulement — suppression définitive, pensée pour
   // nettoyer des factures de test, pas pour un usage courant une fois en

@@ -5,7 +5,8 @@ import { limitesMoisQuebec } from "@/lib/temps";
 import { calculerResumeFermeture } from "@/lib/rapportsComptables";
 import { obtenirChecklist } from "@/lib/checklistFermeture";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

@@ -61,7 +61,7 @@ export default function JournalClient({ ecritures, estDev }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {ecritures.map((e) => (
-          <div key={e.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+          <div key={e.id} className="carte carte-s">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "var(--text-muted)" }}>
               <span style={{ fontFamily: "monospace" }}>{e.numero}{e.reference ? ` · ${e.reference}` : ""}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>

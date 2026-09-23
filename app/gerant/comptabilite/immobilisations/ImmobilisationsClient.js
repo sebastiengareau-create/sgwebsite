@@ -57,14 +57,14 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
         plutôt que d'être une dépense d'un coup.
       </p>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 16 }}>
+      <div className="carte carte-s" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 18, fontWeight: 700 }}>{valeurNetteTotale.toFixed(2)} $</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Valeur nette totale (après amortissement à ce jour)</div>
       </div>
 
       {afficherFormulaire && <FormulaireImmobilisation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />}
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 20 }}>
+      <div className="carte carte-m" style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Comptabiliser l'amortissement</div>
         <div style={{ display: "flex", gap: 8 }}>
           <input type="month" value={moisAmortir} onChange={(e) => setMoisAmortir(e.target.value)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }} />
@@ -80,7 +80,7 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
       <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Immobilisations</h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {immobilisations.map((im) => (
-          <div key={im.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, opacity: im.actif ? 1 : 0.5 }}>
+          <div key={im.id} className="carte carte-s" style={{ opacity: im.actif ? 1 : 0.5 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: 600, fontSize: 13 }}>{im.nom}</span>
               <span style={{ fontWeight: 700, fontSize: 13 }}>{im.valeurNette.toFixed(2)} $</span>
@@ -146,7 +146,7 @@ function FormulaireImmobilisation({ onCree }) {
   }
 
   return (
-    <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 16 }}>
       <input required placeholder="Nom (ex : Pont élévateur 2 colonnes)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input placeholder="Description (optionnel)" value={description} onChange={(e) => setDescription(e.target.value)} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>

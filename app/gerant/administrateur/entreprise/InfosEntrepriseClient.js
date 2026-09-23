@@ -42,7 +42,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
         ici pour adapter l'installation à un nouveau garage, sans toucher au code.
       </p>
 
-      <form onSubmit={sauvegarder} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+      <form onSubmit={sauvegarder} className="carte">
         <label style={labelStyle}>Nom de l'entreprise</label>
         <input required value={nomEntreprise} onChange={(e) => setNomEntreprise(e.target.value)} style={champStyle} />
 

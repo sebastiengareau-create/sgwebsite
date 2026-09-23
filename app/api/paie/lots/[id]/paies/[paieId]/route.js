@@ -6,7 +6,8 @@ import { calculerPaiePourEmploye } from "@/lib/paie";
 // Ajuste une paie précise à l'intérieur d'un lot encore en brouillon —
 // recalcule toujours côté serveur (jamais en confiance aveugle des chiffres
 // soumis), à partir des nouvelles heures ou du nouveau montant de vacances.
-export async function PATCH(request, { params }) {
+export async function PATCH(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -58,7 +59,8 @@ export async function PATCH(request, { params }) {
 }
 
 // Retire un employé du lot (tant qu'il est en brouillon) — le reste du lot continue.
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

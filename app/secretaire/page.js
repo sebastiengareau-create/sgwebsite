@@ -7,7 +7,8 @@ import FacturationPeriodes from "../components/FacturationPeriodes";
 import ResumeOperations from "../components/ResumeOperations";
 import ListeBonsClient from "./ListeBonsClient";
 
-export default async function EspaceSecretaire({ searchParams }) {
+export default async function EspaceSecretaire(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!session) redirect("/login");
   if (!(await aAccesSection(session, "operations"))) redirect(`/${session.role.toLowerCase()}`);

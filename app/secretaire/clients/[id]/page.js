@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import ClientDetailClient from "./ClientDetailClient";
 
-export default async function DetailClientPage({ params }) {
+export default async function DetailClientPage(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "clients"))) redirect("/mecanicien");
 

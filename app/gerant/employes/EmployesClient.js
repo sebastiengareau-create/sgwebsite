@@ -118,7 +118,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   }
 
   return (
-    <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 4 }}>
+    <form onSubmit={creer} className="carte" style={{ marginBottom: 4 }}>
       <SectionTitreForm>Profil</SectionTitreForm>
       <input required placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input required type="email" placeholder="Courriel" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />

@@ -4,7 +4,8 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

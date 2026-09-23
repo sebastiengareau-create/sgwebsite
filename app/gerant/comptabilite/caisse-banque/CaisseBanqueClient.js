@@ -41,7 +41,7 @@ export default function CaisseBanqueClient({ comptes, resume, entreesMois, sorti
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Comptes</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
         {comptes.map((c) => (
-          <div key={c.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div key={c.id} className="carte carte-s" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{c.nom}</div>
               <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{LABELS_CATEGORIE[c.categorie]} · {c.compteNumero}</div>

@@ -13,7 +13,7 @@ export default function HistoriqueFermeturesClient({ lignes }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {lignes.map(({ fermeture, reouverture, periode }) => (
-            <div key={fermeture.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+            <div key={fermeture.id} className="carte carte-s">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, fontSize: 13 }}>{NOMS_MOIS[periode.mois - 1]} {periode.annee}</span>
                 <span style={{ fontSize: 11, color: reouverture ? "var(--danger)" : "var(--success)" }}>

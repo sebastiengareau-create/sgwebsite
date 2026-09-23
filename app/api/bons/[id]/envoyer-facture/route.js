@@ -5,7 +5,8 @@ import { genererPdfFacture } from "@/lib/pdfFacture";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { Resend } from "resend";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   const { nomEntreprise } = await obtenirInfosEntreprise();
   if (!(await aAccesSection(session, "operations"))) {

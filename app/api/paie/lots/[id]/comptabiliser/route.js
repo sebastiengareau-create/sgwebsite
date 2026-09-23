@@ -4,7 +4,8 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { obtenirChecklistLot } from "@/lib/checklistLot";
 import { posterPaie } from "@/lib/comptabilite";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

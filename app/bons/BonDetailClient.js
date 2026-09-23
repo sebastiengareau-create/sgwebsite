@@ -871,7 +871,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   }
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+    <div className="carte carte-s">
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
         {editionNom ? (
           <div style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", flexWrap: "wrap" }}>

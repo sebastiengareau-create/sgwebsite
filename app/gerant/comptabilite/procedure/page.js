@@ -76,7 +76,7 @@ export default async function ProcedureFermeture() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {ETAPES.map((e) => (
-            <div key={e.numero} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+            <div key={e.numero} className="carte">
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: "50%", flexShrink: 0, marginTop: 2,

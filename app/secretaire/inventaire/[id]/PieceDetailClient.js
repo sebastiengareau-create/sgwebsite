@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { TitreSection } from "../../../components/ui";
 
 const ONGLETS = [
   { code: "resume", label: "Résumé" },
@@ -96,50 +97,50 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
       {modeEdition ? (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-          <label style={labelStyle}>Nom</label>
-          <input value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Numéro de référence</label>
-          <input value={numero} onChange={(e) => setNumero(e.target.value)} style={champStyle} />
+        <div className="carte">
+          <label className="etiquette">Nom</label>
+          <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
+          <label className="etiquette">Numéro de référence</label>
+          <input value={numero} onChange={(e) => setNumero(e.target.value)} className="champ" />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Stock</label>
-              <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} style={champStyle} />
+              <label className="etiquette">Stock</label>
+              <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} className="champ" />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Seuil min.</label>
-              <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} style={champStyle} />
+              <label className="etiquette">Seuil min.</label>
+              <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} className="champ" />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Seuil max.</label>
-              <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" style={champStyle} />
+              <label className="etiquette">Seuil max.</label>
+              <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" className="champ" />
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Coût moyen ($)</label>
-              <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => setCoutant(e.target.value)} style={champStyle} />
+              <label className="etiquette">Coût moyen ($)</label>
+              <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => setCoutant(e.target.value)} className="champ" />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Prix de vente ($)</label>
-              <input type="number" min={0} step="0.01" value={prix} onChange={(e) => setPrix(e.target.value)} style={champStyle} />
+              <label className="etiquette">Prix de vente ($)</label>
+              <input type="number" min={0} step="0.01" value={prix} onChange={(e) => setPrix(e.target.value)} className="champ" />
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Emplacement</label>
-              <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="ex. A-03-02" style={champStyle} />
+              <label className="etiquette">Emplacement</label>
+              <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="ex. A-03-02" className="champ" />
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Fournisseur habituel</label>
-              <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
+              <label className="etiquette">Fournisseur habituel</label>
+              <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} className="champ">
                 <option value="">Aucun</option>
                 {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
               </select>
             </div>
           </div>
-          <label style={labelStyle}>Catégorie</label>
-          <select value={categorie} onChange={(e) => setCategorie(e.target.value)} style={{ ...champStyle, marginBottom: 12 }}>
+          <label className="etiquette">Catégorie</label>
+          <select value={categorie} onChange={(e) => setCategorie(e.target.value)} className="champ" style={{ marginBottom: 12 }}>
             {categories.map((c) => <option key={c.code} value={c.code}>{c.nom}</option>)}
           </select>
           <div style={{ display: "flex", gap: 8 }}>
@@ -195,16 +196,16 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
 function OngletResume({ piece, marge, margePct }) {
   return (
     <>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-        <SectionTitre>Stock</SectionTitre>
+      <div className="carte" style={{ marginBottom: 12 }}>
+        <TitreSection>Stock</TitreSection>
         <Champ label="Stock actuel" valeur={`${piece.qte}`} />
         <Champ label="Seuil minimum" valeur={`${piece.qteMin}`} />
         {piece.qteMax != null && <Champ label="Seuil maximum" valeur={`${piece.qteMax}`} />}
         {piece.emplacement && <Champ label="Emplacement" valeur={piece.emplacement} />}
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-        <SectionTitre>Prix et marge</SectionTitre>
+      <div className="carte" style={{ marginBottom: 12 }}>
+        <TitreSection>Prix et marge</TitreSection>
         <Champ label="Coût moyen" valeur={`${(piece.coutant || 0).toFixed(2)} $`} />
         <Champ label="Prix de vente" valeur={`${piece.prix.toFixed(2)} $`} />
         <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
@@ -212,8 +213,8 @@ function OngletResume({ piece, marge, margePct }) {
         </div>
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-        <SectionTitre>Fournisseur</SectionTitre>
+      <div className="carte">
+        <TitreSection>Fournisseur</TitreSection>
         <Champ label="Fournisseur habituel" valeur={piece.fournisseur?.nom || "Aucun"} />
       </div>
     </>
@@ -225,8 +226,8 @@ function OngletMouvements({ mouvements }) {
     return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun mouvement de stock enregistré pour cet article pour l'instant.</p>;
   }
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-      <SectionTitre>Historique des mouvements de stock</SectionTitre>
+    <div className="carte">
+      <TitreSection>Historique des mouvements de stock</TitreSection>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {mouvements.map((m) => {
           const info = TYPE_MOUVEMENT[m.type] || { label: m.type, couleur: "var(--text)" };
@@ -256,8 +257,8 @@ function OngletAchats({ lignesDepense }) {
     return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun achat lié à cet article — utilise l'option "Réception d'inventaire" en créant une dépense fournisseur pour en enregistrer.</p>;
   }
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-      <SectionTitre>Réceptions liées à des factures fournisseur</SectionTitre>
+    <div className="carte">
+      <TitreSection>Réceptions liées à des factures fournisseur</TitreSection>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {lignesDepense.map((l) => (
           <div key={l.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
@@ -286,8 +287,8 @@ function OngletVentes({ utilisee }) {
     return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Cette pièce n'a pas encore été utilisée sur un bon de travail.</p>;
   }
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-      <SectionTitre>Utilisations sur des bons de travail</SectionTitre>
+    <div className="carte">
+      <TitreSection>Utilisations sur des bons de travail</TitreSection>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {utilisee.map((u) => (
           <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
@@ -323,13 +324,13 @@ function OngletFournisseurs({ piece, lignesDepense }) {
 
   return (
     <>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-        <SectionTitre>Fournisseur habituel</SectionTitre>
+      <div className="carte" style={{ marginBottom: 12 }}>
+        <TitreSection>Fournisseur habituel</TitreSection>
         <Champ label="Fournisseur par défaut" valeur={piece.fournisseur?.nom || "Aucun — configurable dans Modifier"} />
       </div>
       {fournisseursHistorique.length > 0 && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-          <SectionTitre>Fournisseurs ayant déjà livré cet article</SectionTitre>
+        <div className="carte">
+          <TitreSection>Fournisseurs ayant déjà livré cet article</TitreSection>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {fournisseursHistorique.map((f) => (
               <div key={f.nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
@@ -357,8 +358,8 @@ function OngletHistorique({ historique }) {
     return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune modification enregistrée sur la fiche de cet article.</p>;
   }
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-      <SectionTitre>Modifications de la fiche</SectionTitre>
+    <div className="carte">
+      <TitreSection>Modifications de la fiche</TitreSection>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {historique.map((h) => (
           <div key={h.id} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
@@ -375,9 +376,6 @@ function OngletHistorique({ historique }) {
   );
 }
 
-function SectionTitre({ children }) {
-  return <div style={{ fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 10 }}>{children}</div>;
-}
 function Champ({ label, valeur, accent }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
@@ -387,8 +385,3 @@ function Champ({ label, valeur, accent }) {
   );
 }
 
-const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4, marginTop: 8 };
-const champStyle = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box",
-};

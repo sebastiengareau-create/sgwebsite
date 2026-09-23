@@ -87,7 +87,7 @@ export default function OuvertureClient({ comptes }) {
           );
         })}
 
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 16 }}>
+        <div className="carte carte-s" style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
             <span style={{ color: "var(--text-muted)" }}>Total débit (actif + dépenses)</span>
             <span>{totalDebit.toFixed(2)} $</span>

@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -44,12 +45,17 @@ export async function POST(request, { params }) {
         },
       });
 
+      // Le coût unitaire est figé à la sortie du stock : c'est lui que la
+      // facture passera en coût des pièces vendues, même si le coût moyen de
+      // la pièce change d'ici là (sinon inventaire et grand livre divergent).
       const existante = await tx.pieceUtilisee.findFirst({ where: { problemeId, pieceId } });
       if (existante) {
-        return tx.pieceUtilisee.update({ where: { id: existante.id }, data: { qte: existante.qte + quantite } });
+        const qteTotale = existante.qte + quantite;
+        const coutant = (existante.qte * (existante.coutant ?? piece.coutant) + quantite * piece.coutant) / qteTotale;
+        return tx.pieceUtilisee.update({ where: { id: existante.id }, data: { qte: qteTotale, coutant } });
       }
       return tx.pieceUtilisee.create({
-        data: { problemeId, pieceId, qte: quantite, prix: piece.prix },
+        data: { problemeId, pieceId, qte: quantite, prix: piece.prix, coutant: piece.coutant },
       });
     });
     return NextResponse.json(resultat);

@@ -3,6 +3,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
+import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
 
 // Chaque section "empruntable" (configurable dans Administrateur → Rôles et
@@ -62,9 +63,12 @@ export default async function EnTete({ nom, role }) {
   return (
     <div style={{ borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 20, background: "var(--bg)" }}>
       <MinuteurInactivite />
+      <BarreLaterale liens={liens} nomEntreprise={nomEntreprise} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <MenuHamburger liens={liens} />
+          <div className="cacher-sur-bureau">
+            <MenuHamburger liens={liens} />
+          </div>
           <Image src="/logo.png" alt={nomEntreprise} width={72} height={48} style={{ objectFit: "contain" }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{nom}</div>

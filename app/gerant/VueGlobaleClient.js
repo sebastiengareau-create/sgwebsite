@@ -47,7 +47,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
 
       {/* Graphique + santé financière */}
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 12, marginBottom: 20, alignItems: "start" }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+        <div className="carte">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700 }}>Revenus vs dépenses — 12 derniers mois</span>
             <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>
@@ -80,7 +80,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
           </div>
         </div>
 
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+        <div className="carte">
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Santé financière</div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
             <JaugeScore score={sante.score} />
@@ -202,7 +202,7 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
   const excedent = seuilCalculable ? totalRevenus - seuilRentabilite : null;
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
+    <div className="carte" style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>📊 Analyse de rentabilité</span>
         <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>

@@ -54,11 +54,11 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
       {avertissement && <p style={{ fontSize: 12, color: "var(--accent)", marginBottom: 12 }}>⚠️ {avertissement}</p>}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+        <div className="carte carte-s">
           <div style={{ fontSize: 20, fontWeight: 700, color: "#C9A227" }}>{totalImpaye.toFixed(2)} $</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total impayé</div>
         </div>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+        <div className="carte carte-s">
           <div style={{ fontSize: 20, fontWeight: 700, color: "#6FA96B" }}>{totalPaye.toFixed(2)} $</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total payé</div>
         </div>

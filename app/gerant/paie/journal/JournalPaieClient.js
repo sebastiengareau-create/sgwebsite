@@ -28,7 +28,7 @@ export default function JournalPaieClient({ paies, sommaireEmployes, totaux, deb
         </button>
       </form>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 16 }}>
+      <div className="carte carte-s" style={{ marginBottom: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>{totaux.brut.toFixed(2)} $</div>
@@ -65,7 +65,7 @@ export default function JournalPaieClient({ paies, sommaireEmployes, totaux, deb
       {vue === "sommaire" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {sommaireEmployes.map(([nom, d]) => (
-            <div key={nom} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+            <div key={nom} className="carte carte-m">
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>{nom}</span>
                 <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{d.nbPaies} paie{d.nbPaies > 1 ? "s" : ""}</span>

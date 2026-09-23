@@ -177,6 +177,7 @@ model PieceUtilisee {
   piece      Piece    @relation(fields: [pieceId], references: [id])
   qte        Int
   prix       Float // prix figé au moment de l'ajout (historique de facturation)
+  coutant    Float? // coût unitaire figé à la sortie du stock — base du coût des pièces vendues (vide = lignes antérieures, coût actuel de la pièce)
 }
 
 // Journal des mouvements de stock (ventes, réceptions, ajustements manuels) —

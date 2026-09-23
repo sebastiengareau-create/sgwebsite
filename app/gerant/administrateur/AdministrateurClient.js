@@ -77,7 +77,7 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {modules.map((m) => (
-          <div key={m.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, opacity: m.pasEncoreConstruit ? 0.5 : 1 }}>
+          <div key={m.id} className="carte carte-m" style={{ opacity: m.pasEncoreConstruit ? 0.5 : 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 600 }}>{m.label}</div>

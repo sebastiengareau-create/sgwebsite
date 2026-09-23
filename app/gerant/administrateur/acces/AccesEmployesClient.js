@@ -81,7 +81,7 @@ export default function AccesEmployesClient({ employes, defautsRolesInit, nomsRo
       </p>
 
       {[ROLE_ACCES_TOTAL, ...ROLES_CONFIGURABLES].map((role) => (
-        <div key={role} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+        <div key={role} className="carte" style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: role === ROLE_ACCES_TOTAL ? 0 : 12 }}>
             {editionNomRole === role ? (
               <div style={{ display: "flex", gap: 6, flex: 1 }}>
@@ -135,7 +135,7 @@ export default function AccesEmployesClient({ employes, defautsRolesInit, nomsRo
       <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 20, marginBottom: 8 }}>Employés par rôle</h2>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {employes.map((e) => (
-          <div key={e.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between" }}>
+          <div key={e.id} className="carte carte-s" style={{ display: "flex", justifyContent: "space-between" }}>
             <span style={{ fontSize: 13 }}>{e.nom}</span>
             <span style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700 }}>{nomsRoles[e.role] || e.role}</span>
           </div>
