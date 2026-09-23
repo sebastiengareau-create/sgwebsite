@@ -6,7 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
-export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories }) {
+export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -27,7 +27,7 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
       {alignement && <AlignementInventaire alignement={alignement} />}
 
       <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />
+        {peutImporter && <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />}
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"

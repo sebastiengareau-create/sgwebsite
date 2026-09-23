@@ -67,6 +67,19 @@ export default function BoutonImporterFichier({ apiUrl, libelle, libellePluriel 
                   {resultat.ignores.join(" · ")}
                 </p>
               )}
+              {resultat.motsDePasse?.length > 0 && (
+                <div style={{ margin: "8px 0 0", padding: 8, background: "var(--bg)", borderRadius: 8 }}>
+                  <p style={{ margin: "0 0 4px", fontWeight: 700 }}>
+                    🔑 Identifiants à noter (identifiant de connexion et mot de passe temporaire) — affichés une seule fois
+                  </p>
+                  {resultat.motsDePasse.map((m) => (
+                    <div key={m.courriel} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12 }}>
+                      <span>{m.nom} ({m.courriel})</span>
+                      <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{m.motDePasse}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
           <button onClick={() => setResultat(null)} style={{ marginTop: 6, background: "none", border: "none", color: "var(--accent)", fontSize: 11.5, cursor: "pointer", padding: 0 }}>

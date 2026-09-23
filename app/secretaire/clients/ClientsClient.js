@@ -6,7 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
-export default function ClientsClient({ clients }) {
+export default function ClientsClient({ clients, peutImporter }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
@@ -23,7 +23,7 @@ export default function ClientsClient({ clients }) {
       <BandeauSection icone="🧑‍🤝‍🧑" titre="Clients" sousTitre="Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions." />
 
       <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        <BoutonImporterFichier apiUrl="/api/clients/importer" libelle="depuis Excel" libellePluriel="client" />
+        {peutImporter && <BoutonImporterFichier apiUrl="/api/clients/importer" libelle="depuis Excel" libellePluriel="client" />}
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"

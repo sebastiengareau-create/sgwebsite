@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
+import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
-export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables }) {
+export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [afficherFormulaire, setAfficherFormulaire] = useState(searchParams.get("nouveau") === "1");
@@ -14,7 +15,8 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
     <div className="conteneur-page">
       <BandeauSection icone="👥" titre="Gestion des employés" sousTitre="Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        {peutImporter && <BoutonImporterFichier apiUrl="/api/employes/importer" libelle="depuis Excel" libellePluriel="employé" />}
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"

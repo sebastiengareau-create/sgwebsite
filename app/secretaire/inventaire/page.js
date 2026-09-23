@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev, aAccesSection, estDeveloppeur } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { assurerPlanComptable, assurerCategoriesInventaire, calculerAlignementInventaire } from "@/lib/comptabilite";
@@ -25,7 +25,7 @@ export default async function GestionInventaire() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <InventaireClient pieces={pieces} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} />
+      <InventaireClient pieces={pieces} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} />
     </div>
   );
 }
