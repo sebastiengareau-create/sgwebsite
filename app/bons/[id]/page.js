@@ -6,7 +6,8 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
-export default async function DetailBonPage({ params }) {
+export default async function DetailBonPage(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!session) redirect("/login");
 

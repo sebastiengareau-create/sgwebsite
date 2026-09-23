@@ -161,16 +161,16 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+        <div className="carte carte-s">
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalCoutEquipe.toFixed(2)} $</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Coût (heures prévues)</div>
         </div>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+        <div className="carte carte-s">
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{totalRevenuEquipe.toFixed(2)} $</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Revenu (heures poinçonnées)</div>
         </div>
       </div>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="carte carte-s" style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Marge du jour (équipe)</span>
         <span style={{ fontSize: 18, fontWeight: 700, color: margeEquipe >= 0 ? "var(--success)" : "var(--danger)" }}>{margeEquipe.toFixed(2)} $</span>
       </div>
@@ -181,7 +181,7 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
 
           if (absent) {
             return (
-              <div key={employe.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, opacity: 0.6 }}>
+              <div key={employe.id} className="carte carte-m" style={{ opacity: 0.6 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600 }}>{employe.nom}</span>
                   <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Absent — aucun poinçon</span>
@@ -196,7 +196,7 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
           const margeJour = revenuJour - coutJour;
 
           return (
-            <div key={employe.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+            <div key={employe.id} className="carte carte-m">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 600 }}>{employe.nom}</span>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {heuresAttendues}h</span>

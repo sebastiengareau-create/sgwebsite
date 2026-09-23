@@ -5,7 +5,8 @@ import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
 import EnTete from "../../components/EnTete";
 import CalendrierClient from "./CalendrierClient";
 
-export default async function Calendrier({ searchParams }) {
+export default async function Calendrier(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "calendrier"))) redirect("/mecanicien");
 

@@ -11,7 +11,8 @@ function dureeHeures(debutISO, finISO) {
 
 const CLES_JOURS = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"]; // aligné sur Date.getUTCDay() : 0=dim
 
-export default async function RapportJournalier({ searchParams }) {
+export default async function RapportJournalier(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "jobs-temps-reel"))) redirect("/gerant");
 

@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import EnTete from "../../../../../components/EnTete";
 import SoumissionForm from "../../nouvelle/SoumissionForm";
 
-export default async function ModifierSoumissionPage({ params }) {
+export default async function ModifierSoumissionPage(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
 

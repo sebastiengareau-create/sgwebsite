@@ -6,7 +6,8 @@ import Link from "next/link";
 
 const NORMAL_DEBIT = ["ACTIF", "DEPENSE"];
 
-export default async function GrandLivre({ params }) {
+export default async function GrandLivre(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
 

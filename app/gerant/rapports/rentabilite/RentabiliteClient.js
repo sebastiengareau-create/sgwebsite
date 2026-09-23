@@ -41,7 +41,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
       </form>
 
       {/* Résumé global */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
+      <div className="carte" style={{ marginBottom: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{totalRevenu.toFixed(2)} $</div>
@@ -83,7 +83,7 @@ function CarteEmploye({ d }) {
   const margePct = d.revenuGenere > 0 ? (d.marge / d.revenuGenere) * 100 : null;
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+    <div className="carte">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span style={{ fontWeight: 700, fontSize: 14 }}>{d.employe.nom}</span>
         <span style={{ fontSize: 15, fontWeight: 800, color: d.marge >= 0 ? "var(--success)" : "var(--danger)" }}>

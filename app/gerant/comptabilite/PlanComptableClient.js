@@ -202,7 +202,7 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
       </div>
 
       {afficherFormulaire && (
-        <form onSubmit={creerCompte} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <form onSubmit={creerCompte} className="carte carte-m" style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               placeholder="Numéro (ex : 4060)" value={numero} onChange={(e) => setNumero(e.target.value)}

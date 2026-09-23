@@ -5,7 +5,8 @@ import { dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../../../components/EnTete";
 import JournalPaieClient from "./JournalPaieClient";
 
-export default async function JournalPaie({ searchParams }) {
+export default async function JournalPaie(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) redirect("/gerant");
 

@@ -63,7 +63,7 @@ export default function RapprochementClient({ comptesTresorerie, compteId, ligne
         {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
       </select>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div className="carte carte-m" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
           <span style={{ color: "var(--text-muted)" }}>Solde selon les livres</span>
           <span style={{ fontWeight: 700 }}>{soldeLivres.toFixed(2)} $</span>

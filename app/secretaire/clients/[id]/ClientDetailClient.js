@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { TitreSection, LigneInfo } from "../../../components/ui";
 
 const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
 const STATUTS_SOUMISSION = { BROUILLON: "En attente", EN_ATTENTE: "En attente", ENVOYEE: "En attente", ACCEPTEE: "Acceptée", REFUSEE: "Refusée" };
@@ -84,28 +85,28 @@ export default function ClientDetailClient({ client }) {
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
       {modeEdition ? (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-          <SectionTitre>Coordonnées</SectionTitre>
-          <label style={labelStyle}>Nom</label>
-          <input value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Téléphone</label>
-          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Courriel</label>
-          <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Adresse</label>
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+        <div className="carte">
+          <TitreSection>Coordonnées</TitreSection>
+          <label className="etiquette">Nom</label>
+          <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
+          <label className="etiquette">Téléphone</label>
+          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
+          <label className="etiquette">Courriel</label>
+          <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
+          <label className="etiquette">Adresse</label>
+          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Ville</label>
-              <input value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
+              <label className="etiquette">Ville</label>
+              <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
             </div>
             <div style={{ width: 110 }}>
-              <label style={labelStyle}>Code postal</label>
-              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={champStyle} />
+              <label className="etiquette">Code postal</label>
+              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} className="champ" />
             </div>
           </div>
-          <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
-          <input value={garantieProlongee} onChange={(e) => setGarantieProlongee(e.target.value)} style={{ ...champStyle, marginBottom: 12 }} />
+          <label className="etiquette">Garantie prolongée — numéro de contrat</label>
+          <input value={garantieProlongee} onChange={(e) => setGarantieProlongee(e.target.value)} className="champ" style={{ marginBottom: 12 }} />
 
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
@@ -118,16 +119,16 @@ export default function ClientDetailClient({ client }) {
         </div>
       ) : (
         <>
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <SectionTitre>Coordonnées</SectionTitre>
-            <Champ label="Numéro" valeur={client.numero} />
-            <Champ label="Téléphone" valeur={client.telephone} />
-            <Champ label="Adresse" valeur={client.adresse} />
-            <Champ label="Ville" valeur={[client.ville, client.codePostal].filter(Boolean).join(" ") || null} />
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Coordonnées</TitreSection>
+            <LigneInfo label="Numéro" valeur={client.numero} />
+            <LigneInfo label="Téléphone" valeur={client.telephone} />
+            <LigneInfo label="Adresse" valeur={client.adresse} />
+            <LigneInfo label="Ville" valeur={[client.ville, client.codePostal].filter(Boolean).join(" ") || null} />
           </div>
 
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <SectionTitre>Véhicules ({client.vehicules.length})</SectionTitre>
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Véhicules ({client.vehicules.length})</TitreSection>
             {client.vehicules.length === 0 ? (
               <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun véhicule encore.</p>
             ) : (
@@ -144,8 +145,8 @@ export default function ClientDetailClient({ client }) {
             )}
           </div>
 
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <SectionTitre>Bons de commande ({client.bons.length})</SectionTitre>
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Bons de commande ({client.bons.length})</TitreSection>
             {client.bons.length === 0 ? (
               <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun bon encore.</p>
             ) : (
@@ -163,8 +164,8 @@ export default function ClientDetailClient({ client }) {
           </div>
 
           {client.soumissions.length > 0 && (
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-              <SectionTitre>Soumissions ({client.soumissions.length})</SectionTitre>
+            <div className="carte" style={{ marginBottom: 12 }}>
+              <TitreSection>Soumissions ({client.soumissions.length})</TitreSection>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {client.soumissions.map((s) => (
                   <Link key={s.id} href={`/secretaire/operations/soumissions/${s.id}/modifier`} style={{ textDecoration: "none", color: "inherit" }}>
@@ -192,21 +193,3 @@ export default function ClientDetailClient({ client }) {
   );
 }
 
-function SectionTitre({ children }) {
-  return <div style={{ fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 10 }}>{children}</div>;
-}
-
-function Champ({ label, valeur }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6, gap: 12 }}>
-      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontWeight: 600, textAlign: "right" }}>{valeur || "—"}</span>
-    </div>
-  );
-}
-
-const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4, marginTop: 8 };
-const champStyle = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box",
-};

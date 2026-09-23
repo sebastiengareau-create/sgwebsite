@@ -6,7 +6,8 @@ import EnTete from "../../../components/EnTete";
 import OperationsTabs from "../../../components/OperationsTabs";
 import RapportVentesClient from "./RapportVentesClient";
 
-export default async function RapportVentes({ searchParams }) {
+export default async function RapportVentes(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/mecanicien");
 

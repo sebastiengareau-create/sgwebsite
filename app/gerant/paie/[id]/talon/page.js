@@ -5,7 +5,8 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimerRapport from "../../../comptabilite/rapports/BoutonImprimerRapport";
 import TalonPaie from "../../TalonPaie";
 
-export default async function TalonDePaie({ params }) {
+export default async function TalonDePaie(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) redirect("/login");
 

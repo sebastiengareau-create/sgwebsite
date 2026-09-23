@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -21,7 +22,8 @@ export async function PATCH(request, { params }) {
   return NextResponse.json(fournisseur);
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

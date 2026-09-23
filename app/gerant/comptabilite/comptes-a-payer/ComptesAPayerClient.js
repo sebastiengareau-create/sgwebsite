@@ -41,7 +41,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         </button>
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+      <div className="carte carte-s" style={{ marginBottom: 12 }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalDu.toFixed(2)} $</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total dû aux fournisseurs</div>
       </div>
@@ -481,7 +481,7 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
   }
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+    <div className="carte carte-m" style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Fournisseurs</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
         {fournisseurs.map((f) =>
@@ -593,7 +593,7 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
   }
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+    <div className="carte carte-m" style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Postes de dépenses</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
         {categories.map((c) => (
@@ -729,7 +729,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   }
 
   return (
-    <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 16 }}>
       <label style={labelStyle}>Fournisseur</label>
       <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
         {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}

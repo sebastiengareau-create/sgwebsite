@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { obtenirChecklistLot } from "@/lib/checklistLot";
 
-export async function GET(request, { params }) {
+export async function GET(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -20,7 +21,8 @@ export async function GET(request, { params }) {
   return NextResponse.json({ lot, checklist });
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

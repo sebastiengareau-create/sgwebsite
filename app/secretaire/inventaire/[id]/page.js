@@ -4,7 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import PieceDetailClient from "./PieceDetailClient";
 
-export default async function DetailPiece({ params }) {
+export default async function DetailPiece(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "inventaire"))) redirect("/mecanicien");
 

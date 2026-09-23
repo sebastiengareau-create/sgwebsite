@@ -43,7 +43,7 @@ export default function TransfertsClient({ comptesTresorerie, transferts }) {
       {comptesTresorerie.length < 2 ? (
         <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Il faut au moins 2 comptes actifs pour faire un transfert.</p>
       ) : (
-        <form onSubmit={effectuer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 20 }}>
+        <form onSubmit={effectuer} className="carte carte-m" style={{ marginBottom: 20 }}>
           <label style={labelStyle}>De</label>
           <select value={compteSourceId} onChange={(e) => setCompteSourceId(e.target.value)} style={champStyle}>
             {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}

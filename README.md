@@ -10,7 +10,7 @@ Il te faut Node.js installé (version 18 ou plus). Ensuite, dans ce dossier :
 
 ```bash
 npm install
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 npm run seed
 npm run dev
 ```
@@ -32,7 +32,7 @@ La secrétaire et le mécanicien sont automatiquement bloqués hors de leur espa
 ## Ce qui fonctionne déjà (branché sur la vraie base de données)
 
 - Connexion / déconnexion avec mots de passe hachés
-- Protection des routes par rôle (middleware.js)
+- Protection des routes par rôle (proxy.js)
 - **Horodateur réel** : le mécanicien peut démarrer/arrêter un poinçon sur un
   bon qui lui est assigné — ça écrit vraiment dans la base (table `EntreeTemps`)
 - Vue d'ensemble du gérant (comptes, bons, alertes de stock)
@@ -50,7 +50,7 @@ ajout de pièces avec déduction d'inventaire, filtre par statut) dans
 prisma/schema.prisma   → les tables (User, BonTravail, Piece, EntreeTemps, etc.)
 prisma/seed.js         → données de démo (3 comptes + inventaire + 1 bon)
 lib/auth.js            → sessions, mots de passe, vérification de rôle
-middleware.js          → bloque l'accès aux mauvaises sections
+proxy.js               → bloque l'accès aux mauvaises sections
 app/login/              → page de connexion
 app/gerant/              → espace gérant
 app/secretaire/          → espace secrétaire

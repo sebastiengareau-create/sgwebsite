@@ -3,7 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
-export async function PATCH(request, { params }) {
+// Des pièces qui reviennent en stock y rentrent à leur coût figé sur la ligne
+// (pas au coût moyen actuel) : le coût moyen de la pièce est recalculé pour
+// que la valeur du stock reste exactement égale à celle du grand livre.
+function coutMoyenApresRetour(piece, qteRetour, coutLigne) {
+  const qteTotale = piece.qte + qteRetour;
+  return qteTotale > 0 ? (piece.qte * piece.coutant + qteRetour * coutLigne) / qteTotale : piece.coutant;
+}
+
+export async function PATCH(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -42,10 +51,17 @@ export async function PATCH(request, { params }) {
           const piece = await tx.piece.findUnique({ where: { id: ligne.pieceId } });
           if (difference > 0 && piece.qte < difference) throw new Error("STOCK_INSUFFISANT");
           const nouvelleQtePiece = piece.qte - difference;
+          const coutLigne = ligne.coutant ?? piece.coutant;
+          // Plus de pièces prises : elles sortent au coût moyen actuel, la ligne
+          // garde un coût moyen pondéré. Pièces rendues : retour au coût figé.
+          data.coutant = difference > 0
+            ? (ligne.qte * coutLigne + difference * piece.coutant) / nouvelleQte
+            : coutLigne;
           await tx.piece.update({
             where: { id: ligne.pieceId },
             data: {
               qte: nouvelleQtePiece,
+              ...(difference < 0 && { coutant: coutMoyenApresRetour(piece, -difference, coutLigne) }),
               mouvements: {
                 create: {
                   type: "VENTE", qte: -difference, solde: nouvelleQtePiece,
@@ -71,7 +87,8 @@ export async function PATCH(request, { params }) {
   return NextResponse.json(misAJour);
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -93,6 +110,7 @@ export async function DELETE(request, { params }) {
       where: { id: ligne.pieceId },
       data: {
         qte: nouvelleQte,
+        coutant: coutMoyenApresRetour(piece, ligne.qte, ligne.coutant ?? piece.coutant),
         mouvements: {
           create: {
             type: "VENTE", qte: ligne.qte, solde: nouvelleQte,

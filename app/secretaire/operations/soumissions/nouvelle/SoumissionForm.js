@@ -182,7 +182,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Tâches estimées</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {taches.map((t, idx) => (
-          <div key={t.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+          <div key={t.id} className="carte carte-s">
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <input
                 placeholder={`Tâche ${idx + 1} — ex : Remplacement plaquettes de frein`}

@@ -55,11 +55,10 @@ Chaque client a son **propre projet Railway complet** :
    `.env` local pour la valeur recommandée du modèle)
 
 ### 4. Initialiser la base de données de ce client
-Depuis le dossier du nouveau client, avec le tunnel Railway comme on l'a
-fait la première fois :
-```
-npx prisma migrate dev --name init
-```
+Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`
+(voir `npm start`), qui crée toutes les tables sur une base vide à partir de
+`prisma/migrations/`. Le premier déploiement (étape 5) initialise donc la base.
+
 Puis, au lieu de `npm run seed` (qui crée des comptes de démo fictifs),
 crée directement les vrais comptes du client via l'écran de gestion des
 employés une fois l'app en ligne — plus propre pour une vraie livraison.
@@ -79,6 +78,32 @@ automatiquement. Le processus :
 2. Une fois satisfait, applique le même changement de code dans chaque
    dossier `client-...` (copier les fichiers modifiés)
 3. Redéploie chaque client individuellement (`railway up` dans son dossier)
+
+## Changer le schéma de la base (ajouter un champ, une table…)
+
+Plus de `prisma db push` : chaque changement devient une migration versionnée,
+appliquée automatiquement au démarrage de l'app (`prisma migrate deploy`).
+1. Modifie `prisma/schema.prisma`
+2. `npm run migration -- nom_du_changement` — compare la base (lecture seule)
+   au schéma et écrit le SQL dans `prisma/migrations/<date>_<nom>/`.
+   Relis-le, et ajoute au besoin le remplissage des données existantes.
+3. `npx prisma generate`, puis commit, push et déploiement : la migration
+   s'applique toute seule au démarrage, sur chaque client lors de son
+   prochain déploiement.
+
+Déploie une migration avant d'en créer une autre : le script compare à la
+base réelle, qui doit déjà avoir les migrations précédentes.
+
+**Installation existante qui n'avait pas encore de migrations** (base créée
+avec `db push`) : avant son premier déploiement avec ce système, marque la
+migration de départ comme déjà appliquée, sinon le démarrage échoue parce
+que les tables existent déjà :
+```
+npx prisma migrate resolve --applied 0_init
+```
+(avec DATABASE_URL pointant vers la base de ce client). Si la branche du
+client a des tables à elle (ex. Vehicule), crée-lui sa propre migration de
+départ et marque-la aussi comme appliquée.
 
 C'est plus de manutention qu'un vrai système "multi-tenant" (un seul
 logiciel qui sert tous les clients à la fois), mais c'est **beaucoup plus

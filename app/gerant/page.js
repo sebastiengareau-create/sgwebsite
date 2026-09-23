@@ -46,7 +46,8 @@ function calculerSanteFinanciere({ revenus, depenses, beneficeNet, soldeBancaire
   return { score: Math.max(0, Math.min(100, total)), label, ratioEndettement: ratioEndettement * 100, margePct: margePct * 100 };
 }
 
-export default async function EspaceGerant({ searchParams }) {
+export default async function EspaceGerant(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!session) redirect("/login");
   if (!(await aAccesSection(session, "vue-ensemble"))) {
@@ -217,7 +218,7 @@ export default async function EspaceGerant({ searchParams }) {
             );
           })}
           {poinconsInternesActifs.map((t) => (
-            <div key={t.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div key={t.id} className="carte carte-s" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 600 }}>{t.employe.nom}</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>🛠️ {t.tacheInterne.nom} (interne, non facturable)</div>
@@ -238,7 +239,7 @@ export default async function EspaceGerant({ searchParams }) {
 
 function Carte({ label, valeur, alerte }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+    <div className="carte carte-s">
       <div style={{ fontSize: 24, fontWeight: 700, color: alerte ? "var(--danger)" : "var(--accent)" }}>{valeur}</div>
       <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</div>
     </div>

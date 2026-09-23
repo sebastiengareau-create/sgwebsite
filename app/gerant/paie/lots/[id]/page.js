@@ -5,7 +5,8 @@ import { obtenirChecklistLot } from "@/lib/checklistLot";
 import EnTete from "../../../../components/EnTete";
 import LotDetailClient from "./LotDetailClient";
 
-export default async function LotPaieDetail({ params }) {
+export default async function LotPaieDetail(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) redirect("/gerant");
 

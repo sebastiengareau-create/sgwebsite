@@ -7,7 +7,8 @@ import { obtenirChecklist } from "@/lib/checklistFermeture";
 import EnTete from "../../../../../components/EnTete";
 import AssistantFermetureClient from "./AssistantFermetureClient";
 
-export default async function AssistantFermeture({ params }) {
+export default async function AssistantFermeture(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
 

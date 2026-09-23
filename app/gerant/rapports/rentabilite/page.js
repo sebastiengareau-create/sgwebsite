@@ -9,7 +9,8 @@ function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
 
-export default async function RapportRentabilite({ searchParams }) {
+export default async function RapportRentabilite(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!estGerantOuDev(session)) redirect("/gerant");
 

@@ -9,7 +9,8 @@ function jourCivil(dateStr) {
   return new Date(`${dateStr.slice(0, 10)}T12:00:00Z`);
 }
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -181,7 +182,8 @@ async function modifierDepense(id, corps, session) {
   return NextResponse.json(depenseMaj);
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

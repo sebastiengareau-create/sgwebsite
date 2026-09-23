@@ -7,7 +7,8 @@ import BoutonRetour from "./BoutonRetour";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
-export default async function ImprimerSoumission({ params }) {
+export default async function ImprimerSoumission(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   const { nomEntreprise, adresseLigne1, adresseLigne2, telephone } = await obtenirInfosEntreprise();
   if (!session) redirect("/login");

@@ -68,7 +68,7 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
       </div>
 
       {/* Dernier traitement de paie */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
+      <div className="carte" style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 700 }}>📋 Dernier traitement de paie</span>
           {dernierLot && (

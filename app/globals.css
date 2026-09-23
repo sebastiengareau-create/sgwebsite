@@ -136,3 +136,110 @@ a { color: inherit; }
     max-width: 820px;
   }
 }
+
+/* ---------- Composants visuels communs ----------
+   Réutilisés partout plutôt que redéfinis dans chaque page : un changement
+   de look se fait ici, une seule fois. Les valeurs reprennent exactement
+   celles qui étaient écrites à la main dans les pages. */
+
+/* Carte (bloc de contenu) — trois tailles : page, élément de liste, compacte */
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.carte.carte-m { border-radius: 10px; padding: 14px; }
+.carte.carte-s { border-radius: 10px; padding: 12px; }
+
+/* Champ de formulaire standard (input, select, textarea) */
+.champ {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.champ.champ-espace { margin-bottom: 8px; }
+
+/* Petit titre de section en majuscules, au-dessus d'un bloc */
+.titre-section {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+/* Ligne « libellé ……… valeur » des fiches détail */
+.ligne-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.ligne-info > span:first-child { color: var(--text-muted); }
+.ligne-info > span:last-child { font-weight: 600; text-align: right; }
+
+/* ---------- Barre latérale (ordinateur) ----------
+   Sur grand écran, le menu reste affiché en permanence à gauche au lieu
+   d'être caché derrière le bouton hamburger. Sur mobile et tablette, rien
+   ne change : la barre est masquée et le hamburger reste en place. */
+.barre-laterale { display: none; }
+
+@media (min-width: 1100px) {
+  .barre-laterale {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 232px;
+    padding: 16px 12px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 30;
+  }
+  body:has(.barre-laterale) { padding-left: 232px; }
+  .cacher-sur-bureau { display: none !important; }
+}
+
+.barre-laterale-lien {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+.barre-laterale-lien:hover { background: var(--bg); }
+.barre-laterale-lien.actif {
+  background: linear-gradient(180deg, var(--accent-clair), var(--accent));
+  color: #17150f;
+}
+.barre-laterale-lien.accentue:not(.actif) { color: var(--accent); }
+
+@media print {
+  .barre-laterale { display: none !important; }
+  body:has(.barre-laterale) { padding-left: 0; }
+}
+
+/* Étiquette au-dessus d'un champ de formulaire */
+.etiquette {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  margin-bottom: 4px;
+}

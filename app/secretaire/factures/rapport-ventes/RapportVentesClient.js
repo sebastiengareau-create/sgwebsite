@@ -109,7 +109,7 @@ export default function RapportVentesClient({ lignes, totaux, ticketMoyen, debut
 
 function Carte({ valeur, label, couleur }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
+    <div className="carte carte-s">
       <div style={{ fontSize: 18, fontWeight: 700, color: couleur }}>{valeur}</div>
       <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{label}</div>
     </div>

@@ -5,7 +5,8 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import EnTete from "../../../../components/EnTete";
 import RapprochementClient from "./RapprochementClient";
 
-export default async function Rapprochement({ searchParams }) {
+export default async function Rapprochement(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
 

@@ -5,7 +5,8 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import BoutonImprimerRapport from "../../comptabilite/rapports/BoutonImprimerRapport";
 
-export default async function CumulatifsPaie({ searchParams }) {
+export default async function CumulatifsPaie(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) redirect("/login");
 

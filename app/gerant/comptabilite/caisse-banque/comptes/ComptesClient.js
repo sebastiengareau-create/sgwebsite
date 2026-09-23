@@ -101,7 +101,7 @@ function LigneCompte({ compte, onModifie }) {
   const ecart = Number(soldeReleve) - compte.soldeComptable;
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, opacity: compte.actif ? 1 : 0.55 }}>
+    <div className="carte carte-s" style={{ opacity: compte.actif ? 1 : 0.55 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         {editionNom ? (
           <div style={{ display: "flex", gap: 6, alignItems: "center", flex: 1 }}>
@@ -185,7 +185,7 @@ function FormulaireCompte({ comptesGlDisponibles, onCree }) {
   }
 
   return (
-    <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 16 }}>
       <label style={labelStyle}>Nom du compte</label>
       <input placeholder="Ex : Petite caisse" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
 

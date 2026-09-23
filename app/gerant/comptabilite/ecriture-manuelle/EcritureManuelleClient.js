@@ -96,7 +96,7 @@ export default function EcritureManuelleClient({ comptes }) {
       </p>
 
       <form onSubmit={soumettre}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 12 }}>
+        <div className="carte carte-m" style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Date</label>
@@ -111,7 +111,7 @@ export default function EcritureManuelleClient({ comptes }) {
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex. Ajustement inventaire" style={{ ...champStyle, marginBottom: 0 }} required />
         </div>
 
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 12 }}>
+        <div className="carte carte-m" style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>Lignes</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {lignes.map((l) => (

@@ -5,7 +5,8 @@ import { limitesMoisQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../../../components/EnTete";
 import FermetureClient from "./FermetureClient";
 
-export default async function FermeturePeriode({ searchParams }) {
+export default async function FermeturePeriode(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
 

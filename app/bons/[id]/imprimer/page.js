@@ -16,7 +16,8 @@ const STATUTS = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Fact
 const STATUTS_FACTURE = { IMPAYEE: "Impayée", PAYEE: "Payée", ANNULEE: "Annulée" };
 const COLONNES_TRAVAUX = "1fr 55px 45px 65px 75px"; // description | hrs | qté | prix | total
 
-export default async function ImprimerBon({ params }) {
+export default async function ImprimerBon(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   const { nomEntreprise, adresseLigne1, adresseLigne2, telephone } = await obtenirInfosEntreprise();
   if (!session) redirect("/login");

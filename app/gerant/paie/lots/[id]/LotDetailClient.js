@@ -123,7 +123,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
       </p>
 
       {estBrouillon && checklist && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <div className="carte carte-m" style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 10 }}>
             Checklist — {checklist.pourcentage}% complétée
           </div>
@@ -147,7 +147,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
         </div>
       )}
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div className="carte carte-m" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 18, fontWeight: 700 }}>{lot.paies.length} employé{lot.paies.length !== 1 ? "s" : ""}</div>
         <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
           {totalBrut.toFixed(2)} $ brut · {totalDeductions.toFixed(2)} $ retenues · <strong style={{ color: "var(--text)" }}>{totalNet.toFixed(2)} $ net</strong>
@@ -227,7 +227,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
   }
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, opacity: paie.statut === "CORRIGEE" ? 0.5 : 1 }}>
+    <div className="carte carte-s" style={{ opacity: paie.statut === "CORRIGEE" ? 0.5 : 1 }}>
       <div onClick={() => setOuvert((v) => !v)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
         <div>
           <span style={{ fontWeight: 600, fontSize: 13 }}>

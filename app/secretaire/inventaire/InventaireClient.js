@@ -167,7 +167,7 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   }
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+    <div className="carte carte-m" style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Catégories existantes</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
         {categories.map((c) => (
@@ -272,7 +272,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree }) {
   }
 
   return (
-    <form onSubmit={creer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 4 }}>
+    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 4 }}>
       <input required placeholder="Nom de la pièce (ex : Filtre à huile)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input required placeholder="Numéro de référence (ex : FO-2201)" value={numero} onChange={(e) => setNumero(e.target.value)} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>

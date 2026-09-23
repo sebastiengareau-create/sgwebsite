@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { TitreSection, LigneInfo } from "../../../components/ui";
 
 export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
   const router = useRouter();
@@ -100,15 +101,15 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
       {modeEdition ? (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-          <SectionTitre>Profil</SectionTitre>
-          <label style={labelStyle}>Nom</label>
-          <input value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Courriel</label>
-          <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Rôle</label>
+        <div className="carte">
+          <TitreSection>Profil</TitreSection>
+          <label className="etiquette">Nom</label>
+          <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
+          <label className="etiquette">Courriel</label>
+          <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
+          <label className="etiquette">Rôle</label>
           {peutGererEmploye ? (
-            <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="champ">
               {rolesAssignables.map((r) => (
                 <option key={r} value={r}>{nomsRoles[r]}</option>
               ))}
@@ -118,57 +119,57 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
               {nomsRoles[employe.role] || employe.role} — niveau de sécurité plus élevé que le tien, non modifiable.
             </p>
           )}
-          <label style={labelStyle}>Téléphone</label>
-          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Adresse</label>
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+          <label className="etiquette">Téléphone</label>
+          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
+          <label className="etiquette">Adresse</label>
+          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Ville</label>
-              <input value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
+              <label className="etiquette">Ville</label>
+              <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
             </div>
             <div style={{ width: 110 }}>
-              <label style={labelStyle}>Code postal</label>
-              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={champStyle} />
+              <label className="etiquette">Code postal</label>
+              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} className="champ" />
             </div>
           </div>
-          <label style={labelStyle}>Assignation (poste, spécialité, secteur…)</label>
-          <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" style={champStyle} />
-          <label style={labelStyle}>Date d'embauche</label>
-          <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Nouveau mot de passe (laisse vide pour ne pas changer)</label>
-          <input type="password" minLength={4} maxLength={12} value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)} style={champStyle} />
+          <label className="etiquette">Assignation (poste, spécialité, secteur…)</label>
+          <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" className="champ" />
+          <label className="etiquette">Date d'embauche</label>
+          <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} className="champ" />
+          <label className="etiquette">Nouveau mot de passe (laisse vide pour ne pas changer)</label>
+          <input type="password" minLength={4} maxLength={12} value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)} className="champ" />
 
-          <SectionTitre>Configuration de paie</SectionTitre>
-          <label style={labelStyle}>Type de rémunération</label>
-          <select value={typeRemuneration} onChange={(e) => setTypeRemuneration(e.target.value)} style={champStyle}>
+          <TitreSection>Configuration de paie</TitreSection>
+          <label className="etiquette">Type de rémunération</label>
+          <select value={typeRemuneration} onChange={(e) => setTypeRemuneration(e.target.value)} className="champ">
             <option value="HORAIRE">Payé à l'heure</option>
             <option value="SALAIRE">Salarié (montant fixe)</option>
           </select>
           {typeRemuneration === "HORAIRE" ? (
             <>
-              <label style={labelStyle}>Taux horaire spécifique (vide = taux global des Paramètres)</label>
-              <input type="number" min={0} step="0.01" value={tauxHoraireEmploye} onChange={(e) => setTauxHoraireEmploye(e.target.value)} style={champStyle} />
+              <label className="etiquette">Taux horaire spécifique (vide = taux global des Paramètres)</label>
+              <input type="number" min={0} step="0.01" value={tauxHoraireEmploye} onChange={(e) => setTauxHoraireEmploye(e.target.value)} className="champ" />
             </>
           ) : (
             <>
-              <label style={labelStyle}>Salaire annuel</label>
-              <input type="number" min={0} step="0.01" value={salaireAnnuel} onChange={(e) => setSalaireAnnuel(e.target.value)} style={champStyle} />
+              <label className="etiquette">Salaire annuel</label>
+              <input type="number" min={0} step="0.01" value={salaireAnnuel} onChange={(e) => setSalaireAnnuel(e.target.value)} className="champ" />
             </>
           )}
-          <label style={labelStyle}>Fréquence de paie</label>
-          <select value={frequencePaie} onChange={(e) => setFrequencePaie(e.target.value)} style={champStyle}>
+          <label className="etiquette">Fréquence de paie</label>
+          <select value={frequencePaie} onChange={(e) => setFrequencePaie(e.target.value)} className="champ">
             <option value="HEBDOMADAIRE">Chaque semaine</option>
             <option value="BIHEBDOMADAIRE">Aux 2 semaines</option>
             <option value="BIMENSUEL">2 fois par mois</option>
             <option value="MENSUEL">Chaque mois</option>
           </select>
-          <label style={labelStyle}>Taux de vacances (%) — minimum légal QC : 4% (ou 6% après 3 ans)</label>
-          <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} style={{ ...champStyle, marginBottom: 12 }} />
+          <label className="etiquette">Taux de vacances (%) — minimum légal QC : 4% (ou 6% après 3 ans)</label>
+          <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} className="champ" style={{ marginBottom: 12 }} />
 
           {peutModifierTheme && (
             <>
-              <SectionTitre>Affichage</SectionTitre>
+              <TitreSection>Affichage</TitreSection>
               <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -4, marginBottom: 8 }}>
                 Réglable seulement par un gérant — appliqué automatiquement à la prochaine connexion de {estMoi ? "toi-même" : employe.nom}.
               </p>
@@ -222,39 +223,39 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
         </div>
       ) : (
         <>
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <SectionTitre>Coordonnées</SectionTitre>
-            <Champ label="Numéro d'employé" valeur={employe.numeroEmploye} />
-            <Champ label="Adresse" valeur={employe.adresse} />
-            <Champ label="Ville" valeur={[employe.ville, employe.codePostal].filter(Boolean).join(" ") || null} />
-            <Champ label="Téléphone" valeur={employe.telephone} />
-            <Champ label="Assignation" valeur={employe.assignation} />
-            <Champ label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
-            <Champ label="Affichage" valeur={`${employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Coordonnées</TitreSection>
+            <LigneInfo label="Numéro d'employé" valeur={employe.numeroEmploye} />
+            <LigneInfo label="Adresse" valeur={employe.adresse} />
+            <LigneInfo label="Ville" valeur={[employe.ville, employe.codePostal].filter(Boolean).join(" ") || null} />
+            <LigneInfo label="Téléphone" valeur={employe.telephone} />
+            <LigneInfo label="Assignation" valeur={employe.assignation} />
+            <LigneInfo label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
+            <LigneInfo label="Affichage" valeur={`${employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
           </div>
 
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-            <SectionTitre>Rémunération</SectionTitre>
-            <Champ label="Type" valeur={employe.typeRemuneration === "SALAIRE" ? "Salarié (montant fixe)" : "Payé à l'heure"} />
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Rémunération</TitreSection>
+            <LigneInfo label="Type" valeur={employe.typeRemuneration === "SALAIRE" ? "Salarié (montant fixe)" : "Payé à l'heure"} />
             {employe.typeRemuneration === "SALAIRE" ? (
-              <Champ label="Salaire annuel" valeur={employe.salaireAnnuel ? `${employe.salaireAnnuel.toFixed(2)} $` : null} />
+              <LigneInfo label="Salaire annuel" valeur={employe.salaireAnnuel ? `${employe.salaireAnnuel.toFixed(2)} $` : null} />
             ) : (
-              <Champ label="Taux horaire" valeur={employe.tauxHoraireEmploye ? `${employe.tauxHoraireEmploye.toFixed(2)} $/h (spécifique)` : "Taux global des Paramètres"} />
+              <LigneInfo label="Taux horaire" valeur={employe.tauxHoraireEmploye ? `${employe.tauxHoraireEmploye.toFixed(2)} $/h (spécifique)` : "Taux global des Paramètres"} />
             )}
-            <Champ label="Fréquence de paie" valeur={{ HEBDOMADAIRE: "Chaque semaine", BIHEBDOMADAIRE: "Aux 2 semaines", BIMENSUEL: "2 fois par mois", MENSUEL: "Chaque mois" }[employe.frequencePaie]} />
-            <Champ label="Taux de vacances" valeur={`${employe.tauxVacances}%`} />
+            <LigneInfo label="Fréquence de paie" valeur={{ HEBDOMADAIRE: "Chaque semaine", BIHEBDOMADAIRE: "Aux 2 semaines", BIMENSUEL: "2 fois par mois", MENSUEL: "Chaque mois" }[employe.frequencePaie]} />
+            <LigneInfo label="Taux de vacances" valeur={`${employe.tauxVacances}%`} />
           </div>
 
           {paieActif && (
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-              <SectionTitre>Vacances</SectionTitre>
-              <Champ label="Solde accumulé à ce jour" valeur={`${soldeVacances.toFixed(2)} $`} />
+            <div className="carte" style={{ marginBottom: 12 }}>
+              <TitreSection>Vacances</TitreSection>
+              <LigneInfo label="Solde accumulé à ce jour" valeur={`${soldeVacances.toFixed(2)} $`} />
             </div>
           )}
 
           {paieActif && paies.length > 0 && (
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
-              <SectionTitre>Paies récentes</SectionTitre>
+            <div className="carte" style={{ marginBottom: 12 }}>
+              <TitreSection>Paies récentes</TitreSection>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {paies.map((p) => (
                   <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: p.statut === "CORRIGEE" ? 0.5 : 1 }}>
@@ -294,21 +295,3 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   );
 }
 
-function SectionTitre({ children }) {
-  return <div style={{ fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.04em", marginBottom: 10 }}>{children}</div>;
-}
-
-function Champ({ label, valeur }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6, gap: 12 }}>
-      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontWeight: 600, textAlign: "right" }}>{valeur || "—"}</span>
-    </div>
-  );
-}
-
-const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4, marginTop: 8 };
-const champStyle = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box",
-};

@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { verifierPeriodeModifiable } from "@/lib/comptabilite";
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

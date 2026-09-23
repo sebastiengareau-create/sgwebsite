@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../imprimer/BoutonImprimer";
 
-export default async function BonDeCommande({ params }) {
+export default async function BonDeCommande(props) {
+  const params = await props.params;
   const session = await obtenirSession();
   const { nomEntreprise } = await obtenirInfosEntreprise();
   if (!session) redirect("/login");

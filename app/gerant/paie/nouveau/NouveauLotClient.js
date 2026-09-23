@@ -61,7 +61,7 @@ export default function NouveauLotClient({ employes }) {
       <Link href="/gerant/paie" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour</Link>
       <h1 style={{ fontSize: 20, margin: "8px 0 16px" }}>Nouveau lot de paie</h1>
 
-      <form onSubmit={calculerLot} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <form onSubmit={calculerLot} className="carte carte-m" style={{ marginBottom: 16 }}>
         <label style={labelStyle}>Type de paie</label>
         <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3, marginBottom: 10 }}>
           <button type="button" onClick={() => setTypePaie("REGULIERE")} style={{ flex: 1, fontSize: 12, fontWeight: 700, padding: "7px 8px", borderRadius: 6, border: "none", cursor: "pointer", background: typePaie === "REGULIERE" ? "var(--accent)" : "none", color: typePaie === "REGULIERE" ? "#17150f" : "var(--text-muted)" }}>

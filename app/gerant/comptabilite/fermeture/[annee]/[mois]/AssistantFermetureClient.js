@@ -80,7 +80,7 @@ export default function AssistantFermetureClient({ annee, mois, statut, statutPa
         )}
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div className="carte carte-m" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 10 }}>
           Checklist de fermeture — {checklist.pourcentage}% complétée
         </div>
@@ -99,7 +99,7 @@ export default function AssistantFermetureClient({ annee, mois, statut, statutPa
         ))}
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div className="carte carte-m" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 10 }}>Résumé</div>
         <LigneResume label="Revenus" valeur={resume.revenus} />
         <LigneResume label="Dépenses" valeur={resume.depenses} />
@@ -136,7 +136,7 @@ export default function AssistantFermetureClient({ annee, mois, statut, statutPa
       )}
 
       {estGerantOuDev && statut !== "OUVERTE" && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+        <div className="carte carte-m">
           {!afficherReouverture ? (
             <button onClick={() => setAfficherReouverture(true)} style={{ background: "none", border: "1px dashed var(--danger)", color: "var(--danger)", width: "100%", padding: 10, borderRadius: 8, fontSize: 12.5, cursor: "pointer" }}>
               🔄 Rouvrir la période

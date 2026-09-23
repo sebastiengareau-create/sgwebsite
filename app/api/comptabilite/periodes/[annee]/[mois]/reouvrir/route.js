@@ -4,7 +4,8 @@ import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 
 // Réservé au gérant/développeur, motif obligatoire — voir plan de fermeture
 // de période. Jamais accessible via aAccesSection("comptabilite") seul.
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!session || !estGerantOuDev(session)) {
     return NextResponse.json({ erreur: "Seul le gérant ou le développeur peut rouvrir une période." }, { status: 403 });

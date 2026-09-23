@@ -5,7 +5,8 @@ import { calculerPaiePourEmploye } from "@/lib/paie";
 
 // Ajoute un employé à un lot déjà en brouillon (oublié à la création, ou pas
 // encore traité au moment où le lot a été calculé).
-export async function POST(request, { params }) {
+export async function POST(request, props) {
+  const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "paie"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

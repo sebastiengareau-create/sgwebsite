@@ -10,7 +10,7 @@ import { verifierJeton, COOKIE_NAME } from "./lib/auth";
 // double, par sécurité.
 const SECTIONS_PROTEGEES = ["/gerant", "/secretaire", "/mecanicien", "/bons"];
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
   const protegee = SECTIONS_PROTEGEES.some((prefixe) => pathname.startsWith(prefixe));
   if (!protegee) return NextResponse.next();
