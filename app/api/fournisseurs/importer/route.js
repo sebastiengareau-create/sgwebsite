@@ -1,22 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { prochainNumeroClient } from "@/lib/numerotation";
+import { prochainNumeroFournisseur } from "@/lib/numerotation";
 import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
 
 const ALIAS_CHAMPS = {
-  nom: ["nom", "name", "client", "nomclient"],
+  nom: ["nom", "name", "fournisseur", "nomfournisseur"],
   telephone: ["telephone", "tel", "phone", "cell", "cellulaire"],
   courriel: ["courriel", "email", "courriel electronique", "e mail", "adresse courriel"],
   adresse: ["adresse", "address"],
   ville: ["ville", "city"],
   codePostal: ["codepostal", "code postal", "postal", "zip", "zipcode"],
-  garantieProlongee: ["garantie", "garantie prolongee", "no garantie", "numero garantie"],
 };
 
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "clients"))) {
+  if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
@@ -43,7 +42,7 @@ export async function POST(request) {
   }
 
   const nomsExistants = new Set(
-    (await prisma.client.findMany({ select: { nom: true } })).map((c) => c.nom.toLowerCase())
+    (await prisma.fournisseur.findMany({ select: { nom: true } })).map((f) => f.nom.toLowerCase())
   );
 
   let importes = 0;
@@ -63,19 +62,18 @@ export async function POST(request) {
       continue;
     }
 
-    await prisma.client.create({
+    await prisma.fournisseur.create({
       data: {
-        numero: await prochainNumeroClient(),
+        numero: await prochainNumeroFournisseur(),
         nom,
         telephone: donnees.telephone || null,
         courriel: donnees.courriel || null,
         adresse: donnees.adresse || null,
         ville: donnees.ville || null,
         codePostal: donnees.codePostal || null,
-        garantieProlongee: donnees.garantieProlongee || null,
       },
     });
-    nomsExistants.add(nom.toLowerCase()); // évite un doublon interne au même fichier
+    nomsExistants.add(nom.toLowerCase());
     importes++;
   }
 

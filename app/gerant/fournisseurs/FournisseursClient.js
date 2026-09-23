@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
+import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
 export default function FournisseursClient({ fournisseurs }) {
   const router = useRouter();
@@ -21,7 +22,8 @@ export default function FournisseursClient({ fournisseurs }) {
     <div className="conteneur-page">
       <BandeauSection icone="🏢" titre="Fournisseurs" sousTitre="Touche un fournisseur pour voir sa fiche complète — coordonnées, historique de dépenses." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <BoutonImporterFichier apiUrl="/api/fournisseurs/importer" libelle="depuis Excel" libellePluriel="fournisseur" />
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
