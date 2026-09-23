@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
+import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
 export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, peutGererCategories }) {
   const router = useRouter();
@@ -23,7 +24,8 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
     <div className="conteneur-page">
       <BandeauSection icone="📦" titre="Inventaire" sousTitre="Crée, ajuste ou retire des pièces. Le stock se déduit automatiquement quand une pièce est utilisée sur un bon de travail." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"

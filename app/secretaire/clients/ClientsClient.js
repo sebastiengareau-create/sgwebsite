@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
+import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
 export default function ClientsClient({ clients }) {
   const router = useRouter();
@@ -21,7 +22,8 @@ export default function ClientsClient({ clients }) {
     <div className="conteneur-page">
       <BandeauSection icone="🧑‍🤝‍🧑" titre="Clients" sousTitre="Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <BoutonImporterFichier apiUrl="/api/clients/importer" libelle="depuis Excel" libellePluriel="client" />
         <button
           onClick={() => setAfficherFormulaire((v) => !v)}
           className="bouton-3d"
@@ -30,6 +32,7 @@ export default function ClientsClient({ clients }) {
           {afficherFormulaire ? "Annuler" : "+ Nouveau client"}
         </button>
       </div>
+
       <Link
         href="/gerant/comptabilite/rapports/comptes-clients"
         target="_blank"
