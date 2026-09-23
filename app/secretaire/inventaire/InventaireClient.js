@@ -6,7 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 
-export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, peutGererCategories }) {
+export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -23,6 +23,8 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
   return (
     <div className="conteneur-page">
       <BandeauSection icone="📦" titre="Inventaire" sousTitre="Crée, ajuste ou retire des pièces. Le stock se déduit automatiquement quand une pièce est utilisée sur un bon de travail." />
+
+      {alignement && <AlignementInventaire alignement={alignement} />}
 
       <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />
@@ -262,6 +264,10 @@ function FormulaireCreation({ categories, fournisseurs, onCree }) {
       setErreur(data.erreur || "Erreur lors de la création.");
       return;
     }
+    const cree = await res.json().catch(() => ({}));
+    if (cree.avertissementComptable) {
+      window.alert(`Pièce créée, mais aucune écriture comptable n'a été passée pour son stock de départ :\n${cree.avertissementComptable}`);
+    }
     onCree();
   }
 
@@ -321,3 +327,59 @@ const boutonSecondaire = {
   flex: 1, padding: 8, borderRadius: 8, border: "1px solid var(--border)", background: "none",
   color: "var(--text-muted)", cursor: "pointer", fontSize: 11.5, fontWeight: 600,
 };
+
+const fmtMontant = (n) => `${n.toFixed(2)} $`;
+
+function AlignementInventaire({ alignement }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const aligne = Math.abs(alignement.ecart) < 0.005;
+
+  async function aligner() {
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch("/api/inventaire/aligner", { method: "POST" });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div style={{
+      background: aligne ? "rgba(111,169,107,0.10)" : "rgba(201,162,39,0.12)",
+      border: `1px solid ${aligne ? "var(--success)" : "#C9A227"}`,
+      borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 12.5,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <span>Valeur du stock (qté × coûtant)</span><strong>{fmtMontant(alignement.valeurStock)}</strong>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2 }}>
+        <span>Grand livre — 1200 Inventaire de pièces</span><strong>{fmtMontant(alignement.soldeGL)}</strong>
+      </div>
+      {alignement.surBonsNonFactures > 0.005 && (
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, color: "var(--text-muted)" }}>
+          <span>Pièces sur bons non facturés (sorties du stock, pas encore au G/L)</span><span>{fmtMontant(alignement.surBonsNonFactures)}</span>
+        </div>
+      )}
+      <p style={{ margin: "8px 0 0", fontWeight: 700 }}>
+        {aligne ? "✅ Inventaire aligné avec le grand livre" : `⚠️ Écart de ${fmtMontant(alignement.ecart)}`}
+      </p>
+      {!aligne && (
+        <>
+          <p style={{ margin: "4px 0 8px", color: "var(--text-muted)" }}>
+            L'alignement passe une écriture entre 1200 et 3010 Soldes d'ouverture, sans toucher au bénéfice. Un solde d'ouverture déjà saisi est pris en compte.
+          </p>
+          <button onClick={aligner} disabled={enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+            {enCours ? "…" : "Aligner l'inventaire sur le grand livre"}
+          </button>
+        </>
+      )}
+      {erreur && <p style={{ color: "var(--danger)", margin: "6px 0 0" }}>{erreur}</p>}
+    </div>
+  );
+}

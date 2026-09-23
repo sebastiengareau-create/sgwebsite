@@ -61,6 +61,10 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
       setErreur(data.erreur || "Erreur.");
       return;
     }
+    const misAJour = await res.json().catch(() => ({}));
+    if (misAJour.avertissementComptable) {
+      window.alert(`Stock ajusté, mais aucune écriture comptable n'a été passée :\n${misAJour.avertissementComptable}`);
+    }
     setModeEdition(false);
     router.refresh();
   }

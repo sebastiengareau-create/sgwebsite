@@ -1,7 +1,7 @@
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { assurerPlanComptable, assurerCategoriesInventaire } from "@/lib/comptabilite";
+import { assurerPlanComptable, assurerCategoriesInventaire, calculerAlignementInventaire } from "@/lib/comptabilite";
 import EnTete from "../../components/EnTete";
 import InventaireClient from "./InventaireClient";
 
@@ -11,6 +11,9 @@ export default async function GestionInventaire() {
 
   await assurerPlanComptable();
   await assurerCategoriesInventaire();
+
+  const moduleCompta = await prisma.parametre.findUnique({ where: { cle: "module_comptabilite" } });
+  const alignement = moduleCompta?.valeur === "inactif" ? null : await calculerAlignementInventaire();
 
   const [pieces, categories, comptesRevenu, fournisseurs] = await Promise.all([
     prisma.piece.findMany({ orderBy: { nom: "asc" } }),
@@ -22,7 +25,7 @@ export default async function GestionInventaire() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <InventaireClient pieces={pieces} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} peutGererCategories={estGerantOuDev(session)} />
+      <InventaireClient pieces={pieces} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { alignerInventaireAuGL } from "@/lib/comptabilite";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
@@ -74,7 +75,18 @@ export async function PATCH(request, { params }) {
       });
       return misAJour;
     });
-    return NextResponse.json(piece);
+
+    // La mise à jour est déjà enregistrée — un échec comptable (ex. période
+    // fermée) ne l'annule pas, il est seulement signalé.
+    let avertissementComptable = null;
+    if (differenceQte !== 0 || (data.coutant !== undefined && data.coutant !== avant.coutant)) {
+      try {
+        await alignerInventaireAuGL(session.nom, `Modification de la pièce ${piece.numero}`);
+      } catch (e) {
+        avertissementComptable = e.message.replace(/^PERIODE_LOCK:/, "");
+      }
+    }
+    return NextResponse.json({ ...piece, avertissementComptable });
   } catch (e) {
     if (e.code === "P2002") {
       return NextResponse.json({ erreur: "Ce numéro de pièce existe déjà." }, { status: 409 });
@@ -97,6 +109,13 @@ export async function DELETE(request, { params }) {
     );
   }
 
-  await prisma.piece.delete({ where: { id: params.id } });
-  return NextResponse.json({ ok: true });
+  const piece = await prisma.piece.delete({ where: { id: params.id } });
+
+  let avertissementComptable = null;
+  try {
+    await alignerInventaireAuGL(session.nom, `Suppression de la pièce ${piece.numero}`);
+  } catch (e) {
+    avertissementComptable = e.message.replace(/^PERIODE_LOCK:/, "");
+  }
+  return NextResponse.json({ ok: true, avertissementComptable });
 }
