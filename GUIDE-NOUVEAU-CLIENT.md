@@ -64,9 +64,20 @@ crée directement les vrais comptes du client via l'écran de gestion des
 employés une fois l'app en ligne — plus propre pour une vraie livraison.
 
 ### 5. Déployer
-```
-railway up
-```
+Les déploiements se font depuis GitHub, sans `railway up` : tout le code
+vit dans le dépôt `sebastiengareau-create/sgwebsite`, une branche par
+installation (`main` = template, `client-vr-premium` = VR Premium, etc.).
+1. Crée la branche du client à partir de `main` et pousse-la sur GitHub.
+2. Dans le service web Railway : Settings → Source → **Connect Repo** →
+   `sgwebsite`, puis mets « Branch connected to production » sur la branche
+   du client. Laisse **Root Directory** vide (le dépôt commence directement
+   au dossier du projet).
+3. Chaque `git push` sur cette branche redéploie ensuite ce client, et
+   seulement lui.
+
+(Le compte Railway doit être relié au compte GitHub propriétaire du dépôt —
+Account Settings — sinon la liste des dépôts reste vide.)
+
 Génère le domaine public dans Settings → Networking, comme la première
 fois.
 
@@ -74,10 +85,11 @@ fois.
 
 Comme chaque client a sa propre copie, une amélioration ne se propage pas
 automatiquement. Le processus :
-1. Développe et teste la nouvelle fonctionnalité dans `template-de-base`
-2. Une fois satisfait, applique le même changement de code dans chaque
-   dossier `client-...` (copier les fichiers modifiés)
-3. Redéploie chaque client individuellement (`railway up` dans son dossier)
+1. Développe et teste la nouvelle fonctionnalité sur `main`
+   (`template-de-base`), puis pousse : le template se redéploie tout seul.
+2. Une fois satisfait, fusionne `main` dans la branche de chaque client
+   (`git merge main` dans son dossier) et pousse cette branche : le client
+   se redéploie tout seul, avec ses migrations appliquées au démarrage.
 
 ## Changer le schéma de la base (ajouter un champ, une table…)
 
