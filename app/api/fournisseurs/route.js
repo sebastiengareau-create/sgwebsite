@@ -8,11 +8,19 @@ export async function POST(request) {
   if (!(await aAccesSection(session, "fournisseurs"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
-  const { nom, telephone, courriel, adresse } = await request.json();
+  const { nom, telephone, courriel, adresse, ville, codePostal } = await request.json();
   if (!nom || !nom.trim()) return NextResponse.json({ erreur: "Le nom est requis." }, { status: 400 });
 
   const fournisseur = await prisma.fournisseur.create({
-    data: { numero: await prochainNumeroFournisseur(), nom: nom.trim(), telephone: telephone || null, courriel: courriel || null, adresse: adresse || null },
+    data: {
+      numero: await prochainNumeroFournisseur(),
+      nom: nom.trim(),
+      telephone: telephone || null,
+      courriel: courriel || null,
+      adresse: adresse || null,
+      ville: ville || null,
+      codePostal: codePostal || null,
+    },
   });
   return NextResponse.json(fournisseur);
 }

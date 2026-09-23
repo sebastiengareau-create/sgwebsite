@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, DEFAUTS_INITIAUX_ROLE } from "@/lib/auth";
+import { obtenirSession, DEFAUTS_INITIAUX_ROLE, ROLES_VALIDES, nomAffichageRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
 import AccesEmployesClient from "./AccesEmployesClient";
 
-const ROLES = ["GERANT", "SECRETAIRE", "MECANICIEN"];
-const NOMS_STANDARD = { GERANT: "Gérant", SECRETAIRE: "Secrétaire", MECANICIEN: "Mécanicien" };
+// NIVEAU4 (accès total, non configurable — voir AccesEmployesClient) n'a pas
+// de défauts de sections à charger, contrairement aux autres rôles.
+const ROLES_CONFIGURABLES = ["GERANT", "SECRETAIRE", "MECANICIEN"];
 
 export default async function AccesEmployes() {
   const session = await obtenirSession();
@@ -16,29 +17,22 @@ export default async function AccesEmployes() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const [employes, parametres] = await Promise.all([
-    prisma.user.findMany({ where: { role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] } }, orderBy: { nom: "asc" } }),
+  const [employes, parametres, nomsRoles] = await Promise.all([
+    prisma.user.findMany({ where: { role: { in: ROLES_VALIDES } }, orderBy: { nom: "asc" } }),
     prisma.parametre.findMany({
-      where: { cle: { in: ROLES.flatMap((r) => [`role_defaut_${r}`, `nom_role_${r}`]) } },
+      where: { cle: { in: ROLES_CONFIGURABLES.map((r) => `role_defaut_${r}`) } },
     }),
+    Promise.all(ROLES_VALIDES.map(async (r) => [r, await nomAffichageRole(r)])).then(Object.fromEntries),
   ]);
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
-  const defautsRoles = {
-    SECRETAIRE: dict.role_defaut_SECRETAIRE !== undefined
-      ? dict.role_defaut_SECRETAIRE.split(",").map((s) => s.trim()).filter(Boolean)
-      : DEFAUTS_INITIAUX_ROLE.SECRETAIRE,
-    MECANICIEN: dict.role_defaut_MECANICIEN !== undefined
-      ? dict.role_defaut_MECANICIEN.split(",").map((s) => s.trim()).filter(Boolean)
-      : DEFAUTS_INITIAUX_ROLE.MECANICIEN,
-  };
-
-  const nomsRoles = {
-    GERANT: dict.nom_role_GERANT || NOMS_STANDARD.GERANT,
-    SECRETAIRE: dict.nom_role_SECRETAIRE || NOMS_STANDARD.SECRETAIRE,
-    MECANICIEN: dict.nom_role_MECANICIEN || NOMS_STANDARD.MECANICIEN,
-  };
+  const defautsRoles = Object.fromEntries(ROLES_CONFIGURABLES.map((r) => [
+    r,
+    dict[`role_defaut_${r}`] !== undefined
+      ? dict[`role_defaut_${r}`].split(",").map((s) => s.trim()).filter(Boolean)
+      : (DEFAUTS_INITIAUX_ROLE[r] || []),
+  ]));
 
   return (
     <div>

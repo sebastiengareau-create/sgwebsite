@@ -37,6 +37,14 @@ export default function FournisseursClient({ fournisseurs }) {
       >
         💳 Comptes à payer / Dépenses
       </Link>
+      <Link
+        href="/gerant/comptabilite/rapports/fournisseurs"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
+      >
+        📄 Liste des fournisseurs (PDF / Excel / imprimer)
+      </Link>
 
       {afficherFormulaire && (
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
@@ -96,6 +104,8 @@ function FormulaireCreation({ onCree }) {
   const [telephone, setTelephone] = useState("");
   const [courriel, setCourriel] = useState("");
   const [adresse, setAdresse] = useState("");
+  const [ville, setVille] = useState("");
+  const [codePostal, setCodePostal] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -106,7 +116,7 @@ function FormulaireCreation({ onCree }) {
     const res = await fetch("/api/fournisseurs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -122,7 +132,11 @@ function FormulaireCreation({ onCree }) {
       <input required placeholder="Nom du fournisseur" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-      <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+      <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1, marginBottom: 0 }} />
+        <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110, marginBottom: 0 }} />
+      </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 10, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
         {enCours ? "Création…" : "Créer le fournisseur"}

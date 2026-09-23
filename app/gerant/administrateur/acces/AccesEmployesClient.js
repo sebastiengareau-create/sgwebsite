@@ -13,8 +13,16 @@ const SECTIONS = [
   { cle: "comptabilite", label: "💰 Comptabilité" },
   { cle: "paie", label: "🧾 Paie" },
   { cle: "employes", label: "👥 Employés" },
+  { cle: "vue-ensemble", label: "📊 Vue d'ensemble" },
+  { cle: "jobs-temps-reel", label: "📈 Jobs temps réel" },
+  { cle: "horodateur", label: "⏱️ Horodateur" },
+  { cle: "parametres", label: "⚙️ Paramètres" },
 ];
-const ROLES_CONFIGURABLES = ["SECRETAIRE", "MECANICIEN"];
+// NIVEAU4 (accès total, toujours) reste seul non configurable — GERANT est
+// maintenant configurable comme les autres, mais part avec tout activé par
+// défaut (voir DEFAUTS_INITIAUX_ROLE dans lib/auth.js).
+const ROLE_ACCES_TOTAL = "NIVEAU4";
+const ROLES_CONFIGURABLES = ["GERANT", "SECRETAIRE", "MECANICIEN"];
 
 export default function AccesEmployesClient({ employes, defautsRolesInit, nomsRolesInit }) {
   const router = useRouter();
@@ -72,9 +80,9 @@ export default function AccesEmployesClient({ employes, defautsRolesInit, nomsRo
         contrôle — s'applique à tous les employés qui ont ce rôle.
       </p>
 
-      {["GERANT", ...ROLES_CONFIGURABLES].map((role) => (
+      {[ROLE_ACCES_TOTAL, ...ROLES_CONFIGURABLES].map((role) => (
         <div key={role} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: role === "GERANT" ? 0 : 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: role === ROLE_ACCES_TOTAL ? 0 : 12 }}>
             {editionNomRole === role ? (
               <div style={{ display: "flex", gap: 6, flex: 1 }}>
                 <input
@@ -97,7 +105,7 @@ export default function AccesEmployesClient({ employes, defautsRolesInit, nomsRo
             )}
           </div>
 
-          {role === "GERANT" ? (
+          {role === ROLE_ACCES_TOTAL ? (
             <p style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 6 }}>Accès complet à tout, toujours — non modifiable.</p>
           ) : (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../../components/EnTete";
@@ -23,7 +23,7 @@ export default async function Paie() {
       orderBy: { creeLe: "desc" },
       take: 30,
     }),
-    prisma.user.count({ where: { actif: true, role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] } } }),
+    prisma.user.count({ where: { actif: true, role: { in: ROLES_VALIDES } } }),
   ]);
 
   const lotsAvecTotaux = lots.map((lot) => ({
@@ -39,6 +39,12 @@ export default async function Paie() {
     totalBrut: lot.paies.reduce((s, p) => s + p.salaireBrut, 0),
     totalDeductions: lot.paies.reduce((s, p) => s + p.totalDeductions, 0),
     totalNet: lot.paies.reduce((s, p) => s + p.salaireNet, 0),
+    paies: lot.paies.map((p) => ({
+      id: p.id,
+      nom: p.employe.nom,
+      assignation: p.employe.assignation,
+      salaireNet: p.salaireNet,
+    })),
   }));
 
   // Comparaison sur les lots de paie régulière seulement (une paie de
@@ -58,7 +64,8 @@ export default async function Paie() {
         paies: dernierLotComplet.paies.map((p) => ({
           id: p.id,
           nom: p.employe.nom,
-          role: p.employe.role,
+          assignation: p.employe.assignation,
+          typeRemuneration: p.employe.typeRemuneration,
           heuresTravaillees: p.heuresTravaillees,
           heuresHorodateur: p.heuresHorodateur,
           salaireBrut: p.salaireBrut,

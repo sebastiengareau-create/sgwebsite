@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
@@ -21,7 +21,7 @@ export default async function RapportRentabilite({ searchParams }) {
   const fin = new Date(`${finStr}T23:59:59`);
 
   const [employes, entreesBon, entreesInternes, parametreCout, parametreTauxClient] = await Promise.all([
-    prisma.user.findMany({ where: { actif: true, role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] } }, orderBy: { nom: "asc" } }),
+    prisma.user.findMany({ where: { actif: true, role: { in: ROLES_VALIDES } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
       where: { fin: { not: null }, debut: { gte: debut, lte: fin } },
       include: { probleme: { include: { bon: { include: { facture: true, client: true } } } } },

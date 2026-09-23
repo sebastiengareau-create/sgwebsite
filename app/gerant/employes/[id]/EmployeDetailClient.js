@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -15,6 +15,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [role, setRole] = useState(employe.role);
   const [telephone, setTelephone] = useState(employe.telephone || "");
   const [adresse, setAdresse] = useState(employe.adresse || "");
+  const [ville, setVille] = useState(employe.ville || "");
+  const [codePostal, setCodePostal] = useState(employe.codePostal || "");
   const [assignation, setAssignation] = useState(employe.assignation || "");
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
@@ -29,7 +31,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
+    const body = { nom, courriel, role, telephone, adresse, ville, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
@@ -105,15 +107,31 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <label style={labelStyle}>Courriel</label>
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Rôle</label>
-          <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
-            <option value="MECANICIEN">{nomsRoles.MECANICIEN}</option>
-            <option value="SECRETAIRE">{nomsRoles.SECRETAIRE}</option>
-            <option value="GERANT">{nomsRoles.GERANT}</option>
-          </select>
+          {peutGererEmploye ? (
+            <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
+              {rolesAssignables.map((r) => (
+                <option key={r} value={r}>{nomsRoles[r]}</option>
+              ))}
+            </select>
+          ) : (
+            <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 0, marginBottom: 8 }}>
+              {nomsRoles[employe.role] || employe.role} — niveau de sécurité plus élevé que le tien, non modifiable.
+            </p>
+          )}
           <label style={labelStyle}>Téléphone</label>
           <input value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
           <label style={labelStyle}>Adresse</label>
           <input value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Ville</label>
+              <input value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
+            </div>
+            <div style={{ width: 110 }}>
+              <label style={labelStyle}>Code postal</label>
+              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={champStyle} />
+            </div>
+          </div>
           <label style={labelStyle}>Assignation (poste, spécialité, secteur…)</label>
           <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" style={champStyle} />
           <label style={labelStyle}>Date d'embauche</label>
@@ -208,6 +226,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <SectionTitre>Coordonnées</SectionTitre>
             <Champ label="Numéro d'employé" valeur={employe.numeroEmploye} />
             <Champ label="Adresse" valeur={employe.adresse} />
+            <Champ label="Ville" valeur={[employe.ville, employe.codePostal].filter(Boolean).join(" ") || null} />
             <Champ label="Téléphone" valeur={employe.telephone} />
             <Champ label="Assignation" valeur={employe.assignation} />
             <Champ label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
@@ -250,21 +269,25 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-              ✏️ Modifier
-            </button>
-            {!estMoi && (
-              <button onClick={toggleActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, color: employe.actif ? "var(--danger)" : "var(--success)" }}>
-                {employe.actif ? "Désactiver" : "Réactiver"}
+          {peutGererEmploye ? (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
+                ✏️ Modifier
               </button>
-            )}
-            {!estMoi && (
-              <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
-                🗑️
-              </button>
-            )}
-          </div>
+              {!estMoi && (
+                <button onClick={toggleActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, color: employe.actif ? "var(--danger)" : "var(--success)" }}>
+                  {employe.actif ? "Désactiver" : "Réactiver"}
+                </button>
+              )}
+              {!estMoi && (
+                <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
+                  🗑️
+                </button>
+              )}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Tu n'as pas le niveau requis pour modifier cette fiche.</p>
+          )}
         </>
       )}
     </div>

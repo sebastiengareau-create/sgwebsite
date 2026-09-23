@@ -1,4 +1,4 @@
-import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -19,7 +19,12 @@ export default async function EspaceMecanicien() {
   const session = await obtenirSession();
   if (!session) redirect("/login");
   const estGerant = estGerantOuDev(session);
-  if (!estGerant && session.role !== "MECANICIEN") redirect(`/${session.role.toLowerCase()}`);
+  if (!(await aAccesSection(session, "horodateur"))) {
+    // MECANICIEN était auparavant toujours autorisé ici sans exception —
+    // s'il n'a plus cette section (décochée dans Rôles et accès), on ne
+    // peut plus le renvoyer vers /mecanicien (boucle infinie).
+    redirect(session.role === "MECANICIEN" ? "/login" : `/${session.role.toLowerCase()}`);
+  }
 
   // Tous les mécaniciens voient tous les bons non terminés — n'importe qui
   // peut travailler sur n'importe quel bon, dépendant de la tâche.

@@ -4,6 +4,6 @@ import { obtenirSession } from "@/lib/auth";
 export default async function Accueil() {
   const session = await obtenirSession();
   if (!session) redirect("/login");
-  const destination = session.role === "DEVELOPPEUR" ? "gerant" : session.role.toLowerCase();
+  const destination = session.role === "DEVELOPPEUR" || session.role === "NIVEAU4" ? "gerant" : session.role.toLowerCase();
   redirect(`/${destination}`);
 }

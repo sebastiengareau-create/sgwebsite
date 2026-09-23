@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
 import NouveauLotClient from "./NouveauLotClient";
@@ -12,7 +12,7 @@ export default async function NouveauLotPaie() {
   if (modulePaie?.valeur !== "actif") redirect("/gerant");
 
   const employes = await prisma.user.findMany({
-    where: { actif: true, role: { in: ["MECANICIEN", "SECRETAIRE", "GERANT"] } },
+    where: { actif: true, role: { in: ROLES_VALIDES } },
     orderBy: { nom: "asc" },
   });
 

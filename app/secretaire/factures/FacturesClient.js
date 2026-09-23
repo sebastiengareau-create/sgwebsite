@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
 import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
 
@@ -97,11 +96,15 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
           const joursEcoules = Math.floor((Date.now() - new Date(f.dateEmission).getTime()) / 86400000);
           const enRetard = f.statut === "IMPAYEE" && joursEcoules > 30;
           return (
-          <div key={f.id} style={{ background: "var(--surface)", border: enRetard ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${STATUTS[f.statut].color}` }}>
+          <div
+            key={f.id}
+            onClick={() => router.push(`/bons/${f.bon.id}`)}
+            style={{ cursor: "pointer", background: "var(--surface)", border: enRetard ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${STATUTS[f.statut].color}` }}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Link href={`/bons/${f.bon.id}`} style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: "var(--text)", textDecoration: "none" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace" }}>
                 #{f.numero}
-              </Link>
+              </span>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 {enRetard && (
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#17150f", background: "var(--danger)", padding: "2px 7px", borderRadius: 999 }}>
@@ -120,7 +123,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
               <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalFacture.toFixed(2)} $</span>
               {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
                 <button
-                  onClick={() => setFactureAPayer(f.id)}
+                  onClick={(e) => { e.stopPropagation(); setFactureAPayer(f.id); }}
                   className="bouton-3d"
                   style={{ fontSize: 11, fontWeight: 700, padding: "7px 12px", borderRadius: 8 }}
                 >
@@ -129,11 +132,13 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
               )}
             </div>
             {factureAPayer === f.id && (
-              <FormulaireEncaissement
-                comptesTresorerie={comptesTresorerie}
-                onConfirmer={(compteTresorerieId, modePaiement, reference) => marquerPayee(f.id, compteTresorerieId, modePaiement, reference)}
-                onAnnuler={() => setFactureAPayer(null)}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <FormulaireEncaissement
+                  comptesTresorerie={comptesTresorerie}
+                  onConfirmer={(compteTresorerieId, modePaiement, reference) => marquerPayee(f.id, compteTresorerieId, modePaiement, reference)}
+                  onAnnuler={() => setFactureAPayer(null)}
+                />
+              </div>
             )}
           </div>
           );

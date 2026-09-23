@@ -202,7 +202,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   }
 
   async function supprimerFacture() {
-    if (!window.confirm("Annuler cette facture pour débloquer le bon ? Le bon redevient modifiable et repasse à « En cours ». La facture et ses écritures comptables sont retirées définitivement — si tu dois garder une trace du montant, imprime-la avant. Pour garder une trace tout en gardant le bon verrouillé, utilise plutôt « Annuler » ci-dessus.")) return;
+    if (!window.confirm("Annuler cette facture pour débloquer le bon ? Le bon redevient modifiable et repasse à « En cours ». La facture et ses écritures comptables sont retirées définitivement — si tu dois garder une trace du montant, imprime-la avant.")) return;
     setEnCours(true);
     const res = await fetch(`/api/factures/${bon.facture.id}`, { method: "DELETE" });
     setEnCours(false);
@@ -466,11 +466,6 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
                     Marquer impayée
                   </button>
                 )}
-                {!(bon.facture.statut === "IMPAYEE" && afficherPaiementFacture) && (
-                  <button onClick={() => changerStatutFacture("ANNULEE")} disabled={enCours} style={{ ...boutonAjout, color: "var(--danger)" }}>
-                    Annuler
-                  </button>
-                )}
               </div>
             )}
             {bon.facture.statut === "IMPAYEE" && afficherPaiementFacture && (
@@ -508,7 +503,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
               <button
                 onClick={supprimerFacture}
                 disabled={enCours}
-                style={{ width: "100%", marginTop: 8, padding: 8, borderRadius: 8, border: "1px dashed var(--danger)", background: "none", color: "var(--danger)", fontSize: 11, cursor: "pointer" }}
+                style={{ width: "100%", marginTop: 8, padding: 10, borderRadius: 8, border: "none", background: "var(--danger)", color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
               >
                 ↩️ Annuler la facture (débloque le bon pour le modifier)
               </button>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function JournalClient({ ecritures }) {
+export default function JournalClient({ ecritures, estDev }) {
   const router = useRouter();
   const [enCours, setEnCours] = useState(null);
 
@@ -49,7 +49,7 @@ export default function JournalClient({ ecritures }) {
         ✍️ Nouvelle écriture supplémentaire
       </Link>
 
-      {ecritures.length > 0 && (
+      {estDev && ecritures.length > 0 && (
         <button
           onClick={toutReinitialiser}
           disabled={enCours === "tout"}

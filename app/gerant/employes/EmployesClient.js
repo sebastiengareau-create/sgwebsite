@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 
-export default function EmployesClient({ employes, moi, nomsRoles }) {
+export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [afficherFormulaire, setAfficherFormulaire] = useState(searchParams.get("nouveau") === "1");
@@ -24,8 +24,17 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
         </button>
       </div>
 
+      <Link
+        href="/gerant/comptabilite/rapports/employes"
+        target="_blank"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
+      >
+        📄 Liste des employés (PDF / Excel / imprimer)
+      </Link>
+
       {afficherFormulaire && (
-        <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} />
+        <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
@@ -64,7 +73,7 @@ export default function EmployesClient({ employes, moi, nomsRoles }) {
   );
 }
 
-function FormulaireCreation({ onCree, nomsRoles }) {
+function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   const [nom, setNom] = useState("");
   const [courriel, setCourriel] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -72,6 +81,8 @@ function FormulaireCreation({ onCree, nomsRoles }) {
   const [pin, setPin] = useState("");
   const [telephone, setTelephone] = useState("");
   const [adresse, setAdresse] = useState("");
+  const [ville, setVille] = useState("");
+  const [codePostal, setCodePostal] = useState("");
   const [assignation, setAssignation] = useState("");
   const [dateEmbauche, setDateEmbauche] = useState("");
   const [typeRemuneration, setTypeRemuneration] = useState("HORAIRE");
@@ -91,7 +102,7 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nom, courriel, motDePasse, role, pin: pin || undefined,
-        telephone, adresse, assignation, dateEmbauche,
+        telephone, adresse, ville, codePostal, assignation, dateEmbauche,
         typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
       }),
     });
@@ -111,13 +122,17 @@ function FormulaireCreation({ onCree, nomsRoles }) {
       <input required type="email" placeholder="Courriel" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
       <input required type="password" minLength={4} maxLength={12} placeholder="Mot de passe (4 à 12 caractères)" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} style={champStyle} />
       <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
-        <option value="MECANICIEN">{nomsRoles.MECANICIEN}</option>
-        <option value="SECRETAIRE">{nomsRoles.SECRETAIRE}</option>
-        <option value="GERANT">{nomsRoles.GERANT}</option>
+        {rolesAssignables.map((r) => (
+          <option key={r} value={r}>{nomsRoles[r]}</option>
+        ))}
       </select>
       <input placeholder="Code PIN (optionnel, 4 chiffres)" value={pin} onChange={(e) => setPin(e.target.value)} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1 }} />
+        <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
+      </div>
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Date d'embauche</label>
       <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />

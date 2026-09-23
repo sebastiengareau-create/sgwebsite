@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
 
 const STATUT_INFO = {
   BROUILLON: { icone: "🟡", label: "Brouillon", couleur: "#C9A227" },
   COMPTABILISEE: { icone: "⚫", label: "Comptabilisée", couleur: "var(--text-muted)" },
 };
-
-const NOMS_ROLE = { GERANT: "Gérant", SECRETAIRE: "Secrétaire", MECANICIEN: "Mécanicien" };
 
 const COULEUR_NIVEAU = { danger: "var(--danger)", avertissement: "#C9A227", info: "var(--success)" };
 const FOND_NIVEAU = { danger: "rgba(193,91,74,0.12)", avertissement: "rgba(201,162,39,0.12)", info: "rgba(111,169,107,0.12)" };
@@ -56,6 +55,10 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         </p>
       </div>
 
+      <Link href="/gerant/paie/nouveau" className="bouton-3d" style={{ display: "block", textAlign: "center", padding: 13, borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 20 }}>
+        + Nouveau lot de paie
+      </Link>
+
       {/* KPI */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
         <CarteKpi icone="👥" label="Employés" valeur={String(employesActifs)} sousLabel="Actifs" href="/gerant/employes" />
@@ -96,7 +99,9 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nom}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{NOMS_ROLE[p.role] || p.role} · {p.heuresTravaillees.toFixed(2)} h</div>
+                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                      {p.assignation || "—"} · {p.typeRemuneration === "SALAIRE" ? `${p.salaireBrut.toFixed(2)} $ brut` : `${p.heuresTravaillees.toFixed(2)} h`}
+                    </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700 }}>{fmt(p.salaireNet)}</div>
@@ -161,10 +166,6 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
           <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun lot de paie encore.</p>
         )}
       </div>
-
-      <Link href="/gerant/paie/nouveau" className="bouton-3d" style={{ display: "block", textAlign: "center", padding: 13, borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none", marginTop: 20 }}>
-        + Nouveau lot de paie
-      </Link>
     </div>
   );
 }
@@ -197,23 +198,51 @@ function BoutonAction({ icone, label, href }) {
 }
 
 function CarteLot({ lot }) {
+  const router = useRouter();
   const info = STATUT_INFO[lot.statut];
   return (
-    <Link href={`/gerant/paie/lots/${lot.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div style={{ background: "var(--surface)", border: `1px solid ${lot.statut === "BROUILLON" ? "var(--accent)" : "var(--border)"}`, borderRadius: 10, padding: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "monospace" }}>#{lot.numero}</span>
+    <div
+      onClick={() => router.push(`/gerant/paie/lots/${lot.id}`)}
+      style={{ cursor: "pointer", background: "var(--surface)", border: `1px solid ${lot.statut === "BROUILLON" ? "var(--accent)" : "var(--border)"}`, borderRadius: 10, padding: 12 }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontWeight: 700, fontSize: 13, fontFamily: "monospace" }}>#{lot.numero}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: info.couleur }}>{info.icone} {info.label}</span>
-        </div>
-        <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 2 }}>
-          {new Date(lot.periodeDebut).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} → {new Date(lot.periodeFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
-          {lot.typePaie === "VACANCES" && " · 🏖️ Vacances"}
-        </div>
-        <div style={{ fontSize: 12.5, marginTop: 6 }}>
-          {lot.nbEmployes} employé{lot.nbEmployes !== 1 ? "s" : ""} · {lot.totalBrut.toFixed(2)} $ brut · {lot.totalDeductions.toFixed(2)} $ retenues · <strong>{lot.totalNet.toFixed(2)} $ net</strong>
+          {lot.statut === "COMPTABILISEE" && (
+            <a
+              href={`/gerant/paie/lots/${lot.id}/talons`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="Imprimer tous les talons de ce lot (1 par page)"
+              style={{ fontSize: 14, lineHeight: 1, textDecoration: "none" }}
+            >
+              🖨️
+            </a>
+          )}
         </div>
       </div>
-    </Link>
+      <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 2 }}>
+        {new Date(lot.periodeDebut).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} → {new Date(lot.periodeFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
+        {lot.typePaie === "VACANCES" && " · 🏖️ Vacances"}
+      </div>
+      <div style={{ fontSize: 12.5, marginTop: 6 }}>
+        {lot.nbEmployes} employé{lot.nbEmployes !== 1 ? "s" : ""} · {lot.totalBrut.toFixed(2)} $ brut · {lot.totalDeductions.toFixed(2)} $ retenues · <strong>{lot.totalNet.toFixed(2)} $ net</strong>
+      </div>
+      {lot.statut === "BROUILLON" && lot.paies?.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
+          {lot.paies.map((p) => (
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 11.5 }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {p.nom}{p.assignation ? <span style={{ color: "var(--text-muted)" }}> · {p.assignation}</span> : null}
+              </span>
+              <span style={{ fontWeight: 700, flexShrink: 0 }}>{p.salaireNet.toFixed(2)} $</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -236,21 +265,21 @@ function MiniCalendrier({ calendrierDates }) {
   const todayStr = aujourdhui.toISOString().slice(0, 10);
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>📅 Calendrier de paie</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <button onClick={auMoisPrecedent} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13, padding: "2px 6px" }}>◀</button>
-          <span style={{ fontSize: 12, fontWeight: 700, minWidth: 110, textAlign: "center" }}>{MOIS_LABEL[curseur.mois]} {curseur.annee}</span>
-          <button onClick={auMoisSuivant} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13, padding: "2px 6px" }}>▶</button>
+    <div style={{ maxWidth: 300, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 700 }}>📅 Calendrier de paie</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <button onClick={auMoisPrecedent} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, padding: "2px 5px" }}>◀</button>
+          <span style={{ fontSize: 10.5, fontWeight: 700, minWidth: 88, textAlign: "center" }}>{MOIS_LABEL[curseur.mois]} {curseur.annee}</span>
+          <button onClick={auMoisSuivant} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 11, padding: "2px 5px" }}>▶</button>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
         {JOURS_LABEL.map((j, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)", fontWeight: 700 }}>{j}</div>
+          <div key={i} style={{ textAlign: "center", fontSize: 8.5, color: "var(--text-muted)", fontWeight: 700 }}>{j}</div>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
         {cases.map((jour, i) => {
           if (jour === null) return <div key={i} />;
           const dateStr = `${curseur.annee}-${String(curseur.mois + 1).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
@@ -261,7 +290,7 @@ function MiniCalendrier({ calendrierDates }) {
               title={evenement ? `Paie #${evenement.numero}` : undefined}
               style={{
                 aspectRatio: "1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                borderRadius: 8, fontSize: 11, position: "relative",
+                borderRadius: 6, fontSize: 9.5, position: "relative",
                 border: estAujourdhui ? "1px solid var(--accent)" : "1px solid transparent",
                 color: estAujourdhui ? "var(--accent)" : "var(--text)",
                 fontWeight: estAujourdhui ? 700 : 400,
@@ -270,7 +299,7 @@ function MiniCalendrier({ calendrierDates }) {
               {jour}
               {evenement && (
                 <span style={{
-                  position: "absolute", bottom: 3, width: 5, height: 5, borderRadius: "50%",
+                  position: "absolute", bottom: 1, width: 4, height: 4, borderRadius: "50%",
                   background: evenement.statut === "BROUILLON" ? "#C9A227" : "var(--success)",
                 }} />
               )}

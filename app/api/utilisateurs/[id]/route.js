@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 
 export async function PATCH(request, { params }) {
   const session = await obtenirSession();
   if (!session || !(await aAccesSection(session, "employes"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+
+  const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+  if (!cible) {
+    return NextResponse.json({ erreur: "Employé introuvable." }, { status: 404 });
+  }
+  // Aucun champ (mot de passe, actif, etc.) ne doit être modifiable par un
+  // employé sur la fiche de quelqu'un d'un niveau de sécurité supérieur au
+  // sien — sinon une secrétaire (niveau 2) pourrait réinitialiser le mot de
+  // passe ou désactiver le compte d'un gérant (niveau 3). Seul le niveau 4
+  // (accès total) et le développeur passent toujours — même un GERANT ne
+  // doit pas pouvoir toucher la fiche d'un niveau 4.
+  if (niveauRole(cible.role) > niveauRole(session.role) && !estNiveauMaxOuDev(session)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas modifier la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
   }
 
   const body = await request.json();
@@ -19,12 +33,20 @@ export async function PATCH(request, { params }) {
     }
     data.courriel = body.courriel;
   }
-  if (body.role && ["GERANT", "SECRETAIRE", "MECANICIEN"].includes(body.role)) {
-    // Passer un compte Gérant (ou en sortir) reste réservé aux gérants —
-    // l'accès "employes" délégué ne doit pas permettre de s'auto-promouvoir
-    // ni de promouvoir quelqu'un d'autre aux pleins pouvoirs.
-    if ((body.role === "GERANT" || params.id === session.id) && !estGerantOuDev(session)) {
-      return NextResponse.json({ erreur: "Seul un gérant peut changer ce rôle." }, { status: 403 });
+  if (body.role && ROLES_VALIDES.includes(body.role)) {
+    if (!estNiveauMaxOuDev(session)) {
+      const changementReel = cible.role !== body.role;
+      // Le cas "cible déjà d'un niveau supérieur" est déjà bloqué plus haut.
+      // Reste à empêcher l'auto-promotion et l'assignation d'un rôle plus
+      // élevé que le sien — vérifié seulement s'il y a un vrai changement,
+      // pour ne pas bloquer la sauvegarde du reste de la fiche (le
+      // formulaire renvoie toujours le rôle actuel avec le reste).
+      if (changementReel && params.id === session.id) {
+        return NextResponse.json({ erreur: "Tu ne peux pas changer ton propre rôle." }, { status: 403 });
+      }
+      if (changementReel && niveauRole(body.role) > niveauRole(session.role)) {
+        return NextResponse.json({ erreur: "Tu ne peux pas assigner un niveau de sécurité plus élevé que le tien." }, { status: 403 });
+      }
     }
     data.role = body.role;
   }
@@ -47,6 +69,8 @@ export async function PATCH(request, { params }) {
   if (body.tauxVacances !== undefined && body.tauxVacances !== "") data.tauxVacances = Number(body.tauxVacances);
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
+  if (body.ville !== undefined) data.ville = body.ville || null;
+  if (body.codePostal !== undefined) data.codePostal = body.codePostal || null;
   if (body.assignation !== undefined) data.assignation = body.assignation || null;
   if (body.dateEmbauche !== undefined) data.dateEmbauche = body.dateEmbauche ? new Date(body.dateEmbauche) : null;
 
@@ -96,6 +120,14 @@ export async function DELETE(request, { params }) {
   }
   if (params.id === session.id) {
     return NextResponse.json({ erreur: "Tu ne peux pas supprimer ton propre compte." }, { status: 400 });
+  }
+
+  const cible = await prisma.user.findUnique({ where: { id: params.id }, select: { role: true } });
+  if (!cible) {
+    return NextResponse.json({ erreur: "Employé introuvable." }, { status: 404 });
+  }
+  if (niveauRole(cible.role) > niveauRole(session.role) && !estNiveauMaxOuDev(session)) {
+    return NextResponse.json({ erreur: "Tu ne peux pas supprimer la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
   }
 
   const [entrees, photos] = await Promise.all([

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, estGerantOuDev, aAccesSection, nomAffichageRole } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
 import MinuteurInactivite from "./MinuteurInactivite";
 
@@ -9,6 +9,9 @@ import MinuteurInactivite from "./MinuteurInactivite";
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
 // chaque bloc de rôle séparément.
 const SECTIONS_EMPRUNTABLES = [
+  { cle: "vue-ensemble", href: "/gerant", label: "Vue d'ensemble", icone: "📊" },
+  { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" },
+  { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "⏱️" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
   { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "🧑‍🤝‍🧑" },
@@ -17,6 +20,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "💰", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "🧾", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
   { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "👥" },
+  { cle: "parametres", href: "/gerant/parametres", label: "Paramètres", icone: "⚙️" },
 ];
 
 export default async function EnTete({ nom, role }) {
@@ -42,13 +46,6 @@ export default async function EnTete({ nom, role }) {
   }
 
   const liens = [];
-  if (estGerantOuDev(session)) {
-    liens.push({ href: "/gerant", label: "Vue d'ensemble", icone: "📊" });
-    liens.push({ href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" });
-  }
-  if (role === "MECANICIEN" || estGerantOuDev(session)) {
-    liens.push({ href: "/mecanicien", label: "Horodateur", icone: "⏱️" });
-  }
 
   // Sections empruntables — vérifiées une par une via le même système que
   // les pages elles-mêmes utilisent, pour que le menu corresponde toujours
@@ -60,9 +57,6 @@ export default async function EnTete({ nom, role }) {
     }
   }
 
-  if (estGerantOuDev(session)) {
-    liens.push({ href: "/gerant/parametres", label: "Paramètres", icone: "⚙️" });
-  }
   if (estSuperAdmin) liens.push({ href: "/gerant/administrateur", label: "Administrateur", icone: "🛡️", accent: true });
 
   return (
