@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, estDeveloppeur } from "@/lib/auth";
 import { prochainNumeroClient } from "@/lib/numerotation";
 import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
 
@@ -16,8 +16,8 @@ const ALIAS_CHAMPS = {
 
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "clients"))) {
-    return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  if (!estDeveloppeur(session)) {
+    return NextResponse.json({ erreur: "Import réservé au mode développeur." }, { status: 403 });
   }
 
   const formData = await request.formData();

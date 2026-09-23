@@ -1,4 +1,4 @@
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, estDeveloppeur } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../components/EnTete";
@@ -16,7 +16,7 @@ export default async function ListeClients() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <ClientsClient clients={clients} />
+      <ClientsClient clients={clients} peutImporter={estDeveloppeur(session)} />
     </div>
   );
 }

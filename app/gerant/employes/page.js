@@ -1,4 +1,4 @@
-import { obtenirSession, aAccesSection, nomAffichageRole, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
+import { obtenirSession, aAccesSection, estDeveloppeur, nomAffichageRole, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../components/EnTete";
@@ -18,7 +18,7 @@ export default async function GestionEmployes() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <EmployesClient employes={employes} moi={session.id} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
+      <EmployesClient employes={employes} moi={session.id} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} peutImporter={estDeveloppeur(session)} />
     </div>
   );
 }
