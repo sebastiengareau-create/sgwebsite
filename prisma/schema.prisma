@@ -288,7 +288,7 @@ model Compte {
 }
 
 // Compte de trésorerie — couche d'affichage/gestion par-dessus un compte du plan
-// comptable (relié 1-à-1), pour la section Caisse & Banque. La comptabilité en
+// comptable (relié 1-à-1), utilisé par la conciliation bancaire. La comptabilité en
 // partie double reste inchangée : c'est toujours le Compte relié qui porte les
 // écritures ; ce modèle sert seulement à regrouper/afficher les comptes réels
 // (caisse, banque, cartes) et leur solde relevé manuellement.
@@ -332,7 +332,11 @@ model LigneEcriture {
   debit       Float             @default(0)
   credit      Float             @default(0)
   description String?
-  rapproche   Boolean           @default(false) // coché lors d'une consolidation bancaire
+  rapproche   Boolean           @default(false) // coché lors d'une conciliation bancaire
+  rapprochementId String? // conciliation enregistrée qui a verrouillé cette ligne — vide tant qu'elle est encore modifiable
+  rapprochement   RapprochementBancaire? @relation(fields: [rapprochementId], references: [id])
+
+  @@index([rapprochementId])
 }
 
 // ---------- TÂCHES INTERNES (suivi de présence, non facturable) ----------
@@ -424,9 +428,10 @@ model RapprochementBancaire {
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   dateRapprochement  DateTime
   soldeReleve        Float
-  soldeLivres        Float
-  ecart              Float
+  soldeLivres        Float // solde des livres à la date du relevé (lignes pointées + éléments en circulation)
+  ecart              Float // relevé − (ouverture + lignes pointées) ; toujours 0 depuis la nouvelle logique, peut être ≠ 0 dans l'ancien historique
   creeLe             DateTime          @default(now())
+  lignes             LigneEcriture[]
 }
 
 // ---------- COMPTES À PAYER ----------
