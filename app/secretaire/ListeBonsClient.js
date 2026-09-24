@@ -12,7 +12,7 @@ const STATUTS = {
 
 export default function ListeBonsClient({ bons, filtreActuel }) {
   const [recherche, setRecherche] = useState("");
-  const [vue, setVue] = useState("liste"); // "liste" | "tableau"
+  const [vue, setVue] = useState("tableau"); // "liste" | "tableau"
 
   const bonsFiltres = bons.filter((b) => {
     const q = recherche.trim().toLowerCase();

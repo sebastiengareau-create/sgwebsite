@@ -358,7 +358,10 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
         {bon.facture ? (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14 }}>#{bon.facture.numero}</span>
+              <div>
+                <div style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14 }}>#{bon.facture.numero}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(bon.facture.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
+              </div>
               <StatutFacturePill statut={bon.facture.statut} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
