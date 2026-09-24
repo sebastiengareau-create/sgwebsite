@@ -117,7 +117,7 @@ function CarteEmploye({ d }) {
       </div>
 
       <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
-        {fmtHeures(d.heuresTotales)} poinçonnées (heures réelles = horaire des jours poinçonnés)
+        {fmtHeures(d.heuresTotales)} poinçonnées (heures réelles = {d.horaireComplet ? "tout l'horaire d'ouverture" : "horaire des jours poinçonnés"})
       </div>
 
       {d.heuresEstimees > 0 && (

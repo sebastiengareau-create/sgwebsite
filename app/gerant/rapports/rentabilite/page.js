@@ -2,7 +2,7 @@ import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
-import { chargerHoraireOuverture, heuresPrevuesJoursPoinconnes } from "@/lib/paie";
+import { chargerHoraireOuverture, heuresPayeesParDefaut, ROLES_HORAIRE_COMPLET } from "@/lib/paie";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -36,6 +36,9 @@ export default async function RapportRentabilite(props) {
 
   const tauxCoutGlobal = Number(parametreCout?.valeur || 95);
   const tauxClientDefaut = Number(parametreTauxClient?.valeur || 195);
+  // Heures d'ouverture annuelles, pour ramener un salaire fixe à un taux
+  // horaire au prorata (ex. 50 000 $ / (37h × 52) = 25,99 $/h).
+  const heuresAnnuelles = Object.values(horaire).reduce((s, h) => s + (h || 0), 0) * 52;
 
   const parEmploye = employes.map((e) => {
     const siennesBon = entreesBon.filter((t) => t.employeId === e.id);
@@ -61,9 +64,12 @@ export default async function RapportRentabilite(props) {
     // Le coût réel suit la même règle que la paie : dès qu'il poinçonne
     // une journée, l'employé est payé pour l'horaire prévu de ce jour-là
     // (ex. lundi + mardi poinçonnés = 16h), pas seulement la durée exacte
-    // de ses poinçons.
-    const heuresPayees = heuresPrevuesJoursPoinconnes([...siennesBon, ...siennesInternes], debut, fin, horaire);
-    const tauxCout = e.tauxHoraireEmploye || tauxCoutGlobal;
+    // de ses poinçons — et la secrétaire, le gérant et le niveau 4, pour
+    // tout l'horaire d'ouverture.
+    const heuresPayees = heuresPayeesParDefaut(e, [...siennesBon, ...siennesInternes], debut, fin, horaire);
+    const tauxCout = e.typeRemuneration === "SALAIRE" && e.salaireAnnuel && heuresAnnuelles > 0
+      ? e.salaireAnnuel / heuresAnnuelles
+      : e.tauxHoraireEmploye || tauxCoutGlobal;
     const coutReel = heuresPayees * tauxCout;
     const marge = revenuGenere - coutReel;
 
@@ -71,6 +77,7 @@ export default async function RapportRentabilite(props) {
       employe: e,
       heuresTotales,
       heuresPayees,
+      horaireComplet: ROLES_HORAIRE_COMPLET.includes(e.role),
       heuresFacturables,
       heuresEstimees,
       heuresInternes,
@@ -79,7 +86,11 @@ export default async function RapportRentabilite(props) {
       marge,
       tauxCout,
     };
-  }).filter((d) => d.heuresTotales > 0 || d.heuresPayees > 0);
+  })
+    // Seulement les employés qui ont démarré l'horodateur sur un bon et ont
+    // donc des heures facturables sur la période — les autres (seulement du
+    // temps interne, ou aucun poinçon) ne sont pas affichés.
+    .filter((d) => d.heuresFacturables > 0);
 
   parEmploye.sort((a, b) => b.marge - a.marge);
 
