@@ -14,6 +14,11 @@ export default function RemiseGouvernementaleClient({ soldes }) {
   const [message, setMessage] = useState(null);
 
   const groupes = [...new Set(soldes.map((c) => c.groupe))];
+  const infoGroupe = (groupe) => soldes.find((c) => c.groupe === groupe);
+  const libelleGroupe = (groupe) => {
+    const { titre, precision } = infoGroupe(groupe);
+    return precision ? `${titre} — ${precision}` : titre;
+  };
 
   function changer(numero, valeur) {
     setMontants((prev) => ({ ...prev, [numero]: valeur }));
@@ -38,7 +43,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
     const res = await fetch("/api/comptabilite/remise-gouvernementale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paiements, description: `Remise ${groupe}`, reference }),
+      body: JSON.stringify({ paiements, description: `Remise ${libelleGroupe(groupe)}`, reference }),
     });
     const data = await res.json();
     setEnCours(false);
@@ -46,7 +51,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
       setMessage({ type: "erreur", texte: data.erreur });
       return;
     }
-    setMessage({ type: "succes", texte: `Remise ${groupe} de ${data.total.toFixed(2)} $ enregistrée ✓` });
+    setMessage({ type: "succes", texte: `Remise ${libelleGroupe(groupe)} de ${data.total.toFixed(2)} $ enregistrée ✓` });
     setMontants((prev) => {
       const copie = { ...prev };
       soldes.filter((c) => c.groupe === groupe).forEach((c) => (copie[c.numero] = ""));
@@ -71,7 +76,10 @@ export default function RemiseGouvernementaleClient({ soldes }) {
 
       {groupes.map((groupe) => (
         <div key={groupe} className="carte carte-m" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10, fontWeight: 700 }}>{groupe}</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10, fontWeight: 700 }}>
+            {infoGroupe(groupe).titre}
+            {infoGroupe(groupe).precision && <span style={{ fontWeight: 400 }}> · {infoGroupe(groupe).precision}</span>}
+          </div>
           {soldes.filter((c) => c.groupe === groupe).map((c) => (
             <div key={c.numero} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ flex: 1, fontSize: 13 }}>{c.nom}</span>
@@ -94,7 +102,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
                 className="bouton-3d"
                 style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, opacity: totalGroupe(groupe) <= 0 ? 0.4 : 1 }}
               >
-                Payer {groupe}
+                Payer {infoGroupe(groupe).titre}
               </button>
             )}
           </div>
