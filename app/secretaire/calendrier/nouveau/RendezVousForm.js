@@ -20,7 +20,20 @@ export default function RendezVousForm({ clientsExistants }) {
   const [dureeMinutes, setDureeMinutes] = useState("60");
   const [motif, setMotif] = useState("");
   const [erreur, setErreur] = useState("");
+  const [horsDisponibilite, setHorsDisponibilite] = useState(false);
   const [enCours, setEnCours] = useState(false);
+  const [creneaux, setCreneaux] = useState(null); // null = chargement ; { ferme, creneaux } sinon
+
+  // Cases libres pour la date et la durée choisies (heures d'ouverture,
+  // périodes indisponibles et autres rendez-vous déjà retirés).
+  useEffect(() => {
+    let annule = false;
+    setCreneaux(null);
+    fetch(`/api/rendezvous/disponibilites?debut=${date}&fin=${date}&duree=${dureeMinutes}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (!annule) setCreneaux(data?.jours?.[0] || { ferme: false, creneaux: [] }); });
+    return () => { annule = true; };
+  }, [date, dureeMinutes]);
 
   useEffect(() => {
     function surClicExterieur(e) {
@@ -49,9 +62,10 @@ export default function RendezVousForm({ clientsExistants }) {
     setClientTelephone("");
   }
 
-  async function creer(e) {
-    e.preventDefault();
+  async function creer(e, forcer = false) {
+    e?.preventDefault();
     setErreur("");
+    setHorsDisponibilite(false);
     const nomFinal = clientSelectionne ? clientSelectionne.nom : clientNom;
     if (!nomFinal.trim() || !motif.trim()) {
       setErreur("Indique le client et le motif du rendez-vous.");
@@ -66,13 +80,14 @@ export default function RendezVousForm({ clientsExistants }) {
         clientId: clientSelectionne?.id,
         clientNom: nomFinal, clientTelephone, vehiculeInfo, note,
         date: `${date}T${heure}:00`,
-        dureeMinutes, motif,
+        dureeMinutes, motif, forcer,
       }),
     });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setErreur(data.erreur || "Erreur lors de la création.");
+      setHorsDisponibilite(!!data.horsDisponibilite);
       return;
     }
     router.push(`/secretaire/calendrier?date=${date}`);
@@ -126,6 +141,29 @@ export default function RendezVousForm({ clientsExistants }) {
         <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} style={{ ...champInput, flex: 1 }} />
         <input type="time" required value={heure} onChange={(e) => setHeure(e.target.value)} style={{ ...champInput, width: 110 }} />
       </div>
+      <div style={{ marginBottom: 10 }}>
+        {creneaux === null ? (
+          <p style={texteAide}>Recherche des disponibilités…</p>
+        ) : creneaux.ferme ? (
+          <p style={texteAide}>L'atelier est fermé cette journée-là.</p>
+        ) : creneaux.creneaux.length === 0 ? (
+          <p style={texteAide}>Aucune case libre ce jour-là pour cette durée.</p>
+        ) : (
+          <>
+            <p style={{ ...texteAide, marginBottom: 6 }}>Cases libres :</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {creneaux.creneaux.map((c) => (
+                <button
+                  key={c} type="button" onClick={() => setHeure(c)}
+                  style={{ fontSize: 12, fontWeight: 600, padding: "5px 9px", borderRadius: 7, cursor: "pointer", border: "1px solid var(--border)", background: heure === c ? "var(--accent)" : "var(--surface)", color: heure === c ? "#17150f" : "var(--text)" }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       <label style={{ fontSize: 11, color: "var(--text-muted)" }}>Durée</label>
       <select value={dureeMinutes} onChange={(e) => setDureeMinutes(e.target.value)} style={champInput}>
         <option value="30">30 minutes</option>
@@ -137,6 +175,11 @@ export default function RendezVousForm({ clientsExistants }) {
       <input required placeholder="Motif (ex : Changement d'huile)" value={motif} onChange={(e) => setMotif(e.target.value)} style={champInput} />
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 10 }}>{erreur}</p>}
+      {horsDisponibilite && (
+        <button type="button" onClick={() => creer(null, true)} disabled={enCours} style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 8, border: "1px solid var(--danger)", background: "none", color: "var(--danger)", fontWeight: 700, cursor: "pointer" }}>
+          Créer quand même
+        </button>
+      )}
 
       <button type="submit" disabled={enCours} style={{ width: "100%", marginTop: 12, padding: 12, borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, cursor: "pointer" }}>
         {enCours ? "Création…" : "Créer le rendez-vous"}
@@ -144,6 +187,8 @@ export default function RendezVousForm({ clientsExistants }) {
     </form>
   );
 }
+
+const texteAide = { fontSize: 11.5, color: "var(--text-muted)", margin: 0 };
 
 const champInput = {
   width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",

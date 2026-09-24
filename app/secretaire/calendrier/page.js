@@ -2,6 +2,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
+import { chargerReglagesDisponibilites } from "@/lib/disponibilites";
 import EnTete from "../../components/EnTete";
 import CalendrierClient from "./CalendrierClient";
 
@@ -33,15 +34,34 @@ export default async function Calendrier(props) {
   const { debut } = limitesJourQuebec(jours[0]);
   const { fin } = limitesJourQuebec(jours[6]);
 
-  const rendezVous = await prisma.rendezVous.findMany({
-    where: { date: { gte: debut, lte: fin } },
-    orderBy: { date: "asc" },
-  });
+  const [rendezVous, indisponibles, reglages] = await Promise.all([
+    prisma.rendezVous.findMany({
+      where: { date: { gte: debut, lte: fin } },
+      orderBy: { date: "asc" },
+    }),
+    prisma.periodeIndisponible.findMany({
+      where: { debut: { lte: fin }, fin: { gte: debut } },
+      orderBy: { debut: "asc" },
+    }),
+    chargerReglagesDisponibilites(),
+  ]);
+
+  // Heures d'ouverture de chacun des 7 jours affichés (null = fermé).
+  const cleJour = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
+  const heuresParJour = Object.fromEntries(
+    jours.map((j) => [j, reglages.heures[cleJour[new Date(`${j}T12:00:00Z`).getUTCDay()]]])
+  );
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <CalendrierClient jours={jours} rendezVous={rendezVous} dateSelectionnee={dateStr} />
+      <CalendrierClient
+        jours={jours}
+        rendezVous={rendezVous}
+        indisponibles={indisponibles}
+        heuresParJour={heuresParJour}
+        dateSelectionnee={dateStr}
+      />
     </div>
   );
 }

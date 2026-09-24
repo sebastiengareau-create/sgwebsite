@@ -7,7 +7,7 @@ import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
 import BandeauSection from "../../components/BandeauSection";
 
 const JOURS_LABEL = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-const DEBUT_GRILLE = 7; // 7h
+const DEBUT_GRILLE = 7; // 7h — élargie au besoin selon les heures d'ouverture
 const FIN_GRILLE = 19; // 19h
 const HAUTEUR_HEURE = 52; // px
 
@@ -20,6 +20,44 @@ function heureQuebec(date) {
   const h = Number(parties.find((p) => p.type === "hour").value);
   const m = Number(parties.find((p) => p.type === "minute").value);
   return h + m / 60;
+}
+
+// "YYYY-MM-DD" du jour civil au Québec d'une date.
+function jourQuebec(date) {
+  return new Date(date).toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+}
+
+function heureDecimale(heureStr) {
+  const [h, m] = heureStr.split(":").map(Number);
+  return h + m / 60;
+}
+
+// Portion [début, fin] (heures décimales) d'une période indisponible qui
+// tombe dans le jour dateStr, ou null si elle ne le touche pas.
+function portionDuJour(periode, dateStr) {
+  const jourDebut = jourQuebec(periode.debut);
+  const jourFin = jourQuebec(periode.fin);
+  if (jourDebut > dateStr || jourFin < dateStr) return null;
+  const debut = jourDebut < dateStr ? 0 : heureQuebec(new Date(periode.debut));
+  const fin = jourFin > dateStr ? 24 : heureQuebec(new Date(periode.fin));
+  return fin > debut ? { debut, fin } : null;
+}
+
+function formatPeriode(p) {
+  const debut = new Date(p.debut);
+  const fin = new Date(p.fin);
+  const optsDate = { timeZone: "America/Toronto", weekday: "short", day: "numeric", month: "short" };
+  const optsHeure = { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit" };
+  const journeeEntiere = heureQuebec(debut) === 0 && fin.getTime() - debut.getTime() >= 86400000 - 60000;
+  if (journeeEntiere) {
+    const d = debut.toLocaleDateString("fr-CA", optsDate);
+    const f = new Date(fin.getTime() - 60000).toLocaleDateString("fr-CA", optsDate);
+    return d === f ? `${d} · journée entière` : `Du ${d} au ${f}`;
+  }
+  const memeJour = jourQuebec(debut) === jourQuebec(fin);
+  return memeJour
+    ? `${debut.toLocaleDateString("fr-CA", optsDate)} · ${debut.toLocaleTimeString("fr-CA", optsHeure)}–${fin.toLocaleTimeString("fr-CA", optsHeure)}`
+    : `Du ${debut.toLocaleDateString("fr-CA", optsDate)} ${debut.toLocaleTimeString("fr-CA", optsHeure)} au ${fin.toLocaleDateString("fr-CA", optsDate)} ${fin.toLocaleTimeString("fr-CA", optsHeure)}`;
 }
 
 function decaler(dateStr, jours) {
@@ -43,11 +81,12 @@ function construireCouleursMotifs(rendezVous) {
   return carte;
 }
 
-export default function CalendrierClient({ jours, rendezVous, dateSelectionnee }) {
+export default function CalendrierClient({ jours, rendezVous, indisponibles, heuresParJour, dateSelectionnee }) {
   const router = useRouter();
   const [jourActif, setJourActif] = useState(jours.includes(dateSelectionnee) ? dateSelectionnee : jours[0]);
   const [vue, setVue] = useState("grille"); // "grille" | "liste"
   const [rdvSelectionneId, setRdvSelectionneId] = useState(null);
+  const [afficherFormIndispo, setAfficherFormIndispo] = useState(false);
 
   const rdvParJour = {};
   for (const j of jours) rdvParJour[j] = [];
@@ -90,6 +129,8 @@ export default function CalendrierClient({ jours, rendezVous, dateSelectionnee }
           <GrilleSemaine
             jours={jours}
             rdvParJour={rdvParJour}
+            indisponibles={indisponibles}
+            heuresParJour={heuresParJour}
             couleursMotifs={couleursMotifs}
             rdvSelectionneId={rdvSelectionneId}
             onSelectionner={setRdvSelectionneId}
@@ -130,6 +171,14 @@ export default function CalendrierClient({ jours, rendezVous, dateSelectionnee }
             })}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>
+              {heuresParJour[jourActif] ? `Ouvert de ${heuresParJour[jourActif].ouverture} à ${heuresParJour[jourActif].fermeture}` : "Fermé ce jour-là"}
+            </p>
+            {indisponibles.filter((p) => portionDuJour(p, jourActif)).map((p) => (
+              <div key={p.id} style={{ ...styleIndispo, borderRadius: 10, padding: 10, fontSize: 12 }}>
+                ⛔ {formatPeriode(p)}{p.motif ? ` — ${p.motif}` : ""}
+              </div>
+            ))}
             {rdvDuJour.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun rendez-vous ce jour-là.</p>}
             {rdvDuJour.map((r) => (
               <CarteRendezVous key={r.id} rdv={r} onChange={() => router.refresh()} />
@@ -137,18 +186,128 @@ export default function CalendrierClient({ jours, rendezVous, dateSelectionnee }
           </div>
         </>
       )}
+      <SectionIndisponibilites
+        indisponibles={indisponibles}
+        afficherForm={afficherFormIndispo}
+        setAfficherForm={setAfficherFormIndispo}
+        dateParDefaut={jourActif}
+        onChange={() => router.refresh()}
+      />
       <BoutonFlottantNouveau />
     </div>
   );
 }
 
-function GrilleSemaine({ jours, rdvParJour, couleursMotifs, rdvSelectionneId, onSelectionner }) {
-  const heures = Array.from({ length: FIN_GRILLE - DEBUT_GRILLE }, (_, i) => DEBUT_GRILLE + i);
+function SectionIndisponibilites({ indisponibles, afficherForm, setAfficherForm, dateParDefaut, onChange }) {
+  const [enCours, setEnCours] = useState(null);
+
+  async function supprimer(id) {
+    if (!window.confirm("Retirer cette période indisponible ?")) return;
+    setEnCours(id);
+    await fetch(`/api/indisponibilites/${id}`, { method: "DELETE" });
+    setEnCours(null);
+    onChange();
+  }
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700 }}>Périodes indisponibles (semaine)</span>
+        <button onClick={() => setAfficherForm((v) => !v)} className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
+          {afficherForm ? "Annuler" : "+ Indisponibilité"}
+        </button>
+      </div>
+      {afficherForm && (
+        <FormulaireIndisponibilite
+          dateParDefaut={dateParDefaut}
+          onCree={() => { setAfficherForm(false); onChange(); }}
+        />
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {indisponibles.map((p) => (
+          <div key={p.id} style={{ ...styleIndispo, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, borderRadius: 8, padding: "8px 10px", fontSize: 12, opacity: enCours === p.id ? 0.5 : 1 }}>
+            <span>⛔ {formatPeriode(p)}{p.motif ? ` — ${p.motif}` : ""}</span>
+            <button onClick={() => supprimer(p.id)} disabled={enCours === p.id} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 13, cursor: "pointer" }}>🗑️</button>
+          </div>
+        ))}
+        {indisponibles.length === 0 && !afficherForm && (
+          <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>Aucune cette semaine. Ajoutes-en une pour bloquer des heures (congé, férié, formation…).</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FormulaireIndisponibilite({ dateParDefaut, onCree }) {
+  const [dateDebut, setDateDebut] = useState(dateParDefaut);
+  const [dateFin, setDateFin] = useState(dateParDefaut);
+  const [journeeEntiere, setJourneeEntiere] = useState(true);
+  const [heureDebut, setHeureDebut] = useState("12:00");
+  const [heureFin, setHeureFin] = useState("13:00");
+  const [motif, setMotif] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  async function enregistrer(e) {
+    e.preventDefault();
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch("/api/indisponibilites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dateDebut, dateFin, journeeEntiere, heureDebut, heureFin, motif }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      setErreur((await res.json().catch(() => ({}))).erreur || "Erreur lors de l'enregistrement.");
+      return;
+    }
+    onCree();
+  }
+
+  return (
+    <form onSubmit={enregistrer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+        <input type="checkbox" checked={journeeEntiere} onChange={(e) => setJourneeEntiere(e.target.checked)} />
+        Journée(s) entière(s)
+      </label>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span style={styleEtiquette}>Du</span>
+        <input type="date" required value={dateDebut} onChange={(e) => { setDateDebut(e.target.value); if (e.target.value > dateFin) setDateFin(e.target.value); }} style={styleChamp} />
+        {!journeeEntiere && <input type="time" required value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} style={{ ...styleChamp, width: 100, flex: "none" }} />}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span style={styleEtiquette}>Au</span>
+        <input type="date" required value={dateFin} min={dateDebut} onChange={(e) => setDateFin(e.target.value)} style={styleChamp} />
+        {!journeeEntiere && <input type="time" required value={heureFin} onChange={(e) => setHeureFin(e.target.value)} style={{ ...styleChamp, width: 100, flex: "none" }} />}
+      </div>
+      <input placeholder="Motif (ex : Férié, formation, vacances)" value={motif} onChange={(e) => setMotif(e.target.value)} style={styleChamp} />
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{erreur}</p>}
+      <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+        {enCours ? "Enregistrement…" : "Bloquer cette période"}
+      </button>
+    </form>
+  );
+}
+
+function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleursMotifs, rdvSelectionneId, onSelectionner }) {
+  // La grille couvre au moins 7h–19h, élargie si l'atelier ouvre plus tôt ou ferme plus tard.
+  const plages = Object.values(heuresParJour).filter(Boolean);
+  const debutGrille = Math.min(DEBUT_GRILLE, ...plages.map((h) => Math.floor(heureDecimale(h.ouverture))));
+  const finGrille = Math.max(FIN_GRILLE, ...plages.map((h) => Math.ceil(heureDecimale(h.fermeture))));
+  const heures = Array.from({ length: finGrille - debutGrille }, (_, i) => debutGrille + i);
   const hauteurTotale = heures.length * HAUTEUR_HEURE;
 
   function positionPourDate(date) {
     const h = heureQuebec(new Date(date));
-    return Math.max(0, (h - DEBUT_GRILLE) * HAUTEUR_HEURE);
+    return Math.max(0, (h - debutGrille) * HAUTEUR_HEURE);
+  }
+
+  // Bande [début, fin] en heures décimales, bornée à la grille, en px.
+  function bande(debut, fin) {
+    const d = Math.max(debut, debutGrille);
+    const f = Math.min(fin, finGrille);
+    return f > d ? { top: (d - debutGrille) * HAUTEUR_HEURE, height: (f - d) * HAUTEUR_HEURE } : null;
   }
 
   return (
@@ -179,6 +338,27 @@ function GrilleSemaine({ jours, rdvParJour, couleursMotifs, rdvSelectionneId, on
                 {heures.map((h, i) => (
                   <div key={h} style={{ position: "absolute", top: i * HAUTEUR_HEURE, left: 0, right: 0, borderBottom: "1px solid var(--border)" }} />
                 ))}
+                {/* Heures de fermeture — grisées */}
+                {(heuresParJour[j]
+                  ? [bande(0, heureDecimale(heuresParJour[j].ouverture)), bande(heureDecimale(heuresParJour[j].fermeture), 24)]
+                  : [bande(0, 24)]
+                ).filter(Boolean).map((b, i) => (
+                  <div key={`ferme-${i}`} style={{ position: "absolute", left: 0, right: 0, ...b, background: "rgba(128,128,128,0.18)", pointerEvents: "none" }} />
+                ))}
+                {!heuresParJour[j] && (
+                  <div style={{ position: "absolute", top: 8, left: 0, right: 0, textAlign: "center", fontSize: 10, color: "var(--text-muted)", pointerEvents: "none" }}>Fermé</div>
+                )}
+                {/* Périodes indisponibles */}
+                {indisponibles.map((p) => {
+                  const portion = portionDuJour(p, j);
+                  const b = portion && bande(portion.debut, portion.fin);
+                  if (!b) return null;
+                  return (
+                    <div key={p.id} title={p.motif || "Indisponible"} style={{ position: "absolute", left: 0, right: 0, ...b, ...styleIndispo, borderRadius: 0, padding: "3px 5px", overflow: "hidden", fontSize: 9.5, pointerEvents: "none" }}>
+                      ⛔ {p.motif || "Indisponible"}
+                    </div>
+                  );
+                })}
                 {rdvs.map((r) => {
                   const top = positionPourDate(r.date);
                   const hauteur = Math.max(20, (r.dureeMinutes / 60) * HAUTEUR_HEURE - 2);
@@ -295,3 +475,17 @@ function CarteRendezVous({ rdv, onChange, compact }) {
     </div>
   );
 }
+
+// Hachures grises, utilisées pour les périodes indisponibles dans la grille et les listes.
+const styleIndispo = {
+  background: "repeating-linear-gradient(45deg, rgba(128,128,128,0.22) 0 6px, rgba(128,128,128,0.08) 6px 12px)",
+  border: "1px dashed var(--border)",
+  color: "var(--text-muted)",
+};
+
+const styleEtiquette = { fontSize: 12, color: "var(--text-muted)", width: 22 };
+
+const styleChamp = {
+  flex: 1, minWidth: 0, padding: "8px 9px", borderRadius: 8, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box",
+};
