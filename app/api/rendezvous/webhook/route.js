@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { dateHeureQuebecVersUTC } from "@/lib/temps";
+import { verifierCreneau } from "@/lib/disponibilites";
 
 export async function POST(request) {
   // Authentification par clé secrète partagée — ce n'est pas un utilisateur
@@ -38,14 +39,25 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    return NextResponse.json({ erreur: "Format de date (AAAA-MM-JJ) ou d'heure (HH:MM) invalide." }, { status: 400 });
+  }
+
+  // Le site offre les cases de /api/rendezvous/disponibilites, mais une case
+  // peut avoir été prise entre-temps : on revérifie avant d'accepter.
+  const debut = dateHeureQuebecVersUTC(date, time);
+  const dureeMinutes = Number(duration_min) || 60;
+  const raison = debut < new Date() ? "Ce créneau est déjà passé." : await verifierCreneau(debut, dureeMinutes);
+  if (raison) return NextResponse.json({ erreur: raison, indisponible: true }, { status: 409 });
+
   const rdv = await prisma.rendezVous.create({
     data: {
       referenceExterne: reference,
       clientNom: customer_name,
       clientTelephone: customer_phone || null,
       vehiculeInfo: vehicle || null,
-      date: dateHeureQuebecVersUTC(date, time),
-      dureeMinutes: Number(duration_min) || 60,
+      date: debut,
+      dureeMinutes,
       motif: service + (note ? ` — ${note}` : "") + (customer_email ? ` (${customer_email})` : ""),
     },
   });

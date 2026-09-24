@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
+import { verifierCreneau } from "@/lib/disponibilites";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -16,6 +17,13 @@ export async function PATCH(request, props) {
   if (body.date) data.date = dateHeureLocaleVersUTC(body.date);
   if (body.dureeMinutes) data.dureeMinutes = Number(body.dureeMinutes);
   if (body.motif) data.motif = body.motif;
+
+  if ((data.date || data.dureeMinutes) && !body.forcer) {
+    const actuel = await prisma.rendezVous.findUnique({ where: { id: params.id } });
+    if (!actuel) return NextResponse.json({ erreur: "Rendez-vous introuvable." }, { status: 404 });
+    const raison = await verifierCreneau(data.date || actuel.date, data.dureeMinutes || actuel.dureeMinutes, { ignorerRendezVousId: actuel.id });
+    if (raison) return NextResponse.json({ erreur: raison, horsDisponibilite: true }, { status: 409 });
+  }
 
   const rdv = await prisma.rendezVous.update({ where: { id: params.id }, data });
   return NextResponse.json(rdv);

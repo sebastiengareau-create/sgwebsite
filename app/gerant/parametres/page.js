@@ -2,6 +2,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import crypto from "crypto";
+import { chargerReglagesDisponibilites } from "@/lib/disponibilites";
 import EnTete from "../../components/EnTete";
 import ParametresClient from "./ParametresClient";
 import TachesInternesSection from "./TachesInternesSection";
@@ -25,6 +26,7 @@ export default async function Parametres() {
   const urlFlux = `${process.env.APP_URL || "http://localhost:3000"}/api/calendrier/flux?cle=${cleFlux}`;
 
   const tachesInternes = await prisma.tacheInterne.findMany({ orderBy: { creeLe: "asc" } });
+  const reglagesDisponibilites = await chargerReglagesDisponibilites();
 
   return (
     <div>
@@ -41,6 +43,9 @@ export default async function Parametres() {
           sam: dict.heures_sam ?? "0",
           dim: dict.heures_dim ?? "0",
         }}
+        heuresOuvertureInit={reglagesDisponibilites.heures}
+        intervalleReservationInit={String(reglagesDisponibilites.intervalleMinutes)}
+        capaciteReservationInit={String(reglagesDisponibilites.capacite)}
         tpsNumeroInit={dict.tps_numero || ""}
         tpsTauxInit={dict.tps_taux || "5"}
         tvqNumeroInit={dict.tvq_numero || ""}
