@@ -5,14 +5,17 @@ import { assurerPlanComptable } from "@/lib/comptabilite";
 import EnTete from "../../../components/EnTete";
 import RemiseGouvernementaleClient from "./RemiseGouvernementaleClient";
 
+// groupe = clé de regroupement (un paiement séparé par groupe) ; titre = nom
+// affiché, soit l'organisme qui perçoit. La TPS/TVQ est perçue par Revenu
+// Québec, mais se paie à part des retenues à la source (DAS) provinciales.
 const COMPTES_REMISE = [
-  { numero: "2050", nom: "Impôt fédéral à payer", groupe: "ARC" },
-  { numero: "2040", nom: "Assurance-emploi à payer", groupe: "ARC" },
-  { numero: "2060", nom: "Impôt Québec à payer", groupe: "Revenu Québec" },
-  { numero: "2020", nom: "RRQ à payer", groupe: "Revenu Québec" },
-  { numero: "2030", nom: "RQAP à payer", groupe: "Revenu Québec" },
-  { numero: "2000", nom: "TPS à payer", groupe: "TPS/TVQ" },
-  { numero: "2010", nom: "TVQ à payer", groupe: "TPS/TVQ" },
+  { numero: "2050", nom: "Impôt fédéral à payer", groupe: "ARC", titre: "ARC" },
+  { numero: "2040", nom: "Assurance-emploi à payer", groupe: "ARC", titre: "ARC" },
+  { numero: "2060", nom: "Impôt Québec à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
+  { numero: "2020", nom: "RRQ à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
+  { numero: "2030", nom: "RQAP à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
+  { numero: "2000", nom: "TPS à payer", groupe: "TPS/TVQ", titre: "Revenu Québec", precision: "TPS/TVQ" },
+  { numero: "2010", nom: "TVQ à payer", groupe: "TPS/TVQ", titre: "Revenu Québec", precision: "TPS/TVQ" },
 ];
 
 export default async function RemiseGouvernementale() {
