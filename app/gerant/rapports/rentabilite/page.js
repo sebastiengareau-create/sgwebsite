@@ -36,6 +36,9 @@ export default async function RapportRentabilite(props) {
 
   const tauxCoutGlobal = Number(parametreCout?.valeur || 95);
   const tauxClientDefaut = Number(parametreTauxClient?.valeur || 195);
+  // Heures d'ouverture annuelles, pour ramener un salaire fixe à un taux
+  // horaire au prorata (ex. 50 000 $ / (37h × 52) = 25,99 $/h).
+  const heuresAnnuelles = Object.values(horaire).reduce((s, h) => s + (h || 0), 0) * 52;
 
   const parEmploye = employes.map((e) => {
     const siennesBon = entreesBon.filter((t) => t.employeId === e.id);
@@ -64,7 +67,9 @@ export default async function RapportRentabilite(props) {
     // de ses poinçons — et la secrétaire, le gérant et le niveau 4, pour
     // tout l'horaire d'ouverture.
     const heuresPayees = heuresPayeesParDefaut(e, [...siennesBon, ...siennesInternes], debut, fin, horaire);
-    const tauxCout = e.tauxHoraireEmploye || tauxCoutGlobal;
+    const tauxCout = e.typeRemuneration === "SALAIRE" && e.salaireAnnuel && heuresAnnuelles > 0
+      ? e.salaireAnnuel / heuresAnnuelles
+      : e.tauxHoraireEmploye || tauxCoutGlobal;
     const coutReel = heuresPayees * tauxCout;
     const marge = revenuGenere - coutReel;
 
