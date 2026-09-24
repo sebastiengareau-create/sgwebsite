@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { assurerComptesTresorerie, obtenirComptesTresorerieAvecSoldes, obtenirTransactionsTresorerie } from "@/lib/tresorerie";
-import EnTete from "../../../../components/EnTete";
-import TransactionsClient from "./TransactionsClient";
+import { assurerComptesTresorerie } from "@/lib/tresorerie";
+import { calculerPrevisionTresorerie } from "@/lib/previsions";
+import EnTete from "../../../components/EnTete";
+import PrevisionsClient from "./PrevisionsClient";
 
-export default async function TransactionsTresorerie() {
+export default async function Previsions() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) redirect("/gerant");
 
@@ -13,13 +14,12 @@ export default async function TransactionsTresorerie() {
   if (moduleComptabilite?.valeur === "inactif") redirect("/gerant");
 
   await assurerComptesTresorerie();
-  const comptes = await obtenirComptesTresorerieAvecSoldes({ actifSeulement: false });
-  const transactions = await obtenirTransactionsTresorerie(comptes);
+  const prevision = await calculerPrevisionTresorerie();
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <TransactionsClient comptes={comptes} transactions={transactions} />
+      <PrevisionsClient prevision={prevision} />
     </div>
   );
 }

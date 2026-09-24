@@ -9,11 +9,11 @@ const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
 const OUTILS = [
-  { href: "/gerant/comptabilite/caisse-banque", icone: "💰", label: "Caisse & Banque" },
   { href: "/gerant/comptabilite/procedure", icone: "📋", label: "Procédure de fermeture" },
   { href: "/gerant/comptabilite/fermeture", icone: "🔒", label: "Fermeture de période" },
   { href: "/gerant/comptabilite/ecriture-manuelle", icone: "✍️", label: "Écriture supplémentaire" },
-  { href: "/gerant/comptabilite/caisse-banque/rapprochement", icone: "🏦", label: "Conciliation bancaire" },
+  { href: "/gerant/comptabilite/rapprochement", icone: "🏦", label: "Conciliation bancaire" },
+  { href: "/gerant/comptabilite/previsions", icone: "📊", label: "Prévisions de trésorerie" },
   { href: "/gerant/comptabilite/immobilisations", icone: "🏗️", label: "Immobilisations" },
   { href: "/gerant/comptabilite/remise-gouvernementale", icone: "🏛️", label: "Remise gouvernementale" },
   { href: "/gerant/comptabilite/rapports", icone: "📄", label: "Rapports imprimables" },
