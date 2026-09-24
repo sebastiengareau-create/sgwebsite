@@ -81,7 +81,11 @@ export default async function RapportRentabilite(props) {
       marge,
       tauxCout,
     };
-  }).filter((d) => d.heuresTotales > 0 || d.heuresPayees > 0);
+  })
+    // Seulement les employés qui ont démarré l'horodateur sur un bon et ont
+    // donc des heures facturables sur la période — les autres (seulement du
+    // temps interne, ou aucun poinçon) ne sont pas affichés.
+    .filter((d) => d.heuresFacturables > 0);
 
   parEmploye.sort((a, b) => b.marge - a.marge);
 
