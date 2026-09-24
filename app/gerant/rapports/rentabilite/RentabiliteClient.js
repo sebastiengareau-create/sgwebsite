@@ -22,7 +22,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
   const totalRevenu = donnees.reduce((s, d) => s + d.revenuGenere, 0);
   const totalCout = donnees.reduce((s, d) => s + d.coutReel, 0);
   const totalMarge = totalRevenu - totalCout;
-  const totalHeures = donnees.reduce((s, d) => s + d.heuresTotales, 0);
+  const totalHeures = donnees.reduce((s, d) => s + d.heuresPayees, 0);
   const totalFacturables = donnees.reduce((s, d) => s + d.heuresFacturables, 0);
 
   return (
@@ -57,7 +57,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
           </div>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{fmtHeures(totalFacturables)} <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 400 }}>/ {fmtHeures(totalHeures)}</span></div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Heures facturables / totales</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Heures facturables / réelles</div>
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@ function CarteEmploye({ d }) {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
-          <span style={{ color: "var(--text-muted)" }}>Coût réel ({d.tauxCout.toFixed(2)} $/h)</span>
+          <span style={{ color: "var(--text-muted)" }}>Coût réel ({fmtHeures(d.heuresPayees)} × {d.tauxCout.toFixed(2)} $/h)</span>
           <span style={{ fontWeight: 600 }}>{d.coutReel.toFixed(2)} $</span>
         </div>
         <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
@@ -112,8 +112,12 @@ function CarteEmploye({ d }) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
-        <span>{fmtHeures(d.heuresFacturables)} facturables sur {fmtHeures(d.heuresTotales)} travaillées</span>
+        <span>{fmtHeures(d.heuresFacturables)} facturables sur {fmtHeures(d.heuresPayees)} réelles</span>
         {margePct !== null && <span>Marge {margePct.toFixed(0)}%</span>}
+      </div>
+
+      <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
+        {fmtHeures(d.heuresTotales)} poinçonnées (heures réelles = horaire des jours poinçonnés)
       </div>
 
       {d.heuresEstimees > 0 && (
