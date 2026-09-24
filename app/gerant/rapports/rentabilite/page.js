@@ -2,7 +2,7 @@ import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
-import { chargerHoraireOuverture, heuresPayeesParDefaut, ROLES_HORAIRE_COMPLET } from "@/lib/paie";
+import { chargerHoraireOuverture, heuresPrevuesJoursPoinconnes } from "@/lib/paie";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -61,12 +61,12 @@ export default async function RapportRentabilite(props) {
       siennesFacturees.reduce((s, t) => s + dureeHeures(t.debut, t.fin) * t.probleme.bon.facture.tauxHoraireUtilise, 0) +
       heuresEstimees * tauxClientDefaut;
 
-    // Le coût réel suit la même règle que la paie : dès qu'il poinçonne
-    // une journée, l'employé est payé pour l'horaire prévu de ce jour-là
-    // (ex. lundi + mardi poinçonnés = 16h), pas seulement la durée exacte
-    // de ses poinçons — et la secrétaire, le gérant et le niveau 4, pour
-    // tout l'horaire d'ouverture.
-    const heuresPayees = heuresPayeesParDefaut(e, [...siennesBon, ...siennesInternes], debut, fin, horaire);
+    // Heures réelles : seulement les jours où le poinçon a été enclenché,
+    // chacun compté pour l'horaire prévu CE jour-là (ex. lundi + mardi
+    // poinçonnés = 16h). Même règle pour tous les rôles dans ce rapport,
+    // contrairement à la paie (où la secrétaire, le gérant et le niveau 4
+    // sont payés pour tout l'horaire d'ouverture).
+    const heuresPayees = heuresPrevuesJoursPoinconnes([...siennesBon, ...siennesInternes], debut, fin, horaire);
     const tauxCout = e.typeRemuneration === "SALAIRE" && e.salaireAnnuel && heuresAnnuelles > 0
       ? e.salaireAnnuel / heuresAnnuelles
       : e.tauxHoraireEmploye || tauxCoutGlobal;
@@ -77,7 +77,6 @@ export default async function RapportRentabilite(props) {
       employe: e,
       heuresTotales,
       heuresPayees,
-      horaireComplet: ROLES_HORAIRE_COMPLET.includes(e.role),
       heuresFacturables,
       heuresEstimees,
       heuresInternes,
