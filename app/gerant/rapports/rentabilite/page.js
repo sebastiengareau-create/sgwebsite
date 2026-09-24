@@ -2,6 +2,7 @@ import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
+import { chargerHoraireOuverture, heuresPrevuesJoursPoinconnes } from "@/lib/paie";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -21,7 +22,7 @@ export default async function RapportRentabilite(props) {
   const debut = new Date(`${debutStr}T00:00:00`);
   const fin = new Date(`${finStr}T23:59:59`);
 
-  const [employes, entreesBon, entreesInternes, parametreCout, parametreTauxClient] = await Promise.all([
+  const [employes, entreesBon, entreesInternes, parametreCout, parametreTauxClient, horaire] = await Promise.all([
     prisma.user.findMany({ where: { actif: true, role: { in: ROLES_VALIDES } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
       where: { fin: { not: null }, debut: { gte: debut, lte: fin } },
@@ -30,6 +31,7 @@ export default async function RapportRentabilite(props) {
     prisma.entreeTempsInterne.findMany({ where: { fin: { not: null }, debut: { gte: debut, lte: fin } } }),
     prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
     prisma.parametre.findUnique({ where: { cle: "taux_horaire_client" } }),
+    chargerHoraireOuverture(),
   ]);
 
   const tauxCoutGlobal = Number(parametreCout?.valeur || 95);
@@ -56,13 +58,19 @@ export default async function RapportRentabilite(props) {
       siennesFacturees.reduce((s, t) => s + dureeHeures(t.debut, t.fin) * t.probleme.bon.facture.tauxHoraireUtilise, 0) +
       heuresEstimees * tauxClientDefaut;
 
+    // Le coût réel suit la même règle que la paie : dès qu'il poinçonne
+    // une journée, l'employé est payé pour l'horaire prévu de ce jour-là
+    // (ex. lundi + mardi poinçonnés = 16h), pas seulement la durée exacte
+    // de ses poinçons.
+    const heuresPayees = heuresPrevuesJoursPoinconnes([...siennesBon, ...siennesInternes], debut, fin, horaire);
     const tauxCout = e.tauxHoraireEmploye || tauxCoutGlobal;
-    const coutReel = heuresTotales * tauxCout;
+    const coutReel = heuresPayees * tauxCout;
     const marge = revenuGenere - coutReel;
 
     return {
       employe: e,
       heuresTotales,
+      heuresPayees,
       heuresFacturables,
       heuresEstimees,
       heuresInternes,
@@ -71,7 +79,7 @@ export default async function RapportRentabilite(props) {
       marge,
       tauxCout,
     };
-  }).filter((d) => d.heuresTotales > 0);
+  }).filter((d) => d.heuresTotales > 0 || d.heuresPayees > 0);
 
   parEmploye.sort((a, b) => b.marge - a.marge);
 

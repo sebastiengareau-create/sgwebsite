@@ -103,7 +103,7 @@ function CarteEmploye({ d }) {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
-          <span style={{ color: "var(--text-muted)" }}>Coût réel ({d.tauxCout.toFixed(2)} $/h)</span>
+          <span style={{ color: "var(--text-muted)" }}>Coût réel ({fmtHeures(d.heuresPayees)} × {d.tauxCout.toFixed(2)} $/h)</span>
           <span style={{ fontWeight: 600 }}>{d.coutReel.toFixed(2)} $</span>
         </div>
         <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
