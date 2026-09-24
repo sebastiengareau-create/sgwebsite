@@ -15,7 +15,7 @@ export default function PrevisionsClient({ prevision }) {
 
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/comptabilite/caisse-banque" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Caisse & Banque</Link>
+      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
       <h1 style={{ fontSize: 20, margin: "8px 0 4px" }}>📊 Prévisions de trésorerie</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
         Ce que tes liquidités deviendraient si tout ce qui est déjà connu se réglait — pas une prédiction de nouvelles ventes.

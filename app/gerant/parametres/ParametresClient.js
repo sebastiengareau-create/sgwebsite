@@ -16,6 +16,7 @@ const JOURS = [
 
 export default function ParametresClient({
   tauxHoraireInit, coutHoraireInit, horaireInit,
+  heuresOuvertureInit, intervalleReservationInit, capaciteReservationInit,
   tpsNumeroInit, tpsTauxInit, tvqNumeroInit, tvqTauxInit,
   quickbooksConnecte, urlFluxCalendrier,
 }) {
@@ -56,6 +57,15 @@ export default function ParametresClient({
   const [tauxHoraire, setTauxHoraire] = useState(tauxHoraireInit);
   const [coutHoraire, setCoutHoraire] = useState(coutHoraireInit);
   const [horaire, setHoraire] = useState(horaireInit);
+  // Heures d'ouverture (calendrier et réservation en ligne) — distinctes des
+  // heures de paie ci-dessus, qui peuvent exclure le dîner.
+  const [ouverture, setOuverture] = useState(() => Object.fromEntries(JOURS.map((j) => [j.cle, {
+    ouvert: !!heuresOuvertureInit[j.cle],
+    ouverture: heuresOuvertureInit[j.cle]?.ouverture || "08:00",
+    fermeture: heuresOuvertureInit[j.cle]?.fermeture || "17:00",
+  }])));
+  const [intervalleReservation, setIntervalleReservation] = useState(intervalleReservationInit);
+  const [capaciteReservation, setCapaciteReservation] = useState(capaciteReservationInit);
   const [tpsNumero, setTpsNumero] = useState(tpsNumeroInit);
   const [tpsTaux, setTpsTaux] = useState(tpsTauxInit);
   const [tvqNumero, setTvqNumero] = useState(tvqNumeroInit);
@@ -67,6 +77,10 @@ export default function ParametresClient({
   const marge = (Number(tauxHoraire) || 0) - (Number(coutHoraire) || 0);
   const totalHeuresSemaine = Object.values(horaire).reduce((s, h) => s + (Number(h) || 0), 0);
 
+  function changerOuverture(cle, champ, valeur) {
+    setOuverture((prev) => ({ ...prev, [cle]: { ...prev[cle], [champ]: valeur } }));
+  }
+
   function changerJour(cle, valeur) {
     setHoraire((prev) => ({ ...prev, [cle]: valeur }));
   }
@@ -75,6 +89,16 @@ export default function ParametresClient({
     e.preventDefault();
     setErreur("");
     setConfirmation("");
+    const jourInvalide = JOURS.find((j) => ouverture[j.cle].ouvert && !(ouverture[j.cle].ouverture < ouverture[j.cle].fermeture));
+    if (jourInvalide) {
+      setErreur(`${jourInvalide.label} : l'heure de fermeture doit être après l'ouverture.`);
+      return;
+    }
+    const cap = Number(capaciteReservation);
+    if (!Number.isInteger(cap) || cap < 1) {
+      setErreur("Le nombre de rendez-vous simultanés doit être un entier d'au moins 1.");
+      return;
+    }
     setEnCours(true);
     const res = await fetch("/api/parametres", {
       method: "PATCH",
@@ -89,6 +113,12 @@ export default function ParametresClient({
         heures_ven: horaire.ven,
         heures_sam: horaire.sam,
         heures_dim: horaire.dim,
+        ...Object.fromEntries(JOURS.flatMap((j) => [
+          [`ouverture_${j.cle}`, ouverture[j.cle].ouvert ? ouverture[j.cle].ouverture : ""],
+          [`fermeture_${j.cle}`, ouverture[j.cle].ouvert ? ouverture[j.cle].fermeture : ""],
+        ])),
+        reservation_intervalle_minutes: intervalleReservation,
+        reservation_capacite: capaciteReservation,
         tps_numero: tpsNumero,
         tps_taux: tpsTaux,
         tvq_numero: tvqNumero,
@@ -145,6 +175,45 @@ export default function ParametresClient({
           </div>
           <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)", textAlign: "right" }}>
             Total semaine : <strong style={{ color: "var(--text)" }}>{totalHeuresSemaine}h</strong>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Heures d'ouverture</div>
+          <p style={sousTexte}>Plages où le calendrier et le site de réservation offrent des rendez-vous. Indépendant de l'horaire de paie ci-dessus.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {JOURS.map((j) => (
+              <div key={j.cle} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, width: 90, display: "flex", alignItems: "center", gap: 6 }}>
+                  <input type="checkbox" checked={ouverture[j.cle].ouvert} onChange={(e) => changerOuverture(j.cle, "ouvert", e.target.checked)} />
+                  {j.label}
+                </label>
+                {ouverture[j.cle].ouvert ? (
+                  <>
+                    <input type="time" value={ouverture[j.cle].ouverture} onChange={(e) => changerOuverture(j.cle, "ouverture", e.target.value)} style={{ ...champInput, width: 100 }} />
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>à</span>
+                    <input type="time" value={ouverture[j.cle].fermeture} onChange={(e) => changerOuverture(j.cle, "fermeture", e.target.value)} style={{ ...champInput, width: 100 }} />
+                  </>
+                ) : (
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Fermé</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Cases de rendez-vous aux</label>
+              <select value={intervalleReservation} onChange={(e) => setIntervalleReservation(e.target.value)} style={champInput}>
+                <option value="15">15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 heure</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Rendez-vous simultanés max</label>
+              <input type="number" min={1} step={1} value={capaciteReservation} onChange={(e) => setCapaciteReservation(e.target.value)} style={champInput} />
+            </div>
           </div>
         </div>
 
