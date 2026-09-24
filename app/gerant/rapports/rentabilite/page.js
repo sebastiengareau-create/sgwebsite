@@ -2,7 +2,7 @@ import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
-import { chargerHoraireOuverture, heuresPrevuesJoursPoinconnes } from "@/lib/paie";
+import { chargerHoraireOuverture, heuresPayeesParDefaut } from "@/lib/paie";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -61,8 +61,8 @@ export default async function RapportRentabilite(props) {
     // Le coût réel suit la même règle que la paie : dès qu'il poinçonne
     // une journée, l'employé est payé pour l'horaire prévu de ce jour-là
     // (ex. lundi + mardi poinçonnés = 16h), pas seulement la durée exacte
-    // de ses poinçons.
-    const heuresPayees = heuresPrevuesJoursPoinconnes([...siennesBon, ...siennesInternes], debut, fin, horaire);
+    // de ses poinçons — et la secrétaire, pour tout l'horaire d'ouverture.
+    const heuresPayees = heuresPayeesParDefaut(e, [...siennesBon, ...siennesInternes], debut, fin, horaire);
     const tauxCout = e.tauxHoraireEmploye || tauxCoutGlobal;
     const coutReel = heuresPayees * tauxCout;
     const marge = revenuGenere - coutReel;
