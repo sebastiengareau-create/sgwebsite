@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
+import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -333,6 +334,11 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{bon.numero}</span>
         <StatusPill statut={bon.statut} />
       </div>
+      {bon.rendezVous?.date && (
+        <div style={{ fontSize: 12, fontWeight: 600, color: bonEstAVenir(bon) ? "var(--accent)" : "var(--text-muted)" }}>
+          📅 {bonEstAVenir(bon) ? "Prévu" : "Rendez-vous"} : {libelleJour(cleJourQuebec(bon.rendezVous.date))} à {heureQuebec(bon.rendezVous.date)}
+        </div>
+      )}
       <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
       {(bon.client.adresse || bon.client.ville) && (
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>

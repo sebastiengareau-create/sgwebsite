@@ -24,6 +24,7 @@ export default async function DetailBonPage(props) {
         },
       },
       facture: true,
+      rendezVous: { select: { date: true } },
     },
   });
   if (!bon) notFound();

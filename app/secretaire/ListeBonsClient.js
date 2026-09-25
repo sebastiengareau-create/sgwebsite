@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import BoutonFlottantNouveau from "../components/BoutonFlottantNouveau";
+import { dateBon, bonEstAVenir, regrouperParJour, heureQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -61,7 +62,12 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
 
       {vue === "liste" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {bonsFiltres.map((b) => <CarteBon key={b.id} b={b} />)}
+          {regrouperParJour(bonsFiltres, dateBon).map((g) => (
+            <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <EnTeteGroupe groupe={g} />
+              {g.elements.map((b) => <CarteBon key={b.id} b={b} />)}
+            </div>
+          ))}
           {bonsFiltres.length === 0 && bons.length > 0 && (
             <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun bon ne correspond à "{recherche}".</p>
           )}
@@ -94,13 +100,19 @@ function TableauBons({ bons }) {
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>({bonsColonne.length})</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {bonsColonne.map((b) => (
-                <Link key={b.id} href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{b.client.nom}</div>
-                  </div>
-                </Link>
+              {regrouperParJour(bonsColonne, dateBon).map((g) => (
+                <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <EnTeteGroupe groupe={g} compact />
+                  {g.elements.map((b) => (
+                    <Link key={b.id} href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                      <div style={{ background: "var(--surface)", border: g.aVenir ? "1px dashed var(--border)" : "1px solid var(--border)", borderRadius: 10, padding: 10, opacity: g.aVenir ? 0.85 : 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2 }}>{b.client.nom}</div>
+                        <BadgeRendezVous b={b} />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               ))}
               {bonsColonne.length === 0 && <p style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>Vide</p>}
             </div>
@@ -112,19 +124,47 @@ function TableauBons({ bons }) {
 }
 
 function CarteBon({ b }) {
+  const aVenir = bonEstAVenir(b);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${STATUTS[b.statut].color}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: STATUTS[b.statut].color }}>{STATUTS[b.statut].label}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: STATUTS[b.statut].color }}>
+            {aVenir && b.statut === "EN_ATTENTE" ? "Planifié" : STATUTS[b.statut].label}
+          </span>
         </div>
         <div style={{ fontWeight: 600, marginTop: 2 }}>{b.client.nom}</div>
+        <BadgeRendezVous b={b} />
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
           {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {b.problemes.reduce((s, p) => s + p.pieces.length, 0)} pièce(s)
         </div>
       </div>
     </Link>
+  );
+}
+
+// Titre d'une journée — les jours à venir sont marqués pour distinguer les
+// bons créés d'avance depuis le calendrier.
+function EnTeteGroupe({ groupe, compact }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: compact ? 2 : 6, padding: "0 2px" }}>
+      <span style={{ fontSize: compact ? 10.5 : 12, fontWeight: 700, color: groupe.aVenir ? "var(--accent)" : "var(--text-muted)", textTransform: compact ? "none" : "uppercase", letterSpacing: compact ? 0 : 0.4 }}>
+        {groupe.aVenir ? "📅 " : ""}{groupe.libelle}
+      </span>
+      <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>({groupe.elements.length})</span>
+      <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
+    </div>
+  );
+}
+
+// Heure du rendez-vous d'origine, quand le bon a été créé depuis le calendrier
+function BadgeRendezVous({ b }) {
+  if (!b.rendezVous?.date) return null;
+  return (
+    <div style={{ fontSize: 11, color: bonEstAVenir(b) ? "var(--accent)" : "var(--text-muted)", marginTop: 3 }}>
+      🕒 Rendez-vous à {heureQuebec(b.rendezVous.date)}
+    </div>
   );
 }
 

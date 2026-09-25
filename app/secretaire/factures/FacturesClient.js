@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
 import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
+import { regrouperParJour } from "@/lib/regroupementDates";
 
 const STATUTS = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
@@ -92,7 +93,16 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {facturesFiltrees.map((f) => {
+        {regrouperParJour(facturesFiltrees, (f) => f.dateEmission).map((g) => (
+          <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "0 2px" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>{g.libelle}</span>
+              <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                ({g.elements.length}) · {g.elements.filter((f) => f.statut !== "ANNULEE").reduce((s, f) => s + f.totalFacture, 0).toFixed(2)} $
+              </span>
+              <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            </div>
+        {g.elements.map((f) => {
           const joursEcoules = Math.floor((Date.now() - new Date(f.dateEmission).getTime()) / 86400000);
           const enRetard = f.statut === "IMPAYEE" && joursEcoules > 30;
           return (
@@ -143,6 +153,8 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
           </div>
           );
         })}
+          </div>
+        ))}
         {facturesFiltrees.length === 0 && (
           <div style={{ textAlign: "center", padding: "30px 16px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 12 }}>
             <div style={{ fontSize: 30, marginBottom: 8 }}>🧾</div>
