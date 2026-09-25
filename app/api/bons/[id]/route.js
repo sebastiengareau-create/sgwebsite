@@ -27,6 +27,10 @@ export async function PATCH(request, props) {
   }
 
   await prisma.bonTravail.update({ where: { id: params.id }, data });
+  // Date prévue changée : le rendez-vous du bon au calendrier suit
+  if (data.datePrevue) {
+    await prisma.rendezVous.updateMany({ where: { bonId: params.id, statut: { not: "ANNULE" } }, data: { date: data.datePrevue } });
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -61,6 +65,10 @@ export async function DELETE(request, props) {
     // pas au bon directement — on les retire d'abord pour chaque tâche
     const idsProblemes = problemes.map((pr) => pr.id);
     await tx.entreeTemps.deleteMany({ where: { problemeId: { in: idsProblemes } } });
+
+    // Le rendez-vous inscrit au calendrier par ce bon disparaît avec lui ; un
+    // rendez-vous pris au calendrier ou sur le web reste (lien retiré).
+    await tx.rendezVous.deleteMany({ where: { bonId: params.id, source: "BON" } });
 
     // Les problèmes, photos et pièces se suppriment automatiquement (cascade)
     await tx.bonTravail.delete({ where: { id: params.id } });
