@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
-import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
+import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -1217,11 +1217,12 @@ function DatePrevueBon({ bon, modifiable }) {
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: aVenir ? "var(--accent)" : "var(--text-muted)" }}>
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 12, fontWeight: 600, color: aVenir ? "var(--accent)" : "var(--text-muted)" }}>
       <span>
-        📅 {aVenir ? "Planifié" : bon.datePrevue ? "Prévu" : "Créé"} : {libelleJour(cleJourQuebec(date))}
+        📅 {aVenir ? "Planifié" : "Prévu"} : {libelleJour(cleJourQuebec(date))}
         {bon.datePrevue && <> à {heureQuebec(date)}</>}
       </span>
+      <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>· Créé le {dateCourteQuebec(bon.creeLe)} à {heureQuebec(bon.creeLe)}</span>
       {modifiable && (
         <button
           onClick={() => { setValeur(valeurDateHeureLocale(date)); setEdition(true); }}

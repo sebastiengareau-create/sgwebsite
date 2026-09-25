@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import BoutonFlottantNouveau from "../components/BoutonFlottantNouveau";
-import { dateBon, bonEstAVenir, regrouperParJour, heureQuebec } from "@/lib/regroupementDates";
+import { dateBon, bonEstAVenir, regrouperParJour, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -142,6 +142,9 @@ function CarteBonCompacte({ b }) {
             {b.problemes[0].description}{b.problemes.length > 1 ? ` (+${b.problemes.length - 1})` : ""}
           </div>
         )}
+        {b.datePrevue && cleJourQuebec(b.datePrevue) !== cleJourQuebec(b.creeLe) && (
+          <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 3 }}>Créé le {dateCourteQuebec(b.creeLe)}</div>
+        )}
       </div>
     </Link>
   );
@@ -169,7 +172,7 @@ function CarteBon({ b }) {
             </div>
           )}
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-            {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""}
+            {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
           </div>
         </div>
       </div>
