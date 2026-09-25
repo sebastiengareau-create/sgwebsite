@@ -158,6 +158,9 @@ export default async function ImprimerBon(props) {
           return (
           <div key={pr.id} style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{idx + 1}. {pr.description}</div>
+            {pr.notes && (
+              <div style={{ fontSize: 12, fontStyle: "italic", color: "#444", whiteSpace: "pre-wrap", margin: "0 0 5px 14px" }}>{pr.notes}</div>
+            )}
 
             {heuresTache > 0.005 && (
               <LigneTravail description="Main-d'œuvre" hrs={fmtHeures(heuresTache)} prix={tauxHoraireClient} total={heuresTache * tauxHoraireClient} />
