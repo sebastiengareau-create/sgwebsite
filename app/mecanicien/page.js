@@ -5,6 +5,7 @@ import Link from "next/link";
 import EnTete from "../components/EnTete";
 import TachePoincon from "./TachePoincon";
 import SectionTachesInternes from "./SectionTachesInternes";
+import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -36,6 +37,12 @@ export default async function EspaceMecanicien() {
     },
     orderBy: { creeLe: "desc" },
   });
+
+  // Les bons planifiés pour un jour à venir sont affichés à part, sous leur
+  // journée — ils rejoignent les bons actifs le jour venu.
+  const bonsActifs = bons.filter((b) => !bonEstAVenir(b));
+  const groupesAVenir = regrouperParJour(bons.filter((b) => bonEstAVenir(b)), dateBon);
+  const nbAVenir = bons.length - bonsActifs.length;
 
   const poinconsActifs = bons.flatMap((b) =>
     b.problemes.flatMap((pr) =>
@@ -98,40 +105,94 @@ export default async function EspaceMecanicien() {
         <SectionTachesInternes taches={tachesInternes} monId={session.id} />
 
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>
-          Bons de travail actifs
+          Bons de travail actifs ({bonsActifs.length})
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {bons.map((b) => (
+          {bonsActifs.map((b) => (
             <div key={b.id} className="carte carte-m">
-              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</div>
-              <div style={{ fontWeight: 600 }}>{b.client.nom}</div>
-              <Link href={`/bons/${b.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>
-                Voir la fiche complète →
-              </Link>
-
-              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                {b.problemes.map((pr, idxTache) => {
-                  const monEntree = pr.entreesTemps.find((t) => t.employeId === session.id && !t.fin);
-                  const finies = pr.entreesTemps.filter((t) => t.employeId === session.id && t.fin);
-                  const totalFini = finies.reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
-                  return (
-                    <div key={pr.id} style={{ background: "var(--bg)", border: monEntree ? "1px solid var(--accent)" : "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-                      <div style={{ fontSize: 13 }}><strong style={{ color: "var(--text-muted)" }}>{idxTache + 1}.</strong> {pr.description}</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                          {totalFini > 0 ? `Ton temps : ${fmtHeures(totalFini)}` : "Non commencé"}
-                        </span>
-                        <TachePoincon problemeId={pr.id} actif={!!monEntree} debut={monEntree?.debut} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <EnTeteBon b={b} />
+              <TachesBon b={b} monId={session.id} />
             </div>
           ))}
-          {bons.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun bon actif en ce moment.</p>}
+          {bonsActifs.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun bon actif en ce moment.</p>}
         </div>
+
+        {nbAVenir > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", color: "#9A7FC7", marginBottom: 8 }}>
+              📅 À venir ({nbAVenir})
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {groupesAVenir.map((g) => (
+                <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>{g.libelle}</span>
+                    <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>({g.elements.length})</span>
+                    <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                  </div>
+                  {g.elements.map((b) => (
+                    <div key={b.id} className="carte carte-m" style={{ borderLeft: "3px solid #9A7FC7" }}>
+                      <EnTeteBon b={b} />
+                      <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-muted)" }}>
+                        {b.problemes.map((pr) => <li key={pr.id}>{pr.description}</li>)}
+                      </ul>
+                      {/* Le véhicule arrive d'avance : on peut poinçonner quand même,
+                          ce qui fait passer le bon « En cours ». */}
+                      <details style={{ marginTop: 8 }}>
+                        <summary style={{ fontSize: 11, color: "var(--accent)", cursor: "pointer" }}>Commencer maintenant</summary>
+                        <TachesBon b={b} monId={session.id} />
+                      </details>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function EnTeteBon({ b }) {
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
+        {b.datePrevue && (
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+            🕒 {libelleJour(cleJourQuebec(b.datePrevue))} à {heureQuebec(b.datePrevue)}
+          </span>
+        )}
+      </div>
+      <div style={{ fontWeight: 600 }}>{b.client.nom}</div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Créé le {dateCourteQuebec(b.creeLe)}</div>
+      <Link href={`/bons/${b.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>
+        Voir la fiche complète →
+      </Link>
+    </>
+  );
+}
+
+function TachesBon({ b, monId }) {
+  return (
+    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+      {b.problemes.map((pr, idxTache) => {
+        const monEntree = pr.entreesTemps.find((t) => t.employeId === monId && !t.fin);
+        const finies = pr.entreesTemps.filter((t) => t.employeId === monId && t.fin);
+        const totalFini = finies.reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
+        return (
+          <div key={pr.id} style={{ background: "var(--bg)", border: monEntree ? "1px solid var(--accent)" : "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
+            <div style={{ fontSize: 13 }}><strong style={{ color: "var(--text-muted)" }}>{idxTache + 1}.</strong> {pr.description}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                {totalFini > 0 ? `Ton temps : ${fmtHeures(totalFini)}` : "Non commencé"}
+              </span>
+              <TachePoincon problemeId={pr.id} actif={!!monEntree} debut={monEntree?.debut} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

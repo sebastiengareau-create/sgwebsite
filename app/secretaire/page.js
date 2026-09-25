@@ -14,8 +14,9 @@ export default async function EspaceSecretaire(props) {
   if (!(await aAccesSection(session, "operations"))) redirect(`/${session.role.toLowerCase()}`);
   const filtre = searchParams?.statut;
 
+  // Tous les bons : le filtre (?statut=…) est appliqué côté client pour
+  // afficher le compte de chaque catégorie, dont « Planifiés ».
   const bons = await prisma.bonTravail.findMany({
-    where: filtre ? { statut: filtre } : undefined,
     include: { client: true, problemes: { orderBy: { id: "asc" }, include: { pieces: true } } },
     orderBy: { creeLe: "desc" },
   });

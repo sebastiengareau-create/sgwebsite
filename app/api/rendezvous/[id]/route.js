@@ -26,6 +26,10 @@ export async function PATCH(request, props) {
   }
 
   const rdv = await prisma.rendezVous.update({ where: { id: params.id }, data });
+  // Rendez-vous déplacé : son bon (s'il n'est pas encore commencé) suit
+  if (data.date && rdv.bonId) {
+    await prisma.bonTravail.updateMany({ where: { id: rdv.bonId, statut: "EN_ATTENTE" }, data: { datePrevue: data.date } });
+  }
   return NextResponse.json(rdv);
 }
 

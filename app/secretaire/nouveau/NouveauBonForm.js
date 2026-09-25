@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
+import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 
 export default function NouveauBon({ clientsExistants }) {
   const router = useRouter();
@@ -27,6 +29,7 @@ export default function NouveauBon({ clientsExistants }) {
   const [clientCodePostal, setClientCodePostal] = useState("");
 
   const [problemes, setProblemes] = useState([""]);
+  const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -84,6 +87,7 @@ export default function NouveauBon({ clientsExistants }) {
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
         problemes: lignesValides,
+        datePrevue,
       }),
     });
     setEnCours(false);
@@ -178,6 +182,9 @@ export default function NouveauBon({ clientsExistants }) {
       <button type="button" onClick={ajouterLigneProbleme} style={boutonAjoutLigne}>
         + Ajouter une autre ligne de problème
       </button>
+
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 18, marginBottom: 6 }}>Date prévue</div>
+      <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10, marginTop: 10 }}>{erreur}</p>}
 

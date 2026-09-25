@@ -4,6 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
+import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
+import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -333,6 +335,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{bon.numero}</span>
         <StatusPill statut={bon.statut} />
       </div>
+      <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
       <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
       {(bon.client.adresse || bon.client.ville) && (
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
@@ -1164,6 +1167,71 @@ function StatutFacturePill({ statut }) {
     <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: `${c}22`, color: c }}>
       {labels[statut]}
     </span>
+  );
+}
+
+// Journée où le bon est planifié — modifiable tant qu'il n'est pas facturé
+function DatePrevueBon({ bon, modifiable }) {
+  const router = useRouter();
+  const [edition, setEdition] = useState(false);
+  const [valeur, setValeur] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const date = bon.datePrevue || bon.creeLe;
+  const aVenir = bonEstAVenir(bon);
+
+  async function enregistrer() {
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bon.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ datePrevue: valeur }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    setEdition(false);
+    router.refresh();
+  }
+
+  if (edition) {
+    return (
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, margin: "6px 0 8px" }}>
+        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>Date prévue</div>
+        <SelecteurDatePrevue valeur={valeur} onChange={setValeur} />
+        {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreur}</p>}
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <button onClick={enregistrer} disabled={enCours} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "7px 12px", borderRadius: 8 }}>
+            {enCours ? "…" : "Enregistrer"}
+          </button>
+          <button onClick={() => setEdition(false)} className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 600, padding: "7px 12px", borderRadius: 8 }}>
+            Annuler
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 12, fontWeight: 600, color: aVenir ? "var(--accent)" : "var(--text-muted)" }}>
+      <span>
+        📅 {aVenir ? "Planifié" : "Prévu"} : {libelleJour(cleJourQuebec(date))}
+        {bon.datePrevue && <> à {heureQuebec(date)}</>}
+      </span>
+      <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>· Créé le {dateCourteQuebec(bon.creeLe)} à {heureQuebec(bon.creeLe)}</span>
+      {modifiable && (
+        <button
+          onClick={() => { setValeur(valeurDateHeureLocale(date)); setEdition(true); }}
+          style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+        >
+          Modifier
+        </button>
+      )}
+    </div>
   );
 }
 
