@@ -501,7 +501,17 @@ function CarteRendezVous({ rdv, onChange, compact }) {
       {rdv.vehiculeInfo && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{rdv.vehiculeInfo}</div>}
       {rdv.note && <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>{rdv.note}</div>}
       <div style={{ fontSize: 13, marginTop: 4 }}>{rdv.motif}</div>
+      {rdv.taches?.length > 0 && (
+        <ul style={{ fontSize: 12, margin: "2px 0 0", paddingLeft: 18 }}>
+          {rdv.taches.map((t, i) => <li key={i}>{t}</li>)}
+        </ul>
+      )}
       {rdv.clientTelephone && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{rdv.clientTelephone}</div>}
+      {(rdv.clientAdresse || rdv.clientVille) && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          {[rdv.clientAdresse, [rdv.clientVille, rdv.clientCodePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+        </div>
+      )}
 
       {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreur}</p>}
 

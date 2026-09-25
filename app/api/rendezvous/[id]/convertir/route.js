@@ -18,7 +18,15 @@ export async function POST(request, props) {
   let clientId = rdv.clientId;
   if (!clientId) {
     const client = await prisma.client.create({
-      data: { numero: await prochainNumeroClient(), nom: rdv.clientNom, telephone: rdv.clientTelephone || null },
+      data: {
+        numero: await prochainNumeroClient(),
+        nom: rdv.clientNom,
+        telephone: rdv.clientTelephone || null,
+        courriel: rdv.clientCourriel || null,
+        adresse: rdv.clientAdresse || null,
+        ville: rdv.clientVille || null,
+        codePostal: rdv.clientCodePostal || null,
+      },
     });
     clientId = client.id;
   }
@@ -52,7 +60,8 @@ export async function POST(request, props) {
       datePrevue: rdv.date,
       clientId,
       vehiculeId,
-      problemes: { create: [{ description: rdv.motif }] },
+      // Le service réservé, puis chaque tâche demandée : une ligne du bon chacune
+      problemes: { create: [rdv.motif, ...(rdv.taches || [])].map((description) => ({ description })) },
     },
   });
 

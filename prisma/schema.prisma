@@ -282,12 +282,17 @@ model RendezVous {
   client           Client?     @relation(fields: [clientId], references: [id])
   clientNom        String
   clientTelephone  String?
+  clientCourriel   String? // coordonnées reçues du site de réservation — copiées dans la fiche client à la conversion en bon
+  clientAdresse    String?
+  clientVille      String?
+  clientCodePostal String?
   vehiculeInfo     String?
   vehiculeDetails  Json? // { annee, marque, modele, version, niv, plaque } envoyés par le site de réservation — deviennent un véhicule du dossier client à la conversion en bon
   note             String? // ex: rendez-vous d'affaire sans lien avec un service au véhicule
   date             DateTime // date et heure du rendez-vous
   dureeMinutes     Int         @default(60)
   motif            String
+  taches           String[]    @default([]) // tâches à effectuer demandées sur le site de réservation — une ligne du bon chacune à la conversion
   statut           String      @default("CONFIRME") // "CONFIRME" | "ANNULE" | "COMPLETE"
   bonId            String?     @unique // rempli si transformé en bon de travail
   bon              BonTravail? @relation(fields: [bonId], references: [id])
