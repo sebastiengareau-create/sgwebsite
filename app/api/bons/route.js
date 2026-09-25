@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient } from "@/lib/numerotation";
+import { dateHeureLocaleVersUTC } from "@/lib/temps";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -11,7 +12,7 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
-    problemes,
+    problemes, datePrevue,
   } = await request.json();
 
   const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
@@ -61,6 +62,7 @@ export async function POST(request) {
     data: {
       numero,
       clientId: idClientFinal,
+      datePrevue: datePrevue ? dateHeureLocaleVersUTC(datePrevue) : null,
       problemes: { create: lignesValides.map((description) => ({ description })) },
     },
   });

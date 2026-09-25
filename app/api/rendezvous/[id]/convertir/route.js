@@ -30,13 +30,13 @@ export async function POST(request, props) {
   }
   const numero = `2026-${String(1000 + prochainNum).slice(1)}`;
 
-  // Le bon reste « En attente » jusqu'au premier poinçon ; sa date de
-  // référence est celle du rendez-vous (voir lib/regroupementDates.js), donc
-  // un rendez-vous à venir apparaît sous sa journée prévue dans les listes.
+  // Le bon reste « En attente » jusqu'au premier poinçon, planifié à la date
+  // du rendez-vous — un rendez-vous à venir apparaît sous sa journée prévue.
   const bon = await prisma.bonTravail.create({
     data: {
       numero,
       statut: "EN_ATTENTE",
+      datePrevue: rdv.date,
       clientId,
       problemes: { create: [{ description: rdv.motif }] },
     },
