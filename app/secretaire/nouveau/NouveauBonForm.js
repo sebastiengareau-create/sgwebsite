@@ -2,11 +2,14 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
+import { valeurDateHeureLocale } from "@/lib/regroupementDates";
+import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
+import { libelleVehicule } from "@/lib/vehicules";
 
 export default function NouveauBon({ clientsExistants }) {
   const router = useRouter();
   const [clientSelectionne, setClientSelectionne] = useState(null);
-  const [vehiculeSelectionne, setVehiculeSelectionne] = useState(null);
   const [rechercheClient, setRechercheClient] = useState("");
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const boiteRechercheRef = useRef(null);
@@ -27,54 +30,47 @@ export default function NouveauBon({ clientsExistants }) {
   const [clientVille, setClientVille] = useState("");
   const [clientCodePostal, setClientCodePostal] = useState("");
 
-  const [marque, setMarque] = useState("");
-  const [modele, setModele] = useState("");
-  const [annee, setAnnee] = useState("");
-  const [vin, setVin] = useState("");
-  const [plaque, setPlaque] = useState("");
+  // Véhicule du bon : un véhicule du dossier du client (son id), "nouveau"
+  // (formulaire ci-dessous, ajouté au dossier) ou "" (non précisé)
+  const [choixVehicule, setChoixVehicule] = useState("nouveau");
+  const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
+
   const [problemes, setProblemes] = useState([""]);
+  const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
+  const [ajouterAuCalendrier, setAjouterAuCalendrier] = useState(true);
+  const [dureeMinutes, setDureeMinutes] = useState("60");
+  const [horsDisponibilite, setHorsDisponibilite] = useState(false);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
   const suggestions = useMemo(() => {
     const q = rechercheClient.trim().toLowerCase();
     if (!q) return [];
-    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q)).slice(0, 6);
+    // Retrouve aussi un client par la plaque ou le NIV d'un de ses véhicules
+    const qCompact = q.replace(/[\s-]/g, "");
+    const parVehicule = (c) => qCompact.length >= 3 && c.vehicules.some((v) =>
+      [v.plaque, v.niv].some((x) => x && x.toLowerCase().replace(/[\s-]/g, "").includes(qCompact)));
+    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q) || parVehicule(c)).slice(0, 6);
   }, [rechercheClient, clientsExistants]);
 
   function choisirClient(c) {
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
-    setVehiculeSelectionne(null);
-    // Un seul véhicule chez ce client → le pré-sélectionner tout de suite
-    if (c.vehicules.length === 1) choisirVehicule(c.vehicules[0]);
-  }
-
-  function choisirVehicule(v) {
-    setVehiculeSelectionne(v);
-    setMarque(v.marque);
-    setModele(v.modele);
-    setAnnee(v.annee || "");
-    setVin(v.vin || "");
-    setPlaque(v.plaque || "");
-  }
-
-  function nouveauVehiculePourCeClient() {
-    setVehiculeSelectionne(null);
-    setMarque(""); setModele(""); setAnnee(""); setVin(""); setPlaque("");
+    setChoixVehicule(c.vehicules.length ? c.vehicules[0].id : "nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
 
   function changerClientPourNouveau() {
     setClientSelectionne(null);
-    setVehiculeSelectionne(null);
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
     setClientAdresse("");
     setClientVille("");
     setClientCodePostal("");
-    setMarque(""); setModele(""); setAnnee(""); setVin(""); setPlaque("");
+    setChoixVehicule("nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
 
   function changerProbleme(index, valeur) {
@@ -87,28 +83,22 @@ export default function NouveauBon({ clientsExistants }) {
     setProblemes((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const vinPropre = vin.trim().toUpperCase();
-  const vinInvalide = vinPropre.length > 0 && vinPropre.length !== 17;
-
-  async function creer(e) {
-    e.preventDefault();
+  async function creer(e, forcer = false) {
+    e?.preventDefault();
     setErreur("");
+    setHorsDisponibilite(false);
 
     const lignesValides = problemes.map((p) => p.trim()).filter(Boolean);
     if (lignesValides.length === 0) {
       setErreur("Ajoute au moins une ligne de problème.");
       return;
     }
+    if (choixVehicule === "nouveau" && (!vehicule.marque.trim() || !vehicule.modele.trim())) {
+      setErreur("Indique la marque et le modèle du véhicule, ou choisis-en un du dossier du client.");
+      return;
+    }
     if (!clientSelectionne && !clientNom.trim()) {
       setErreur("Indique le nom du client, ou choisis-en un existant.");
-      return;
-    }
-    if (!vehiculeSelectionne && (!marque.trim() || !modele.trim())) {
-      setErreur("Indique la marque et le modèle du véhicule, ou choisis-en un existant.");
-      return;
-    }
-    if (vinInvalide) {
-      setErreur("Le NIV doit contenir exactement 17 caractères (ou être laissé vide).");
       return;
     }
 
@@ -119,15 +109,17 @@ export default function NouveauBon({ clientsExistants }) {
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
-        vehiculeId: vehiculeSelectionne?.id,
-        marque, modele, annee, vin: vinPropre, plaque,
         problemes: lignesValides,
+        datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
+        vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
+        vehicule: choixVehicule === "nouveau" ? vehicule : null,
       }),
     });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setErreur(data.erreur || "Erreur lors de la création.");
+      setHorsDisponibilite(!!data.horsDisponibilite);
       return;
     }
     const { id } = await res.json();
@@ -161,7 +153,7 @@ export default function NouveauBon({ clientsExistants }) {
             value={rechercheClient}
             onChange={(e) => { setRechercheClient(e.target.value); setClientNom(e.target.value); setAfficherSuggestions(true); }}
             onFocus={() => setAfficherSuggestions(true)}
-            placeholder="Tape pour rechercher un client existant ou en créer un nouveau"
+            placeholder="Tape un nom (ou une plaque) pour trouver un client existant, ou en créer un nouveau"
             style={champInput}
           />
           {afficherSuggestions && suggestions.length > 0 && (
@@ -176,7 +168,6 @@ export default function NouveauBon({ clientsExistants }) {
                   <div style={{ fontWeight: 600 }}>{c.nom}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     {[c.telephone, c.ville].filter(Boolean).join(" · ")}
-                    {c.vehicules.length > 0 && ` · ${c.vehicules.length} véhicule(s)`}
                   </div>
                 </button>
               ))}
@@ -197,64 +188,18 @@ export default function NouveauBon({ clientsExistants }) {
       )}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
-
-      {clientSelectionne && clientSelectionne.vehicules.length > 0 && !vehiculeSelectionne && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Véhicules connus de ce client :</span>
+      {clientSelectionne && clientSelectionne.vehicules.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
           {clientSelectionne.vehicules.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => choisirVehicule(v)}
-              style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}
-            >
-              🚗 {v.marque} {v.modele} {v.annee} {v.plaque ? `· ${v.plaque}` : ""}
-            </button>
+            <OptionVehicule key={v.id} actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
+              titre={libelleVehicule(v) || "Véhicule sans description"}
+              detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
+            />
           ))}
-          <button type="button" onClick={nouveauVehiculePourCeClient} style={{ ...boutonAjoutLigne, textAlign: "center" }}>
-            + Nouveau véhicule pour ce client
-          </button>
+          <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule (ajouté au dossier du client)" />
         </div>
       )}
-
-      {vehiculeSelectionne && (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>
-            🚗 {vehiculeSelectionne.marque} {vehiculeSelectionne.modele} {vehiculeSelectionne.annee}
-          </div>
-          <button type="button" onClick={nouveauVehiculePourCeClient} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
-            Changer
-          </button>
-        </div>
-      )}
-
-      {!vehiculeSelectionne && (
-        <>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Champ label="Marque" value={marque} onChange={setMarque} requis style={{ flex: 1 }} />
-            <Champ label="Modèle" value={modele} onChange={setModele} requis style={{ flex: 1 }} />
-            <Champ label="Année" value={annee} onChange={setAnnee} type="number" style={{ width: 90 }} />
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>NIV (17 caractères)</label>
-              <input
-                value={vin}
-                onChange={(e) => setVin(e.target.value.toUpperCase())}
-                maxLength={17}
-                placeholder="Ex : 1HGCM82633A004352"
-                style={{ ...champInput, borderColor: vinInvalide ? "var(--danger)" : "var(--border)", fontFamily: "monospace", letterSpacing: "0.03em" }}
-              />
-              {vin && (
-                <div style={{ fontSize: 10.5, color: vinInvalide ? "var(--danger)" : "var(--text-muted)", marginTop: -2, marginBottom: 6 }}>
-                  {vin.length}/17 caractères
-                </div>
-              )}
-            </div>
-            <Champ label="Plaque" value={plaque} onChange={setPlaque} style={{ width: 110 }} />
-          </div>
-        </>
-      )}
+      {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Problèmes signalés</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
@@ -278,7 +223,33 @@ export default function NouveauBon({ clientsExistants }) {
         + Ajouter une autre ligne de problème
       </button>
 
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 18, marginBottom: 6 }}>Date prévue</div>
+      <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+          <input type="checkbox" checked={ajouterAuCalendrier} onChange={(e) => setAjouterAuCalendrier(e.target.checked)} />
+          📅 Inscrire au calendrier
+        </label>
+        {ajouterAuCalendrier && (
+          <select value={dureeMinutes} onChange={(e) => setDureeMinutes(e.target.value)} style={{ ...champInput, width: "auto", marginBottom: 0 }}>
+            <option value="30">30 min</option>
+            <option value="60">1 heure</option>
+            <option value="90">1h30</option>
+            <option value="120">2 heures</option>
+            <option value="180">3 heures</option>
+            <option value="240">4 heures</option>
+            <option value="480">Journée (8 h)</option>
+          </select>
+        )}
+      </div>
+
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10, marginTop: 10 }}>{erreur}</p>}
+      {horsDisponibilite && (
+        <button type="button" onClick={() => creer(null, true)} disabled={enCours} style={{ width: "100%", marginBottom: 6, padding: 10, borderRadius: 8, border: "1px solid var(--danger)", background: "none", color: "var(--danger)", fontWeight: 700, cursor: "pointer" }}>
+          Créer et inscrire au calendrier quand même
+        </button>
+      )}
 
       <button
         type="submit" disabled={enCours}
@@ -287,6 +258,21 @@ export default function NouveauBon({ clientsExistants }) {
         {enCours ? "Création…" : "Créer le bon de travail"}
       </button>
     </form>
+  );
+}
+
+function OptionVehicule({ actif, onClick, titre, detail }) {
+  return (
+    <button
+      type="button" onClick={onClick}
+      style={{
+        textAlign: "left", padding: "8px 10px", borderRadius: 8, cursor: "pointer", color: "var(--text)",
+        background: "var(--surface)", border: `1px solid ${actif ? "var(--accent)" : "var(--border)"}`,
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: actif ? 700 : 500 }}>{actif ? "● " : "○ "}{titre}</div>
+      {detail && <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginLeft: 16 }}>{detail}</div>}
+    </button>
   );
 }
 

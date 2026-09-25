@@ -3,6 +3,7 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
+import { libelleVehicule } from "@/lib/vehicules";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -136,12 +137,20 @@ export default async function ImprimerBon(props) {
           {(bon.client.adresse || bon.client.ville) && (
             <div style={{ fontSize: 13 }}>{[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>
           )}
-          {bon.vehicule && (
-            <div style={{ fontSize: 13, marginTop: 4 }}>🚗 {[bon.vehicule.marque, bon.vehicule.modele, bon.vehicule.annee].filter(Boolean).join(" ")}</div>
-          )}
           {bon.client.garantieProlongee && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
               🛡️ Garantie prolongée — #{bon.client.garantieProlongee}
+            </div>
+          )}
+          {bon.vehicule && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(bon.vehicule) || "—"}</div>
+              {(bon.vehicule.plaque || bon.vehicule.niv) && (
+                <div style={{ fontSize: 12, fontFamily: "monospace" }}>
+                  {[bon.vehicule.plaque && `Plaque ${bon.vehicule.plaque}`, bon.vehicule.niv && `NIV ${bon.vehicule.niv}`].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -162,6 +171,9 @@ export default async function ImprimerBon(props) {
           return (
           <div key={pr.id} style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{idx + 1}. {pr.description}</div>
+            {pr.notes && (
+              <div style={{ fontSize: 12, fontStyle: "italic", color: "#444", whiteSpace: "pre-wrap", margin: "0 0 5px 14px" }}>{pr.notes}</div>
+            )}
 
             {heuresTache > 0.005 && (
               <LigneTravail description="Main-d'œuvre" hrs={fmtHeures(heuresTache)} prix={tauxHoraireClient} total={heuresTache * tauxHoraireClient} />

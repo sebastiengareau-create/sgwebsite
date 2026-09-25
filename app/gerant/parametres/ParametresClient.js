@@ -95,8 +95,8 @@ export default function ParametresClient({
       return;
     }
     const cap = Number(capaciteReservation);
-    if (!Number.isInteger(cap) || cap < 1) {
-      setErreur("Le nombre de rendez-vous simultanés doit être un entier d'au moins 1.");
+    if (!Number.isInteger(cap) || cap < 1 || cap > 9) {
+      setErreur("Le nombre de rendez-vous simultanés doit être entre 1 et 9.");
       return;
     }
     setEnCours(true);
@@ -211,10 +211,17 @@ export default function ParametresClient({
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Rendez-vous simultanés max</label>
-              <input type="number" min={1} step={1} value={capaciteReservation} onChange={(e) => setCapaciteReservation(e.target.value)} style={champInput} />
+              <label style={labelStyle}>Fermer une case après</label>
+              <select value={capaciteReservation} onChange={(e) => setCapaciteReservation(e.target.value)} style={champInput}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                  <option key={n} value={String(n)}>{n} rendez-vous</option>
+                ))}
+              </select>
             </div>
           </div>
+          <p style={{ ...sousTexte, marginTop: 6 }}>
+            Dès que ce nombre de rendez-vous se chevauchent (web, calendrier ou bons), la case n'est plus offerte sur le site de réservation.
+          </p>
         </div>
 
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>

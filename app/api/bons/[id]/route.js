@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { dateHeureLocaleVersUTC } from "@/lib/temps";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -9,12 +10,42 @@ export async function PATCH(request, props) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { statut } = await request.json();
-  if (!["EN_ATTENTE", "EN_COURS", "TERMINE"].includes(statut)) {
-    return NextResponse.json({ erreur: "Statut invalide." }, { status: 400 });
+  const body = await request.json();
+  const data = {};
+  if (body.statut !== undefined) {
+    if (!["EN_ATTENTE", "EN_COURS", "TERMINE"].includes(body.statut)) {
+      return NextResponse.json({ erreur: "Statut invalide." }, { status: 400 });
+    }
+    data.statut = body.statut;
+  }
+  // Date prévue ("YYYY-MM-DDTHH:MM" en heure du Québec) — null la retire
+  if (body.datePrevue !== undefined) {
+    data.datePrevue = body.datePrevue ? dateHeureLocaleVersUTC(body.datePrevue) : null;
+  }
+  // Véhicule du dossier client sur lequel porte le bon — null le retire
+  if (body.vehiculeId !== undefined) {
+    if (body.vehiculeId) {
+      const [bon, vehicule] = await Promise.all([
+        prisma.bonTravail.findUnique({ where: { id: params.id }, include: { facture: true } }),
+        prisma.vehicule.findUnique({ where: { id: body.vehiculeId } }),
+      ]);
+      if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
+      if (bon.facture) return NextResponse.json({ erreur: "Ce bon est facturé — le véhicule ne peut plus changer." }, { status: 409 });
+      if (!vehicule || vehicule.clientId !== bon.clientId) {
+        return NextResponse.json({ erreur: "Ce véhicule n'est pas au dossier de ce client." }, { status: 400 });
+      }
+    }
+    data.vehiculeId = body.vehiculeId || null;
+  }
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ erreur: "Rien à modifier." }, { status: 400 });
   }
 
-  await prisma.bonTravail.update({ where: { id: params.id }, data: { statut } });
+  await prisma.bonTravail.update({ where: { id: params.id }, data });
+  // Date prévue changée : le rendez-vous du bon au calendrier suit
+  if (data.datePrevue) {
+    await prisma.rendezVous.updateMany({ where: { bonId: params.id, statut: { not: "ANNULE" } }, data: { date: data.datePrevue } });
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -49,6 +80,10 @@ export async function DELETE(request, props) {
     // pas au bon directement — on les retire d'abord pour chaque tâche
     const idsProblemes = problemes.map((pr) => pr.id);
     await tx.entreeTemps.deleteMany({ where: { problemeId: { in: idsProblemes } } });
+
+    // Le rendez-vous inscrit au calendrier par ce bon disparaît avec lui ; un
+    // rendez-vous pris au calendrier ou sur le web reste (lien retiré).
+    await tx.rendezVous.deleteMany({ where: { bonId: params.id, source: "BON" } });
 
     // Les problèmes, photos et pièces se suppriment automatiquement (cascade)
     await tx.bonTravail.delete({ where: { id: params.id } });

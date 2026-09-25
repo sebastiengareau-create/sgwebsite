@@ -21,6 +21,7 @@ export async function POST(request, props) {
     where: { id: params.id },
     include: {
       client: true,
+      vehicule: true,
       facture: true,
       problemes: {
         orderBy: { id: "asc" },
