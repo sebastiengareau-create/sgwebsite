@@ -282,6 +282,10 @@ model RendezVous {
   client           Client?     @relation(fields: [clientId], references: [id])
   clientNom        String
   clientTelephone  String?
+  clientCourriel   String? // coordonnées reçues du site de réservation — copiées dans la fiche client à la conversion en bon
+  clientAdresse    String?
+  clientVille      String?
+  clientCodePostal String?
   vehiculeInfo     String?
   vehiculeDetails  Json? // { annee, marque, modele, version, niv, plaque } envoyés par le site de réservation — deviennent un véhicule du dossier client à la conversion en bon
   note             String? // ex: rendez-vous d'affaire sans lien avec un service au véhicule

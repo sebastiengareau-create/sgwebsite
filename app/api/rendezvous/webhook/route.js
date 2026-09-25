@@ -36,7 +36,10 @@ export async function POST(request) {
   const dejaRecu = await prisma.rendezVous.findUnique({ where: { referenceExterne: reference } });
   if (dejaRecu) return NextResponse.json({ ok: true, deja: true });
 
-  const { service, date, time, duration_min, customer_name, customer_phone, customer_email, vehicle, note } = body;
+  const {
+    service, date, time, duration_min, customer_name, customer_phone, customer_email, vehicle, note,
+    customer_address, customer_city, customer_postal_code,
+  } = body;
   if (!service || !date || !time || !customer_name) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
   }
@@ -66,6 +69,10 @@ export async function POST(request) {
       source: "WEB",
       clientNom: customer_name,
       clientTelephone: customer_phone || null,
+      clientCourriel: texteOuNull(customer_email),
+      clientAdresse: texteOuNull(customer_address),
+      clientVille: texteOuNull(customer_city),
+      clientCodePostal: texteOuNull(customer_postal_code)?.toUpperCase() || null,
       vehiculeInfo,
       vehiculeDetails: details || undefined,
       date: debut,
@@ -75,6 +82,10 @@ export async function POST(request) {
   });
 
   return NextResponse.json({ ok: true, id: rdv.id });
+}
+
+function texteOuNull(valeur) {
+  return typeof valeur === "string" && valeur.trim() ? valeur.trim().slice(0, 200) : null;
 }
 
 function extraireVehicule(body) {
