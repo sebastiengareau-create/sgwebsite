@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient } from "@/lib/numerotation";
+import { normaliserVehicule } from "@/lib/vehicules";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -22,6 +23,18 @@ export async function POST(request, props) {
     clientId = client.id;
   }
 
+  // Véhicule reçu du site de réservation → versé au dossier du client, sans
+  // doublon si ce véhicule (même NIV ou même plaque) y est déjà.
+  let vehiculeId = null;
+  const { data: vehicule, vide } = normaliserVehicule(rdv.vehiculeDetails);
+  if (vehicule && !vide) {
+    const identifiants = [vehicule.niv && { niv: vehicule.niv }, vehicule.plaque && { plaque: vehicule.plaque }].filter(Boolean);
+    const existant = identifiants.length
+      ? await prisma.vehicule.findFirst({ where: { clientId, OR: identifiants } })
+      : null;
+    vehiculeId = existant?.id || (await prisma.vehicule.create({ data: { ...vehicule, clientId } })).id;
+  }
+
   const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
   let prochainNum = 1;
   if (dernierBon) {
@@ -38,6 +51,7 @@ export async function POST(request, props) {
       statut: "EN_ATTENTE",
       datePrevue: rdv.date,
       clientId,
+      vehiculeId,
       problemes: { create: [{ description: rdv.motif }] },
     },
   });

@@ -4,6 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient } from "@/lib/numerotation";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
+import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -14,6 +15,7 @@ export async function POST(request) {
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
     problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
+    vehiculeId, vehicule,
   } = await request.json();
 
   const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
@@ -21,6 +23,14 @@ export async function POST(request) {
   if ((!clientId && !clientNom) || lignesValides.length === 0) {
     return NextResponse.json({ erreur: "Champs manquants (au moins une tâche requise)." }, { status: 400 });
   }
+
+  // Véhicule : un véhicule existant du dossier (vehiculeId) ou un nouveau
+  // (vehicule), ajouté au dossier du client en même temps que le bon.
+  if (vehiculeId && !clientId) {
+    return NextResponse.json({ erreur: "Un nouveau client n'a pas encore de véhicule au dossier." }, { status: 400 });
+  }
+  const nouveauVehicule = vehiculeId ? { vide: true } : normaliserVehicule(vehicule);
+  if (nouveauVehicule.erreur) return NextResponse.json({ erreur: nouveauVehicule.erreur }, { status: 400 });
 
   // Le bon s'inscrit aussi au calendrier (rendez-vous « BON ») à sa date
   // prévue. Même règle que pour un rendez-vous entré au calendrier : hors
@@ -62,6 +72,17 @@ export async function POST(request) {
     if (!existe) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
   }
 
+  let vehiculeDuBon = null;
+  if (vehiculeId) {
+    const v = await prisma.vehicule.findUnique({ where: { id: vehiculeId } });
+    if (!v || v.clientId !== idClientFinal) {
+      return NextResponse.json({ erreur: "Ce véhicule n'est pas au dossier de ce client." }, { status: 400 });
+    }
+    vehiculeDuBon = v;
+  } else if (!nouveauVehicule.vide) {
+    vehiculeDuBon = await prisma.vehicule.create({ data: { ...nouveauVehicule.data, clientId: idClientFinal } });
+  }
+
   const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
   let prochainNum = 1;
   if (dernierBon) {
@@ -75,6 +96,7 @@ export async function POST(request) {
     data: {
       numero,
       clientId: idClientFinal,
+      vehiculeId: vehiculeDuBon?.id || null,
       datePrevue: debutPrevu,
       problemes: { create: lignesValides.map((description) => ({ description })) },
       rendezVous: inscrireCalendrier
@@ -83,6 +105,7 @@ export async function POST(request) {
               clientId: idClientFinal,
               clientNom: client.nom,
               clientTelephone: client.telephone || null,
+              vehiculeInfo: libelleVehicule(vehiculeDuBon) || null,
               date: debutPrevu,
               dureeMinutes: duree,
               motif: lignesValides.join(", "),

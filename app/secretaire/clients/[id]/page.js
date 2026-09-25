@@ -13,8 +13,9 @@ export default async function DetailClientPage(props) {
   const client = await prisma.client.findUnique({
     where: { id: params.id },
     include: {
-      bons: { include: { facture: true }, orderBy: { creeLe: "desc" } },
+      bons: { include: { facture: true, vehicule: true }, orderBy: { creeLe: "desc" } },
       soumissions: { orderBy: { creeLe: "desc" } },
+      vehicules: { include: { _count: { select: { bons: true } } }, orderBy: { creeLe: "desc" } },
     },
   });
   if (!client) notFound();

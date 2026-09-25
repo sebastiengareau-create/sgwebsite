@@ -6,6 +6,7 @@ import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
+import { libelleVehicule } from "@/lib/vehicules";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -343,6 +344,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
         </div>
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
+      <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste} />
 
       {factureExiste && (
         <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
@@ -1257,6 +1259,71 @@ function NotesTache({ bonId, probleme, modifiable, onRafraichir }) {
 }
 
 // Journée où le bon est planifié — modifiable tant qu'il n'est pas facturé
+// Véhicule sur lequel porte le bon, choisi parmi ceux du dossier client
+function VehiculeBon({ bon, modifiable }) {
+  const router = useRouter();
+  const [edition, setEdition] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const vehicules = bon.client.vehicules || [];
+  const v = bon.vehicule;
+
+  async function choisir(vehiculeId) {
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bon.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vehiculeId: vehiculeId || null }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    setEdition(false);
+    router.refresh();
+  }
+
+  if (!v && !modifiable) return null;
+
+  return (
+    <div style={{ marginTop: 6, fontSize: 12 }}>
+      {edition ? (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <select
+            defaultValue={v?.id || ""}
+            onChange={(e) => choisir(e.target.value)}
+            disabled={enCours}
+            className="champ"
+            style={{ width: "auto", maxWidth: "100%", fontSize: 12 }}
+          >
+            <option value="">— Véhicule non précisé —</option>
+            {vehicules.map((x) => (
+              <option key={x.id} value={x.id}>{[libelleVehicule(x) || "Véhicule", x.plaque].filter(Boolean).join(" — ")}</option>
+            ))}
+          </select>
+          <button onClick={() => setEdition(false)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Annuler</button>
+          <Link href={`/secretaire/clients/${bon.clientId}`} style={{ fontSize: 11, color: "var(--accent)" }}>+ Ajouter un véhicule au dossier</Link>
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 700 }}>🚗 {v ? libelleVehicule(v) || "Véhicule" : <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>Véhicule non précisé</span>}</span>
+          {v?.plaque && <span style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>Plaque {v.plaque}</span>}
+          {v?.niv && <span style={{ fontFamily: "monospace", color: "var(--text-muted)", overflowWrap: "anywhere" }}>NIV {v.niv}</span>}
+          {modifiable && (
+            <button onClick={() => setEdition(true)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              {v ? "Changer" : "Choisir"}
+            </button>
+          )}
+        </div>
+      )}
+      {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreur}</p>}
+    </div>
+  );
+}
+
 function DatePrevueBon({ bon, modifiable }) {
   const router = useRouter();
   const [edition, setEdition] = useState(false);

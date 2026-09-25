@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient } from "@/lib/numerotation";
+import { normaliserVehicule } from "@/lib/vehicules";
 
 export async function GET() {
   const session = await obtenirSession();
@@ -17,8 +18,12 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee } = await request.json();
+  const { nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, vehicule } = await request.json();
   if (!nom) return NextResponse.json({ erreur: "Le nom est requis." }, { status: 400 });
+
+  // Premier véhicule du dossier, optionnel — ignoré s'il est laissé vide
+  const vehiculeNormalise = normaliserVehicule(vehicule);
+  if (vehiculeNormalise.erreur) return NextResponse.json({ erreur: vehiculeNormalise.erreur }, { status: 400 });
 
   const doublon = await prisma.client.findFirst({
     where: { nom: { equals: nom.trim(), mode: "insensitive" } },
@@ -37,6 +42,7 @@ export async function POST(request) {
       ville: ville || null,
       codePostal: codePostal || null,
       garantieProlongee: garantieProlongee || null,
+      vehicules: vehiculeNormalise.vide ? undefined : { create: vehiculeNormalise.data },
     },
   });
   return NextResponse.json(client);
