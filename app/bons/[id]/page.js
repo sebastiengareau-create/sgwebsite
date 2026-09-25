@@ -14,7 +14,8 @@ export default async function DetailBonPage(props) {
   const bon = await prisma.bonTravail.findUnique({
     where: { id: params.id },
     include: {
-      client: true,
+      client: { include: { vehicules: { orderBy: { creeLe: "desc" } } } },
+      vehicule: true,
       problemes: {
         orderBy: { id: "asc" },
         include: {

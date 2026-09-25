@@ -60,6 +60,7 @@ export default async function Calendrier(props) {
         rendezVous={rendezVous}
         indisponibles={indisponibles}
         heuresParJour={heuresParJour}
+        capacite={reglages.capacite}
         dateSelectionnee={dateStr}
       />
     </div>

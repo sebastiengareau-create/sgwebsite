@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
+import DossierVehicules from "./DossierVehicules";
+import { libelleVehicule } from "@/lib/vehicules";
 
 const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
 const STATUTS_SOUMISSION = { BROUILLON: "En attente", EN_ATTENTE: "En attente", ENVOYEE: "En attente", ACCEPTEE: "Acceptée", REFUSEE: "Refusée" };
@@ -127,23 +129,7 @@ export default function ClientDetailClient({ client }) {
             <LigneInfo label="Ville" valeur={[client.ville, client.codePostal].filter(Boolean).join(" ") || null} />
           </div>
 
-          <div className="carte" style={{ marginBottom: 12 }}>
-            <TitreSection>Véhicules ({client.vehicules.length})</TitreSection>
-            {client.vehicules.length === 0 ? (
-              <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun véhicule encore.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {client.vehicules.map((v) => (
-                  <div key={v.id} style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-                    <div style={{ fontWeight: 600 }}>🚗 {v.marque} {v.modele} {v.annee || ""}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                      {[v.plaque && `Plaque : ${v.plaque}`, v.vin && `NIV : ${v.vin}`].filter(Boolean).join(" · ") || "Aucun détail supplémentaire"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <DossierVehicules clientId={client.id} vehicules={client.vehicules} />
 
           <div className="carte" style={{ marginBottom: 12 }}>
             <TitreSection>Bons de commande ({client.bons.length})</TitreSection>
@@ -154,7 +140,10 @@ export default function ClientDetailClient({ client }) {
                 {client.bons.map((b) => (
                   <Link key={b.id} href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                     <div style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between" }}>
-                      <span><strong style={{ fontSize: 14, fontFamily: "monospace" }}>#{b.numero}</strong></span>
+                      <span>
+                        <strong style={{ fontSize: 14, fontFamily: "monospace" }}>#{b.numero}</strong>
+                        {b.vehicule && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>🚗 {libelleVehicule(b.vehicule) || b.vehicule.plaque}</span>}
+                      </span>
                       <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{STATUTS_BON[b.statut]}</span>
                     </div>
                   </Link>

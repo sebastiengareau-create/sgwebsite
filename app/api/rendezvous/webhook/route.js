@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { dateHeureQuebecVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
+import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
+import { cleMarque, nomMarque, modeleCanonique } from "@/lib/catalogueVehicules";
 
 export async function POST(request) {
   // Authentification par clé secrète partagée — ce n'est pas un utilisateur
@@ -34,7 +36,10 @@ export async function POST(request) {
   const dejaRecu = await prisma.rendezVous.findUnique({ where: { referenceExterne: reference } });
   if (dejaRecu) return NextResponse.json({ ok: true, deja: true });
 
-  const { service, date, time, duration_min, customer_name, customer_phone, customer_email, vehicle, note } = body;
+  const {
+    service, date, time, duration_min, customer_name, customer_phone, customer_email, vehicle, note,
+    customer_address, customer_city, customer_postal_code, tasks,
+  } = body;
   if (!service || !date || !time || !customer_name) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
   }
@@ -50,17 +55,67 @@ export async function POST(request) {
   const raison = debut < new Date() ? "Ce créneau est déjà passé." : await verifierCreneau(debut, dureeMinutes);
   if (raison) return NextResponse.json({ erreur: raison, indisponible: true }, { status: 409 });
 
+  // Véhicule : le site peut envoyer une simple description (vehicle: "Honda
+  // Civic 2019") et/ou les mêmes champs que le dossier véhicule du logiciel —
+  // vehicle_year, vehicle_make, vehicle_model, vehicle_trim, vehicle_vin,
+  // vehicle_plate (listes offertes par /api/vehicules/catalogue). Un NIV ou
+  // une plaque mal formés ne bloquent pas la réservation : ils sont écartés.
+  const details = extraireVehicule(body);
+
+  // Tâches à effectuer (liste du formulaire) : chacune deviendra une ligne
+  // du bon. Un site plus ancien n'envoie qu'une remarque (note).
+  const taches = (Array.isArray(tasks) ? tasks : [])
+    .filter((t) => typeof t === "string" && t.trim())
+    .map((t) => t.trim().slice(0, 200))
+    .slice(0, 15);
+  const vehiculeInfo = (typeof vehicle === "string" && vehicle.trim()) || libelleVehicule(details) || null;
+
   const rdv = await prisma.rendezVous.create({
     data: {
       referenceExterne: reference,
+      source: "WEB",
       clientNom: customer_name,
       clientTelephone: customer_phone || null,
-      vehiculeInfo: vehicle || null,
+      clientCourriel: texteOuNull(customer_email),
+      clientAdresse: texteOuNull(customer_address),
+      clientVille: texteOuNull(customer_city),
+      clientCodePostal: texteOuNull(customer_postal_code)?.toUpperCase() || null,
+      vehiculeInfo,
+      vehiculeDetails: details || undefined,
       date: debut,
       dureeMinutes,
-      motif: service + (note ? ` — ${note}` : "") + (customer_email ? ` (${customer_email})` : ""),
+      motif: service + (!taches.length && note ? ` — ${note}` : ""),
+      taches,
     },
   });
 
   return NextResponse.json({ ok: true, id: rdv.id });
+}
+
+function texteOuNull(valeur) {
+  return typeof valeur === "string" && valeur.trim() ? valeur.trim().slice(0, 200) : null;
+}
+
+function extraireVehicule(body) {
+  const objet = body.vehicle && typeof body.vehicle === "object" ? body.vehicle : {};
+  const brut = {
+    annee: body.vehicle_year ?? objet.year,
+    marque: body.vehicle_make ?? objet.make,
+    modele: body.vehicle_model ?? objet.model,
+    version: body.vehicle_trim ?? objet.trim,
+    niv: body.vehicle_vin ?? objet.vin,
+    plaque: body.vehicle_plate ?? objet.plate,
+  };
+  // Écarte seulement le champ fautif (NIV, plaque ou année) plutôt que tout le véhicule
+  for (const champ of ["niv", "plaque", "annee"]) {
+    if (normaliserVehicule({ [champ]: brut[champ] }).erreur) brut[champ] = null;
+  }
+  const resultat = normaliserVehicule(brut);
+  if (resultat.erreur || resultat.vide) return null;
+  const data = resultat.data;
+  // Même orthographe que les listes du logiciel (« HONDA » → « Honda »)
+  const cle = cleMarque(data.marque);
+  if (cle) data.marque = nomMarque(cle);
+  if (data.modele) data.modele = modeleCanonique(data.marque, data.modele);
+  return data;
 }

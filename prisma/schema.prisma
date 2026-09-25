@@ -58,35 +58,41 @@ model User {
 // ---------- CLIENTS ----------
 
 model Client {
-  id                 String       @id @default(cuid())
-  numero             String?      @unique // numéro séquentiel auto-généré, ex. "CLI-0001"
-  nom                String
-  telephone          String?
-  courriel           String?
-  adresse            String?
-  ville              String?
-  codePostal         String?
-  garantieProlongee  String? // numéro de contrat de garantie prolongée, si applicable
-  vehicules          Vehicule[] // propre à VR Premium — retiré du template général (commit a8b4334) mais conservé ici, données existantes
-  bons               BonTravail[]
-  soumissions        Soumission[]
-  rendezVous         RendezVous[]
-  creeLe             DateTime     @default(now())
+  id                String       @id @default(cuid())
+  numero            String?      @unique // numéro séquentiel auto-généré, ex. "CLI-0001"
+  nom               String
+  telephone         String?
+  courriel          String?
+  adresse           String?
+  ville             String?
+  codePostal        String?
+  garantieProlongee String? // numéro de contrat de garantie prolongée, si applicable
+  vehicules         Vehicule[]
+  bons              BonTravail[]
+  soumissions       Soumission[]
+  rendezVous        RendezVous[]
+  creeLe            DateTime     @default(now())
 }
 
-// Propre à VR Premium — retiré du template général (voir commit a8b4334
-// "Remove vehicle tracking..."), qui l'a remplacé par le champ texte libre
-// vehiculeInfo. Conservé ici pour ne pas perdre les véhicules déjà en base.
+// Dossier véhicule d'un client — un client peut en avoir plusieurs. Année,
+// marque, modèle et version sont choisis dans les listes du catalogue
+// (lib/catalogueVehicules.js) ou entrés à la main (« Autre… »).
 model Vehicule {
-  id        String       @id @default(cuid())
-  marque    String
-  modele    String
-  annee     Int?
-  vin       String?
-  plaque    String?
-  clientId  String
-  client    Client       @relation(fields: [clientId], references: [id])
-  bons      BonTravail[]
+  id       String       @id @default(cuid())
+  clientId String
+  client   Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  annee    Int?
+  marque   String?
+  modele   String?
+  version  String? // niveau de finition (ex. « EX-L », « XLT ») ou autre précision
+  niv      String? // numéro d'identification du véhicule — exactement 17 caractères
+  plaque   String?
+  bons     BonTravail[]
+  creeLe   DateTime     @default(now())
+
+  @@index([clientId])
+  @@index([niv])
+  @@index([plaque])
 }
 
 // ---------- BONS DE TRAVAIL ----------
@@ -97,14 +103,15 @@ model BonTravail {
   statut              String      @default("EN_ATTENTE") // "EN_ATTENTE" | "EN_COURS" | "TERMINE"
   clientId            String
   client              Client      @relation(fields: [clientId], references: [id])
-  vehiculeId          String? // propre à VR Premium — voir modèle Vehicule ci-dessus
-  vehicule            Vehicule?   @relation(fields: [vehiculeId], references: [id])
+  vehiculeId          String? // véhicule du dossier client sur lequel porte le bon, si précisé
+  vehicule            Vehicule?   @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
   problemes           Probleme[]
   facture             Facture?
   rendezVous          RendezVous?
   escompteMontant     Float       @default(0) // remise manuelle en dollars, appliquée avant taxes
   escompteRaison      String?
   tauxHoraireOverride Float? // remplace le taux horaire par défaut des Paramètres pour ce bon précis, si fixé
+  datePrevue          DateTime? // journée (et heure) où le travail est planifié — celle du rendez-vous si créé depuis le calendrier ; null = date de création
   creeLe              DateTime    @default(now())
 }
 
@@ -140,6 +147,7 @@ model Facture {
 model Probleme {
   id                  String          @id @default(cuid())
   description         String
+  notes               String? // explication des travaux faits — imprimée sous la tâche sur la facture si remplie
   categorieRevenu     String          @default("MAIN_OEUVRE") // "MAIN_OEUVRE" | "ALIGNEMENT" | "REMORQUAGE" | "ENTREPOSAGE" | "AUTRE"
   // Facturation manuelle — utilisée seulement quand categorieRevenu != MAIN_OEUVRE
   // (ces postes ne se facturent pas au client sur les heures poinçonnées ;
@@ -274,15 +282,22 @@ model RendezVous {
   client           Client?     @relation(fields: [clientId], references: [id])
   clientNom        String
   clientTelephone  String?
+  clientCourriel   String? // coordonnées reçues du site de réservation — copiées dans la fiche client à la conversion en bon
+  clientAdresse    String?
+  clientVille      String?
+  clientCodePostal String?
   vehiculeInfo     String?
+  vehiculeDetails  Json? // { annee, marque, modele, version, niv, plaque } envoyés par le site de réservation — deviennent un véhicule du dossier client à la conversion en bon
   note             String? // ex: rendez-vous d'affaire sans lien avec un service au véhicule
   date             DateTime // date et heure du rendez-vous
   dureeMinutes     Int         @default(60)
   motif            String
+  taches           String[]    @default([]) // tâches à effectuer demandées sur le site de réservation — une ligne du bon chacune à la conversion
   statut           String      @default("CONFIRME") // "CONFIRME" | "ANNULE" | "COMPLETE"
   bonId            String?     @unique // rempli si transformé en bon de travail
   bon              BonTravail? @relation(fields: [bonId], references: [id])
   referenceExterne String?     @unique // référence du site de réservation en ligne, si applicable
+  source           String      @default("LOCAL") // "LOCAL" (entré au calendrier) | "WEB" (site de réservation) | "BON" (créé avec un bon de travail)
   creeLe           DateTime    @default(now())
 }
 

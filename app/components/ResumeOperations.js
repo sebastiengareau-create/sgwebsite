@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
 
 export default async function ResumeOperations() {
-  const [enAttente, enCours, facturesImpayees, soumissionsEnAttente] = await Promise.all([
-    prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
+  // Un bon en attente dont la date prévue est après aujourd'hui est « planifié »
+  const { fin: finAujourdhui } = limitesJourQuebec(dateAujourdhuiQuebec());
+  const [enAttente, planifies, enCours, facturesImpayees, soumissionsEnAttente] = await Promise.all([
+    prisma.bonTravail.count({ where: { statut: "EN_ATTENTE", OR: [{ datePrevue: null }, { datePrevue: { lte: finAujourdhui } }] } }),
+    prisma.bonTravail.count({ where: { statut: "EN_ATTENTE", datePrevue: { gt: finAujourdhui } } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
     prisma.facture.findMany({ where: { statut: "IMPAYEE" }, select: { totalAvecTaxes: true } }),
     prisma.soumission.count({ where: { statut: "EN_ATTENTE" } }),
@@ -10,6 +14,7 @@ export default async function ResumeOperations() {
   const totalImpaye = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes, 0);
 
   const stats = [
+    { valeur: planifies, label: "Planifiés", couleur: "#9A7FC7" },
     { valeur: enAttente, label: "En attente", couleur: "#C9A227" },
     { valeur: enCours, label: "En cours", couleur: "var(--bleu)" },
     { valeur: `${totalImpaye.toFixed(0)} $`, label: "Impayé", couleur: "var(--danger)" },

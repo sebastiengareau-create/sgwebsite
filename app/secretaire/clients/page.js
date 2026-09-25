@@ -9,7 +9,7 @@ export default async function ListeClients() {
   if (!(await aAccesSection(session, "clients"))) redirect("/mecanicien");
 
   const clients = await prisma.client.findMany({
-    include: { bons: true },
+    include: { bons: true, vehicules: true },
     orderBy: { nom: "asc" },
   });
 
