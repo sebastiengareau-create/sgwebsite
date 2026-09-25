@@ -60,6 +60,43 @@ function formatPeriode(p) {
     : `Du ${debut.toLocaleDateString("fr-CA", optsDate)} ${debut.toLocaleTimeString("fr-CA", optsHeure)} au ${fin.toLocaleDateString("fr-CA", optsDate)} ${fin.toLocaleTimeString("fr-CA", optsHeure)}`;
 }
 
+// Provenance d'un rendez-vous (champ RendezVous.source)
+const SOURCES = {
+  WEB: { icone: "🌐", label: "Web", titre: "Réservé sur le site web" },
+  LOCAL: { icone: "🏠", label: "Local", titre: "Entré au calendrier" },
+  BON: { icone: "🔧", label: "Bon", titre: "Créé avec un bon de travail" },
+};
+function infosSource(rdv) {
+  return SOURCES[rdv.source] || SOURCES.LOCAL;
+}
+
+// Rendez-vous qui se chevauchent : placés côte à côte plutôt qu'empilés.
+// Retourne, par id, sa colonne et le nombre de colonnes de son groupe.
+function disposerColonnes(rdvs) {
+  const tries = [...rdvs].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const disposition = {};
+  let groupe = [];
+  let finGroupe = 0;
+  let colonnesFin = []; // fin (ms) du dernier rendez-vous de chaque colonne
+  const fermerGroupe = () => {
+    for (const r of groupe) disposition[r.id].nbCols = colonnesFin.length;
+    groupe = [];
+    colonnesFin = [];
+  };
+  for (const r of tries) {
+    const debut = new Date(r.date).getTime();
+    const fin = debut + r.dureeMinutes * 60000;
+    if (groupe.length && debut >= finGroupe) fermerGroupe();
+    let col = colonnesFin.findIndex((f) => f <= debut);
+    if (col === -1) { col = colonnesFin.length; colonnesFin.push(fin); } else colonnesFin[col] = fin;
+    disposition[r.id] = { col, nbCols: 1 };
+    finGroupe = groupe.length ? Math.max(finGroupe, fin) : fin;
+    groupe.push(r);
+  }
+  if (groupe.length) fermerGroupe();
+  return disposition;
+}
+
 function decaler(dateStr, jours) {
   const d = new Date(`${dateStr}T12:00:00`);
   d.setDate(d.getDate() + jours);
@@ -81,7 +118,7 @@ function construireCouleursMotifs(rendezVous) {
   return carte;
 }
 
-export default function CalendrierClient({ jours, rendezVous, indisponibles, heuresParJour, dateSelectionnee }) {
+export default function CalendrierClient({ jours, rendezVous, indisponibles, heuresParJour, capacite, dateSelectionnee }) {
   const router = useRouter();
   const [jourActif, setJourActif] = useState(jours.includes(dateSelectionnee) ? dateSelectionnee : jours[0]);
   const [vue, setVue] = useState("grille"); // "grille" | "liste"
@@ -122,6 +159,11 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
           Semaine du {new Date(`${jours[0]}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}
         </span>
         <button onClick={() => changerSemaine(7)} className="bouton-3d-sombre" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 14, fontWeight: 700 }}>→</button>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
+        {Object.values(SOURCES).map((s) => <span key={s.label} title={s.titre}>{s.icone} {s.label}</span>)}
+        {capacite && <span>· Case fermée après {capacite} rendez-vous simultané{capacite > 1 ? "s" : ""}</span>}
       </div>
 
       {vue === "grille" ? (
@@ -326,6 +368,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
       <div style={{ display: "flex", flex: 1, overflowX: "auto" }}>
         {jours.map((j) => {
           const rdvs = (rdvParJour[j] || []).filter((r) => r.statut !== "ANNULE");
+          const disposition = disposerColonnes(rdvs);
           const jourNum = new Date(`${j}T12:00:00`).getDate();
           const estAujourdhui = j === new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
           return (
@@ -366,18 +409,22 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                   const couleur = couleursMotifs.get(cle) || "var(--accent)";
                   const heureTxt = new Date(r.date).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit", timeZone: "America/Toronto" });
                   const selectionne = rdvSelectionneId === r.id;
+                  const { col, nbCols } = disposition[r.id];
+                  const source = infosSource(r);
                   return (
                     <button
                       key={r.id}
                       type="button"
+                      title={`${source.titre} — ${r.clientNom}`}
                       onClick={() => onSelectionner(selectionne ? null : r.id)}
                       style={{
-                        position: "absolute", top, left: 2, right: 2, height: hauteur, background: couleur, borderRadius: 5,
+                        position: "absolute", top, height: hauteur, background: couleur, borderRadius: 5,
+                        left: `calc(${(col / nbCols) * 100}% + 2px)`, width: `calc(${100 / nbCols}% - 4px)`,
                         padding: "3px 5px", overflow: "hidden", cursor: "pointer", textAlign: "left",
                         border: selectionne ? "2px solid var(--text)" : "none", boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
                       }}
                     >
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{heureTxt} {r.clientNom}</div>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{source.icone} {heureTxt} {r.clientNom}</div>
                       {hauteur > 32 && <div style={{ fontSize: 9, color: "#17150f", opacity: 0.85, lineHeight: 1.2 }}>{cle}</div>}
                     </button>
                   );
@@ -443,7 +490,12 @@ function CarteRendezVous({ rdv, onChange, compact }) {
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 15, fontWeight: 700 }}>{heure}</span>
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{rdv.dureeMinutes} min</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span title={infosSource(rdv).titre} style={{ fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
+            {infosSource(rdv).icone} {infosSource(rdv).label}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{rdv.dureeMinutes} min</span>
+        </span>
       </div>
       <div style={{ fontWeight: 600, marginTop: 2 }}>{rdv.clientNom}</div>
       {rdv.vehiculeInfo && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{rdv.vehiculeInfo}</div>}
@@ -455,7 +507,7 @@ function CarteRendezVous({ rdv, onChange, compact }) {
 
       {converti ? (
         <Link href={`/bons/${rdv.bonId}`} style={{ display: "inline-block", marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--success)", textDecoration: "none" }}>
-          ✓ Transformé en bon de travail →
+          {rdv.source === "BON" ? "🔧 Voir le bon de travail →" : "✓ Transformé en bon de travail →"}
         </Link>
       ) : annule ? (
         <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>Annulé</div>

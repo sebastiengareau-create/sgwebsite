@@ -266,6 +266,7 @@ model RendezVous {
   bonId            String?     @unique // rempli si transformé en bon de travail
   bon              BonTravail? @relation(fields: [bonId], references: [id])
   referenceExterne String?     @unique // référence du site de réservation en ligne, si applicable
+  source           String      @default("LOCAL") // "LOCAL" (entré au calendrier) | "WEB" (site de réservation) | "BON" (créé avec un bon de travail)
   creeLe           DateTime    @default(now())
 }
 

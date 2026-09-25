@@ -53,6 +53,7 @@ export async function POST(request) {
   const rdv = await prisma.rendezVous.create({
     data: {
       referenceExterne: reference,
+      source: "WEB",
       clientNom: customer_name,
       clientTelephone: customer_phone || null,
       vehiculeInfo: vehicle || null,

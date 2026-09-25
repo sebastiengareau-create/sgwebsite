@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient } from "@/lib/numerotation";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
+import { verifierCreneau } from "@/lib/disponibilites";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -12,13 +13,24 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
-    problemes, datePrevue,
+    problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
   } = await request.json();
 
   const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
 
   if ((!clientId && !clientNom) || lignesValides.length === 0) {
     return NextResponse.json({ erreur: "Champs manquants (au moins une tâche requise)." }, { status: 400 });
+  }
+
+  // Le bon s'inscrit aussi au calendrier (rendez-vous « BON ») à sa date
+  // prévue. Même règle que pour un rendez-vous entré au calendrier : hors
+  // disponibilités ou créneau complet, on demande confirmation (forcer).
+  const debutPrevu = datePrevue ? dateHeureLocaleVersUTC(datePrevue) : null;
+  const duree = Math.max(15, Number(dureeMinutes) || 60);
+  const inscrireCalendrier = !!ajouterAuCalendrier && !!debutPrevu;
+  if (inscrireCalendrier && !forcer) {
+    const raison = await verifierCreneau(debutPrevu, duree);
+    if (raison) return NextResponse.json({ erreur: raison, horsDisponibilite: true }, { status: 409 });
   }
 
   let idClientFinal = clientId;
@@ -58,12 +70,26 @@ export async function POST(request) {
   }
   const numero = `2026-${String(1000 + prochainNum).slice(1)}`;
 
+  const client = await prisma.client.findUnique({ where: { id: idClientFinal } });
   const bon = await prisma.bonTravail.create({
     data: {
       numero,
       clientId: idClientFinal,
-      datePrevue: datePrevue ? dateHeureLocaleVersUTC(datePrevue) : null,
+      datePrevue: debutPrevu,
       problemes: { create: lignesValides.map((description) => ({ description })) },
+      rendezVous: inscrireCalendrier
+        ? {
+            create: {
+              clientId: idClientFinal,
+              clientNom: client.nom,
+              clientTelephone: client.telephone || null,
+              date: debutPrevu,
+              dureeMinutes: duree,
+              motif: lignesValides.join(", "),
+              source: "BON",
+            },
+          }
+        : undefined,
     },
   });
 

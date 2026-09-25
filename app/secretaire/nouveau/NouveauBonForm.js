@@ -30,6 +30,9 @@ export default function NouveauBon({ clientsExistants }) {
 
   const [problemes, setProblemes] = useState([""]);
   const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
+  const [ajouterAuCalendrier, setAjouterAuCalendrier] = useState(true);
+  const [dureeMinutes, setDureeMinutes] = useState("60");
+  const [horsDisponibilite, setHorsDisponibilite] = useState(false);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -65,9 +68,10 @@ export default function NouveauBon({ clientsExistants }) {
     setProblemes((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function creer(e) {
-    e.preventDefault();
+  async function creer(e, forcer = false) {
+    e?.preventDefault();
     setErreur("");
+    setHorsDisponibilite(false);
 
     const lignesValides = problemes.map((p) => p.trim()).filter(Boolean);
     if (lignesValides.length === 0) {
@@ -87,13 +91,14 @@ export default function NouveauBon({ clientsExistants }) {
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
         problemes: lignesValides,
-        datePrevue,
+        datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
       }),
     });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setErreur(data.erreur || "Erreur lors de la création.");
+      setHorsDisponibilite(!!data.horsDisponibilite);
       return;
     }
     const { id } = await res.json();
@@ -186,7 +191,30 @@ export default function NouveauBon({ clientsExistants }) {
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 18, marginBottom: 6 }}>Date prévue</div>
       <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
 
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+          <input type="checkbox" checked={ajouterAuCalendrier} onChange={(e) => setAjouterAuCalendrier(e.target.checked)} />
+          📅 Inscrire au calendrier
+        </label>
+        {ajouterAuCalendrier && (
+          <select value={dureeMinutes} onChange={(e) => setDureeMinutes(e.target.value)} style={{ ...champInput, width: "auto", marginBottom: 0 }}>
+            <option value="30">30 min</option>
+            <option value="60">1 heure</option>
+            <option value="90">1h30</option>
+            <option value="120">2 heures</option>
+            <option value="180">3 heures</option>
+            <option value="240">4 heures</option>
+            <option value="480">Journée (8 h)</option>
+          </select>
+        )}
+      </div>
+
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10, marginTop: 10 }}>{erreur}</p>}
+      {horsDisponibilite && (
+        <button type="button" onClick={() => creer(null, true)} disabled={enCours} style={{ width: "100%", marginBottom: 6, padding: 10, borderRadius: 8, border: "1px solid var(--danger)", background: "none", color: "var(--danger)", fontWeight: 700, cursor: "pointer" }}>
+          Créer et inscrire au calendrier quand même
+        </button>
+      )}
 
       <button
         type="submit" disabled={enCours}
