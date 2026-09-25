@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AssistantSG() {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
-  const [messages, setMessages] = useState([]); // [{role: "user" | "assistant", texte}]
+  const [messages, setMessages] = useState([]); // [{role: "user" | "assistant", texte, liens?}]
   const [historique, setHistorique] = useState([]); // format "contents" de Gemini, opaque
   const [texte, setTexte] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -44,10 +45,10 @@ export default function AssistantSG() {
         setMessages((m) => [...m, { role: "assistant", texte: data.erreur || "Erreur inattendue." }]);
         return;
       }
-      setMessages((m) => [...m, { role: "assistant", texte: data.reponse }]);
+      setMessages((m) => [...m, { role: "assistant", texte: data.reponse, liens: data.liens || [] }]);
       setHistorique(data.historique || []);
       if (lireReponses && window.speechSynthesis && data.reponse) {
-        const enonce = new SpeechSynthesisUtterance(data.reponse);
+        const enonce = new SpeechSynthesisUtterance(texteSansMarkdown(data.reponse));
         enonce.lang = "fr-CA";
         window.speechSynthesis.speak(enonce);
       }
@@ -95,7 +96,7 @@ export default function AssistantSG() {
         {ouvert && (
           <div
             style={{
-              width: "min(360px, 92vw)", height: "min(520px, 70vh)",
+              width: "min(400px, 92vw)", height: "min(600px, 75vh)",
               background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
               boxShadow: "0 20px 60px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", overflow: "hidden",
             }}
@@ -117,7 +118,7 @@ export default function AssistantSG() {
             <div ref={zoneMessagesRef} style={{ flex: 1, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
               {messages.length === 0 && (
                 <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", marginTop: 20 }}>
-                  Pose-moi une question — ex. "quels employés travaillent en ce moment ?"
+                  Pose-moi une question — ex. « trouve Tremblay », « bons en cours », « factures impayées de plus de 30 jours ».
                 </p>
               )}
               {messages.map((m, i) => (
@@ -129,10 +130,10 @@ export default function AssistantSG() {
                     background: m.role === "user" ? "var(--accent)" : "var(--bg)",
                     color: m.role === "user" ? "#17150f" : "var(--text)",
                     border: m.role === "user" ? "none" : "1px solid var(--border)",
-                    whiteSpace: "pre-wrap",
+                    whiteSpace: m.role === "user" ? "pre-wrap" : "normal",
                   }}
                 >
-                  {m.texte}
+                  {m.role === "user" ? m.texte : <RenduReponse texte={m.texte} liens={m.liens} onNaviguer={() => setOuvert(false)} />}
                 </div>
               ))}
               {enCours && (
@@ -189,3 +190,80 @@ export default function AssistantSG() {
     </>
   );
 }
+
+// Chemin interne du logiciel seulement (jamais un site externe)
+function lienInterne(url) {
+  return typeof url === "string" && url.startsWith("/") && !url.startsWith("//");
+}
+
+// Texte lisible à voix haute : [libellé](lien) → libellé, sans ** ni puces
+function texteSansMarkdown(texte) {
+  return String(texte || "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\*\*/g, "").replace(/^\s*[-*]\s+/gm, "");
+}
+
+// Rendu du texte de l'assistant : liens Markdown vers les fiches (cliquables),
+// **gras** et listes à puces — rien d'autre n'est interprété.
+function RenduInline({ texte, onNaviguer }) {
+  const morceaux = [];
+  const motif = /\[([^\]]+)\]\(([^)\s]+)\)|\*\*([^*]+)\*\*/g;
+  let dernier = 0;
+  let m;
+  while ((m = motif.exec(texte))) {
+    if (m.index > dernier) morceaux.push(texte.slice(dernier, m.index));
+    if (m[1] !== undefined) {
+      morceaux.push(lienInterne(m[2])
+        ? <Link key={m.index} href={m[2]} onClick={onNaviguer} style={styleLien}>{m[1]}</Link>
+        : m[1]);
+    } else {
+      morceaux.push(<strong key={m.index}>{m[3]}</strong>);
+    }
+    dernier = motif.lastIndex;
+  }
+  if (dernier < texte.length) morceaux.push(texte.slice(dernier));
+  return <>{morceaux}</>;
+}
+
+function RenduReponse({ texte, liens = [], onNaviguer }) {
+  const lignes = String(texte || "").split("\n");
+  const blocs = [];
+  let puces = [];
+  const viderPuces = () => {
+    if (puces.length) {
+      blocs.push(
+        <ul key={`ul-${blocs.length}`} style={{ margin: "4px 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 3 }}>
+          {puces.map((p, i) => <li key={i}><RenduInline texte={p} onNaviguer={onNaviguer} /></li>)}
+        </ul>
+      );
+      puces = [];
+    }
+  };
+  for (const ligne of lignes) {
+    const puce = ligne.match(/^\s*[-*•]\s+(.*)$/);
+    if (puce) { puces.push(puce[1]); continue; }
+    viderPuces();
+    if (ligne.trim()) blocs.push(<p key={`p-${blocs.length}`} style={{ margin: "2px 0" }}><RenduInline texte={ligne} onNaviguer={onNaviguer} /></p>);
+  }
+  viderPuces();
+
+  // Raccourcis vers les fiches trouvées que l'IA n'a pas déjà mis en lien
+  const autres = liens.filter((l) => lienInterne(l.url) && !String(texte || "").includes(`](${l.url})`));
+  return (
+    <>
+      {blocs}
+      {autres.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
+          {autres.map((l) => (
+            <Link
+              key={l.url} href={l.url} onClick={onNaviguer}
+              style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, textDecoration: "none", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--accent)" }}
+            >
+              ↗ {l.libelle}
+            </Link>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+const styleLien = { color: "var(--accent)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 2 };
