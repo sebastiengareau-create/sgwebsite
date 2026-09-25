@@ -292,6 +292,7 @@ model RendezVous {
   date             DateTime // date et heure du rendez-vous
   dureeMinutes     Int         @default(60)
   motif            String
+  taches           String[]    @default([]) // tâches à effectuer demandées sur le site de réservation — une ligne du bon chacune à la conversion
   statut           String      @default("CONFIRME") // "CONFIRME" | "ANNULE" | "COMPLETE"
   bonId            String?     @unique // rempli si transformé en bon de travail
   bon              BonTravail? @relation(fields: [bonId], references: [id])

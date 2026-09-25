@@ -60,7 +60,8 @@ export async function POST(request, props) {
       datePrevue: rdv.date,
       clientId,
       vehiculeId,
-      problemes: { create: [{ description: rdv.motif }] },
+      // Le service réservé, puis chaque tâche demandée : une ligne du bon chacune
+      problemes: { create: [rdv.motif, ...(rdv.taches || [])].map((description) => ({ description })) },
     },
   });
 
