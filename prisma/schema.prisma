@@ -123,6 +123,7 @@ model Facture {
 model Probleme {
   id                  String          @id @default(cuid())
   description         String
+  notes               String? // explication des travaux faits — imprimée sous la tâche sur la facture si remplie
   categorieRevenu     String          @default("MAIN_OEUVRE") // "MAIN_OEUVRE" | "ALIGNEMENT" | "REMORQUAGE" | "ENTREPOSAGE" | "AUTRE"
   // Facturation manuelle — utilisée seulement quand categorieRevenu != MAIN_OEUVRE
   // (ces postes ne se facturent pas au client sur les heures poinçonnées ;

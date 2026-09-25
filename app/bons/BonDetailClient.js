@@ -903,6 +903,13 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
       </div>
       {erreurNom && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreurNom}</p>}
 
+      <NotesTache
+        bonId={bonId}
+        probleme={probleme}
+        modifiable={(peutModifier || peutPoinconner) && !verrouille}
+        onRafraichir={onRafraichir}
+      />
+
       {peutModifier && !verrouille && (
         <select
           value={probleme.categorieRevenu || "MAIN_OEUVRE"}
@@ -932,36 +939,52 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
       )}
 
       {peutModifier && !verrouille && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (
-        <div style={{ marginTop: 8, background: "var(--bg)", borderRadius: 8, padding: 8 }}>
-          <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>
-            💵 Facturation de cette tâche (ne dépend pas du poinçon)
+        <div style={{ marginTop: 10, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>
+            💵 Facturation de cette tâche <span style={{ fontWeight: 400, textTransform: "none" }}>— ne dépend pas du poinçon</span>
           </div>
+          <label style={etiquetteChamp}>Description</label>
           <input
             value={editDescriptionFacturation}
             onChange={(e) => setEditDescriptionFacturation(e.target.value)}
-            placeholder="Description à facturer (ex. Remorquage aller-retour)"
-            style={{ ...champPetit, width: "100%", marginBottom: 6 }}
+            placeholder="Ex. Remorquage aller-retour"
+            style={{ ...champPetit, width: "100%", marginBottom: 8 }}
           />
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <input
-              type="number" min={0} step="0.01" value={editPrixFacturation}
-              onChange={(e) => setEditPrixFacturation(e.target.value)}
-              placeholder="Prix unitaire" style={{ ...champPetit, flex: 1 }}
-            />
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>×</span>
-            <input
-              type="number" min={0} step="1" value={editQteFacturation}
-              onChange={(e) => setEditQteFacturation(e.target.value)}
-              placeholder="Unités" style={{ ...champPetit, width: 56, textAlign: "center" }}
-            />
-            <button onClick={sauvegarderFacturation} disabled={enCours} style={{ ...boutonTexte, color: "var(--accent)" }}>✓</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div>
+              <label style={etiquetteChamp}>Prix unitaire</label>
+              <div style={{ position: "relative", width: 110 }}>
+                <input
+                  type="number" min={0} step="0.01" inputMode="decimal" value={editPrixFacturation}
+                  onChange={(e) => setEditPrixFacturation(e.target.value)}
+                  placeholder="0,00" style={{ ...champPetit, paddingRight: 22, textAlign: "right" }}
+                />
+                <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "var(--text-muted)", pointerEvents: "none" }}>$</span>
+              </div>
+            </div>
+            <span style={{ fontSize: 13, color: "var(--text-muted)", paddingBottom: 6 }}>×</span>
+            <div>
+              <label style={etiquetteChamp}>Qté</label>
+              <input
+                type="number" min={0} step="1" inputMode="decimal" value={editQteFacturation}
+                onChange={(e) => setEditQteFacturation(e.target.value)}
+                style={{ ...champPetit, width: 60, textAlign: "center" }}
+              />
+            </div>
+            <div style={{ marginLeft: "auto", textAlign: "right" }}>
+              <label style={etiquetteChamp}>Total</label>
+              <div style={{ fontSize: 15, fontWeight: 700, paddingBottom: 4 }}>
+                {((parseFloat(String(editPrixFacturation).replace(",", ".")) || 0) * (parseFloat(String(editQteFacturation).replace(",", ".")) || 0)).toFixed(2)} $
+              </div>
+            </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12 }}>
-            <span style={{ color: "var(--text-muted)" }}>Total de cette ligne</span>
-            <span style={{ fontWeight: 700 }}>{((parseFloat(editPrixFacturation.replace(",", ".")) || 0) * (parseFloat(editQteFacturation.replace(",", ".")) || 0)).toFixed(2)} $</span>
+          <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginTop: 8 }}>
+            {confirmationFacturation && <span style={{ fontSize: 11, color: "var(--success)" }}>{confirmationFacturation}</span>}
+            <button onClick={sauvegarderFacturation} disabled={enCours} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8 }}>
+              Enregistrer
+            </button>
           </div>
           {erreurFacturation && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurFacturation}</p>}
-          {confirmationFacturation && <p style={{ fontSize: 11, color: "var(--success)", marginTop: 6 }}>{confirmationFacturation}</p>}
         </div>
       )}
       {verrouille && probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" && (
@@ -1170,6 +1193,69 @@ function StatutFacturePill({ statut }) {
   );
 }
 
+// Notes des travaux d'une tâche — enregistrées en quittant le champ,
+// imprimées sous la tâche sur la facture quand elles sont remplies.
+function NotesTache({ bonId, probleme, modifiable, onRafraichir }) {
+  const [valeur, setValeur] = useState(probleme.notes || "");
+  const [etat, setEtat] = useState(""); // "" | "enregistrement" | "ok" | message d'erreur
+  const refZone = useRef(null);
+
+  useEffect(() => {
+    const z = refZone.current;
+    if (z) { z.style.height = "auto"; z.style.height = `${z.scrollHeight}px`; }
+  }, [valeur]);
+
+  async function enregistrer() {
+    if ((probleme.notes || "") === valeur.trim()) return;
+    setEtat("enregistrement");
+    const res = await fetch(`/api/bons/${bonId}/problemes/${probleme.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: valeur }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEtat(data.erreur || "Erreur lors de l'enregistrement.");
+      return;
+    }
+    setEtat("ok");
+    onRafraichir();
+    setTimeout(() => setEtat(""), 2000);
+  }
+
+  if (!modifiable) {
+    if (!probleme.notes) return null;
+    return (
+      <div style={{ marginTop: 6, fontSize: 12.5, color: "var(--text-muted)", whiteSpace: "pre-wrap", borderLeft: "2px solid var(--border)", paddingLeft: 8 }}>
+        {probleme.notes}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <textarea
+        ref={refZone}
+        rows={1}
+        value={valeur}
+        onChange={(e) => setValeur(e.target.value)}
+        onBlur={enregistrer}
+        placeholder="📝 Notes des travaux — décrire ce qui a été fait (imprimé sur la facture)"
+        style={{
+          width: "100%", boxSizing: "border-box", resize: "none", overflow: "hidden", minHeight: 32,
+          padding: "7px 9px", borderRadius: 8, border: "1px dashed var(--border)", background: "var(--bg)",
+          color: "var(--text)", fontSize: 12.5, fontFamily: "inherit", lineHeight: 1.4,
+        }}
+      />
+      {etat && (
+        <div style={{ fontSize: 10.5, marginTop: 2, color: etat === "ok" ? "var(--success)" : etat === "enregistrement" ? "var(--text-muted)" : "var(--danger)" }}>
+          {etat === "ok" ? "Notes enregistrées ✓" : etat === "enregistrement" ? "Enregistrement…" : etat}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Journée où le bon est planifié — modifiable tant qu'il n'est pas facturé
 function DatePrevueBon({ bon, modifiable }) {
   const router = useRouter();
@@ -1281,6 +1367,7 @@ const boutonAjout = {
 const boutonTexte = {
   background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13,
 };
+const etiquetteChamp = { display: "block", fontSize: 10, color: "var(--text-muted)", marginBottom: 3 };
 const champPetit = {
   width: "100%", padding: "6px 8px", borderRadius: 6, border: "1px solid var(--border)",
   background: "var(--surface)", color: "var(--text)", fontSize: 12, boxSizing: "border-box",
