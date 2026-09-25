@@ -7,7 +7,10 @@ import NouveauBonForm from "./NouveauBonForm";
 export default async function NouveauBonPage() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
-  const clients = await prisma.client.findMany({ orderBy: { nom: "asc" } });
+  const clients = await prisma.client.findMany({
+    include: { vehicules: { orderBy: { creeLe: "desc" } } },
+    orderBy: { nom: "asc" },
+  });
 
   return (
     <div>

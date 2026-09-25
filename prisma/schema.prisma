@@ -67,10 +67,32 @@ model Client {
   ville             String?
   codePostal        String?
   garantieProlongee String? // numéro de contrat de garantie prolongée, si applicable
+  vehicules         Vehicule[]
   bons              BonTravail[]
   soumissions       Soumission[]
   rendezVous        RendezVous[]
   creeLe            DateTime     @default(now())
+}
+
+// Dossier véhicule d'un client — un client peut en avoir plusieurs. Année,
+// marque, modèle et version sont choisis dans les listes du catalogue
+// (lib/catalogueVehicules.js) ou entrés à la main (« Autre… »).
+model Vehicule {
+  id       String       @id @default(cuid())
+  clientId String
+  client   Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  annee    Int?
+  marque   String?
+  modele   String?
+  version  String? // niveau de finition (ex. « EX-L », « XLT ») ou autre précision
+  niv      String? // numéro d'identification du véhicule — exactement 17 caractères
+  plaque   String?
+  bons     BonTravail[]
+  creeLe   DateTime     @default(now())
+
+  @@index([clientId])
+  @@index([niv])
+  @@index([plaque])
 }
 
 // ---------- BONS DE TRAVAIL ----------
@@ -81,6 +103,8 @@ model BonTravail {
   statut              String      @default("EN_ATTENTE") // "EN_ATTENTE" | "EN_COURS" | "TERMINE"
   clientId            String
   client              Client      @relation(fields: [clientId], references: [id])
+  vehiculeId          String? // véhicule du dossier client sur lequel porte le bon, si précisé
+  vehicule            Vehicule?   @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
   problemes           Probleme[]
   facture             Facture?
   rendezVous          RendezVous?
@@ -259,6 +283,7 @@ model RendezVous {
   clientNom        String
   clientTelephone  String?
   vehiculeInfo     String?
+  vehiculeDetails  Json? // { annee, marque, modele, version, niv, plaque } envoyés par le site de réservation — deviennent un véhicule du dossier client à la conversion en bon
   note             String? // ex: rendez-vous d'affaire sans lien avec un service au véhicule
   date             DateTime // date et heure du rendez-vous
   dureeMinutes     Int         @default(60)

@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
 import { valeurDateHeureLocale } from "@/lib/regroupementDates";
+import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
+import { libelleVehicule } from "@/lib/vehicules";
 
 export default function NouveauBon({ clientsExistants }) {
   const router = useRouter();
@@ -28,6 +30,11 @@ export default function NouveauBon({ clientsExistants }) {
   const [clientVille, setClientVille] = useState("");
   const [clientCodePostal, setClientCodePostal] = useState("");
 
+  // Véhicule du bon : un véhicule du dossier du client (son id), "nouveau"
+  // (formulaire ci-dessous, ajouté au dossier) ou "" (non précisé)
+  const [choixVehicule, setChoixVehicule] = useState("nouveau");
+  const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
+
   const [problemes, setProblemes] = useState([""]);
   const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
   const [ajouterAuCalendrier, setAjouterAuCalendrier] = useState(true);
@@ -39,13 +46,19 @@ export default function NouveauBon({ clientsExistants }) {
   const suggestions = useMemo(() => {
     const q = rechercheClient.trim().toLowerCase();
     if (!q) return [];
-    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q)).slice(0, 6);
+    // Retrouve aussi un client par la plaque ou le NIV d'un de ses véhicules
+    const qCompact = q.replace(/[\s-]/g, "");
+    const parVehicule = (c) => qCompact.length >= 3 && c.vehicules.some((v) =>
+      [v.plaque, v.niv].some((x) => x && x.toLowerCase().replace(/[\s-]/g, "").includes(qCompact)));
+    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q) || parVehicule(c)).slice(0, 6);
   }, [rechercheClient, clientsExistants]);
 
   function choisirClient(c) {
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
+    setChoixVehicule(c.vehicules.length === 1 ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
 
   function changerClientPourNouveau() {
@@ -56,6 +69,8 @@ export default function NouveauBon({ clientsExistants }) {
     setClientAdresse("");
     setClientVille("");
     setClientCodePostal("");
+    setChoixVehicule("nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
 
   function changerProbleme(index, valeur) {
@@ -92,6 +107,8 @@ export default function NouveauBon({ clientsExistants }) {
         clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
         problemes: lignesValides,
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
+        vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
+        vehicule: choixVehicule === "nouveau" ? vehicule : null,
       }),
     });
     setEnCours(false);
@@ -132,7 +149,7 @@ export default function NouveauBon({ clientsExistants }) {
             value={rechercheClient}
             onChange={(e) => { setRechercheClient(e.target.value); setClientNom(e.target.value); setAfficherSuggestions(true); }}
             onFocus={() => setAfficherSuggestions(true)}
-            placeholder="Tape pour rechercher un client existant ou en créer un nouveau"
+            placeholder="Tape un nom (ou une plaque) pour trouver un client existant, ou en créer un nouveau"
             style={champInput}
           />
           {afficherSuggestions && suggestions.length > 0 && (
@@ -165,6 +182,21 @@ export default function NouveauBon({ clientsExistants }) {
           </div>
         </>
       )}
+
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
+      {clientSelectionne && clientSelectionne.vehicules.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
+          {clientSelectionne.vehicules.map((v) => (
+            <OptionVehicule key={v.id} actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
+              titre={libelleVehicule(v) || "Véhicule sans description"}
+              detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
+            />
+          ))}
+          <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule (ajouté au dossier du client)" />
+          <OptionVehicule actif={choixVehicule === ""} onClick={() => setChoixVehicule("")} titre="Non précisé" />
+        </div>
+      )}
+      {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Problèmes signalés</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
@@ -223,6 +255,21 @@ export default function NouveauBon({ clientsExistants }) {
         {enCours ? "Création…" : "Créer le bon de travail"}
       </button>
     </form>
+  );
+}
+
+function OptionVehicule({ actif, onClick, titre, detail }) {
+  return (
+    <button
+      type="button" onClick={onClick}
+      style={{
+        textAlign: "left", padding: "8px 10px", borderRadius: 8, cursor: "pointer", color: "var(--text)",
+        background: "var(--surface)", border: `1px solid ${actif ? "var(--accent)" : "var(--border)"}`,
+      }}
+    >
+      <div style={{ fontSize: 13, fontWeight: actif ? 700 : 500 }}>{actif ? "● " : "○ "}{titre}</div>
+      {detail && <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginLeft: 16 }}>{detail}</div>}
+    </button>
   );
 }
 

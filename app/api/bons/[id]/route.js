@@ -22,6 +22,21 @@ export async function PATCH(request, props) {
   if (body.datePrevue !== undefined) {
     data.datePrevue = body.datePrevue ? dateHeureLocaleVersUTC(body.datePrevue) : null;
   }
+  // Véhicule du dossier client sur lequel porte le bon — null le retire
+  if (body.vehiculeId !== undefined) {
+    if (body.vehiculeId) {
+      const [bon, vehicule] = await Promise.all([
+        prisma.bonTravail.findUnique({ where: { id: params.id }, include: { facture: true } }),
+        prisma.vehicule.findUnique({ where: { id: body.vehiculeId } }),
+      ]);
+      if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
+      if (bon.facture) return NextResponse.json({ erreur: "Ce bon est facturé — le véhicule ne peut plus changer." }, { status: 409 });
+      if (!vehicule || vehicule.clientId !== bon.clientId) {
+        return NextResponse.json({ erreur: "Ce véhicule n'est pas au dossier de ce client." }, { status: 400 });
+      }
+    }
+    data.vehiculeId = body.vehiculeId || null;
+  }
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ erreur: "Rien à modifier." }, { status: 400 });
   }

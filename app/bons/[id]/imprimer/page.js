@@ -3,6 +3,7 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
+import { libelleVehicule } from "@/lib/vehicules";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -27,6 +28,7 @@ export default async function ImprimerBon(props) {
       where: { id: params.id },
       include: {
         client: true,
+        vehicule: true,
         problemes: { orderBy: { id: "asc" }, include: { photos: true, pieces: { include: { piece: true } }, entreesTemps: { include: { employe: true } } } },
         facture: true,
       },
@@ -138,6 +140,17 @@ export default async function ImprimerBon(props) {
           {bon.client.garantieProlongee && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
               🛡️ Garantie prolongée — #{bon.client.garantieProlongee}
+            </div>
+          )}
+          {bon.vehicule && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(bon.vehicule) || "—"}</div>
+              {(bon.vehicule.plaque || bon.vehicule.niv) && (
+                <div style={{ fontSize: 12, fontFamily: "monospace" }}>
+                  {[bon.vehicule.plaque && `Plaque ${bon.vehicule.plaque}`, bon.vehicule.niv && `NIV ${bon.vehicule.niv}`].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </div>
           )}
         </div>

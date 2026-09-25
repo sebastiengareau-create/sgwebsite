@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
+import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
+import { libelleVehicule } from "@/lib/vehicules";
 
 export default function ClientsClient({ clients, peutImporter }) {
   const router = useRouter();
@@ -14,7 +16,10 @@ export default function ClientsClient({ clients, peutImporter }) {
   const clientsFiltres = clients.filter((c) => {
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    const champs = [c.nom, c.telephone, c.courriel, c.adresse, c.ville, c.codePostal];
+    const champs = [
+      c.nom, c.telephone, c.courriel, c.adresse, c.ville, c.codePostal,
+      ...c.vehicules.flatMap((v) => [v.plaque, v.niv, libelleVehicule(v)]),
+    ];
     return champs.some((champ) => champ && champ.toLowerCase().includes(q));
   });
 
@@ -57,7 +62,7 @@ export default function ClientsClient({ clients, peutImporter }) {
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par nom, ville, téléphone, courriel…"
+        placeholder="🔍 Rechercher par nom, ville, téléphone, courriel, plaque, NIV, véhicule…"
         style={{
           width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
           background: "var(--surface)", color: "var(--text)", fontSize: 13, marginTop: 12, marginBottom: 16, boxSizing: "border-box",
@@ -86,6 +91,7 @@ export default function ClientsClient({ clients, peutImporter }) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
                 {c.garantieProlongee && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--accent)" }}>🛡️ Garantie</span>}
+                {c.vehicules.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>🚗 {c.vehicules.length}</span>}
                 <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{c.bons.length} bon{c.bons.length !== 1 ? "s" : ""}</span>
               </div>
               <span style={{ color: "var(--text-muted)", fontSize: 16 }}>›</span>
@@ -114,6 +120,7 @@ function FormulaireCreation({ onCree }) {
   const [ville, setVille] = useState("");
   const [codePostal, setCodePostal] = useState("");
   const [garantieProlongee, setGarantieProlongee] = useState("");
+  const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -124,7 +131,7 @@ function FormulaireCreation({ onCree }) {
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, vehicule }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -151,6 +158,8 @@ function FormulaireCreation({ onCree }) {
         onChange={(e) => setGarantieProlongee(e.target.value)}
         style={champStyle}
       />
+      <div className="titre-section" style={{ marginTop: 10 }}>🚗 Véhicule (optionnel — d'autres pourront s'ajouter à la fiche)</div>
+      <ChampsVehicule valeur={vehicule} onChange={setVehicule} />
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 8, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
         {enCours ? "Création…" : "Créer le client"}
