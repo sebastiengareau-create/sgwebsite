@@ -415,7 +415,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                     <button
                       key={r.id}
                       type="button"
-                      title={`${source.titre} — ${r.clientNom}`}
+                      title={`${source.titre} — ${r.clientNom}${r.bonId ? " — transformé en bon de travail" : ""}`}
                       onClick={() => onSelectionner(selectionne ? null : r.id)}
                       style={{
                         position: "absolute", top, height: hauteur, background: couleur, borderRadius: 5,
@@ -424,7 +424,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                         border: selectionne ? "2px solid var(--text)" : "none", boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
                       }}
                     >
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{source.icone} {heureTxt} {r.clientNom}</div>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{r.bonId && "✔️ "}{source.icone} {heureTxt} {r.clientNom}</div>
                       {hauteur > 32 && <div style={{ fontSize: 9, color: "#17150f", opacity: 0.85, lineHeight: 1.2 }}>{cle}</div>}
                     </button>
                   );
@@ -489,7 +489,7 @@ function CarteRendezVous({ rdv, onChange, compact }) {
       boxShadow: compact ? "0 6px 16px rgba(0,0,0,0.5)" : "none",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 15, fontWeight: 700 }}>{heure}</span>
+        <span style={{ fontSize: 15, fontWeight: 700 }}>{converti && <span title="Transformé en bon de travail">✔️ </span>}{heure}</span>
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span title={infosSource(rdv).titre} style={{ fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
             {infosSource(rdv).icone} {infosSource(rdv).label}
