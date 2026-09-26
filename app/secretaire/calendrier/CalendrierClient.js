@@ -163,6 +163,8 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
         {Object.values(SOURCES).map((s) => <span key={s.label} title={s.titre}>{s.icone} {s.label}</span>)}
+        <span title="Le client a joint un fichier — voir le courriel de confirmation">📎 Pièce jointe</span>
+        <span title="Rendez-vous transformé en bon de travail">✔️ Bon créé</span>
         {capacite && <span>· Case fermée après {capacite} rendez-vous simultané{capacite > 1 ? "s" : ""}</span>}
       </div>
 
