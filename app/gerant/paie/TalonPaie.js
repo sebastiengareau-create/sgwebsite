@@ -29,6 +29,12 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 11, color: "#666" }}>Versée le</div>
           <div style={{ fontSize: 12 }}>{paie.dateVersement ? new Date(paie.dateVersement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : "—"}</div>
+          {paie.modePaiement && (
+            <div style={{ fontSize: 11, color: "#666", marginTop: 6 }}>
+              {paie.modePaiement === "VIREMENT" ? "Virement" : "Chèque"}
+              {paie.referencePaiement && <> n° <span style={{ color: "#17150f", fontWeight: 700 }}>{paie.referencePaiement}</span></>}
+            </div>
+          )}
         </div>
       </div>
 

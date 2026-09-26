@@ -3,6 +3,31 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { verifierPeriodeModifiable } from "@/lib/comptabilite";
 
+const MODES_PAIEMENT = ["CHEQUE", "VIREMENT"];
+
+// Mode de paiement (chèque ou virement) et son numéro — simple information
+// de suivi, sans effet comptable, donc modifiable même sur une paie versée
+export async function PATCH(request, props) {
+  const params = await props.params;
+  const session = await obtenirSession();
+  if (!(await aAccesSection(session, "paie"))) {
+    return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+
+  const corps = await request.json().catch(() => ({}));
+  const modePaiement = corps.modePaiement || null;
+  if (modePaiement && !MODES_PAIEMENT.includes(modePaiement)) {
+    return NextResponse.json({ erreur: "Mode de paiement invalide." }, { status: 400 });
+  }
+  const referencePaiement = String(corps.referencePaiement ?? "").trim().slice(0, 100) || null;
+
+  const paie = await prisma.paie.findUnique({ where: { id: params.id } });
+  if (!paie) return NextResponse.json({ erreur: "Paie introuvable." }, { status: 404 });
+
+  await prisma.paie.update({ where: { id: params.id }, data: { modePaiement, referencePaiement } });
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(request, props) {
   const params = await props.params;
   const session = await obtenirSession();

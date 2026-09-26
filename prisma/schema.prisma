@@ -454,6 +454,8 @@ model Paie {
   statut             String    @default("BROUILLON") // "BROUILLON" | "VERSEE" | "CORRIGEE"
   corrigeeParId      String? // pointe vers la nouvelle paie qui remplace celle-ci
   dateVersement      DateTime?
+  modePaiement       String? // "CHEQUE" | "VIREMENT" — comment l'employé a été payé
+  referencePaiement  String? // numéro du chèque ou du virement, selon modePaiement
   creeLe             DateTime  @default(now())
 }
 

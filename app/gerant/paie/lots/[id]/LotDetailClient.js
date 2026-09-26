@@ -310,10 +310,11 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           </div>
 
           {paie.statut === "VERSEE" && (
-            <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10 }}>
               <a href={`/gerant/paie/${paie.id}/talon`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "var(--text)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, textDecoration: "none" }}>
                 🖨️ Talon
               </a>
+              <ModePaiement paie={paie} />
               <button onClick={() => onCorriger(paie.id)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
                 ✎ Corriger
               </button>
@@ -321,6 +322,63 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Chèque ou virement + son numéro, enregistré dès qu'on change le mode ou
+// qu'on quitte le champ du numéro
+function ModePaiement({ paie }) {
+  const [mode, setMode] = useState(paie.modePaiement || "CHEQUE");
+  const [reference, setReference] = useState(paie.referencePaiement || "");
+  const [enregistre, setEnregistre] = useState({ mode: paie.modePaiement || "", reference: paie.referencePaiement || "" });
+  const [etat, setEtat] = useState("");
+
+  async function enregistrer(nouveauMode, nouvelleReference) {
+    const ref = nouvelleReference.trim();
+    // Rien à sauvegarder tant qu'aucun numéro n'est entré pour une paie sans mode encore choisi
+    if (!enregistre.mode && !ref) return;
+    if (nouveauMode === enregistre.mode && ref === enregistre.reference) return;
+    setEtat("…");
+    const res = await fetch(`/api/paie/${paie.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modePaiement: nouveauMode, referencePaiement: ref }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setEtat("");
+      window.alert(data.erreur || "Erreur lors de l'enregistrement.");
+      return;
+    }
+    setEnregistre({ mode: nouveauMode, reference: ref });
+    setEtat("✓");
+  }
+
+  const styleChamp = { fontSize: 11, padding: "4px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" };
+
+  return (
+    <div style={{ display: "flex", gap: 4, alignItems: "center", flex: 1, minWidth: 0 }}>
+      <select
+        value={mode}
+        onChange={(e) => { setMode(e.target.value); enregistrer(e.target.value, reference); }}
+        style={styleChamp}
+        title="Mode de paiement"
+      >
+        <option value="CHEQUE">Chèque</option>
+        <option value="VIREMENT">Virement</option>
+      </select>
+      <input
+        type="text"
+        value={reference}
+        onChange={(e) => { setReference(e.target.value); setEtat(""); }}
+        onBlur={() => enregistrer(mode, reference)}
+        onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+        placeholder={mode === "CHEQUE" ? "N° de chèque" : "N° de virement"}
+        maxLength={100}
+        style={{ ...styleChamp, flex: 1, minWidth: 0 }}
+      />
+      {etat && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{etat}</span>}
     </div>
   );
 }
