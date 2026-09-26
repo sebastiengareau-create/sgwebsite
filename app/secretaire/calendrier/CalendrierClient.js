@@ -415,7 +415,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                     <button
                       key={r.id}
                       type="button"
-                      title={`${source.titre} — ${r.clientNom}${r.bonId ? " — transformé en bon de travail" : ""}`}
+                      title={`${source.titre} — ${r.clientNom}${r.pieceJointe ? " — pièce jointe (voir le courriel de confirmation)" : ""}${r.bonId ? " — transformé en bon de travail" : ""}`}
                       onClick={() => onSelectionner(selectionne ? null : r.id)}
                       style={{
                         position: "absolute", top, height: hauteur, background: couleur, borderRadius: 5,
@@ -424,7 +424,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                         border: selectionne ? "2px solid var(--text)" : "none", boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
                       }}
                     >
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{r.bonId && "✔️ "}{source.icone} {heureTxt} {r.clientNom}</div>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{r.bonId && "✔️ "}{r.pieceJointe && "📎 "}{source.icone} {heureTxt} {r.clientNom}</div>
                       {hauteur > 32 && <div style={{ fontSize: 9, color: "#17150f", opacity: 0.85, lineHeight: 1.2 }}>{cle}</div>}
                     </button>
                   );
@@ -505,6 +505,11 @@ function CarteRendezVous({ rdv, onChange, compact }) {
         <ul style={{ fontSize: 12, margin: "2px 0 0", paddingLeft: 18 }}>
           {rdv.taches.map((t, i) => <li key={i}>{t}</li>)}
         </ul>
+      )}
+      {rdv.pieceJointe && (
+        <div style={{ fontSize: 12, marginTop: 4 }}>
+          📎 {rdv.piecesJointes?.length ? rdv.piecesJointes.join(", ") : "Pièce jointe"} <span style={{ color: "var(--text-muted)" }}>— voir le courriel de confirmation</span>
+        </div>
       )}
       {rdv.clientTelephone && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{rdv.clientTelephone}</div>}
       {(rdv.clientAdresse || rdv.clientVille) && (

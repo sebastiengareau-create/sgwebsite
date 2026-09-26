@@ -38,7 +38,7 @@ export async function POST(request) {
 
   const {
     service, date, time, duration_min, customer_name, customer_phone, customer_email, vehicle, note,
-    customer_address, customer_city, customer_postal_code, tasks,
+    customer_address, customer_city, customer_postal_code, tasks, attachments, has_attachment,
   } = body;
   if (!service || !date || !time || !customer_name) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
@@ -68,6 +68,16 @@ export async function POST(request) {
     .filter((t) => typeof t === "string" && t.trim())
     .map((t) => t.trim().slice(0, 200))
     .slice(0, 15);
+  // Pièces jointes : le fichier lui-même part dans le courriel de
+  // confirmation — on garde seulement le fait qu'il y en a une (et les noms
+  // de fichiers, si le site les envoie : attachments: ["photo.jpg"] ou
+  // [{ name: "photo.jpg" }]) pour le signaler au calendrier.
+  const piecesJointes = (Array.isArray(attachments) ? attachments : [])
+    .map((f) => (typeof f === "string" ? f : f?.name || f?.filename))
+    .filter((n) => typeof n === "string" && n.trim())
+    .map((n) => n.trim().slice(0, 200))
+    .slice(0, 10);
+  const pieceJointe = piecesJointes.length > 0 || (Array.isArray(attachments) && attachments.length > 0) || has_attachment === true || has_attachment === "true";
   const vehiculeInfo = (typeof vehicle === "string" && vehicle.trim()) || libelleVehicule(details) || null;
 
   const rdv = await prisma.rendezVous.create({
@@ -86,6 +96,8 @@ export async function POST(request) {
       dureeMinutes,
       motif: service + (!taches.length && note ? ` — ${note}` : ""),
       taches,
+      pieceJointe,
+      piecesJointes,
     },
   });
 
