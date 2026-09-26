@@ -293,6 +293,8 @@ model RendezVous {
   dureeMinutes     Int         @default(60)
   motif            String
   taches           String[]    @default([]) // tâches à effectuer demandées sur le site de réservation — une ligne du bon chacune à la conversion
+  pieceJointe      Boolean     @default(false) // le client a joint un fichier sur le site de réservation (reçu par courriel de confirmation, pas dans le logiciel)
+  piecesJointes    String[]    @default([]) // noms des fichiers joints, si le site les envoie
   statut           String      @default("CONFIRME") // "CONFIRME" | "ANNULE" | "COMPLETE"
   bonId            String?     @unique // rempli si transformé en bon de travail
   bon              BonTravail? @relation(fields: [bonId], references: [id])
