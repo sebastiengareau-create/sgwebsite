@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { prochainNumeroSoumission, creerAvecNumero } from "@/lib/numerotation";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -14,15 +15,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Nom du client et au moins une tâche requis." }, { status: 400 });
   }
 
-  const derniere = await prisma.soumission.findFirst({ orderBy: { numero: "desc" } });
-  let prochainNum = 1;
-  if (derniere) {
-    const partieNum = parseInt(derniere.numero.split("-")[1], 10);
-    if (!isNaN(partieNum)) prochainNum = partieNum + 1;
-  }
-  const numero = `SOU-${String(1000 + prochainNum).slice(1)}`;
-
-  const soumission = await prisma.soumission.create({
+  const soumission = await creerAvecNumero(prochainNumeroSoumission, (numero) => prisma.soumission.create({
     data: {
       numero,
       clientId: clientId || null,
@@ -44,7 +37,7 @@ export async function POST(request) {
         })),
       },
     },
-  });
+  }));
 
   return NextResponse.json({ id: soumission.id, numero: soumission.numero });
 }

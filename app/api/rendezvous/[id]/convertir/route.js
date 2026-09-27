@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { prochainNumeroClient } from "@/lib/numerotation";
+import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { normaliserVehicule } from "@/lib/vehicules";
 
 export async function POST(request, props) {
@@ -48,17 +48,9 @@ export async function POST(request, props) {
     vehiculeId = existant?.id || (await prisma.vehicule.create({ data: { ...vehicule, clientId } })).id;
   }
 
-  const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
-  let prochainNum = 1;
-  if (dernierBon) {
-    const partieNum = parseInt(dernierBon.numero.split("-")[1], 10);
-    if (!isNaN(partieNum)) prochainNum = partieNum + 1;
-  }
-  const numero = `2026-${String(1000 + prochainNum).slice(1)}`;
-
   // Le bon reste « En attente » jusqu'au premier poinçon, planifié à la date
   // du rendez-vous — un rendez-vous à venir apparaît sous sa journée prévue.
-  const bon = await prisma.bonTravail.create({
+  const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,
       statut: "EN_ATTENTE",
@@ -68,7 +60,7 @@ export async function POST(request, props) {
       // Le service réservé, puis chaque tâche demandée : une ligne du bon chacune
       problemes: { create: [rdv.motif, ...(rdv.taches || [])].map((description) => ({ description })) },
     },
-  });
+  }));
 
   await prisma.rendezVous.update({ where: { id: rdv.id }, data: { statut: "COMPLETE", bonId: bon.id } });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { prochainNumeroClient } from "@/lib/numerotation";
+import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
 import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
@@ -83,16 +83,8 @@ export async function POST(request) {
     vehiculeDuBon = await prisma.vehicule.create({ data: { ...nouveauVehicule.data, clientId: idClientFinal } });
   }
 
-  const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
-  let prochainNum = 1;
-  if (dernierBon) {
-    const partieNum = parseInt(dernierBon.numero.split("-")[1], 10);
-    if (!isNaN(partieNum)) prochainNum = partieNum + 1;
-  }
-  const numero = `2026-${String(1000 + prochainNum).slice(1)}`;
-
   const client = await prisma.client.findUnique({ where: { id: idClientFinal } });
-  const bon = await prisma.bonTravail.create({
+  const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,
       clientId: idClientFinal,
@@ -114,7 +106,7 @@ export async function POST(request) {
           }
         : undefined,
     },
-  });
+  }));
 
   return NextResponse.json({ id: bon.id, numero: bon.numero });
 }
