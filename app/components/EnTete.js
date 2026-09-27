@@ -5,6 +5,7 @@ import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
 import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
+import { image } from "@/lib/client";
 
 // Chaque section "empruntable" (configurable dans Administrateur → Rôles et
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
@@ -69,7 +70,7 @@ export default async function EnTete({ nom, role }) {
           <div className="cacher-sur-bureau">
             <MenuHamburger liens={liens} />
           </div>
-          <Image src="/logo.png" alt={nomEntreprise} width={72} height={48} style={{ objectFit: "contain" }} />
+          <Image src={image("logo.png")} alt={nomEntreprise} width={72} height={48} style={{ objectFit: "contain" }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{nom}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{labelRole}</div>

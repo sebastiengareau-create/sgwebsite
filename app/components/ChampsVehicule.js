@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { LONGUEUR_NIV, LONGUEUR_MAX_PLAQUE, nettoyerNiv, nettoyerPlaque, validerNiv } from "@/lib/vehicules";
+import { estVr, LIBELLE_VERSION } from "@/lib/client";
 
 // Formulaire du dossier véhicule, réutilisé partout (création client, fiche
 // client, nouveau bon). Quatre listes en cascade — année → marque → modèle →
@@ -129,13 +130,13 @@ export default function ChampsVehicule({ valeur, onChange }) {
           placeholderAutre="Modèle"
         />
         <ListeOuAutre
-          label="Version"
+          label={LIBELLE_VERSION}
           valeur={v.version}
           options={v.modele ? versions : []}
           desactive={!v.modele}
           aideDesactive="Choisis le modèle d'abord"
           onChange={(x) => maj({ version: x })}
-          placeholderAutre="ex : EX-L, XLT, Hybride…"
+          placeholderAutre={estVr ? "ex : Classe C, 26RLS…" : "ex : EX-L, XLT, Hybride…"}
         />
       </div>
 

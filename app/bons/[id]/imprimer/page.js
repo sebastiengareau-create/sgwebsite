@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
 import { libelleVehicule } from "@/lib/vehicules";
+import { image } from "@/lib/client";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -100,7 +101,7 @@ export default async function ImprimerBon(props) {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #17150f", paddingBottom: 16, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/logo.png" alt={nomEntreprise} style={{ width: 50, height: 50, objectFit: "contain" }} />
+            <img src={image("logo.png")} alt={nomEntreprise} style={{ width: 50, height: 50, objectFit: "contain" }} />
             <div>
               <h1 style={{ fontSize: 22, margin: 0 }}>{nomEntreprise}</h1>
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import AssistantSG from "./components/AssistantSG";
 import "./globals.css";
+import { image } from "@/lib/client";
 
 // Obligatoire — sinon Next.js essaie de générer cette page (et les
 // métadonnées) pendant le build, avant que la base de données soit
@@ -22,10 +23,10 @@ export async function generateMetadata() {
     },
     icons: {
       icon: [
-        { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-        { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+        { url: image("icon-192.png"), sizes: "192x192", type: "image/png" },
+        { url: image("icon-512.png"), sizes: "512x512", type: "image/png" },
       ],
-      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+      apple: [{ url: image("apple-touch-icon.png"), sizes: "180x180", type: "image/png" }],
     },
   };
 }
