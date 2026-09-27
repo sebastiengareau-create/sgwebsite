@@ -9,7 +9,7 @@ import OptionVehicule from "../../components/OptionVehicule";
 import { libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 
-export default function NouveauBon({ clientsExistants }) {
+export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
   const router = useRouter();
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [rechercheClient, setRechercheClient] = useState("");
@@ -39,7 +39,8 @@ export default function NouveauBon({ clientsExistants }) {
 
   const [problemes, setProblemes] = useState([""]);
   const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
-  const [ajouterAuCalendrier, setAjouterAuCalendrier] = useState(true);
+  // Module Calendrier désactivé : le bon ne s'y inscrit pas (case cachée)
+  const [ajouterAuCalendrier, setAjouterAuCalendrier] = useState(calendrierActif);
   const [dureeMinutes, setDureeMinutes] = useState("60");
   const [horsDisponibilite, setHorsDisponibilite] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -233,7 +234,7 @@ export default function NouveauBon({ clientsExistants }) {
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 18, marginBottom: 6 }}>Date prévue</div>
       <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
+      {calendrierActif && <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
           <input type="checkbox" checked={ajouterAuCalendrier} onChange={(e) => setAjouterAuCalendrier(e.target.checked)} />
           📅 Inscrire au calendrier
@@ -249,7 +250,7 @@ export default function NouveauBon({ clientsExistants }) {
             <option value="480">Journée (8 h)</option>
           </select>
         )}
-      </div>
+      </div>}
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10, marginTop: 10 }}>{erreur}</p>}
       {horsDisponibilite && (
