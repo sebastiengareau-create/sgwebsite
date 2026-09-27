@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { prochainNumeroClient } from "@/lib/numerotation";
+import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -28,15 +28,7 @@ export async function POST(request, props) {
     clientId = client.id;
   }
 
-  const dernierBon = await prisma.bonTravail.findFirst({ orderBy: { numero: "desc" } });
-  let prochainNum = 1;
-  if (dernierBon) {
-    const partieNum = parseInt(dernierBon.numero.split("-")[1], 10);
-    if (!isNaN(partieNum)) prochainNum = partieNum + 1;
-  }
-  const numero = `2026-${String(1000 + prochainNum).slice(1)}`;
-
-  const bon = await prisma.bonTravail.create({
+  const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,
       clientId,
@@ -45,7 +37,7 @@ export async function POST(request, props) {
       // (temps, pièces réellement utilisées) démarre à zéro sur le bon.
       problemes: { create: soumission.taches.map((t) => ({ description: t.description })) },
     },
-  });
+  }));
 
   await prisma.soumission.update({
     where: { id: soumission.id },

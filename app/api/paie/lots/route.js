@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { prochainNumeroLotPaie, creerAvecNumero } from "@/lib/numerotation";
 import { calculerPaiePourEmploye } from "@/lib/paie";
 
 // Ces dates sont des journées civiles (Québec), pas des instants précis — on
@@ -35,15 +36,7 @@ export async function POST(request) {
     resultats.push({ employeId, ...resultat });
   }
 
-  const dernierLot = await prisma.lotPaie.findFirst({ orderBy: { numero: "desc" } });
-  let prochainNum = 1;
-  if (dernierLot) {
-    const partieNum = parseInt(dernierLot.numero.split("-")[1], 10);
-    if (!isNaN(partieNum)) prochainNum = partieNum + 1;
-  }
-  const numero = `PAIE-${String(1000 + prochainNum).slice(1)}`;
-
-  const lot = await prisma.lotPaie.create({
+  const lot = await creerAvecNumero(prochainNumeroLotPaie, (numero) => prisma.lotPaie.create({
     data: {
       numero,
       periodeDebut: jourCivil(periodeDebut),
@@ -77,7 +70,7 @@ export async function POST(request) {
         })),
       },
     },
-  });
+  }));
 
   return NextResponse.json({ id: lot.id, numero: lot.numero });
 }

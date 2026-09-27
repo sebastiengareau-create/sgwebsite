@@ -58,7 +58,7 @@ async function main() {
   });
   await prisma.bonTravail.create({
     data: {
-      numero: "2026-0114",
+      numero: "2026-114",
       statut: "EN_COURS",
       clientId: client.id,
       problemes: {

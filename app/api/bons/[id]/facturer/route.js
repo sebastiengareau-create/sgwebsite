@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { posterFactureEmise } from "@/lib/comptabilite";
 
@@ -59,15 +60,7 @@ export async function POST(request, props) {
   const tvqMontant = totalFacture * (tvqTaux / 100);
   const totalAvecTaxes = totalFacture + tpsMontant + tvqMontant;
 
-  const derniereFacture = await prisma.facture.findFirst({ orderBy: { numero: "desc" } });
-  let prochainNum = 1;
-  if (derniereFacture) {
-    const partieNum = parseInt(derniereFacture.numero.split("-")[1], 10);
-    if (!isNaN(partieNum)) prochainNum = partieNum + 1;
-  }
-  const numero = `FAC-${String(1000 + prochainNum).slice(1)}`;
-
-  const facture = await prisma.$transaction(async (tx) => {
+  const facture = await creerAvecNumero(prochainNumeroFacture, (numero) => prisma.$transaction(async (tx) => {
     const f = await tx.facture.create({
       data: {
         bonId: bon.id,
@@ -87,7 +80,7 @@ export async function POST(request, props) {
     // Émettre la facture marque automatiquement le bon comme terminé
     await tx.bonTravail.update({ where: { id: bon.id }, data: { statut: "TERMINE" } });
     return f;
-  });
+  }));
 
   // Génère l'écriture comptable correspondante — ne fait jamais échouer
   // l'émission de la facture elle-même si la comptabilité a un problème

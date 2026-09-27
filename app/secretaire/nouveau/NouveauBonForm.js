@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
 import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
+import OptionVehicule from "../../components/OptionVehicule";
 import { libelleVehicule } from "@/lib/vehicules";
 
 export default function NouveauBon({ clientsExistants }) {
@@ -255,21 +256,6 @@ export default function NouveauBon({ clientsExistants }) {
         {enCours ? "Création…" : "Créer le bon de travail"}
       </button>
     </form>
-  );
-}
-
-function OptionVehicule({ actif, onClick, titre, detail }) {
-  return (
-    <button
-      type="button" onClick={onClick}
-      style={{
-        textAlign: "left", padding: "8px 10px", borderRadius: 8, cursor: "pointer", color: "var(--text)",
-        background: "var(--surface)", border: `1px solid ${actif ? "var(--accent)" : "var(--border)"}`,
-      }}
-    >
-      <div style={{ fontSize: 13, fontWeight: actif ? 700 : 500 }}>{actif ? "● " : "○ "}{titre}</div>
-      {detail && <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginLeft: 16 }}>{detail}</div>}
-    </button>
   );
 }
 
