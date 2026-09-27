@@ -695,8 +695,9 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
   const suggestionsPieces = qPiece
-    ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece)).slice(0, 8)
-    : [];
+    ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece))
+    : piecesDisponibles;
+  const pieceSelectionnee = piecesDisponibles.find((p) => p.id === pieceChoisie);
 
   useEffect(() => {
     function surClicExterieur(e) {
@@ -710,7 +711,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
 
   function choisirPiece(p) {
     setPieceChoisie(p.id);
-    setRecherchePiece(`${p.nom} — ${p.qte} en stock`);
+    setRecherchePiece("");
     setAfficherSuggestionsPiece(false);
   }
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
@@ -1178,30 +1179,46 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
           {!verrouille && (
             <div style={{ display: "flex", gap: 6 }}>
               <div ref={boiteRecherchePieceRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
-                <input
-                  value={recherchePiece}
-                  onChange={(e) => { setRecherchePiece(e.target.value); setPieceChoisie(""); setAfficherSuggestionsPiece(true); }}
-                  onFocus={() => setAfficherSuggestionsPiece(true)}
-                  placeholder="Rechercher une pièce (nom ou numéro)…"
-                  style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "7px 8px" }}
-                />
-                {afficherSuggestionsPiece && qPiece && !pieceChoisie && (
+                <button
+                  type="button"
+                  onClick={() => { setAfficherSuggestionsPiece((v) => !v); setRecherchePiece(""); }}
+                  style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "7px 8px", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 6 }}
+                >
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: pieceSelectionnee ? "var(--text)" : "var(--text-muted)" }}>
+                    {pieceSelectionnee ? `${pieceSelectionnee.nom} — ${pieceSelectionnee.qte} en stock` : "Choisir une pièce…"}
+                  </span>
+                  <span style={{ color: "var(--text-muted)" }}>▾</span>
+                </button>
+                {afficherSuggestionsPiece && (
                   <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
-                    {suggestionsPieces.length === 0 ? (
-                      <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>Aucune pièce en stock trouvée</div>
-                    ) : suggestionsPieces.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => choisirPiece(p)}
-                        style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
-                      >
-                        <div style={{ fontWeight: 600 }}>{p.nom}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                          {[p.numero && `#${p.numero}`, `${p.qte} en stock`, p.emplacement].filter(Boolean).join(" · ")}
-                        </div>
-                      </button>
-                    ))}
+                    <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>
+                      <input
+                        autoFocus
+                        value={recherchePiece}
+                        onChange={(e) => setRecherchePiece(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setAfficherSuggestionsPiece(false);
+                          if (e.key === "Enter" && suggestionsPieces.length > 0) { e.preventDefault(); choisirPiece(suggestionsPieces[0]); }
+                        }}
+                        placeholder="🔍 Rechercher (nom ou numéro)…"
+                        style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px" }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                      {suggestionsPieces.length === 0 ? (
+                        <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>Aucune pièce en stock trouvée</div>
+                      ) : suggestionsPieces.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => choisirPiece(p)}
+                          style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                        >
+                          {p.nom} — {p.qte} en stock
+                          {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
