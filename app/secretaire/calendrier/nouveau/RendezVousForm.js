@@ -3,6 +3,9 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
+import { libelleVehicule } from "@/lib/vehicules";
+import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
+import OptionVehicule from "../../../components/OptionVehicule";
 
 export default function RendezVousForm({ clientsExistants }) {
   const router = useRouter();
@@ -13,7 +16,10 @@ export default function RendezVousForm({ clientsExistants }) {
 
   const [clientNom, setClientNom] = useState("");
   const [clientTelephone, setClientTelephone] = useState("");
-  const [vehiculeInfo, setVehiculeInfo] = useState("");
+  // Véhicule : un véhicule du dossier du client (son id), "nouveau"
+  // (formulaire ci-dessous) ou "" (non précisé)
+  const [choixVehicule, setChoixVehicule] = useState("nouveau");
+  const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
   const [note, setNote] = useState("");
   const [date, setDate] = useState(dateAujourdhuiQuebec());
   const [heure, setHeure] = useState("09:00");
@@ -54,12 +60,16 @@ export default function RendezVousForm({ clientsExistants }) {
     setRechercheClient(c.nom);
     setClientTelephone(c.telephone || "");
     setAfficherSuggestions(false);
+    setChoixVehicule(c.vehicules.length === 1 ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
   function changerClientPourNouveau() {
     setClientSelectionne(null);
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
+    setChoixVehicule("nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
 
   async function creer(e, forcer = false) {
@@ -78,7 +88,9 @@ export default function RendezVousForm({ clientsExistants }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
-        clientNom: nomFinal, clientTelephone, vehiculeInfo, note,
+        clientNom: nomFinal, clientTelephone, note,
+        vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
+        vehicule: choixVehicule === "nouveau" ? vehicule : null,
         date: `${date}T${heure}:00`,
         dureeMinutes, motif, forcer,
       }),
@@ -133,7 +145,22 @@ export default function RendezVousForm({ clientsExistants }) {
       {!clientSelectionne && (
         <input placeholder="Téléphone" value={clientTelephone} onChange={(e) => setClientTelephone(e.target.value)} style={champInput} />
       )}
-      <input placeholder="Véhicule (ex : Honda Civic 2019)" value={vehiculeInfo} onChange={(e) => setVehiculeInfo(e.target.value)} style={champInput} />
+
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
+      {clientSelectionne && clientSelectionne.vehicules.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
+          {clientSelectionne.vehicules.map((v) => (
+            <OptionVehicule key={v.id} actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
+              titre={libelleVehicule(v) || "Véhicule sans description"}
+              detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
+            />
+          ))}
+          <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule" />
+          <OptionVehicule actif={choixVehicule === ""} onClick={() => setChoixVehicule("")} titre="Non précisé" />
+        </div>
+      )}
+      {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
+
       <input placeholder="Note (ex : rendez-vous d'affaire, pas lié à un service)" value={note} onChange={(e) => setNote(e.target.value)} style={champInput} />
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Rendez-vous</div>

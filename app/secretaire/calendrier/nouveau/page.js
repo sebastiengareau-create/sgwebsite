@@ -10,7 +10,10 @@ export default async function NouveauRendezVousPage() {
   const parametreCalendrier = await prisma.parametre.findUnique({ where: { cle: "module_calendrier" } });
   if (parametreCalendrier?.valeur === "inactif") redirect("/secretaire");
 
-  const clients = await prisma.client.findMany({ orderBy: { nom: "asc" } });
+  const clients = await prisma.client.findMany({
+    include: { vehicules: { orderBy: { creeLe: "desc" } } },
+    orderBy: { nom: "asc" },
+  });
 
   return (
     <div>

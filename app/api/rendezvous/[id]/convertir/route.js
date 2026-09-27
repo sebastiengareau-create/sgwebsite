@@ -31,12 +31,17 @@ export async function POST(request, props) {
     clientId = client.id;
   }
 
-  // Véhicule reçu du site de réservation → versé au dossier du client, sans
-  // doublon si ce véhicule (même NIV ou même plaque) y est déjà.
+  // Véhicule du rendez-vous (site de réservation ou calendrier) → versé au
+  // dossier du client, sans doublon si ce véhicule y est déjà : même NIV ou
+  // même plaque, ou — sans l'un ni l'autre — même année, marque, modèle et
+  // version.
   let vehiculeId = null;
   const { data: vehicule, vide } = normaliserVehicule(rdv.vehiculeDetails);
   if (vehicule && !vide) {
     const identifiants = [vehicule.niv && { niv: vehicule.niv }, vehicule.plaque && { plaque: vehicule.plaque }].filter(Boolean);
+    if (!identifiants.length) {
+      identifiants.push({ annee: vehicule.annee, marque: vehicule.marque, modele: vehicule.modele, version: vehicule.version, niv: null, plaque: null });
+    }
     const existant = identifiants.length
       ? await prisma.vehicule.findFirst({ where: { clientId, OR: identifiants } })
       : null;
