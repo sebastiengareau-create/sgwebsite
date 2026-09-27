@@ -7,26 +7,30 @@ clients ; c'est le moyen le plus simple et le plus sûr de vendre ce
 logiciel à plusieurs garages sans risquer que les données d'un client
 se mélangent avec celles d'un autre.
 
-## Structure de dossiers recommandée sur ton ordinateur
+## Une branche par client
+
+Tout vit dans un seul dépôt GitHub, `sebastiengareau-create/sgwebsite`,
+avec une branche par installation :
 
 ```
-Mes Logiciels Garage/
-├── template-de-base/          ← NE JAMAIS MODIFIER DIRECTEMENT — la version
-│                                  propre et vierge, toujours à jour avec les
-│                                  dernières fonctionnalités
-├── client-vr-premium/          ← copie du template pour VR Premium
-├── client-garage-xyz/          ← copie du template pour un futur client
-└── client-garage-abc/          ← etc.
+main                  ← le modèle de base : neutre, logo générique, aucune
+                        vraie donnée. Toutes les améliorations générales
+                        se font ici.
+client-vr-premium     ← main + ce qui est propre à VR Premium
+client-garage-xyz     ← main + ce qui est propre à un futur client
 ```
 
-Le dossier `template-de-base` reste toujours "neutre" — logo générique,
-aucune vraie donnée. C'est celui que tu copies à chaque nouvelle vente.
+Chaque branche client contient un fichier **`CLIENT.md`** qui décrit le
+client et ce qui le distingue de `main`. `CLAUDE.md` l'importe : en
+choisissant la branche du client au début d'une discussion avec Claude, il
+est aussitôt dans le bon contexte. `main` n'a pas de `CLIENT.md`.
 
 ## Étapes pour créer une nouvelle installation
 
-### 1. Copier le modèle
-Copie le dossier `template-de-base` complet, renomme la copie
-`client-nom-du-garage`.
+### 1. Créer la branche du client
+À partir de `main`, crée la branche `client-nom-du-garage` et pousse-la sur
+GitHub. Ajoute-y un `CLIENT.md` (inspire-toi de celui de
+`client-vr-premium`) et la ligne `@CLIENT.md` dans `CLAUDE.md`.
 
 ### 2. Adapter la marque (2 minutes)
 Dans le nouveau dossier, ouvre **`lib/config.js`** — c'est le SEUL fichier
@@ -67,12 +71,11 @@ employés une fois l'app en ligne — plus propre pour une vraie livraison.
 Les déploiements se font depuis GitHub, sans `railway up` : tout le code
 vit dans le dépôt `sebastiengareau-create/sgwebsite`, une branche par
 installation (`main` = template, `client-vr-premium` = VR Premium, etc.).
-1. Crée la branche du client à partir de `main` et pousse-la sur GitHub.
-2. Dans le service web Railway : Settings → Source → **Connect Repo** →
+1. Dans le service web Railway : Settings → Source → **Connect Repo** →
    `sgwebsite`, puis mets « Branch connected to production » sur la branche
    du client. Laisse **Root Directory** vide (le dépôt commence directement
    au dossier du projet).
-3. Chaque `git push` sur cette branche redéploie ensuite ce client, et
+2. Chaque `git push` sur cette branche redéploie ensuite ce client, et
    seulement lui.
 
 (Le compte Railway doit être relié au compte GitHub propriétaire du dépôt —
@@ -83,13 +86,17 @@ fois.
 
 ## Faire évoluer une fonctionnalité pour TOUS les clients
 
-Comme chaque client a sa propre copie, une amélioration ne se propage pas
+Chaque client a sa propre branche : une amélioration ne se propage pas
 automatiquement. Le processus :
-1. Développe et teste la nouvelle fonctionnalité sur `main`
-   (`template-de-base`), puis pousse : le template se redéploie tout seul.
+1. Développe et teste la nouvelle fonctionnalité sur `main`, puis pousse :
+   le template se redéploie tout seul.
 2. Une fois satisfait, fusionne `main` dans la branche de chaque client
-   (`git merge main` dans son dossier) et pousse cette branche : le client
+   (`git merge main` sur sa branche) et pousse cette branche : le client
    se redéploie tout seul, avec ses migrations appliquées au démarrage.
+   Garde les différences propres au client décrites dans son `CLIENT.md`.
+
+Ce qui ne sert qu'à un client se code directement sur sa branche, et se
+note dans son `CLIENT.md`.
 
 ## Changer le schéma de la base (ajouter un champ, une table…)
 
