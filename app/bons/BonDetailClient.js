@@ -7,6 +7,7 @@ import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCom
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 import { libelleVehicule } from "@/lib/vehicules";
+import FichiersRendezVous from "../components/FichiersRendezVous";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -345,6 +346,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
       <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste} />
+      <FichiersRendezVous fichiers={bon.rendezVous?.fichiers} style={{ marginTop: 8 }} />
 
       {factureExiste && (
         <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>

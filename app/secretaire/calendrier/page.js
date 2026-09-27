@@ -38,6 +38,8 @@ export default async function Calendrier(props) {
     prisma.rendezVous.findMany({
       where: { date: { gte: debut, lte: fin } },
       orderBy: { date: "asc" },
+      // Fichiers joints : noms seulement, jamais leur contenu
+      include: { fichiers: { select: { id: true, nom: true }, orderBy: { creeLe: "asc" } } },
     }),
     prisma.periodeIndisponible.findMany({
       where: { debut: { lte: fin }, fin: { gte: debut } },

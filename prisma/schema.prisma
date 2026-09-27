@@ -293,14 +293,32 @@ model RendezVous {
   dureeMinutes     Int         @default(60)
   motif            String
   taches           String[]    @default([]) // tâches à effectuer demandées sur le site de réservation — une ligne du bon chacune à la conversion
-  pieceJointe      Boolean     @default(false) // le client a joint un fichier sur le site de réservation (reçu par courriel de confirmation, pas dans le logiciel)
+  pieceJointe      Boolean     @default(false) // le client a joint un fichier sur le site de réservation
   piecesJointes    String[]    @default([]) // noms des fichiers joints, si le site les envoie
+  fichiers         FichierRendezVous[] // les fichiers eux-mêmes, quand le site les transmet
   statut           String      @default("CONFIRME") // "CONFIRME" | "ANNULE" | "COMPLETE"
   bonId            String?     @unique // rempli si transformé en bon de travail
   bon              BonTravail? @relation(fields: [bonId], references: [id])
   referenceExterne String?     @unique // référence du site de réservation en ligne, si applicable
   source           String      @default("LOCAL") // "LOCAL" (entré au calendrier) | "WEB" (site de réservation) | "BON" (créé avec un bon de travail)
   creeLe           DateTime    @default(now())
+}
+
+// Fichier joint par le client sur le site de réservation (photo, devis…),
+// transmis par le site après la réservation. Gardé dans la base (les photos
+// sont réduites à la réception, voir lib/fichiersRendezVous.js) et effacé
+// 12 mois après le rendez-vous. Hors des sauvegardes JSON, trop lourdes.
+model FichierRendezVous {
+  id           String     @id @default(cuid())
+  rendezVousId String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  nom          String
+  typeMime     String
+  taille       Int
+  donnees      Bytes
+  creeLe       DateTime   @default(now())
+
+  @@index([rendezVousId])
 }
 
 // Période où l'atelier au complet ne prend pas de rendez-vous (congé, férié,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
 import BandeauSection from "../../components/BandeauSection";
+import FichiersRendezVous from "../../components/FichiersRendezVous";
 
 const JOURS_LABEL = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const DEBUT_GRILLE = 7; // 7h — élargie au besoin selon les heures d'ouverture
@@ -166,7 +167,7 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
         {Object.values(SOURCES).map((s) => <span key={s.label} title={s.titre}>{s.icone} {s.label}</span>)}
-        <span title="Le client a joint un fichier — voir le courriel de confirmation">📎 Pièce jointe</span>
+        <span title="Le client a joint un fichier — cliquer le rendez-vous pour l'ouvrir">📎 Pièce jointe</span>
         <span title="Rendez-vous transformé en bon de travail">✔️ Bon créé</span>
         {capacite && <span>· Case fermée après {capacite} rendez-vous simultané{capacite > 1 ? "s" : ""}</span>}
       </div>
@@ -420,7 +421,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                     <button
                       key={r.id}
                       type="button"
-                      title={`${source.titre} — ${r.clientNom}${r.pieceJointe ? " — pièce jointe (voir le courriel de confirmation)" : ""}${r.bonId ? " — transformé en bon de travail" : ""}`}
+                      title={`${source.titre} — ${r.clientNom}${r.pieceJointe ? " — pièce jointe" : ""}${r.bonId ? " — transformé en bon de travail" : ""}`}
                       onClick={() => onSelectionner(selectionne ? null : r.id)}
                       style={{
                         position: "absolute", top, height: hauteur, background: couleur, borderRadius: 5,
@@ -511,7 +512,11 @@ function CarteRendezVous({ rdv, onChange, compact }) {
           {rdv.taches.map((t, i) => <li key={i}>{t}</li>)}
         </ul>
       )}
-      {rdv.pieceJointe && (
+      {rdv.fichiers?.length > 0 ? (
+        <FichiersRendezVous fichiers={rdv.fichiers} style={{ marginTop: 6 }} />
+      ) : rdv.pieceJointe && (
+        // Fichier gardé par le site seulement (réservation d'avant le transfert
+        // des fichiers, ou transfert échoué) ou déjà effacé après 12 mois
         <div style={{ fontSize: 12, marginTop: 4 }}>
           📎 {rdv.piecesJointes?.length ? rdv.piecesJointes.join(", ") : "Pièce jointe"} <span style={{ color: "var(--text-muted)" }}>— voir le courriel de confirmation</span>
         </div>

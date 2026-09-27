@@ -25,6 +25,8 @@ export default async function DetailBonPage(props) {
         },
       },
       facture: true,
+      // Fichiers joints au rendez-vous d'où vient le bon : noms seulement
+      rendezVous: { select: { fichiers: { select: { id: true, nom: true }, orderBy: { creeLe: "asc" } } } },
     },
   });
   if (!bon) notFound();
