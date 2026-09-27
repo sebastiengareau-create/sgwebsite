@@ -660,6 +660,9 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
 
 function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
+  const [recherchePiece, setRecherchePiece] = useState("");
+  const [afficherSuggestionsPiece, setAfficherSuggestionsPiece] = useState(false);
+  const boiteRecherchePieceRef = useRef(null);
   const [qtePiece, setQtePiece] = useState("1");
   const [erreurPiece, setErreurPiece] = useState("");
   const [confirmationPiece, setConfirmationPiece] = useState("");
@@ -689,6 +692,28 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
   const [erreurNom, setErreurNom] = useState("");
 
   const piecesDisponibles = inventaire.filter((p) => p.qte > 0);
+  // Recherche par nom ou numéro de pièce — l'inventaire peut être long
+  const qPiece = recherchePiece.trim().toLowerCase();
+  const suggestionsPieces = qPiece
+    ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece))
+    : piecesDisponibles;
+  const pieceSelectionnee = piecesDisponibles.find((p) => p.id === pieceChoisie);
+
+  useEffect(() => {
+    function surClicExterieur(e) {
+      if (boiteRecherchePieceRef.current && !boiteRecherchePieceRef.current.contains(e.target)) {
+        setAfficherSuggestionsPiece(false);
+      }
+    }
+    document.addEventListener("mousedown", surClicExterieur);
+    return () => document.removeEventListener("mousedown", surClicExterieur);
+  }, []);
+
+  function choisirPiece(p) {
+    setPieceChoisie(p.id);
+    setRecherchePiece("");
+    setAfficherSuggestionsPiece(false);
+  }
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
 
   // Temps par employé pour CETTE tâche précisément
@@ -842,6 +867,7 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
       return;
     }
     setPieceChoisie("");
+    setRecherchePiece("");
     setQtePiece("1");
     setConfirmationPiece("Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
@@ -1152,12 +1178,50 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
 
           {!verrouille && (
             <div style={{ display: "flex", gap: 6 }}>
-              <select value={pieceChoisie} onChange={(e) => setPieceChoisie(e.target.value)} style={{ ...champStyle, fontSize: 12, padding: "7px 8px" }}>
-                <option value="">Choisir une pièce…</option>
-                {piecesDisponibles.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nom} — {p.qte} en stock</option>
-                ))}
-              </select>
+              <div ref={boiteRecherchePieceRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => { setAfficherSuggestionsPiece((v) => !v); setRecherchePiece(""); }}
+                  style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "7px 8px", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 6 }}
+                >
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: pieceSelectionnee ? "var(--text)" : "var(--text-muted)" }}>
+                    {pieceSelectionnee ? `${pieceSelectionnee.nom} — ${pieceSelectionnee.qte} en stock` : "Choisir une pièce…"}
+                  </span>
+                  <span style={{ color: "var(--text-muted)" }}>▾</span>
+                </button>
+                {afficherSuggestionsPiece && (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
+                    <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>
+                      <input
+                        autoFocus
+                        value={recherchePiece}
+                        onChange={(e) => setRecherchePiece(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setAfficherSuggestionsPiece(false);
+                          if (e.key === "Enter" && suggestionsPieces.length > 0) { e.preventDefault(); choisirPiece(suggestionsPieces[0]); }
+                        }}
+                        placeholder="🔍 Rechercher (nom ou numéro)…"
+                        style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px" }}
+                      />
+                    </div>
+                    <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                      {suggestionsPieces.length === 0 ? (
+                        <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>Aucune pièce en stock trouvée</div>
+                      ) : suggestionsPieces.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => choisirPiece(p)}
+                          style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                        >
+                          {p.nom} — {p.qte} en stock
+                          {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <input
                 type="number" min={1} value={qtePiece}
                 onChange={(e) => setQtePiece(e.target.value)}
