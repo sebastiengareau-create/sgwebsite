@@ -14,8 +14,10 @@ export async function GET(request, props) {
     return NextResponse.json({ erreur: "Fichier introuvable — les fichiers sont effacés 12 mois après le rendez-vous." }, { status: 404 });
   }
 
-  // Images et PDF s'ouvrent dans le navigateur ; les documents Word se téléchargent
-  const enLigne = fichier.typeMime.startsWith("image/") || fichier.typeMime === "application/pdf";
+  // Images et PDF s'ouvrent dans le navigateur ; les documents Word — ou
+  // tout fichier avec ?telecharger=1 (bouton ⬇️) — se téléchargent
+  const telecharger = new URL(request.url).searchParams.has("telecharger");
+  const enLigne = !telecharger && (fichier.typeMime.startsWith("image/") || fichier.typeMime === "application/pdf");
   const nomAscii = fichier.nom.normalize("NFD").replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "") || "fichier";
   return new Response(fichier.donnees, {
     headers: {
