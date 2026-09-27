@@ -2,9 +2,15 @@ import { NextResponse } from "next/server";
 import { obtenirSession } from "@/lib/auth";
 import { OUTILS } from "@/lib/assistantOutils";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
+import { estVr } from "@/lib/client";
 
 const MAX_TOURS_OUTILS = 8; // assez pour enchaîner quelques recherches, sans boucle infinie
 const MAX_LIENS = 10;
+
+// Exemples de recherche de véhicules, selon le type de véhicules du client
+const EXEMPLES_VEHICULES = estVr
+  ? "une plaque, un NIV ou « le Jayco Greyhawk de Tremblay » → rechercherVehicule (véhicule, propriétaire et historique des bons) ; un NIV à identifier → decoderNiv ; « quels modèles Winnebago » ou « quel type est un Keystone Montana » → catalogueVehicules (les « versions » sont les types de VR : Classe A, B, C, roulotte, sellette…)."
+  : "une plaque, un NIV ou « la Civic 2019 de Tremblay » → rechercherVehicule (véhicule, propriétaire et historique des bons) ; un NIV à identifier → decoderNiv ; « quels modèles Honda en 2019 » ou « les versions d'un RAV4 » → catalogueVehicules.";
 
 const INSTRUCTION_SYSTEME = `Tu es "Assistant SG", l'assistant intégré au logiciel de gestion de ce garage. Tu réponds en français, de façon brève et directe, comme si tu parlais à un employé du garage.
 
@@ -19,7 +25,7 @@ Recherche :
 - Cherche activement. Tu peux appeler plusieurs outils, en même temps ou l'un après l'autre, pour bien répondre (ex. trouver le client, puis ses bons, puis ses factures).
 - Si une recherche ne donne rien, essaie AVANT de conclure : un mot plus court ou partiel, une autre orthographe (avec ou sans accent), un autre outil, ou rechercheGlobale. Dis qu'il n'y a rien seulement après ces essais.
 - Si la question est vague ou si tu ne sais pas si c'est un client, un bon, une pièce ou un fournisseur, commence par rechercheGlobale.
-- Exemples : « montre-moi les rendez-vous du 29 septembre » → rendezVousDuJour avec date=AAAA-09-29 (année en cours si non précisée) ; « les pièces de NAPA » → inventairePiece avec fournisseurNom="NAPA" ; « quoi commander » → inventairePiece avec sousLeSeuil=true ; « les bons en cours » → chercherBonTravail avec statut=EN_COURS ; une plaque, un NIV ou « la Civic 2019 de Tremblay » → rechercherVehicule (véhicule, propriétaire et historique des bons) ; un NIV à identifier → decoderNiv ; « quels modèles Honda en 2019 » ou « les versions d'un RAV4 » → catalogueVehicules.
+- Exemples : « montre-moi les rendez-vous du 29 septembre » → rendezVousDuJour avec date=AAAA-09-29 (année en cours si non précisée) ; « les pièces de NAPA » → inventairePiece avec fournisseurNom="NAPA" ; « quoi commander » → inventairePiece avec sousLeSeuil=true ; « les bons en cours » → chercherBonTravail avec statut=EN_COURS ; ${EXEMPLES_VEHICULES}
 - Quand on te demande de « montrer » une liste, donne la liste avec les liens, et termine par un lien vers la page complète quand il y en a une (ex. la journée du calendrier).
 
 Liens :

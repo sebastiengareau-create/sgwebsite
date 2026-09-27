@@ -7,6 +7,7 @@ import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import OptionVehicule from "../../components/OptionVehicule";
 import { libelleVehicule } from "@/lib/vehicules";
+import { CLIENT } from "@/lib/client";
 
 export default function NouveauBon({ clientsExistants }) {
   const router = useRouter();
@@ -58,7 +59,9 @@ export default function NouveauBon({ clientsExistants }) {
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
-    setChoixVehicule(c.vehicules.length === 1 ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau");
+    // Véhicule obligatoire : le premier du dossier est présélectionné
+    const parDefaut = c.vehicules.length === 1 || (CLIENT.vehiculeObligatoire && c.vehicules.length) ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau";
+    setChoixVehicule(parDefaut);
     setVehicule(VEHICULE_VIDE);
   }
 
@@ -92,6 +95,10 @@ export default function NouveauBon({ clientsExistants }) {
     const lignesValides = problemes.map((p) => p.trim()).filter(Boolean);
     if (lignesValides.length === 0) {
       setErreur("Ajoute au moins une ligne de problème.");
+      return;
+    }
+    if (CLIENT.vehiculeObligatoire && choixVehicule === "nouveau" && (!vehicule.marque.trim() || !vehicule.modele.trim())) {
+      setErreur("Indique la marque et le modèle du véhicule, ou choisis-en un du dossier du client.");
       return;
     }
     if (!clientSelectionne && !clientNom.trim()) {
@@ -194,7 +201,9 @@ export default function NouveauBon({ clientsExistants }) {
             />
           ))}
           <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule (ajouté au dossier du client)" />
-          <OptionVehicule actif={choixVehicule === ""} onClick={() => setChoixVehicule("")} titre="Non précisé" />
+          {!CLIENT.vehiculeObligatoire && (
+            <OptionVehicule actif={choixVehicule === ""} onClick={() => setChoixVehicule("")} titre="Non précisé" />
+          )}
         </div>
       )}
       {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}

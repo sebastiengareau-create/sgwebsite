@@ -1,4 +1,5 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
+import { image } from "@/lib/client";
 
 // Même raison que layout.js — évite la pré-génération au build
 export const dynamic = "force-dynamic";
@@ -14,10 +15,10 @@ export default async function manifest() {
     background_color: "#17150f",
     theme_color: "#17150f",
     icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: image("icon-192.png"), sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: image("icon-512.png"), sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: image("icon-192.png"), sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: image("icon-512.png"), sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

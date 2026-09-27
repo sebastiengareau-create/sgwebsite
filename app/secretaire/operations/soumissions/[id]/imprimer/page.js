@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
 import BoutonRetour from "./BoutonRetour";
+import { image } from "@/lib/client";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
@@ -52,7 +53,7 @@ export default async function ImprimerSoumission(props) {
       <div style={{ maxWidth: 720, margin: "0 auto 40px", background: "white", color: "#17150f", padding: "36px 40px", fontFamily: "Arial, sans-serif" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #17150f", paddingBottom: 16, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img src="/logo.png" alt={nomEntreprise} style={{ width: 50, height: 50, objectFit: "contain" }} />
+            <img src={image("logo.png")} alt={nomEntreprise} style={{ width: 50, height: 50, objectFit: "contain" }} />
             <div>
               <h1 style={{ fontSize: 22, margin: 0 }}>{nomEntreprise}</h1>
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>
