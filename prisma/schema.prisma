@@ -316,6 +316,17 @@ model PeriodeIndisponible {
   @@index([debut, fin])
 }
 
+// Services offerts sur le site de réservation en ligne (Calendrier →
+// Paramètres web). Le site les lit par /api/rendezvous/services ; un
+// service désactivé disparaît du site sans toucher aux rendez-vous déjà pris.
+model ServiceWeb {
+  id           String   @id @default(cuid())
+  nom          String
+  dureeMinutes Int
+  actif        Boolean  @default(true)
+  creeLe       DateTime @default(now())
+}
+
 // ---------- COMPTABILITÉ ----------
 
 // Plan comptable — la liste structurée des comptes de l'entreprise
