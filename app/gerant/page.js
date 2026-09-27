@@ -83,7 +83,7 @@ export default async function EspaceGerant(props) {
     resumeCourant, resumePrecedent, historiqueBrut,
     detailMois, detailAnnee,
     facturesImpayeesCount, fournisseursImpayesDistincts,
-    facturesEnRetard, depensesEcheanceProche, dernierePaie,
+    facturesEnRetard, depensesEcheanceProche, dernierePaie, modulePaie,
     enAttente, enCours, inventaire, poinconsActifs, poinconsInternesActifs,
   ] = await Promise.all([
     calculerResumeFermeture({ debut, fin }),
@@ -96,6 +96,7 @@ export default async function EspaceGerant(props) {
     prisma.facture.aggregate({ where: { statut: "IMPAYEE", dateEmission: { lte: ilYA30Jours } }, _sum: { totalAvecTaxes: true }, _count: true }),
     prisma.depense.aggregate({ where: { statut: "IMPAYEE", dateEcheance: { gte: maintenant, lte: dansUneSemaine } }, _sum: { montant: true }, _count: true }),
     prisma.paie.findFirst({ where: { statut: { not: "CORRIGEE" } }, orderBy: { dateVersement: "desc" } }),
+    prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
     prisma.piece.findMany(),
@@ -169,7 +170,8 @@ export default async function EspaceGerant(props) {
   if (stockBas.length > 0) {
     alertes.push({ niveau: "avertissement", icone: "🟠", texte: `${stockBas.length} pièce${stockBas.length > 1 ? "s" : ""} sous le seuil de stock`, href: "/secretaire/inventaire" });
   }
-  if (paieProchaine) {
+  // Seulement si le module Paie est actif (désactivé par défaut)
+  if (paieProchaine && modulePaie?.valeur === "actif") {
     alertes.push({ niveau: "info", icone: "🟢", texte: `Paie prochaine (estimée) : ${paieProchaine.toLocaleDateString("fr-CA", { timeZone: "America/Toronto", weekday: "long", day: "numeric", month: "long" })}`, href: "/gerant/paie" });
   }
 

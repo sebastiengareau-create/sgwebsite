@@ -43,7 +43,9 @@ export async function POST(request) {
   // disponibilités ou créneau complet, on demande confirmation (forcer).
   const debutPrevu = datePrevue ? dateHeureLocaleVersUTC(datePrevue) : null;
   const duree = Math.max(15, Number(dureeMinutes) || 60);
-  const inscrireCalendrier = !!ajouterAuCalendrier && !!debutPrevu;
+  // Module Calendrier désactivé : jamais d'inscription (la case est cachée)
+  const moduleCalendrier = await prisma.parametre.findUnique({ where: { cle: "module_calendrier" } });
+  const inscrireCalendrier = !!ajouterAuCalendrier && !!debutPrevu && moduleCalendrier?.valeur !== "inactif";
   if (inscrireCalendrier && !forcer) {
     const raison = await verifierCreneau(debutPrevu, duree);
     if (raison) return NextResponse.json({ erreur: raison, horsDisponibilite: true }, { status: 409 });
