@@ -142,7 +142,10 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
     <div style={{ padding: 16, maxWidth: vue === "grille" ? 1100 : 480, margin: "0 auto", width: "100%" }}>
       <BandeauSection icone="📅" titre="Calendrier" sousTitre="Rendez-vous et disponibilités de l'atelier." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <Link href="/secretaire/calendrier/parametres-web" className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8, textDecoration: "none" }}>
+          🌐 Paramètres web
+        </Link>
         <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
           <button onClick={() => setVue("grille")} style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 7, border: "none", cursor: "pointer", background: vue === "grille" ? "var(--accent)" : "none", color: vue === "grille" ? "#17150f" : "var(--text-muted)" }}>
             ▦ Grille
