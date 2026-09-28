@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
+import { etatEcheance } from "@/lib/echeance";
 
-export default function FournisseurDetailClient({ fournisseur }) {
+export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpayees }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -130,19 +131,36 @@ export default function FournisseurDetailClient({ fournisseur }) {
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Solde dû</TitreSection>
+            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0 ? "var(--danger)" : "var(--success)" }}>{soldeDu.toFixed(2)} $</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>
+              {nbImpayees > 0 ? `${nbImpayees} facture${nbImpayees > 1 ? "s" : ""} impayée${nbImpayees > 1 ? "s" : ""}` : "À jour — aucune facture impayée"}
+            </div>
+            <Link href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${fournisseur.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+              💳 Ses comptes à payer
+            </Link>
+          </div>
+
+          <div className="carte" style={{ marginBottom: 12 }}>
             <TitreSection>Dépenses récentes ({fournisseur.depenses.length})</TitreSection>
             {fournisseur.depenses.length === 0 ? (
               <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucune dépense encore.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {fournisseur.depenses.map((d) => (
-                  <div key={d.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ color: "var(--text-muted)" }}>
-                      {new Date(d.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {d.description}
-                    </span>
-                    <span style={{ fontWeight: 600 }}>{d.montant.toFixed(2)} $</span>
-                  </div>
-                ))}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {fournisseur.depenses.map((d) => {
+                  const etat = etatEcheance(d);
+                  return (
+                    <Link key={d.id} href={`/gerant/comptabilite/comptes-a-payer/${d.id}`} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, textDecoration: "none", color: "var(--text)", padding: "6px 8px", borderRadius: 6, background: "var(--bg)" }}>
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {new Date(d.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {d.description}
+                        <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: d.statut === "PAYEE" ? "var(--success)" : (etat?.couleur || "var(--danger)") }}>
+                          {d.statut === "PAYEE" ? "Payée" : (etat?.texte || "Impayée")}
+                        </span>
+                      </span>
+                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{d.montant.toFixed(2)} $ ›</span>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>

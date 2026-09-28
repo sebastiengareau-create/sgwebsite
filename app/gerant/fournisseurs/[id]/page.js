@@ -15,10 +15,16 @@ export default async function FicheFournisseur(props) {
   });
   if (!fournisseur) notFound();
 
+  // Solde calculé sur toutes les impayées, pas seulement les 20 affichées
+  const impayees = await prisma.depense.aggregate({
+    where: { fournisseurId: fournisseur.id, statut: "IMPAYEE" },
+    _sum: { montant: true }, _count: true,
+  });
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <FournisseurDetailClient fournisseur={fournisseur} />
+      <FournisseurDetailClient fournisseur={fournisseur} soldeDu={impayees._sum.montant || 0} nbImpayees={impayees._count} />
     </div>
   );
 }
