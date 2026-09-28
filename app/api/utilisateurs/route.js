@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, hashPassword, aAccesSection, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
+import { validerPin } from "@/lib/employes";
 import { prochainNumeroEmploye } from "@/lib/numerotation";
 
 export async function POST(request) {
@@ -27,6 +28,9 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Le mot de passe doit avoir entre 4 et 12 caractères." }, { status: 400 });
   }
 
+  const nip = await validerPin(pin);
+  if (nip.erreur) return NextResponse.json({ erreur: nip.erreur }, { status: nip.status });
+
   const existant = await prisma.user.findUnique({ where: { courriel } });
   if (existant) {
     return NextResponse.json({ erreur: "Ce courriel est déjà utilisé." }, { status: 409 });
@@ -38,7 +42,7 @@ export async function POST(request) {
       courriel,
       motDePasse: await hashPassword(motDePasse),
       role,
-      pin: pin || null,
+      pin: nip.valeur,
       telephone: telephone || null,
       adresse: adresse || null,
       ville: ville || null,

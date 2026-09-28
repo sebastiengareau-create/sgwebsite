@@ -88,7 +88,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setProblemes((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function creer(e, forcer = false) {
+  async function creer(e, forcer = false, confirmerDoublon = false) {
     e?.preventDefault();
     setErreur("");
     setHorsDisponibilite(false);
@@ -115,7 +115,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
         problemes: lignesValides,
-        datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
+        datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
         vehicule: choixVehicule === "nouveau" ? vehicule : null,
       }),
@@ -123,6 +123,11 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      // Client semblable déjà au dossier : créer quand même si c'est bien
+      // une autre personne (homonyme)
+      if (data.doublonPossible && window.confirm(`${data.erreur}\n\nCréer quand même un nouveau client ?`)) {
+        return creer(e, forcer, true);
+      }
       setErreur(data.erreur || "Erreur lors de la création.");
       setHorsDisponibilite(!!data.horsDisponibilite);
       return;

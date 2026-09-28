@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -21,6 +21,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [assignation, setAssignation] = useState(employe.assignation || "");
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
+  const [nouveauPin, setNouveauPin] = useState("");
+  const [retirerPin, setRetirerPin] = useState(false);
   const [typeRemuneration, setTypeRemuneration] = useState(employe.typeRemuneration || "HORAIRE");
   const [tauxHoraireEmploye, setTauxHoraireEmploye] = useState(employe.tauxHoraireEmploye ?? "");
   const [salaireAnnuel, setSalaireAnnuel] = useState(employe.salaireAnnuel ?? "");
@@ -35,6 +37,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
     const body = { nom, courriel, role, telephone, adresse, ville, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
+    if (retirerPin) body.pin = "";
+    else if (nouveauPin) body.pin = nouveauPin;
     const res = await fetch(`/api/utilisateurs/${employe.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -48,17 +52,25 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
     }
     setModeEdition(false);
     setNouveauMotDePasse("");
+    setNouveauPin("");
+    setRetirerPin(false);
     router.refresh();
   }
 
   async function toggleActif() {
+    setErreur("");
     setEnCours(true);
-    await fetch(`/api/utilisateurs/${employe.id}`, {
+    const res = await fetch(`/api/utilisateurs/${employe.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ actif: !employe.actif }),
     });
     setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur — le statut n'a pas été changé.");
+      return;
+    }
     router.refresh();
   }
 
@@ -137,6 +149,19 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" className="champ" />
           <label className="etiquette">Date d'embauche</label>
           <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} className="champ" />
+          <label className="etiquette">NIP ({employe.pin ? "défini" : "aucun"}) — 4 chiffres, laisse vide pour ne pas changer</label>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              inputMode="numeric" maxLength={4} value={nouveauPin} disabled={retirerPin}
+              onChange={(e) => setNouveauPin(e.target.value.replace(/\D/g, ""))}
+              placeholder="Nouveau NIP" className="champ" style={{ flex: 1 }}
+            />
+            {employe.pin && (
+              <label style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", gap: 4, alignItems: "center", whiteSpace: "nowrap", marginBottom: 8 }}>
+                <input type="checkbox" checked={retirerPin} onChange={(e) => setRetirerPin(e.target.checked)} /> Retirer
+              </label>
+            )}
+          </div>
           <label className="etiquette">Nouveau mot de passe (laisse vide pour ne pas changer)</label>
           <input type="password" minLength={4} maxLength={12} value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)} className="champ" />
 
@@ -228,10 +253,23 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <LigneInfo label="Numéro d'employé" valeur={employe.numeroEmploye} />
             <LigneInfo label="Adresse" valeur={employe.adresse} />
             <LigneInfo label="Ville" valeur={[employe.ville, employe.codePostal].filter(Boolean).join(" ") || null} />
-            <LigneInfo label="Téléphone" valeur={employe.telephone} />
+            <LigneInfo label="Téléphone" valeur={employe.telephone && <a href={`tel:${employe.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{employe.telephone}</a>} />
+            <LigneInfo label="Courriel" valeur={employe.courriel && <a href={`mailto:${employe.courriel}`} style={{ color: "inherit" }}>{employe.courriel}</a>} />
+            <LigneInfo label="NIP" valeur={employe.pin ? "Défini" : "Aucun"} />
             <LigneInfo label="Assignation" valeur={employe.assignation} />
             <LigneInfo label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
             <LigneInfo label="Affichage" valeur={`${employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
+          </div>
+
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Heures travaillées {heures.poinconActif && <span style={{ color: "var(--success)", textTransform: "none", fontWeight: 700 }}>· ⏱️ poinçonné en ce moment</span>}</TitreSection>
+            <LigneInfo label="Cette semaine (depuis lundi)" valeur={formaterHeures(heures.semaine)} />
+            {paieActif && heures.depuisDernierePaie !== null && (
+              <LigneInfo
+                label={`Depuis la dernière paie (${new Date(heures.dernierePaieFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })})`}
+                valeur={formaterHeures(heures.depuisDernierePaie)}
+              />
+            )}
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>
@@ -258,13 +296,14 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
               <TitreSection>Paies récentes</TitreSection>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {paies.map((p) => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: p.statut === "CORRIGEE" ? 0.5 : 1 }}>
+                  <Link key={p.id} href={`/gerant/paie/${p.id}/talon`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: p.statut === "CORRIGEE" ? 0.5 : 1, textDecoration: "none", color: "var(--text)", padding: "6px 8px", borderRadius: 6, background: "var(--bg)" }}>
                     <span style={{ color: "var(--text-muted)" }}>
                       {new Date(p.periodeFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
+                      {p.typePaie === "VACANCES" && " — vacances"}
                       {p.statut === "CORRIGEE" && " — corrigée"}
                     </span>
-                    <span style={{ fontWeight: 600, textDecoration: p.statut === "CORRIGEE" ? "line-through" : "none" }}>{p.salaireNet.toFixed(2)} $</span>
-                  </div>
+                    <span style={{ fontWeight: 600, textDecoration: p.statut === "CORRIGEE" ? "line-through" : "none" }}>{p.salaireNet.toFixed(2)} $ ›</span>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -295,3 +334,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   );
 }
 
+// 7.5 → « 7 h 30 »
+function formaterHeures(h) {
+  const minutes = Math.round(h * 60);
+  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+}

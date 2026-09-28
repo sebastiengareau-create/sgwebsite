@@ -26,7 +26,8 @@ export async function POST(request) {
     return reponseDev;
   }
 
-  const utilisateur = await prisma.user.findUnique({ where: { courriel } });
+  // Seul endroit qui lit le mot de passe haché (masqué partout ailleurs, voir lib/prisma.js)
+  const utilisateur = await prisma.user.findUnique({ where: { courriel }, omit: { motDePasse: false } });
   if (!utilisateur || !utilisateur.actif) {
     return NextResponse.json({ erreur: "Courriel ou mot de passe incorrect." }, { status: 401 });
   }

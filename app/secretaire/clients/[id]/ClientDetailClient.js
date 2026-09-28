@@ -8,7 +8,10 @@ import DossierVehicules from "./DossierVehicules";
 import { libelleVehicule } from "@/lib/vehicules";
 
 const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
-const STATUTS_SOUMISSION = { BROUILLON: "En attente", EN_ATTENTE: "En attente", ENVOYEE: "En attente", ACCEPTEE: "Acceptée", REFUSEE: "Refusée" };
+const STATUTS_SOUMISSION = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée" };
+const JOUR_MS = 86400000;
+
+const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
 export default function ClientDetailClient({ client }) {
   const router = useRouter();
@@ -24,18 +27,27 @@ export default function ClientDetailClient({ client }) {
   const [codePostal, setCodePostal] = useState(client.codePostal || "");
   const [garantieProlongee, setGarantieProlongee] = useState(client.garantieProlongee || "");
 
-  async function sauvegarder(e) {
-    e.preventDefault();
+  const facturesImpayees = client.bons
+    .filter((b) => b.facture?.statut === "IMPAYEE")
+    .map((b) => ({ ...b.facture, bonId: b.id }))
+    .sort((a, b) => new Date(a.dateEmission) - new Date(b.dateEmission));
+  const soldeDu = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes, 0);
+
+  async function sauvegarder(e, confirmerDoublon = false) {
+    e?.preventDefault();
     setErreur("");
     setEnCours(true);
     const res = await fetch(`/api/clients/${client.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, confirmerDoublon }),
     });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      if (data.doublonPossible && window.confirm(`${data.erreur}\n\nEnregistrer quand même ?`)) {
+        return sauvegarder(null, true);
+      }
       setErreur(data.erreur || "Erreur.");
       return;
     }
@@ -71,10 +83,24 @@ export default function ClientDetailClient({ client }) {
             <div style={{ fontSize: 18, fontWeight: 700 }}>{client.nom}</div>
             <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
               {client.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, marginRight: 6 }}>#{client.numero}</span>}
-              {client.courriel || "Aucun courriel"}
+              Client depuis {dateCourte(client.creeLe)}
             </div>
           </div>
         </div>
+        {(client.telephone || client.courriel) && (
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            {client.telephone && (
+              <a href={`tel:${client.telephone.replace(/[^\d+]/g, "")}`} className="bouton-3d-sombre" style={{ flex: 1, textAlign: "center", padding: 9, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+                📞 Appeler
+              </a>
+            )}
+            {client.courriel && (
+              <a href={`mailto:${client.courriel}`} className="bouton-3d-sombre" style={{ flex: 1, textAlign: "center", padding: 9, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+                ✉️ Écrire
+              </a>
+            )}
+          </div>
+        )}
         {client.garantieProlongee && (
           <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
             <span className="bouton-3d" style={{ display: "inline-block", padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>
@@ -124,9 +150,34 @@ export default function ClientDetailClient({ client }) {
           <div className="carte" style={{ marginBottom: 12 }}>
             <TitreSection>Coordonnées</TitreSection>
             <LigneInfo label="Numéro" valeur={client.numero} />
-            <LigneInfo label="Téléphone" valeur={client.telephone} />
+            <LigneInfo label="Téléphone" valeur={client.telephone && <a href={`tel:${client.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{client.telephone}</a>} />
+            <LigneInfo label="Courriel" valeur={client.courriel && <a href={`mailto:${client.courriel}`} style={{ color: "inherit" }}>{client.courriel}</a>} />
             <LigneInfo label="Adresse" valeur={client.adresse} />
             <LigneInfo label="Ville" valeur={[client.ville, client.codePostal].filter(Boolean).join(" ") || null} />
+          </div>
+
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <TitreSection>Solde dû</TitreSection>
+            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0.005 ? "var(--danger)" : "var(--success)" }}>{soldeDu.toFixed(2)} $</div>
+            {facturesImpayees.length === 0 ? (
+              <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "2px 0 0" }}>À jour — aucune facture impayée.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                {facturesImpayees.map((f) => {
+                  const jours = Math.floor((Date.now() - new Date(f.dateEmission)) / JOUR_MS);
+                  return (
+                    <Link key={f.id} href={`/bons/${f.bonId}`} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, textDecoration: "none", color: "var(--text)", padding: "6px 8px", borderRadius: 6, background: "var(--bg)" }}>
+                      <span>
+                        <strong style={{ fontFamily: "monospace" }}>#{f.numero}</strong>
+                        <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>{dateCourte(f.dateEmission)}</span>
+                        {jours > 30 && <span style={{ color: "var(--danger)", fontWeight: 700, fontSize: 10.5, marginLeft: 6 }}>{jours} j</span>}
+                      </span>
+                      <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{f.totalAvecTaxes.toFixed(2)} $ ›</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <DossierVehicules clientId={client.id} vehicules={client.vehicules} />
@@ -139,12 +190,18 @@ export default function ClientDetailClient({ client }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {client.bons.map((b) => (
                   <Link key={b.id} href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                    <div style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between" }}>
-                      <span>
+                    <div style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ minWidth: 0 }}>
                         <strong style={{ fontSize: 14, fontFamily: "monospace" }}>#{b.numero}</strong>
-                        {b.vehicule && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>🚗 {libelleVehicule(b.vehicule) || b.vehicule.plaque}</span>}
+                        <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{dateCourte(b.creeLe)}</span>
+                        {b.vehicule && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>🚗 {libelleVehicule(b.vehicule) || b.vehicule.plaque}</div>}
                       </span>
-                      <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{STATUTS_BON[b.statut]}</span>
+                      <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
+                        {b.facture && <span style={{ fontWeight: 700, fontSize: 12.5 }}>{b.facture.totalAvecTaxes.toFixed(2)} $</span>}
+                        <span style={{ fontSize: 11, color: b.facture?.statut === "IMPAYEE" ? "var(--danger)" : "var(--text-muted)" }}>
+                          {b.facture?.statut === "IMPAYEE" ? "Facturé — impayé" : b.facture?.statut === "PAYEE" ? "Facturé — payé" : STATUTS_BON[b.statut]}
+                        </span>
+                      </span>
                     </div>
                   </Link>
                 ))}
@@ -157,10 +214,16 @@ export default function ClientDetailClient({ client }) {
               <TitreSection>Soumissions ({client.soumissions.length})</TitreSection>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {client.soumissions.map((s) => (
-                  <Link key={s.id} href={`/secretaire/operations/soumissions/${s.id}/modifier`} style={{ textDecoration: "none", color: "inherit" }}>
-                    <div style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace" }}>#{s.numero}</span>
-                      <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{STATUTS_SOUMISSION[s.statut] || s.statut}</span>
+                  <Link key={s.id} href={s.bonId ? `/bons/${s.bonId}` : `/secretaire/operations/soumissions/${s.id}/modifier`} style={{ textDecoration: "none", color: "inherit" }}>
+                    <div style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span>
+                        <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace" }}>#{s.numero}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{dateCourte(s.creeLe)}</span>
+                        {s.vehiculeInfo && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>🚗 {s.vehiculeInfo}</div>}
+                      </span>
+                      <span style={{ color: s.statut === "ACCEPTEE" ? "var(--success)" : "var(--text-muted)", fontSize: 11, fontWeight: s.statut === "ACCEPTEE" ? 700 : 400 }}>
+                        {s.statut === "ACCEPTEE" ? "✓ Acceptée → bon" : STATUTS_SOUMISSION[s.statut] || s.statut}
+                      </span>
                     </div>
                   </Link>
                 ))}
