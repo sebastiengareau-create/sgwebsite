@@ -4,7 +4,10 @@
 // d'installer PostgreSQL sur ton ordinateur.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // omitApi : permet de masquer par défaut le mot de passe et le NIP des
+  // employés (voir lib/prisma.js)
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {

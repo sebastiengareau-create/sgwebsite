@@ -11,7 +11,7 @@ export default async function DetailEmploye(props) {
   if (!(await aAccesSection(session, "employes"))) redirect("/gerant");
 
   const [employeComplet, paies, modulePaie] = await Promise.all([
-    prisma.user.findUnique({ where: { id: params.id } }),
+    prisma.user.findUnique({ where: { id: params.id }, omit: { pin: false } }),
     prisma.paie.findMany({ where: { employeId: params.id }, orderBy: { periodeFin: "desc" }, take: 10 }),
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
   ]);
