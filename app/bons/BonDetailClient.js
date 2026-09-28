@@ -9,6 +9,10 @@ import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 
+// Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
+// ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
+const COMPTE_MAIN_OEUVRE = "4000";
+
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
   EN_COURS: { label: "En cours", color: "#4F82C0" },
@@ -947,17 +951,17 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
           disabled={enCours}
           style={{ marginTop: 6, fontSize: 10.5, padding: "3px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text-muted)" }}
         >
-          <option value="MAIN_OEUVRE">🔧 Main-d'œuvre</option>
+          <option value="MAIN_OEUVRE">🔧 {COMPTE_MAIN_OEUVRE} — Main-d'œuvre</option>
           {postesRevenu.map((c) => (
-            <option key={c.numero} value={c.numero} disabled={!c.actif}>{c.nom}{!c.actif ? " (désactivé)" : ""}</option>
+            <option key={c.numero} value={c.numero} disabled={!c.actif}>{c.numero} — {c.nom}{!c.actif ? " (désactivé)" : ""}</option>
           ))}
         </select>
       )}
       {verrouille && (
         <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-muted)" }}>
           Poste : {probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE"
-            ? (postesRevenu.find((c) => c.numero === probleme.categorieRevenu)?.nom || probleme.categorieRevenu)
-            : "🔧 Main-d'œuvre"}
+            ? `${probleme.categorieRevenu} — ${postesRevenu.find((c) => c.numero === probleme.categorieRevenu)?.nom || ""}`
+            : `🔧 ${COMPTE_MAIN_OEUVRE} — Main-d'œuvre`}
         </div>
       )}
       {erreurCategorie && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreurCategorie}</p>}

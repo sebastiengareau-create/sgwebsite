@@ -506,7 +506,7 @@ function LigneDepenseInput({ ligne, index, categories, onChange, onRetirer, peut
           </div>
         ) : (
           <select value={ligne.categorieDepenseId} onChange={(e) => onChange(index, "categorieDepenseId", e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1.2 }}>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.compteDepenseNumero} — {c.nom}</option>)}
           </select>
         )}
         <input
