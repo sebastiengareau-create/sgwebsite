@@ -1,6 +1,7 @@
 import { obtenirSession, aAccesSection, nomAffichageRole, estGerantOuDev, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
+import { dateAujourdhuiQuebec, limitesJourQuebec, jourSemaineQuebec } from "@/lib/temps";
 import EnTete from "../../../components/EnTete";
 import EmployeDetailClient from "./EmployeDetailClient";
 
@@ -9,17 +10,50 @@ export default async function DetailEmploye(props) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "employes"))) redirect("/gerant");
 
-  const [employe, paies, modulePaie] = await Promise.all([
+  const [employeComplet, paies, modulePaie] = await Promise.all([
     prisma.user.findUnique({ where: { id: params.id } }),
     prisma.paie.findMany({ where: { employeId: params.id }, orderBy: { periodeFin: "desc" }, take: 10 }),
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
   ]);
-  if (!employe) notFound();
+  if (!employeComplet) notFound();
+  // Jamais envoyer au navigateur le mot de passe (même haché) ni le NIP —
+  // seulement si un NIP est défini.
+  const { motDePasse, pin, ...employeSansSecrets } = employeComplet;
+  const employe = { ...employeSansSecrets, pin: !!pin };
 
   const [accumule, dejaVerse] = await Promise.all([
     prisma.paie.aggregate({ where: { employeId: params.id, statut: { not: "CORRIGEE" }, typePaie: "REGULIERE" }, _sum: { vacancesAccumulees: true } }),
     prisma.paie.aggregate({ where: { employeId: params.id, statut: { not: "CORRIGEE" }, typePaie: "VACANCES" }, _sum: { salaireBrut: true } }),
   ]);
+  // Heures poinçonnées (bons + tâches internes ; un poinçon encore actif
+  // compte jusqu'à maintenant) : cette semaine (depuis lundi) et depuis la
+  // fin de la dernière paie.
+  const maintenant = new Date();
+  const indexJour = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"].indexOf(jourSemaineQuebec(maintenant));
+  const lundi = new Date(`${dateAujourdhuiQuebec()}T12:00:00Z`);
+  lundi.setUTCDate(lundi.getUTCDate() - indexJour);
+  const debutSemaine = limitesJourQuebec(lundi.toISOString().slice(0, 10)).debut;
+  const dernierePaie = paies.find((p) => p.statut !== "CORRIGEE" && p.typePaie !== "VACANCES");
+  const debutPeriode = dernierePaie ? new Date(dernierePaie.periodeFin.getTime() + 1) : null;
+  const debutRequete = debutPeriode && debutPeriode < debutSemaine ? debutPeriode : debutSemaine;
+  const [entrees, entreesInternes] = await Promise.all([
+    prisma.entreeTemps.findMany({ where: { employeId: params.id, OR: [{ fin: null }, { fin: { gte: debutRequete } }] }, select: { debut: true, fin: true } }),
+    prisma.entreeTempsInterne.findMany({ where: { employeId: params.id, OR: [{ fin: null }, { fin: { gte: debutRequete } }] }, select: { debut: true, fin: true } }),
+  ]);
+  function heuresDepuis(depuis) {
+    return [...entrees, ...entreesInternes].reduce((s, e) => {
+      const debut = Math.max(e.debut.getTime(), depuis.getTime());
+      const fin = (e.fin || maintenant).getTime();
+      return fin > debut ? s + (fin - debut) / 3600000 : s;
+    }, 0);
+  }
+  const heures = {
+    semaine: heuresDepuis(debutSemaine),
+    depuisDernierePaie: debutPeriode ? heuresDepuis(debutPeriode) : null,
+    dernierePaieFin: dernierePaie?.periodeFin || null,
+    poinconActif: [...entrees, ...entreesInternes].some((e) => !e.fin),
+  };
+
   const soldeVacances = Math.max(0, (accumule._sum.vacancesAccumulees || 0) - (dejaVerse._sum.salaireBrut || 0));
   const nomsRoles = Object.fromEntries(await Promise.all(ROLES_VALIDES.map(async (r) => [r, await nomAffichageRole(r)])));
   // Même règle que la création : un employé (même un GERANT) ne peut ni
@@ -34,7 +68,7 @@ export default async function DetailEmploye(props) {
       <EnTete nom={session.nom} role={session.role} />
       <EmployeDetailClient
         employe={employe} paies={paies} estMoi={employe.id === session.id} paieActif={modulePaie?.valeur === "actif"}
-        soldeVacances={soldeVacances} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
+        soldeVacances={soldeVacances} heures={heures} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
         rolesAssignables={rolesAssignables} peutGererEmploye={peutGererEmploye}
       />
     </div>

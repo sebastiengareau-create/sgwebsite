@@ -4,6 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
+import { trouverDoublonsClient, messageDoublons } from "@/lib/clients";
 import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 
@@ -15,7 +16,7 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
-    problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer,
+    problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
     vehiculeId, vehicule,
   } = await request.json();
 
@@ -54,14 +55,16 @@ export async function POST(request) {
   let idClientFinal = clientId;
 
   if (!idClientFinal) {
-    const doublon = await prisma.client.findFirst({
-      where: { nom: { equals: clientNom.trim(), mode: "insensitive" } },
-    });
-    if (doublon) {
-      return NextResponse.json(
-        { erreur: `Un client nommé "${doublon.nom}" existe déjà — utilise la recherche pour le sélectionner plutôt que d'en créer un nouveau.` },
-        { status: 409 }
-      );
+    // Homonyme ou même téléphone : avertir, et créer quand même si
+    // l'utilisateur confirme que c'est une autre personne.
+    if (!confirmerDoublon) {
+      const doublons = await trouverDoublonsClient({ nom: clientNom, telephone: clientTelephone });
+      if (doublons.length > 0) {
+        return NextResponse.json(
+          { erreur: `${messageDoublons(doublons)} Utilise la recherche pour le sélectionner, ou confirme qu'il s'agit d'un autre client.`, doublonPossible: true },
+          { status: 409 }
+        );
+      }
     }
 
     const client = await prisma.client.create({

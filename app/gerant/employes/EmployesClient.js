@@ -10,6 +10,14 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
   const router = useRouter();
   const searchParams = useSearchParams();
   const [afficherFormulaire, setAfficherFormulaire] = useState(searchParams.get("nouveau") === "1");
+  const [recherche, setRecherche] = useState("");
+  const [voirInactifs, setVoirInactifs] = useState(false);
+
+  const terme = recherche.trim().toLowerCase();
+  const filtres = employes.filter((e) => !terme || [e.nom, nomsRoles[e.role], e.assignation, e.courriel, e.telephone, e.numeroEmploye]
+    .some((champ) => champ && champ.toLowerCase().includes(terme)));
+  const actifs = filtres.filter((e) => e.actif);
+  const inactifs = filtres.filter((e) => !e.actif);
 
   return (
     <div className="conteneur-page">
@@ -39,39 +47,69 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-        {employes.map((e) => (
-          <Link key={e.id} href={`/gerant/employes/${e.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div
-              className="bouton-3d-sombre"
-              style={{ borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12, opacity: e.actif ? 1 : 0.5 }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(180deg, var(--accent-clair), var(--accent))",
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "#17150f",
-              }}>
-                {e.nom.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>
-                  {e.nom} {e.id === moi && <span style={{ fontSize: 10.5, color: "var(--text-muted)", fontWeight: 400 }}>(toi)</span>}
-                </div>
-                <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {e.assignation || e.courriel}
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent)" }}>{nomsRoles[e.role] || e.role}</span>
-                {!e.actif && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--danger)" }}>Désactivé</span>}
-              </div>
-              <span style={{ color: "var(--text-muted)", fontSize: 16 }}>›</span>
-            </div>
-          </Link>
-        ))}
+      <input
+        type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)}
+        placeholder="🔍 Rechercher par nom, rôle, assignation, courriel, téléphone…"
+        style={{ ...champStyle, background: "var(--surface)", marginTop: 16 }}
+      />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+        {actifs.map((e) => <CarteEmploye key={e.id} employe={e} moi={moi} nomsRoles={nomsRoles} />)}
         {employes.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun employé encore.</p>}
+        {employes.length > 0 && actifs.length === 0 && inactifs.length === 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun employé ne correspond à "{recherche}".</p>
+        )}
       </div>
+
+      {inactifs.length > 0 && (
+        <>
+          <button
+            onClick={() => setVoirInactifs((v) => !v)}
+            style={{ marginTop: 20, marginBottom: 8, fontSize: 12, fontWeight: 700, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            {voirInactifs || terme ? "▾" : "▸"} Comptes désactivés ({inactifs.length})
+          </button>
+          {(voirInactifs || terme) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {inactifs.map((e) => <CarteEmploye key={e.id} employe={e} moi={moi} nomsRoles={nomsRoles} />)}
+            </div>
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+function CarteEmploye({ employe: e, moi, nomsRoles }) {
+  return (
+    <Link href={`/gerant/employes/${e.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+      <div
+        className="bouton-3d-sombre"
+        style={{ borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12, opacity: e.actif ? 1 : 0.55 }}
+      >
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+          background: "linear-gradient(180deg, var(--accent-clair), var(--accent))",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "#17150f",
+        }}>
+          {e.nom.charAt(0).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>
+            {e.nom} {e.id === moi && <span style={{ fontSize: 10.5, color: "var(--text-muted)", fontWeight: 400 }}>(toi)</span>}
+            {e.numeroEmploye && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{e.numeroEmploye}</span>}
+          </div>
+          <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {[e.assignation, e.telephone].filter(Boolean).join(" · ") || e.courriel}
+          </div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent)" }}>{nomsRoles[e.role] || e.role}</span>
+          {!e.actif && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--danger)" }}>Désactivé</span>}
+        </div>
+        <span style={{ color: "var(--text-muted)", fontSize: 16 }}>›</span>
+      </div>
+    </Link>
   );
 }
 
@@ -128,7 +166,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
           <option key={r} value={r}>{nomsRoles[r]}</option>
         ))}
       </select>
-      <input placeholder="Code PIN (optionnel, 4 chiffres)" value={pin} onChange={(e) => setPin(e.target.value)} style={champStyle} />
+      <input placeholder="NIP (optionnel, 4 chiffres)" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>

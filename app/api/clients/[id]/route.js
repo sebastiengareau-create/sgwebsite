@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { trouverDoublonsClient, messageDoublons } from "@/lib/clients";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -9,14 +10,14 @@ export async function PATCH(request, props) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee } = await request.json();
+  const { nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, confirmerDoublon } = await request.json();
   if (!nom) return NextResponse.json({ erreur: "Le nom est requis." }, { status: 400 });
 
-  const doublon = await prisma.client.findFirst({
-    where: { nom: { equals: nom.trim(), mode: "insensitive" }, NOT: { id: params.id } },
-  });
-  if (doublon) {
-    return NextResponse.json({ erreur: `Un autre client nommé "${doublon.nom}" existe déjà.` }, { status: 409 });
+  if (!confirmerDoublon) {
+    const doublons = await trouverDoublonsClient({ nom, telephone, courriel }, params.id);
+    if (doublons.length > 0) {
+      return NextResponse.json({ erreur: messageDoublons(doublons), doublonPossible: true }, { status: 409 });
+    }
   }
 
   const client = await prisma.client.update({

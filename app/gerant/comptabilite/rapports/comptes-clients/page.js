@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
+import Link from "next/link";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 
 const TRANCHES = [
@@ -32,11 +33,12 @@ export default async function RapportComptesClients() {
   for (const f of factures) {
     const jours = Math.floor((maintenant - new Date(f.dateEmission)) / 86400000);
     const tranche = trancheDe(jours);
-    const nomClient = f.bon.client.nom;
-    if (!parClient[nomClient]) parClient[nomClient] = { "0-30": 0, "31-60": 0, "61-90": 0, "90+": 0, total: 0, factures: [] };
-    parClient[nomClient][tranche] += f.totalAvecTaxes;
-    parClient[nomClient].total += f.totalAvecTaxes;
-    parClient[nomClient].factures.push({ numero: f.numero, jours, montant: f.totalAvecTaxes, tranche });
+    // Regroupé par id (deux clients peuvent porter le même nom)
+    const clientId = f.bon.client.id;
+    if (!parClient[clientId]) parClient[clientId] = { nom: f.bon.client.nom, "0-30": 0, "31-60": 0, "61-90": 0, "90+": 0, total: 0, factures: [] };
+    parClient[clientId][tranche] += f.totalAvecTaxes;
+    parClient[clientId].total += f.totalAvecTaxes;
+    parClient[clientId].factures.push({ numero: f.numero, jours, montant: f.totalAvecTaxes, tranche });
   }
 
   const lignesClients = Object.entries(parClient).sort((a, b) => b[1].total - a[1].total);
@@ -46,7 +48,7 @@ export default async function RapportComptesClients() {
   return (
     <div>
       <style>{`
-        @media print { .cacher-impression { display: none !important; } body { background: white !important; } }
+        @media print { .cacher-impression { display: none !important; } body { background: white !important; } a { text-decoration: none !important; } }
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
@@ -73,9 +75,11 @@ export default async function RapportComptesClients() {
             </tr>
           </thead>
           <tbody>
-            {lignesClients.map(([nomClient, d]) => (
-              <tr key={nomClient} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "6px 4px" }}>{nomClient}</td>
+            {lignesClients.map(([clientId, d]) => (
+              <tr key={clientId} style={{ borderBottom: "1px solid #eee" }}>
+                <td style={{ padding: "6px 4px" }}>
+                  <Link href={`/secretaire/clients/${clientId}`} style={{ color: "inherit" }}>{d.nom}</Link>
+                </td>
                 {TRANCHES.map((t) => (
                   <td key={t.cle} style={{ padding: "6px 4px", textAlign: "right", color: d[t.cle] > 0 && t.cle === "90+" ? "#a83232" : "#17150f" }}>
                     {d[t.cle] > 0 ? d[t.cle].toFixed(2) + " $" : ""}

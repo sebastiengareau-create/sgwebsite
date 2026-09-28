@@ -12,8 +12,13 @@ export default function ClientsClient({ clients, peutImporter }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const [seulementSolde, setSeulementSolde] = useState(false);
+
+  const avecSolde = clients.filter((c) => c.soldeDu > 0.005);
+  const totalARecevoir = avecSolde.reduce((s, c) => s + c.soldeDu, 0);
 
   const clientsFiltres = clients.filter((c) => {
+    if (seulementSolde && !(c.soldeDu > 0.005)) return false;
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
     const champs = [
@@ -55,6 +60,19 @@ export default function ClientsClient({ clients, peutImporter }) {
         📄 Liste des clients (PDF / Excel / imprimer)
       </Link>
 
+      {avecSolde.length > 0 && (
+        <button
+          onClick={() => setSeulementSolde((v) => !v)}
+          className="carte carte-s"
+          style={{ width: "100%", textAlign: "left", cursor: "pointer", color: "var(--text)", marginBottom: 12, border: seulementSolde ? "1px solid var(--accent)" : undefined }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--danger)" }}>{totalARecevoir.toFixed(2)} $</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+            À recevoir de {avecSolde.length} client{avecSolde.length > 1 ? "s" : ""} — {seulementSolde ? "touche pour voir tous les clients" : "touche pour ne voir qu'eux"}
+          </div>
+        </button>
+      )}
+
       {afficherFormulaire && (
         <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
       )}
@@ -90,16 +108,17 @@ export default function ClientsClient({ clients, peutImporter }) {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                {c.soldeDu > 0.005 && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--danger)" }}>{c.soldeDu.toFixed(2)} $ dû</span>}
                 {c.garantieProlongee && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--accent)" }}>🛡️ Garantie</span>}
                 {c.vehicules.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>🚗 {c.vehicules.length}</span>}
-                <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{c.bons.length} bon{c.bons.length !== 1 ? "s" : ""}</span>
+                <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{c._count.bons} bon{c._count.bons !== 1 ? "s" : ""}</span>
               </div>
               <span style={{ color: "var(--text-muted)", fontSize: 16 }}>›</span>
             </div>
           </Link>
         ))}
         {clientsFiltres.length === 0 && clients.length > 0 && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun client ne correspond à "{recherche}".</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{recherche ? `Aucun client ne correspond à "${recherche}".` : "Aucun client pour ce filtre."}</p>
         )}
         {clients.length === 0 && !afficherFormulaire && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
@@ -124,18 +143,22 @@ function FormulaireCreation({ onCree }) {
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
-  async function creer(e) {
-    e.preventDefault();
+  async function creer(e, confirmerDoublon = false) {
+    e?.preventDefault();
     setErreur("");
     setEnCours(true);
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, vehicule }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, vehicule, confirmerDoublon }),
     });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      // Homonyme ou même téléphone/courriel : créer quand même sur confirmation
+      if (data.doublonPossible && window.confirm(`${data.erreur}\n\nCréer quand même un nouveau client ?`)) {
+        return creer(null, true);
+      }
       setErreur(data.erreur || "Erreur lors de la création.");
       return;
     }

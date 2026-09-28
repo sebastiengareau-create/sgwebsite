@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
+import { validerPin } from "@/lib/employes";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -62,6 +63,11 @@ export async function PATCH(request, props) {
       return NextResponse.json({ erreur: "Le mot de passe doit avoir entre 4 et 12 caractères." }, { status: 400 });
     }
     data.motDePasse = await hashPassword(body.motDePasse);
+  }
+  if (body.pin !== undefined) {
+    const nip = await validerPin(body.pin, params.id);
+    if (nip.erreur) return NextResponse.json({ erreur: nip.erreur }, { status: nip.status });
+    data.pin = nip.valeur;
   }
   if (body.typeRemuneration && ["HORAIRE", "SALAIRE"].includes(body.typeRemuneration)) data.typeRemuneration = body.typeRemuneration;
   if (body.tauxHoraireEmploye !== undefined) data.tauxHoraireEmploye = body.tauxHoraireEmploye === "" ? null : Number(body.tauxHoraireEmploye);
@@ -132,14 +138,24 @@ export async function DELETE(request, props) {
     return NextResponse.json({ erreur: "Tu ne peux pas supprimer la fiche de quelqu'un d'un niveau supérieur au tien." }, { status: 403 });
   }
 
-  const [entrees, photos] = await Promise.all([
+  // Toutes les tables qui pointent vers l'employé — sans cette vérification,
+  // la suppression échouait (erreur serveur) dès qu'il avait une paie ou du
+  // temps sur une tâche interne.
+  const [entrees, entreesInternes, photos, paies] = await Promise.all([
     prisma.entreeTemps.count({ where: { employeId: params.id } }),
+    prisma.entreeTempsInterne.count({ where: { employeId: params.id } }),
     prisma.photo.count({ where: { employeId: params.id } }),
+    prisma.paie.count({ where: { employeId: params.id } }),
   ]);
 
-  if (entrees > 0 || photos > 0) {
+  if (entrees + entreesInternes + photos + paies > 0) {
+    const historique = [
+      entrees + entreesInternes > 0 && "du temps travaillé",
+      paies > 0 && "des paies",
+      photos > 0 && "des photos ajoutées",
+    ].filter(Boolean).join(", ");
     return NextResponse.json(
-      { erreur: "Cet employé a un historique (temps travaillé ou photos ajoutées) — désactive-le plutôt que de le supprimer, pour ne pas perdre ces données." },
+      { erreur: `Cet employé a un historique (${historique}) — désactive-le plutôt que de le supprimer, pour ne pas perdre ces données.` },
       { status: 409 }
     );
   }
