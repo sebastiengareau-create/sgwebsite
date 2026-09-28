@@ -343,6 +343,7 @@ model PeriodeIndisponible {
 model ServiceWeb {
   id           String   @id @default(cuid())
   nom          String
+  description  String? // courte ligne sous le nom, sur le site (petit texte en italique)
   dureeMinutes Int
   actif        Boolean  @default(true)
   creeLe       DateTime @default(now())
