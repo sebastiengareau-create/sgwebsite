@@ -74,7 +74,7 @@ export async function PATCH(request, props) {
 // (fractionnement par poste) sont toujours remplacées en bloc — plus simple
 // et sûr que de tenter de faire correspondre l'ancien et le nouveau détail.
 async function modifierDepense(id, corps, session) {
-  const { fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture } = corps;
+  const { fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture, dateEcheance } = corps;
 
   const depense = await prisma.depense.findUnique({ where: { id }, include: { lignes: true } });
   if (!depense) return NextResponse.json({ erreur: "Dépense introuvable." }, { status: 404 });
@@ -125,6 +125,8 @@ async function modifierDepense(id, corps, session) {
         tpsPayee: nouveauTps,
         tvqPayee: nouveauTvq,
         dateFacture: nouvelleDate,
+        // "" efface l'échéance ; absent = inchangée
+        ...(dateEcheance !== undefined && { dateEcheance: dateEcheance ? jourCivil(dateEcheance) : null }),
         ...(lignesValides && {
           // pieceId/qteRecue passent tels quels si présents (la réception de
           // stock déjà appliquée à la création n'est pas rejouée ici — voir

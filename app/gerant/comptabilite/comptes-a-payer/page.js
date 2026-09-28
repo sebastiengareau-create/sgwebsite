@@ -6,7 +6,8 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import EnTete from "../../../components/EnTete";
 import ComptesAPayerClient from "./ComptesAPayerClient";
 
-export default async function ComptesAPayer() {
+export default async function ComptesAPayer(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) redirect("/gerant");
 
@@ -19,7 +20,12 @@ export default async function ComptesAPayer() {
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
     prisma.categorieDepense.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
     prisma.compte.findMany({ where: { type: "DEPENSE", actif: true }, orderBy: { numero: "asc" } }),
-    prisma.depense.findMany({ include: { fournisseur: true, lignes: { include: { categorieDepense: true } } }, orderBy: { dateFacture: "desc" }, take: 50 }),
+    // Toutes les impayées (jamais tronquées — sinon le total dû serait faux),
+    // plus les 50 dernières payées pour l'historique
+    Promise.all([
+      prisma.depense.findMany({ where: { statut: "IMPAYEE" }, include: { fournisseur: true, lignes: { include: { categorieDepense: true } } }, orderBy: { dateFacture: "desc" } }),
+      prisma.depense.findMany({ where: { statut: { not: "IMPAYEE" } }, include: { fournisseur: true, lignes: { include: { categorieDepense: true } } }, orderBy: { dateFacture: "desc" }, take: 50 }),
+    ]).then(([impayees, payees]) => [...impayees, ...payees]),
     prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux"] } } }),
     obtenirComptesTresoreriePourSelection(),
     prisma.piece.findMany({ select: { id: true, nom: true, numero: true, qte: true }, orderBy: { nom: "asc" } }),
@@ -37,6 +43,7 @@ export default async function ComptesAPayer() {
         fournisseurs={fournisseurs} categories={categories} comptesDepense={comptesDepense} depenses={depenses}
         tpsTaux={Number(dict.tps_taux || 5)} tvqTaux={Number(dict.tvq_taux || 9.975)}
         comptesTresorerie={comptesTresorerie} pieces={pieces} categorieInventaireId={categorieInventaire?.id}
+        fournisseurInitial={typeof searchParams?.fournisseur === "string" ? searchParams.fournisseur : null}
       />
     </div>
   );

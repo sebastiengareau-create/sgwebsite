@@ -4,22 +4,68 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../../../components/SelecteurCompteMode";
+import { CONDITIONS_PAIEMENT, ajouterJours, joursAvantEcheance, etatEcheance } from "@/lib/echeance";
 
 const STATUTS_DEPENSE = {
-  IMPAYEE: { label: "Impayée", color: "#C9A227" },
-  PAYEE: { label: "Payée", color: "#6FA96B" },
+  IMPAYEE: { label: "Impayées", color: "#C9A227" },
+  EN_RETARD: { label: "En retard", color: "var(--danger)" },
+  PAYEE: { label: "Payées", color: "#6FA96B" },
 };
 
-export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces, categorieInventaireId }) {
+export const lienDepense = (id) => `/gerant/comptabilite/comptes-a-payer/${id}`;
+
+// Impayées : la plus urgente d'abord (échéance, puis date de facture) ;
+// sans échéance, elles passent après celles qui en ont une.
+function trierParUrgence(a, b) {
+  const ea = a.dateEcheance ? new Date(a.dateEcheance).getTime() : Infinity;
+  const eb = b.dateEcheance ? new Date(b.dateEcheance).getTime() : Infinity;
+  if (ea !== eb) return ea - eb;
+  return new Date(a.dateFacture) - new Date(b.dateFacture);
+}
+
+export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces, categorieInventaireId, fournisseurInitial }) {
   const router = useRouter();
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [depenseAPayer, setDepenseAPayer] = useState(null); // id de la dépense en train d'être payée
   const [depenseEnEdition, setDepenseEnEdition] = useState(null); // id de la dépense en train d'être corrigée
-  const [filtre, setFiltre] = useState("TOUTES");
+  const [filtre, setFiltre] = useState("IMPAYEE");
+  const [recherche, setRecherche] = useState("");
+  const [fournisseurFiltre, setFournisseurFiltre] = useState(fournisseurInitial || null);
 
-  const totalDu = depenses.filter((d) => d.statut === "IMPAYEE").reduce((s, d) => s + d.montant, 0);
-  const depensesFiltrees = depenses.filter((d) => filtre === "TOUTES" || d.statut === filtre);
+  const impayees = depenses.filter((d) => d.statut === "IMPAYEE");
+  const totalDu = impayees.reduce((s, d) => s + d.montant, 0);
+  const enRetard = impayees.filter((d) => etatEcheance(d)?.enRetard);
+  const totalEnRetard = enRetard.reduce((s, d) => s + d.montant, 0);
+  const dusCetteSemaine = impayees.filter((d) => { const j = joursAvantEcheance(d.dateEcheance); return j !== null && j >= 0 && j <= 7; });
+  const totalCetteSemaine = dusCetteSemaine.reduce((s, d) => s + d.montant, 0);
+
+  // Solde dû par fournisseur — un clic filtre la liste sur ce fournisseur
+  const soldesParFournisseur = Object.values(
+    impayees.reduce((acc, d) => {
+      acc[d.fournisseurId] ||= { id: d.fournisseurId, nom: d.fournisseur.nom, total: 0, nombre: 0 };
+      acc[d.fournisseurId].total += d.montant;
+      acc[d.fournisseurId].nombre += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => b.total - a.total);
+
+  const terme = recherche.trim().toLowerCase();
+  const depensesFiltrees = depenses
+    .filter((d) => {
+      if (filtre === "IMPAYEE" && d.statut !== "IMPAYEE") return false;
+      if (filtre === "PAYEE" && d.statut !== "PAYEE") return false;
+      if (filtre === "EN_RETARD" && !etatEcheance(d)?.enRetard) return false;
+      if (fournisseurFiltre && d.fournisseurId !== fournisseurFiltre) return false;
+      if (terme) {
+        const texte = [d.fournisseur.nom, d.description, d.referenceVersement, d.montant.toFixed(2), ...d.lignes.map((l) => l.categorieDepense.nom)].filter(Boolean).join(" ").toLowerCase();
+        if (!texte.includes(terme)) return false;
+      }
+      return true;
+    })
+    .sort(filtre === "IMPAYEE" || filtre === "EN_RETARD" ? trierParUrgence : (a, b) => new Date(b.dateFacture) - new Date(a.dateFacture));
+  const totalFiltre = depensesFiltrees.reduce((s, d) => s + d.montant, 0);
+  const nomFournisseurFiltre = fournisseurFiltre && (fournisseurs.find((f) => f.id === fournisseurFiltre)?.nom || soldesParFournisseur.find((f) => f.id === fournisseurFiltre)?.nom);
 
   async function supprimerDepense(id) {
     if (!window.confirm("Supprimer cette dépense ? Retire aussi les écritures comptables liées.")) return;
@@ -32,6 +78,9 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
     router.refresh();
   }
 
+  // Les boutons et formulaires dans une carte ne doivent pas ouvrir la fiche
+  const arreter = (e) => e.stopPropagation();
+
   return (
     <div className="conteneur-page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -41,53 +90,61 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         </button>
       </div>
 
-      <div className="carte carte-s" style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalDu.toFixed(2)} $</div>
-        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total dû aux fournisseurs</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+        <CarteResume
+          valeur={totalDu} libelle={`Total dû · ${impayees.length} facture${impayees.length !== 1 ? "s" : ""}`} couleur="var(--text)"
+          actif={filtre === "IMPAYEE" && !fournisseurFiltre} onClick={() => { setFiltre("IMPAYEE"); setFournisseurFiltre(null); }}
+        />
+        <CarteResume
+          valeur={totalEnRetard} libelle={`En retard · ${enRetard.length}`} couleur={enRetard.length > 0 ? "var(--danger)" : "var(--text-muted)"}
+          actif={filtre === "EN_RETARD"} onClick={() => setFiltre("EN_RETARD")}
+        />
+        <CarteResume
+          valeur={totalCetteSemaine} libelle={`Dû sous 7 jours · ${dusCetteSemaine.length}`} couleur={dusCetteSemaine.length > 0 ? "#C9A227" : "var(--text-muted)"}
+          actif={false} onClick={() => setFiltre("IMPAYEE")}
+        />
       </div>
-
-      <Link
-        href="/gerant/fournisseurs"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        🏢 Voir tous les fournisseurs
-      </Link>
-
-      <Link
-        href="/gerant/comptabilite/rapports/comptes-fournisseurs"
-        target="_blank"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
-      >
-        💳 Rapport de comptes à payer
-      </Link>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <button onClick={() => setOngletGestion(ongletGestion === "fournisseurs" ? null : "fournisseurs")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
-          🏢 Fournisseurs
-        </button>
-        <button onClick={() => setOngletGestion(ongletGestion === "categories" ? null : "categories")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
-          📂 Postes de dépenses
-        </button>
-      </div>
-
-      {ongletGestion === "fournisseurs" && <GestionFournisseurs fournisseurs={fournisseurs} onModifie={() => router.refresh()} />}
-      {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => router.refresh()} />}
 
       {afficherFormulaire && (
         <FormulaireDepense
           fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense} pieces={pieces}
           categorieInventaireId={categorieInventaireId}
-          tpsTaux={tpsTaux} tvqTaux={tvqTaux}
+          tpsTaux={tpsTaux} tvqTaux={tvqTaux} fournisseurInitial={fournisseurFiltre}
           onCree={() => { setAfficherFormulaire(false); router.refresh(); }}
           onCategorieCreee={() => router.refresh()}
         />
       )}
 
-      <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8, marginTop: 8 }}>Dépenses récentes</h2>
+      {soldesParFournisseur.length > 0 && (
+        <div className="carte carte-s" style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>Solde dû par fournisseur</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {soldesParFournisseur.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFournisseurFiltre(fournisseurFiltre === f.id ? null : f.id)}
+                style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, width: "100%", textAlign: "left",
+                  fontSize: 12.5, padding: "6px 8px", borderRadius: 6, cursor: "pointer", color: "var(--text)",
+                  background: fournisseurFiltre === f.id ? "var(--bg)" : "none",
+                  border: fournisseurFiltre === f.id ? "1px solid var(--accent)" : "1px solid transparent",
+                }}
+              >
+                <span>{f.nom} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>({f.nombre})</span></span>
+                <span style={{ fontWeight: 700 }}>{f.total.toFixed(2)} $</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <input
+        type="search" placeholder="🔍 Rechercher (fournisseur, description, poste, montant, réf.)"
+        value={recherche} onChange={(e) => setRecherche(e.target.value)}
+        style={{ ...champStyle, marginBottom: 8 }}
+      />
       <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto" }}>
-        {["IMPAYEE", "PAYEE", "TOUTES"].map((f) => (
+        {["IMPAYEE", "EN_RETARD", "PAYEE", "TOUTES"].map((f) => (
           <button
             key={f}
             onClick={() => setFiltre(f)}
@@ -98,76 +155,134 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
               border: "1px solid var(--border)",
             }}
           >
-            {f === "TOUTES" ? "Tous" : STATUTS_DEPENSE[f].label}
+            {f === "TOUTES" ? "Toutes" : STATUTS_DEPENSE[f].label}
           </button>
         ))}
       </div>
+      {fournisseurFiltre && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 8, gap: 8 }}>
+          <span>
+            Fournisseur : <Link href={`/gerant/fournisseurs/${fournisseurFiltre}`} style={{ fontWeight: 700, color: "var(--accent)" }}>{nomFournisseurFiltre || "—"}</Link>
+          </span>
+          <button onClick={() => setFournisseurFiltre(null)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
+            ✕ Tous les fournisseurs
+          </button>
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
+        <span>{depensesFiltrees.length} facture{depensesFiltrees.length !== 1 ? "s" : ""} — touche une facture pour la voir</span>
+        <span style={{ fontWeight: 700 }}>{totalFiltre.toFixed(2)} $</span>
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {depensesFiltrees.map((d) => (
-          <div key={d.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, borderLeft: `3px solid ${d.statut === "PAYEE" ? "var(--success)" : "var(--danger)"}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{d.fournisseur.nom}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: d.statut === "PAYEE" ? "var(--success)" : "var(--danger)" }}>
-                {d.statut === "PAYEE" ? "Payée" : "Impayée"}
-              </span>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.description} · {d.lignes.map((l) => l.categorieDepense.nom).join(", ")}</div>
-            {d.lignes.length > 1 && (
-              <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2, display: "flex", flexDirection: "column", gap: 1 }}>
-                {d.lignes.map((l) => (
-                  <span key={l.id}>· {l.categorieDepense.nom}{l.description ? ` (${l.description})` : ""} — {l.montant.toFixed(2)} $</span>
-                ))}
+        {depensesFiltrees.map((d) => {
+          const echeance = etatEcheance(d);
+          return (
+            <div
+              key={d.id}
+              role="link" tabIndex={0}
+              onClick={() => router.push(lienDepense(d.id))}
+              onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) router.push(lienDepense(d.id)); }}
+              style={{ cursor: "pointer", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, borderLeft: `3px solid ${d.statut === "PAYEE" ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "#C9A227"}` }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{d.fournisseur.nom}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: d.statut === "PAYEE" ? "var(--success)" : (echeance?.couleur || "var(--danger)"), whiteSpace: "nowrap" }}>
+                  {d.statut === "PAYEE" ? "Payée" : (echeance?.texte || "Impayée")}
+                </span>
               </div>
-            )}
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{new Date(d.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
-            {(d.tpsPayee > 0 || d.tvqPayee > 0) && (
-              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                TPS {d.tpsPayee.toFixed(2)} $ · TVQ {d.tvqPayee.toFixed(2)} $ (récupérables)
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.description} · {d.lignes.map((l) => l.categorieDepense.nom).join(", ")}</div>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                Facture du {formaterDate(d.dateFacture)}
+                {d.statut === "PAYEE" && d.datePaiement && ` · payée le ${formaterDate(d.datePaiement)}`}
+                {d.statut === "PAYEE" && d.referenceVersement && ` · réf. ${d.referenceVersement}`}
               </div>
-            )}
-            {d.statut === "PAYEE" && d.referenceVersement && (
-              <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {d.referenceVersement}</div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-              <span style={{ fontSize: 15, fontWeight: 700 }}>{d.montant.toFixed(2)} $</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                {d.statut === "IMPAYEE" && depenseAPayer !== d.id && depenseEnEdition !== d.id && (
-                  <button onClick={() => setDepenseAPayer(d.id)} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
-                    Marquer payée
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>{d.montant.toFixed(2)} $</span>
+                <div style={{ display: "flex", gap: 8 }} onClick={arreter}>
+                  {d.statut === "IMPAYEE" && depenseAPayer !== d.id && depenseEnEdition !== d.id && (
+                    <button onClick={() => setDepenseAPayer(d.id)} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
+                      Marquer payée
+                    </button>
+                  )}
+                  {depenseAPayer !== d.id && (
+                    <button onClick={() => setDepenseEnEdition(depenseEnEdition === d.id ? null : d.id)} style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
+                      ✏️
+                    </button>
+                  )}
+                  <button onClick={() => supprimerDepense(d.id)} style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
+                    🗑️
                   </button>
-                )}
-                {depenseAPayer !== d.id && (
-                  <button onClick={() => setDepenseEnEdition(depenseEnEdition === d.id ? null : d.id)} style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
-                    ✏️
-                  </button>
-                )}
-                <button onClick={() => supprimerDepense(d.id)} style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
-                  🗑️
-                </button>
+                </div>
               </div>
+              {depenseAPayer === d.id && (
+                <div onClick={arreter} style={{ cursor: "default" }}>
+                  <FormulairePaiementDepense depense={d} comptesTresorerie={comptesTresorerie} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
+                </div>
+              )}
+              {depenseEnEdition === d.id && (
+                <div onClick={arreter} style={{ cursor: "default" }}>
+                  <FormulaireEditionDepense
+                    depense={d} fournisseurs={fournisseurs} categories={categories} tpsTaux={tpsTaux} tvqTaux={tvqTaux}
+                    onTermine={() => { setDepenseEnEdition(null); router.refresh(); }} onAnnuler={() => setDepenseEnEdition(null)}
+                  />
+                </div>
+              )}
             </div>
-            {depenseAPayer === d.id && (
-              <FormulairePaiementDepense depense={d} comptesTresorerie={comptesTresorerie} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
-            )}
-            {depenseEnEdition === d.id && (
-              <FormulaireEditionDepense
-                depense={d} fournisseurs={fournisseurs} categories={categories} tpsTaux={tpsTaux} tvqTaux={tvqTaux}
-                onTermine={() => { setDepenseEnEdition(null); router.refresh(); }} onAnnuler={() => setDepenseEnEdition(null)}
-              />
-            )}
-          </div>
-        ))}
+          );
+        })}
         {depensesFiltrees.length === 0 && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-            {depenses.length === 0 ? "Aucune dépense encore." : "Aucune dépense pour ce filtre."}
+            {depenses.length === 0 ? "Aucune dépense encore." : filtre === "IMPAYEE" && !terme && !fournisseurFiltre ? "🎉 Rien à payer — tous les fournisseurs sont à jour." : "Aucune dépense pour ce filtre."}
           </p>
         )}
+        {filtre !== "IMPAYEE" && filtre !== "EN_RETARD" && (
+          <p style={{ color: "var(--text-muted)", fontSize: 10.5, margin: 0 }}>Les 50 dernières factures payées sont affichées ; toutes les impayées le sont.</p>
+        )}
       </div>
+
+      <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8, marginTop: 20 }}>Outils</h2>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <Link href="/gerant/fournisseurs" className="bouton-3d-sombre" style={{ flex: 1, textAlign: "center", padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>
+          🏢 Fiches fournisseurs
+        </Link>
+        <Link href="/gerant/comptabilite/rapports/comptes-fournisseurs" target="_blank" className="bouton-3d-sombre" style={{ flex: 1, textAlign: "center", padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>
+          📄 Rapport chronologique
+        </Link>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setOngletGestion(ongletGestion === "fournisseurs" ? null : "fournisseurs")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
+          ⚙️ Gérer les fournisseurs
+        </button>
+        <button onClick={() => setOngletGestion(ongletGestion === "categories" ? null : "categories")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
+          📂 Postes de dépenses
+        </button>
+      </div>
+
+      {ongletGestion === "fournisseurs" && <GestionFournisseurs fournisseurs={fournisseurs} onModifie={() => router.refresh()} />}
+      {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => router.refresh()} />}
     </div>
   );
 }
 
-function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAnnuler }) {
+function CarteResume({ valeur, libelle, couleur, actif, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="carte carte-s"
+      style={{ textAlign: "left", cursor: "pointer", border: actif ? "1px solid var(--accent)" : undefined, color: "var(--text)", minWidth: 0 }}
+    >
+      <div style={{ fontSize: 15, fontWeight: 700, color: couleur }}>{valeur.toFixed(2)} $</div>
+      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{libelle}</div>
+    </button>
+  );
+}
+
+export function formaterDate(date) {
+  return new Date(date).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
+}
+
+export function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAnnuler }) {
   const [reference, setReference] = useState("");
   const [compteTresorerieId, setCompteTresorerieId] = useState(compteParDefaut(comptesTresorerie));
   const [modePaiement, setModePaiement] = useState("VIREMENT");
@@ -217,7 +332,7 @@ function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAn
   );
 }
 
-function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, tvqTaux, onTermine, onAnnuler }) {
+export function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, tvqTaux, onTermine, onAnnuler }) {
   const [fournisseurId, setFournisseurId] = useState(depense.fournisseurId);
   const [description, setDescription] = useState(depense.description);
   const [lignes, setLignes] = useState(
@@ -229,6 +344,7 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
   const [tpsPayee, setTpsPayee] = useState(String(depense.tpsPayee || 0));
   const [tvqPayee, setTvqPayee] = useState(String(depense.tvqPayee || 0));
   const [dateFacture, setDateFacture] = useState(new Date(depense.dateFacture).toISOString().slice(0, 10));
+  const [dateEcheance, setDateEcheance] = useState(depense.dateEcheance ? new Date(depense.dateEcheance).toISOString().slice(0, 10) : "");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -260,7 +376,7 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
     const res = await fetch(`/api/depenses/${depense.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture }),
+      body: JSON.stringify({ fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture, dateEcheance }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -290,7 +406,16 @@ function FormulaireEditionDepense({ depense, fournisseurs, categories, tpsTaux, 
         </button>
       </div>
 
-      <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Date de la facture</label>
+          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Échéance (optionnel)</label>
+          <input type="date" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+        </div>
+      </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <button
           type="button"
@@ -634,17 +759,24 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
   );
 }
 
-function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, categorieInventaireId, tpsTaux, tvqTaux, onCree, onCategorieCreee }) {
+function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, categorieInventaireId, tpsTaux, tvqTaux, fournisseurInitial, onCree, onCategorieCreee }) {
   const [categories, setCategories] = useState(categoriesInitiales);
   const [piecesDisponibles, setPiecesDisponibles] = useState(pieces);
-  const [fournisseurId, setFournisseurId] = useState(fournisseurs[0]?.id || "");
+  const [fournisseurId, setFournisseurId] = useState(fournisseurs.some((f) => f.id === fournisseurInitial) ? fournisseurInitial : (fournisseurs[0]?.id || ""));
   const [description, setDescription] = useState("");
   const [lignes, setLignes] = useState([{ categorieDepenseId: categoriesInitiales[0]?.id || "", montant: "", description: "", pieceId: null, qteRecue: "" }]);
   const [tpsPayee, setTpsPayee] = useState("");
   const [tvqPayee, setTvqPayee] = useState("");
   const [dateFacture, setDateFacture] = useState(new Date().toISOString().slice(0, 10));
+  // Échéance : Net 30 par défaut (le plus courant) — alimente les alertes
+  // « en retard » / « à payer cette semaine » du tableau de bord.
+  const [condition, setCondition] = useState("30");
+  const [dateEcheancePrecise, setDateEcheancePrecise] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
+
+  const joursCondition = CONDITIONS_PAIEMENT.find((c) => c.valeur === condition)?.jours;
+  const dateEcheance = condition === "DATE" ? dateEcheancePrecise : joursCondition != null && dateFacture ? ajouterJours(dateFacture, joursCondition) : "";
 
   const sousTotal = lignes.reduce((s, l) => s + (Number(l.montant) || 0), 0);
   const grandTotal = sousTotal + (Number(tpsPayee) || 0) + (Number(tvqPayee) || 0);
@@ -713,7 +845,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
     const res = await fetch("/api/depenses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture }),
+      body: JSON.stringify({ fournisseurId, description, lignes, tpsPayee, tvqPayee, dateFacture, dateEcheance }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -725,7 +857,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   }
 
   if (fournisseurs.length === 0) {
-    return <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Ajoute d'abord un fournisseur ci-dessus.</p>;
+    return <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Ajoute d'abord un fournisseur (bouton « ⚙️ Gérer les fournisseurs » plus bas).</p>;
   }
 
   return (
@@ -770,8 +902,26 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
         )}
       </div>
 
-      <label style={labelStyle}>Date de la facture</label>
-      <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Date de la facture</label>
+          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Conditions de paiement</label>
+          <select value={condition} onChange={(e) => setCondition(e.target.value)} style={champStyle}>
+            {CONDITIONS_PAIEMENT.map((c) => <option key={c.valeur} value={c.valeur}>{c.label}</option>)}
+          </select>
+        </div>
+      </div>
+      {condition === "DATE" ? (
+        <>
+          <label style={labelStyle}>Date d'échéance</label>
+          <input type="date" value={dateEcheancePrecise} onChange={(e) => setDateEcheancePrecise(e.target.value)} style={champStyle} />
+        </>
+      ) : dateEcheance && (
+        <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "-4px 0 8px" }}>Échéance : {dateEcheance}</p>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
         <label style={{ ...labelStyle, marginBottom: 0 }}>Taxes payées (optionnel — récupérables)</label>
