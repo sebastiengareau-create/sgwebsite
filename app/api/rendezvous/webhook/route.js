@@ -4,6 +4,7 @@ import { dateHeureQuebecVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
 import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
 import { cleMarque, nomMarque, modeleCanonique } from "@/lib/catalogueVehicules";
+import { resumeSymptomes } from "@/lib/symptomesWeb";
 
 export async function POST(request) {
   // Authentification par clé secrète partagée — ce n'est pas un utilisateur
@@ -39,6 +40,7 @@ export async function POST(request) {
   const {
     service, date, time, duration_min, customer_name, customer_phone, customer_email, vehicle, note,
     customer_address, customer_city, customer_postal_code, tasks, attachments, has_attachment,
+    warning_lights, symptoms,
   } = body;
   if (!service || !date || !time || !customer_name) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
@@ -78,6 +80,10 @@ export async function POST(request) {
     .map((n) => n.trim().slice(0, 200))
     .slice(0, 10);
   const pieceJointe = piecesJointes.length > 0 || (Array.isArray(attachments) && attachments.length > 0) || has_attachment === true || has_attachment === "true";
+  // Option « Dites-nous les symptômes » : voyants allumés (identifiants de
+  // /api/rendezvous/services, ex. ["moteur", "abs"]) et symptômes cochés
+  // (["Bruit", "Vibration"]) — ajoutés au motif, après le nom du service.
+  const symptomesCoches = resumeSymptomes({ voyants: warning_lights, symptomes: symptoms });
   const vehiculeInfo = (typeof vehicle === "string" && vehicle.trim()) || libelleVehicule(details) || null;
 
   const rdv = await prisma.rendezVous.create({
@@ -94,7 +100,7 @@ export async function POST(request) {
       vehiculeDetails: details || undefined,
       date: debut,
       dureeMinutes,
-      motif: service + (!taches.length && note ? ` — ${note}` : ""),
+      motif: service + (symptomesCoches ? ` — ${symptomesCoches}` : "") + (!taches.length && note ? ` — ${note}` : ""),
       taches,
       pieceJointe,
       piecesJointes,
