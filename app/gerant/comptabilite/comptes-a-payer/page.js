@@ -28,7 +28,7 @@ export default async function ComptesAPayer(props) {
     ]).then(([impayees, payees]) => [...impayees, ...payees]),
     prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux"] } } }),
     obtenirComptesTresoreriePourSelection(),
-    prisma.piece.findMany({ select: { id: true, nom: true, numero: true, qte: true }, orderBy: { nom: "asc" } }),
+    prisma.piece.findMany({ where: { actif: true }, select: { id: true, nom: true, numero: true, qte: true }, orderBy: { nom: "asc" } }),
   ]);
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   // Le poste "Réception d'inventaire" est assigné automatiquement quand une

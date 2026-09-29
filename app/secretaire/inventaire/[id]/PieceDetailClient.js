@@ -70,6 +70,27 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
     router.refresh();
   }
 
+  async function basculerActif() {
+    const message = piece.actif
+      ? `Désactiver "${piece.nom}" ? Elle n'apparaîtra plus dans les choix de pièces (bons, réceptions), mais son historique est conservé. Tu pourras la réactiver en tout temps.`
+      : `Réactiver "${piece.nom}" ?`;
+    if (!window.confirm(message)) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/inventaire/${piece.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actif: !piece.actif }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    router.refresh();
+  }
+
   async function supprimer() {
     if (!window.confirm(`Supprimer "${piece.nom}" de l'inventaire ?`)) return;
     setEnCours(true);
@@ -87,11 +108,14 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
     <div className="conteneur-page">
       <Link href="/secretaire/inventaire" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à l'inventaire</Link>
 
-      <div style={{ background: "var(--surface)", border: stockBas ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
+      <div style={{ background: "var(--surface)", border: stockBas && piece.actif ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
         <div style={{ fontSize: 18, fontWeight: 700 }}>{piece.nom}</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2 }}>{piece.numero}</div>
         <span className="bouton-3d" style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{nomCategorie}</span>
-        {stockBas && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8, fontWeight: 700 }}>⚠ Stock sous le seuil minimum</div>}
+        {!piece.actif && (
+          <span style={{ display: "inline-block", marginTop: 8, marginLeft: 6, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, border: "1px solid var(--border)", color: "var(--text-muted)" }}>Désactivée</span>
+        )}
+        {stockBas && piece.actif && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8, fontWeight: 700 }}>⚠ Stock sous le seuil minimum</div>}
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
@@ -182,6 +206,9 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
               ✏️ Modifier
+            </button>
+            <button onClick={basculerActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+              {piece.actif ? "🚫 Désactiver" : "✅ Réactiver"}
             </button>
             <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
               🗑️

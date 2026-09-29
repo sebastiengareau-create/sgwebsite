@@ -192,6 +192,7 @@ model Piece {
   fournisseur   Fournisseur?          @relation(fields: [fournisseurId], references: [id])
   qbId          String? // référence article QuickBooks
   syncLe        DateTime              @default(now())
+  actif         Boolean               @default(true) // "désactiver" = plus utilisée : retirée des choix, historique conservé
   utilisee      PieceUtilisee[]
   lignesDepense LigneDepense[] // réceptions de stock liées à des factures fournisseur
   mouvements    MouvementInventaire[]

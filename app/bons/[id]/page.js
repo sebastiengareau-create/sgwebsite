@@ -34,7 +34,7 @@ export default async function DetailBonPage(props) {
   // N'importe quel mécanicien peut voir/travailler sur n'importe quel bon —
   // il n'y a plus d'assignation restrictive.
 
-  const inventaire = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
+  const inventaire = await prisma.piece.findMany({ where: { actif: true }, orderBy: { nom: "asc" } });
   const mecaniciens = await prisma.user.findMany({ where: { role: "MECANICIEN", actif: true }, orderBy: { nom: "asc" } });
   await assurerPlanComptable();
   // Inclut aussi les comptes désactivés (affichés grisés, non sélectionnables)

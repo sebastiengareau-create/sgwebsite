@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
+import { FILTRE_PIECES_RAPPORT, libellePieceRapport } from "@/lib/rapportInventaire";
 import BoutonsExportInventaire from "./BoutonsExportInventaire";
 
 export default async function RapportInventaire() {
@@ -13,7 +14,7 @@ export default async function RapportInventaire() {
     redirect("/gerant");
   }
 
-  const pieces = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
+  const pieces = await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, orderBy: { nom: "asc" } });
 
   const totalQte = pieces.reduce((s, p) => s + p.qte, 0);
   const totalValeurCoutant = pieces.reduce((s, p) => s + p.qte * p.coutant, 0);
@@ -58,7 +59,7 @@ export default async function RapportInventaire() {
               return (
                 <tr key={p.id} style={{ borderBottom: "1px solid #eee" }}>
                   <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{p.numero}</td>
-                  <td style={{ padding: "6px 4px" }}>{p.nom}</td>
+                  <td style={{ padding: "6px 4px" }}>{libellePieceRapport(p)}</td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.qte}</td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.coutant.toFixed(2)} $</td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.prix.toFixed(2)} $</td>
