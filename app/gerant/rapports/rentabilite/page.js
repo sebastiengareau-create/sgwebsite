@@ -34,11 +34,10 @@ export default async function RapportRentabilite(props) {
     chargerHoraireOuverture(),
   ]);
 
-  const tauxCoutGlobal = Number(parametreCout?.valeur || 95);
+  // Coût réel : toujours le coût horaire inscrit dans les paramètres
+  // (cout_horaire_mecanicien), pas le salaire propre à chaque employé.
+  const tauxCout = Number(parametreCout?.valeur || 95);
   const tauxClientDefaut = Number(parametreTauxClient?.valeur || 195);
-  // Heures d'ouverture annuelles, pour ramener un salaire fixe à un taux
-  // horaire au prorata (ex. 50 000 $ / (37h × 52) = 25,99 $/h).
-  const heuresAnnuelles = Object.values(horaire).reduce((s, h) => s + (h || 0), 0) * 52;
 
   const parEmploye = employes.map((e) => {
     const siennesBon = entreesBon.filter((t) => t.employeId === e.id);
@@ -67,9 +66,6 @@ export default async function RapportRentabilite(props) {
     // contrairement à la paie (où la secrétaire, le gérant et le niveau 4
     // sont payés pour tout l'horaire d'ouverture).
     const heuresPayees = heuresPrevuesJoursPoinconnes([...siennesBon, ...siennesInternes], debut, fin, horaire);
-    const tauxCout = e.typeRemuneration === "SALAIRE" && e.salaireAnnuel && heuresAnnuelles > 0
-      ? e.salaireAnnuel / heuresAnnuelles
-      : e.tauxHoraireEmploye || tauxCoutGlobal;
     const coutReel = heuresPayees * tauxCout;
     const marge = revenuGenere - coutReel;
 
