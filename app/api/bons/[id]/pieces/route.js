@@ -29,6 +29,7 @@ export async function POST(request, props) {
     const resultat = await prisma.$transaction(async (tx) => {
       const piece = await tx.piece.findUnique({ where: { id: pieceId } });
       if (!piece) throw new Error("INTROUVABLE");
+      if (!piece.actif) throw new Error("DESACTIVEE");
       if (piece.qte < quantite) throw new Error("STOCK_INSUFFISANT");
 
       const nouvelleQte = piece.qte - quantite;
@@ -62,6 +63,9 @@ export async function POST(request, props) {
   } catch (e) {
     if (e.message === "STOCK_INSUFFISANT") {
       return NextResponse.json({ erreur: "Stock insuffisant pour cette quantité." }, { status: 409 });
+    }
+    if (e.message === "DESACTIVEE") {
+      return NextResponse.json({ erreur: "Cette pièce est désactivée dans l'inventaire." }, { status: 409 });
     }
     return NextResponse.json({ erreur: "Pièce introuvable." }, { status: 404 });
   }

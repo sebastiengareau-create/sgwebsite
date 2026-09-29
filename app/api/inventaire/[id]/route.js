@@ -22,14 +22,16 @@ export async function PATCH(request, props) {
   if (body.prix !== undefined) data.prix = Number(body.prix);
   if (body.coutant !== undefined) data.coutant = Number(body.coutant);
   if (body.categorie !== undefined) data.categorie = body.categorie;
+  if (body.actif !== undefined) data.actif = Boolean(body.actif);
 
   // Champs suivis dans l'onglet Historique de la fiche (valeur avant/après) —
   // la quantité n'en fait pas partie, elle a son propre journal (Mouvements).
   const CHAMPS_SUIVIS = {
     nom: "Nom", numero: "Numéro", prix: "Prix de vente", coutant: "Coût moyen",
     qteMin: "Seuil minimum", qteMax: "Seuil maximum", emplacement: "Emplacement",
-    fournisseurId: "Fournisseur habituel", categorie: "Catégorie",
+    fournisseurId: "Fournisseur habituel", categorie: "Catégorie", actif: "Statut",
   };
+  const libelleStatut = (v) => (v ? "Active" : "Désactivée");
 
   try {
     const avant = await prisma.piece.findUnique({ where: { id: params.id } });
@@ -52,9 +54,11 @@ export async function PATCH(request, props) {
         champ: label,
         ancienneValeur: champ === "fournisseurId"
           ? (avant[champ] != null ? nomsFournisseurs[avant[champ]] || avant[champ] : null)
+          : champ === "actif" ? libelleStatut(avant.actif)
           : (avant[champ] != null ? String(avant[champ]) : null),
         nouvelleValeur: champ === "fournisseurId"
           ? (data[champ] != null ? nomsFournisseurs[data[champ]] || data[champ] : null)
+          : champ === "actif" ? libelleStatut(data.actif)
           : (data[champ] != null ? String(data[champ]) : null),
         modifiePar: session.nom,
       }));
@@ -106,7 +110,7 @@ export async function DELETE(request, props) {
   const utilisee = await prisma.pieceUtilisee.count({ where: { pieceId: params.id } });
   if (utilisee > 0) {
     return NextResponse.json(
-      { erreur: "Cette pièce a déjà été utilisée sur un ou des bons de travail — elle ne peut pas être supprimée (l'historique de facturation serait perdu). Tu peux mettre son stock à 0 à la place." },
+      { erreur: "Cette pièce a déjà été utilisée sur un ou des bons de travail — elle ne peut pas être supprimée (l'historique de facturation serait perdu). Tu peux la désactiver à la place." },
       { status: 409 }
     );
   }

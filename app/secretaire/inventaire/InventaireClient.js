@@ -11,10 +11,13 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
   const [recherche, setRecherche] = useState("");
+  const [voirDesactivees, setVoirDesactivees] = useState(false);
+  const nombreDesactivees = pieces.filter((p) => !p.actif).length;
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
 
   const piecesFiltrees = pieces.filter((p) => {
+    if (!p.actif && !voirDesactivees) return false;
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
     return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q);
@@ -62,8 +65,14 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
         placeholder="🔍 Rechercher par nom ou numéro…"
-        style={{ ...champStyle, marginBottom: 16 }}
+        style={{ ...champStyle, marginBottom: nombreDesactivees > 0 ? 6 : 16 }}
       />
+      {nombreDesactivees > 0 && (
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16, cursor: "pointer" }}>
+          <input type="checkbox" checked={voirDesactivees} onChange={(e) => setVoirDesactivees(e.target.checked)} />
+          Afficher les pièces désactivées ({nombreDesactivees})
+        </label>
+      )}
 
       {afficherFormulaire && (
         <FormulaireCreation categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
@@ -72,20 +81,20 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
         {piecesFiltrees.map((p) => (
           <Link key={p.id} href={`/secretaire/inventaire/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ background: "var(--surface)", border: p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: "var(--surface)", border: p.actif && p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", opacity: p.actif ? 1 : 0.55 }}>
               <div>
-                <div style={{ fontWeight: 600 }}>{p.nom}</div>
+                <div style={{ fontWeight: 600 }}>{p.nom}{!p.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivée)</span>}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.numero}</div>
                 <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(p.categorie)}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontWeight: 700, color: p.qte <= p.qteMin ? "var(--danger)" : "var(--text)" }}>{p.qte} en stock</div>
+                <div style={{ fontWeight: 700, color: p.actif && p.qte <= p.qteMin ? "var(--danger)" : "var(--text)" }}>{p.qte} en stock</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.prix.toFixed(2)} $ vente</div>
               </div>
             </div>
           </Link>
         ))}
-        {piecesFiltrees.length === 0 && pieces.length > 0 && (
+        {piecesFiltrees.length === 0 && pieces.length > 0 && recherche.trim() && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce ne correspond à "{recherche}".</p>
         )}
         {pieces.length === 0 && !afficherFormulaire && (
