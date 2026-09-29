@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, passerBonEnCoursSiEnAttente } from "@/lib/bons";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -31,6 +31,7 @@ export async function POST(request, props) {
   const entree = await prisma.entreeTemps.create({
     data: { employeId, problemeId: params.problemeId, debut: debutUTC, fin: finUTC },
   });
+  await passerBonEnCoursSiEnAttente(probleme.bonId);
 
   return NextResponse.json(entree);
 }

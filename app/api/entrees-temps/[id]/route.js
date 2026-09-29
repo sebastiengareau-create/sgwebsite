@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreBonEnAttenteSiSansTemps } from "@/lib/bons";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -44,5 +44,6 @@ export async function DELETE(request, props) {
   }
 
   await prisma.entreeTemps.delete({ where: { id: params.id } });
+  await remettreBonEnAttenteSiSansTemps(entreeExistante.probleme.bonId);
   return NextResponse.json({ ok: true });
 }
