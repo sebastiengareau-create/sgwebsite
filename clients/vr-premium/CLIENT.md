@@ -16,6 +16,13 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   présélectionné).
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
+## Son site web
+
+- `site-web/api/vehicle_catalog.php` : relais PHP du formulaire véhicule de
+  son site (année → marque de VR → modèle → type de VR), à copier dans
+  `api/` de son site. Il interroge `/api/vehicules/catalogue` du logiciel
+  avec l'en-tête `x-webhook-secret` (= `GARAGE_BOOKING_WEBHOOK_SECRET`).
+
 ## Historique
 
 - Jusqu'en septembre 2026, VR Premium avait sa propre branche
