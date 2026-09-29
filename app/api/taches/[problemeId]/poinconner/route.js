@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, passerBonEnCoursSiEnAttente } from "@/lib/bons";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -35,12 +35,7 @@ export async function POST(request, props) {
 
     await prisma.entreeTemps.create({ data: { employeId, problemeId, debut: new Date() } });
 
-    // Le bon passe automatiquement "En cours" dès qu'un poinçon démarre,
-    // s'il était encore "En attente"
-    const bon = await prisma.bonTravail.findUnique({ where: { id: probleme.bonId } });
-    if (bon && bon.statut === "EN_ATTENTE") {
-      await prisma.bonTravail.update({ where: { id: bon.id }, data: { statut: "EN_COURS" } });
-    }
+    await passerBonEnCoursSiEnAttente(probleme.bonId);
 
     return NextResponse.json({ statut: "demarre" });
   } catch (e) {
