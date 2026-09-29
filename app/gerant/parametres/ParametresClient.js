@@ -16,6 +16,7 @@ const JOURS = [
 
 export default function ParametresClient({
   tauxHoraireInit, coutHoraireInit, horaireInit,
+  employesFacturablesInit, depensesMoisPrecedent, joursMoisPrecedent, libelleMoisPrecedent,
   heuresOuvertureInit, intervalleReservationInit, capaciteReservationInit,
   tpsNumeroInit, tpsTauxInit, tvqNumeroInit, tvqTauxInit,
   quickbooksConnecte, urlFluxCalendrier,
@@ -56,6 +57,7 @@ export default function ParametresClient({
 
   const [tauxHoraire, setTauxHoraire] = useState(tauxHoraireInit);
   const [coutHoraire, setCoutHoraire] = useState(coutHoraireInit);
+  const [employesFacturables, setEmployesFacturables] = useState(employesFacturablesInit);
   const [horaire, setHoraire] = useState(horaireInit);
   // Heures d'ouverture (calendrier et réservation en ligne) — distinctes des
   // heures de paie ci-dessus, qui peuvent exclure le dîner.
@@ -76,6 +78,11 @@ export default function ParametresClient({
 
   const marge = (Number(tauxHoraire) || 0) - (Number(coutHoraire) || 0);
   const totalHeuresSemaine = Object.values(horaire).reduce((s, h) => s + (Number(h) || 0), 0);
+  // Taux réel = dépenses du mois précédent ÷ heures disponibles ce mois-là
+  // (selon l'horaire de travail ci-dessous) ÷ employés facturables.
+  const heuresDisponiblesMois = JOURS.reduce((s, j) => s + (joursMoisPrecedent[j.cle] || 0) * (Number(horaire[j.cle]) || 0), 0);
+  const nbFacturables = Number(employesFacturables) || 0;
+  const tauxReel = heuresDisponiblesMois > 0 && nbFacturables > 0 ? depensesMoisPrecedent / heuresDisponiblesMois / nbFacturables : null;
 
   function changerOuverture(cle, champ, valeur) {
     setOuverture((prev) => ({ ...prev, [cle]: { ...prev[cle], [champ]: valeur } }));
@@ -106,6 +113,7 @@ export default function ParametresClient({
       body: JSON.stringify({
         taux_horaire_client: tauxHoraire,
         cout_horaire_mecanicien: coutHoraire,
+        employes_facturables: employesFacturables,
         heures_lun: horaire.lun,
         heures_mar: horaire.mar,
         heures_mer: horaire.mer,
@@ -150,6 +158,25 @@ export default function ParametresClient({
         <label style={{ ...labelStyle, marginTop: 18 }}>Coûtant horaire des mécaniciens ($/h)</label>
         <p style={sousTexte}>Ce que ça coûte réellement au garage — avantages inclus — peu importe si l'heure est facturable ou non.</p>
         <ChampMontant valeur={coutHoraire} onChange={setCoutHoraire} />
+
+        <label style={{ ...labelStyle, marginTop: 14 }}>Coût réel selon nos résultats</label>
+        <p style={sousTexte}>
+          Dépenses de {libelleMoisPrecedent} ÷ {heuresDisponiblesMois} h disponibles ce mois-là (selon l'horaire de travail) ÷ employés facturables.
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Dépenses au dernier jour du mois</div>
+            <div style={{ ...champInput, fontWeight: 700 }}>{depensesMoisPrecedent.toFixed(2)} $</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Employés facturables</div>
+            <input type="number" min={0} step="1" value={employesFacturables} onChange={(e) => setEmployesFacturables(e.target.value)} style={{ ...champInput, fontWeight: 700 }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Taux réel</div>
+            <div style={{ ...champInput, fontWeight: 700 }}>{tauxReel === null ? "—" : `${tauxReel.toFixed(2)} $/h`}</div>
+          </div>
+        </div>
 
         <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "var(--bg)", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
           <span style={{ color: "var(--text-muted)" }}>Marge par heure réellement facturée</span>
