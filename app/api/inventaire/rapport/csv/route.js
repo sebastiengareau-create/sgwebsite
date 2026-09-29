@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { FILTRE_PIECES_RAPPORT, libellePieceRapport } from "@/lib/rapportInventaire";
 
 function echapperCsv(valeur) {
   const texte = String(valeur ?? "");
@@ -15,7 +16,7 @@ export async function GET() {
     return new Response(JSON.stringify({ erreur: "Accès refusé." }), { status: 403 });
   }
 
-  const pieces = await prisma.piece.findMany({ orderBy: { nom: "asc" } });
+  const pieces = await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, orderBy: { nom: "asc" } });
 
   const lignesCsv = [
     ["No pièce", "Description", "Qté", "Coûtant", "Vendant", "Marge", "Marge %"].join(";"),
@@ -25,7 +26,7 @@ export async function GET() {
     const margePct = p.prix > 0 ? (marge / p.prix) * 100 : 0;
     lignesCsv.push([
       echapperCsv(p.numero),
-      echapperCsv(p.nom),
+      echapperCsv(libellePieceRapport(p)),
       p.qte,
       p.coutant.toFixed(2).replace(".", ","),
       p.prix.toFixed(2).replace(".", ","),
