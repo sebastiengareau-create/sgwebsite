@@ -14,7 +14,7 @@ const SECTIONS = [
   { cle: "paie", label: "🧾 Paie" },
   { cle: "employes", label: "👥 Employés" },
   { cle: "vue-ensemble", label: "📊 Vue d'ensemble" },
-  { cle: "jobs-temps-reel", label: "📈 Jobs temps réel" },
+  { cle: "jobs-temps-reel", label: "📈 Productivité par employés" },
   { cle: "horodateur", label: "⏱️ Horodateur" },
   { cle: "parametres", label: "⚙️ Paramètres" },
 ];
