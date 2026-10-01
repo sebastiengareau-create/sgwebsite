@@ -12,7 +12,7 @@ import { image } from "@/lib/client";
 // chaque bloc de rôle séparément.
 const SECTIONS_EMPRUNTABLES = [
   { cle: "vue-ensemble", href: "/gerant", label: "Vue d'ensemble", icone: "📊" },
-  { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Jobs temps réel", icone: "📈" },
+  { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Productivité par employés", icone: "📈" },
   { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "⏱️" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
   { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
