@@ -26,8 +26,8 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
     return f.numero.toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q);
   });
 
-  const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalFacture, 0);
-  const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalFacture, 0);
+  const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
+  const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
 
   async function marquerPayee(id, compteTresorerieId, modePaiement, reference) {
     setAvertissement("");
@@ -98,7 +98,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "0 2px" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>{g.libelle}</span>
               <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                ({g.elements.length}) · {g.elements.filter((f) => f.statut !== "ANNULEE").reduce((s, f) => s + f.totalFacture, 0).toFixed(2)} $
+                ({g.elements.length}) · {g.elements.filter((f) => f.statut !== "ANNULEE").reduce((s, f) => s + f.totalAvecTaxes, 0).toFixed(2)} $
               </span>
               <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
@@ -130,7 +130,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
               <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {f.referenceVersement}</div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-              <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalFacture.toFixed(2)} $</span>
+              <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalAvecTaxes.toFixed(2)} $</span>
               {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setFactureAPayer(f.id); }}
