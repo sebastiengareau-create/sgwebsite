@@ -231,17 +231,22 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                     const heureFin = e.fin ? new Date(e.fin).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" }) : "en cours";
                     const duree = e.fin ? (new Date(e.fin) - debut) / 3600000 : null;
                     return (
-                      <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, background: "var(--bg)", borderRadius: 6, padding: "6px 8px" }}>
+                      <Link
+                        key={e.id}
+                        href={`/bons/${e.probleme.bon.id}`}
+                        title={`Ouvrir le bon #${e.probleme.bon.numero}`}
+                        style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, background: "var(--bg)", borderRadius: 6, padding: "6px 8px", textDecoration: "none", color: "inherit" }}
+                      >
                         <div>
                           <div><strong style={{ color: "var(--text-muted)" }}>{numeroTache(e)}.</strong> {e.probleme.description}</div>
                           <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>
                             #{e.probleme.bon.numero} · {e.probleme.bon.client.nom} · {heureDebut}–{heureFin}
                           </div>
                         </div>
-                        <span style={{ fontWeight: 600, alignSelf: "center", color: e.fin ? "var(--text)" : "var(--accent)" }}>
-                          {duree !== null ? fmtHeures(duree) : "●"}
+                        <span style={{ fontWeight: 600, alignSelf: "center", whiteSpace: "nowrap", color: e.fin ? "var(--text)" : "var(--accent)" }}>
+                          {duree !== null ? fmtHeures(duree) : "●"} <span style={{ color: "var(--text-muted)" }}>›</span>
                         </span>
-                      </div>
+                      </Link>
                     );
                   })}
                   {entreesInternes.map((e) => {
