@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const CLE_POSITION = "assistant-sg-position";
-const BAS_MIN = 20;
-const BAS_MIN_DROITE = 88; // au-dessus du bouton flottant « + » (56 px + marge)
+const TAILLE = 56; // diamètre de la bulle
+const MARGE = 8; // espace minimal avec le bord de l'écran
 
 export default function AssistantSG() {
   const router = useRouter();
@@ -21,15 +21,21 @@ export default function AssistantSG() {
   const zoneMessagesRef = useRef(null);
   const reconnaissanceRef = useRef(null);
   // Position de la bulle, déplaçable en la glissant (mémorisée sur cet appareil)
-  const [position, setPosition] = useState({ cote: "gauche", bas: BAS_MIN });
-  const [glissement, setGlissement] = useState(null); // { x, y } pendant qu'on glisse la bulle
+  // position = centre de la bulle, en fraction de l'écran (null = en bas à gauche)
+  const [position, setPosition] = useState(null);
+  const [glissement, setGlissement] = useState(null); // { x, y } en pixels pendant qu'on glisse la bulle
+  const [ecran, setEcran] = useState(null); // { l, h }
   const glisseRef = useRef(null); // { x, y, deplace }
 
   useEffect(() => {
     try {
       const p = JSON.parse(localStorage.getItem(CLE_POSITION));
-      if (p && (p.cote === "gauche" || p.cote === "droite") && Number.isFinite(p.bas)) setPosition(p);
+      if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) setPosition(p);
     } catch {}
+    const majEcran = () => setEcran({ l: window.innerWidth, h: window.innerHeight });
+    majEcran();
+    window.addEventListener("resize", majEcran);
+    return () => window.removeEventListener("resize", majEcran);
   }, []);
 
   useEffect(() => {
@@ -121,11 +127,7 @@ export default function AssistantSG() {
     if (!g || !g.deplace) { glisseRef.current = null; return; }
     // On garde le drapeau jusqu'au clic qui suit, pour ne pas ouvrir la fenêtre
     setGlissement(null);
-    const cote = e.clientX < window.innerWidth / 2 ? "gauche" : "droite";
-    // À droite, rester au-dessus du bouton « + » des listes
-    const min = cote === "droite" ? BAS_MIN_DROITE : BAS_MIN;
-    const bas = Math.round(Math.min(Math.max(window.innerHeight - e.clientY - 28, min), window.innerHeight - 76));
-    const nouvelle = { cote, bas };
+    const nouvelle = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
     setPosition(nouvelle);
     try { localStorage.setItem(CLE_POSITION, JSON.stringify(nouvelle)); } catch {}
   }
@@ -136,21 +138,45 @@ export default function AssistantSG() {
     setOuvert((v) => !v);
   }
 
-  const aDroite = position.cote === "droite";
-  const placement = glissement
-    ? { left: glissement.x - 28, top: glissement.y - 28 }
-    : { bottom: position.bas, [aDroite ? "right" : "left"]: 16 };
+  // Coin haut-gauche de la bulle, toujours gardée à l'écran
+  let bulle = null;
+  if (ecran) {
+    const centre = glissement || (position ? { x: position.x * ecran.l, y: position.y * ecran.h } : null);
+    bulle = centre
+      ? {
+          gauche: Math.min(Math.max(centre.x - TAILLE / 2, MARGE), ecran.l - TAILLE - MARGE),
+          haut: Math.min(Math.max(centre.y - TAILLE / 2, MARGE), ecran.h - TAILLE - MARGE),
+        }
+      : { gauche: 16, haut: ecran.h - TAILLE - 20 };
+  }
+  const placement = bulle ? { left: bulle.gauche, top: bulle.haut } : { left: 16, bottom: 20 };
+
+  // La fenêtre s'ouvre du côté où il y a de la place (au-dessus ou en dessous)
+  let fenetre = null;
+  if (bulle) {
+    const largeur = Math.min(400, ecran.l * 0.92);
+    const auDessus = bulle.haut + TAILLE / 2 > ecran.h / 2;
+    const aDroite = bulle.gauche + TAILLE / 2 > ecran.l / 2;
+    const gaucheVoulue = aDroite ? bulle.gauche + TAILLE - largeur : bulle.gauche;
+    const gauche = Math.min(Math.max(gaucheVoulue, MARGE), ecran.l - largeur - MARGE);
+    const espace = auDessus ? bulle.haut - 10 - MARGE : ecran.h - bulle.haut - TAILLE - 10 - MARGE;
+    fenetre = {
+      position: "absolute", left: gauche - bulle.gauche, width: largeur,
+      height: Math.min(600, ecran.h * 0.75, espace),
+      ...(auDessus ? { bottom: TAILLE + 10 } : { top: TAILLE + 10 }),
+    };
+  }
 
   return (
     <>
       {ouvert && (
         <div onClick={() => setOuvert(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
       )}
-      <div style={{ position: "fixed", ...placement, zIndex: 40, display: "flex", flexDirection: "column", alignItems: aDroite ? "flex-end" : "flex-start", gap: 10 }}>
-        {ouvert && (
+      <div style={{ position: "fixed", ...placement, width: TAILLE, height: TAILLE, zIndex: 40 }}>
+        {ouvert && fenetre && (
           <div
             style={{
-              width: "min(400px, 92vw)", height: `min(600px, 75vh, calc(100vh - ${position.bas + 86}px))`,
+              ...fenetre,
               background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
               boxShadow: "0 20px 60px rgba(0,0,0,0.5)", display: "flex", flexDirection: "column", overflow: "hidden",
             }}
@@ -239,7 +265,7 @@ export default function AssistantSG() {
           onPointerUp={finGlissement}
           onPointerCancel={finGlissement}
           className="bouton-3d"
-          style={{ width: 56, height: 56, borderRadius: "50%", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none", cursor: glissement ? "grabbing" : "pointer" }}
+          style={{ width: TAILLE, height: TAILLE, borderRadius: "50%", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none", cursor: glissement ? "grabbing" : "pointer" }}
           aria-label="Assistant SG"
           title="Assistant SG — glisse la bulle pour la déplacer"
         >
