@@ -18,6 +18,18 @@ export async function POST(request) {
   if (existante) {
     return NextResponse.json({ erreur: "Ce numéro de pièce existe déjà." }, { status: 409 });
   }
+  // Le numéro est peut-être celui d'une pièce existante chez un fournisseur :
+  // c'est alors la même pièce, pas une nouvelle fiche.
+  const chezFournisseur = await prisma.pieceFournisseur.findFirst({
+    where: { numeroFournisseur: { equals: numero.trim(), mode: "insensitive" } },
+    include: { piece: true, fournisseur: true },
+  });
+  if (chezFournisseur) {
+    return NextResponse.json(
+      { erreur: `« ${numero} » est déjà le numéro de « ${chezFournisseur.piece.nom} » (${chezFournisseur.piece.numero}) chez ${chezFournisseur.fournisseur.nom}. Utilise cette fiche plutôt que d'en créer une nouvelle.` },
+      { status: 409 }
+    );
+  }
   const code = String(codeBarre || "").replace(/\s+/g, "") || null;
   if (code && (await prisma.piece.findUnique({ where: { codeBarre: code } }))) {
     return NextResponse.json({ erreur: "Ce code-barres est déjà associé à une autre pièce." }, { status: 409 });

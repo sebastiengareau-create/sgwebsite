@@ -9,7 +9,7 @@ import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette } from "@/lib/codesBarres";
 
-export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
+export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -30,7 +30,8 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
     return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)
-      || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)));
+      || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)))
+      || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q));
   });
 
   // Un scan ouvre la fiche de la pièce ; un code inconnu (boîte d'un
@@ -97,6 +98,13 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
       </div>
 
       <Link
+        href="/secretaire/inventaire/commandes"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
+      >
+        🛒 Commandes fournisseurs
+      </Link>
+      <Link
         href="/gerant/comptabilite/rapports/inventaire"
         target="_blank"
         className="bouton-3d-sombre"
@@ -120,7 +128,7 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par nom ou numéro…"
+        placeholder="🔍 Rechercher par nom, numéro ou no fournisseur…"
         style={{ ...champStyle, marginBottom: nombreDesactivees > 0 ? 6 : 16 }}
       />
       {nombreDesactivees > 0 && (
@@ -162,6 +170,7 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontWeight: 700, color: p.actif && p.qte <= p.qteMin ? "var(--danger)" : "var(--text)" }}>{p.qte} en stock</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.prix.toFixed(2)} $ vente</div>
+                {enCommande[p.id] > 0 && <div style={{ fontSize: 10.5, color: "var(--accent)" }}>+{enCommande[p.id]} en commande</div>}
               </div>
             </div>
           );

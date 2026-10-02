@@ -37,6 +37,14 @@ export async function DELETE(request, props) {
     );
   }
 
+  const commandes = await prisma.commandeFournisseur.count({ where: { fournisseurId: params.id } });
+  if (commandes > 0) {
+    return NextResponse.json(
+      { erreur: "Ce fournisseur a des commandes — désactive-le plutôt que de le supprimer, pour ne pas perdre cet historique." },
+      { status: 409 }
+    );
+  }
+
   await prisma.fournisseur.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

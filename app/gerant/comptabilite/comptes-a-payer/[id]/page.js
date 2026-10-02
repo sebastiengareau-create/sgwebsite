@@ -18,6 +18,7 @@ export default async function FicheDepense(props) {
     include: {
       fournisseur: true,
       compteTresorerie: true,
+      commandeFournisseur: { select: { id: true, numero: true } },
       lignes: { include: { categorieDepense: true, piece: { select: { id: true, nom: true, numero: true } } } },
     },
   });

@@ -198,6 +198,55 @@ model Piece {
   lignesDepense LigneDepense[] // réceptions de stock liées à des factures fournisseur
   mouvements    MouvementInventaire[]
   historique    HistoriquePiece[]
+  fournisseurs  PieceFournisseur[] // numéro et prix de la même pièce chez chaque fournisseur
+  lignesCommande LigneCommandeFournisseur[]
+}
+
+// Une même pièce peut porter un numéro différent chez chaque fournisseur :
+// une seule fiche d'inventaire, et un lien par fournisseur avec son numéro
+// et son dernier prix (mis à jour à chaque réception).
+model PieceFournisseur {
+  id                String      @id @default(cuid())
+  pieceId           String
+  piece             Piece       @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  fournisseurId     String
+  fournisseur       Fournisseur @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+  numeroFournisseur String? // numéro de la pièce dans le catalogue de ce fournisseur
+  coutant           Float? // dernier prix unitaire payé (ou convenu) chez ce fournisseur, avant taxes
+  dernierAchat      DateTime?
+  creeLe            DateTime    @default(now())
+
+  @@unique([pieceId, fournisseurId])
+  @@unique([fournisseurId, numeroFournisseur])
+}
+
+// Commande de pièces à un fournisseur. Chaque réception (complète ou
+// partielle) crée une dépense fournisseur à payer et entre le stock au coût
+// réel de la facture (coût moyen pondéré).
+model CommandeFournisseur {
+  id            String                     @id @default(cuid())
+  numero        String                     @unique // "CMD-001"
+  fournisseurId String
+  fournisseur   Fournisseur                @relation(fields: [fournisseurId], references: [id])
+  statut        String                     @default("BROUILLON") // "BROUILLON" | "ENVOYEE" | "RECUE_PARTIELLE" | "RECUE" | "ANNULEE"
+  note          String?
+  dateEnvoi     DateTime?
+  lignes        LigneCommandeFournisseur[]
+  depenses      Depense[] // une par réception
+  creePar       String?
+  creeLe        DateTime                   @default(now())
+}
+
+model LigneCommandeFournisseur {
+  id                String              @id @default(cuid())
+  commandeId        String
+  commande          CommandeFournisseur @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  pieceId           String
+  piece             Piece               @relation(fields: [pieceId], references: [id])
+  numeroFournisseur String? // figé à la commande, tel qu'imprimé sur le bon envoyé
+  qteCommandee      Int
+  qteRecue          Int                 @default(0) // cumul des réceptions
+  coutUnitaire      Float // prix prévu à la commande, avant taxes
 }
 
 model PieceUtilisee {
@@ -533,6 +582,8 @@ model Fournisseur {
   actif        Boolean   @default(true)
   depenses     Depense[]
   piecesDefaut Piece[] // articles d'inventaire dont c'est le fournisseur habituel
+  pieces       PieceFournisseur[]
+  commandes    CommandeFournisseur[]
   creeLe       DateTime  @default(now())
 }
 
@@ -564,6 +615,8 @@ model Depense {
   modePaiement       String? // "COMPTANT" | "CARTE_DEBIT" | "CARTE_CREDIT" | "VIREMENT" | "INTERAC" | "CHEQUE" | "AUTRE" — rempli seulement une fois payée
   compteTresorerieId String? // compte d'où le paiement est sorti, rempli seulement une fois payée
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
+  commandeFournisseurId String? // réception d'une commande fournisseur, si la dépense en vient
+  commandeFournisseur   CommandeFournisseur? @relation(fields: [commandeFournisseurId], references: [id], onDelete: SetNull)
   creeLe             DateTime          @default(now())
 }
 

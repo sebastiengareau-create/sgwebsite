@@ -48,6 +48,11 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
           🏢 {depense.fournisseur.nom} →
         </Link>
         <div style={{ fontSize: 15, marginTop: 4 }}>{depense.description}</div>
+        {depense.commandeFournisseur && (
+          <Link href={`/secretaire/inventaire/commandes/${depense.commandeFournisseur.id}`} style={{ display: "inline-block", fontSize: 12, color: "var(--accent)", textDecoration: "none", marginTop: 4 }}>
+            🛒 Réception de la commande {depense.commandeFournisseur.numero} →
+          </Link>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 10, gap: 8 }}>
           <div style={{ fontSize: 26, fontWeight: 800 }}>{depense.montant.toFixed(2)} $</div>
           <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "#C9A227", color: payee || echeance?.enRetard ? "white" : "#17150f" }}>

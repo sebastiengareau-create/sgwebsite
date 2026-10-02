@@ -705,7 +705,8 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
   const qPiece = recherchePiece.trim().toLowerCase();
   const suggestionsPieces = qPiece
     ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece)
-      || (p.codeBarre && normaliserCode(p.codeBarre) === normaliserCode(qPiece)))
+      || (p.codeBarre && normaliserCode(p.codeBarre) === normaliserCode(qPiece))
+      || p.fournisseurs?.some((f) => f.numeroFournisseur?.toLowerCase().includes(qPiece)))
     : piecesDisponibles;
   const pieceSelectionnee = piecesDisponibles.find((p) => p.id === pieceChoisie);
 

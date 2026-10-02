@@ -34,7 +34,11 @@ export default async function DetailBonPage(props) {
   // N'importe quel mécanicien peut voir/travailler sur n'importe quel bon —
   // il n'y a plus d'assignation restrictive.
 
-  const inventaire = await prisma.piece.findMany({ where: { actif: true }, orderBy: { nom: "asc" } });
+  const inventaire = await prisma.piece.findMany({
+    where: { actif: true },
+    include: { fournisseurs: { select: { numeroFournisseur: true } } },
+    orderBy: { nom: "asc" },
+  });
   // Tous les employés actifs (pas seulement les mécaniciens) peuvent se voir
   // attribuer du temps manuellement sur une tâche.
   const employes = await prisma.user.findMany({
