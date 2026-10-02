@@ -23,7 +23,7 @@ const TYPE_MOUVEMENT = {
   AJUSTEMENT: { label: "Ajustement", couleur: "var(--text-muted)" },
 };
 
-export default function PieceDetailClient({ piece, categories, fournisseurs }) {
+export default function PieceDetailClient({ piece, categories, fournisseurs, autresPieces }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -31,6 +31,7 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
   const [onglet, setOnglet] = useState("resume");
   const [afficherEtiquettes, setAfficherEtiquettes] = useState(false);
   const [scannerOuvert, setScannerOuvert] = useState(false);
+  const [afficherFusion, setAfficherFusion] = useState(false);
 
   const [nom, setNom] = useState(piece.nom);
   const [numero, setNumero] = useState(piece.numero);
@@ -226,8 +227,10 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
           {onglet === "mouvements" && <OngletMouvements mouvements={piece.mouvements} />}
           {onglet === "achats" && <OngletAchats lignesDepense={piece.lignesDepense} />}
           {onglet === "ventes" && <OngletVentes utilisee={piece.utilisee} />}
-          {onglet === "fournisseurs" && <OngletFournisseurs piece={piece} lignesDepense={piece.lignesDepense} />}
+          {onglet === "fournisseurs" && <OngletFournisseurs piece={piece} fournisseurs={fournisseurs} />}
           {onglet === "historique" && <OngletHistorique historique={piece.historique} />}
+
+          {afficherFusion && <FusionPiece piece={piece} autresPieces={autresPieces} onFermer={() => setAfficherFusion(false)} />}
 
           {afficherEtiquettes && (
             <div style={{ marginTop: 16 }}>
@@ -244,6 +247,9 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
             </button>
             <button onClick={basculerActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
               {piece.actif ? "🚫 Désactiver" : "✅ Réactiver"}
+            </button>
+            <button onClick={() => setAfficherFusion((v) => !v)} disabled={enCours} className="bouton-3d-sombre" title="Fusionner ce doublon dans une autre fiche" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
+              🔀
             </button>
             <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
               🗑️
@@ -265,6 +271,16 @@ function OngletResume({ piece, marge, margePct }) {
         {piece.qteMax != null && <Champ label="Seuil maximum" valeur={`${piece.qteMax}`} />}
         {piece.emplacement && <Champ label="Emplacement" valeur={piece.emplacement} />}
         <Champ label="Code-barres fabricant" valeur={piece.codeBarre || "Aucun"} />
+        {piece.lignesCommande.length > 0 && (
+          <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
+            {piece.lignesCommande.map((l) => (
+              <Link key={l.id} href={`/secretaire/inventaire/commandes/${l.commande.id}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4, color: "inherit", textDecoration: "none" }}>
+                <span style={{ color: "var(--text-muted)" }}>{l.commande.statut === "BROUILLON" ? "Brouillon" : "En commande"} — {l.commande.numero} ({l.commande.fournisseur.nom})</span>
+                <span style={{ fontWeight: 700, color: "var(--accent)" }}>{Math.max(0, l.qteCommandee - l.qteRecue)}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="carte" style={{ marginBottom: 12 }}>
@@ -366,55 +382,210 @@ function OngletVentes({ utilisee }) {
   );
 }
 
-function OngletFournisseurs({ piece, lignesDepense }) {
-  const parFournisseur = new Map();
-  for (const l of lignesDepense) {
-    const cle = l.depense.fournisseur.id;
-    const existant = parFournisseur.get(cle);
-    const coutUnitaire = l.montant / l.qteRecue;
-    if (!existant || new Date(l.depense.dateFacture) > new Date(existant.derniereDate)) {
-      parFournisseur.set(cle, {
-        nom: l.depense.fournisseur.nom,
-        derniereDate: l.depense.dateFacture,
-        dernierCout: coutUnitaire,
-        totalRecu: (existant?.totalRecu || 0) + l.qteRecue,
-      });
-    } else {
-      parFournisseur.set(cle, { ...existant, totalRecu: existant.totalRecu + l.qteRecue });
+// Les numéros et prix de cette pièce chez chaque fournisseur — une seule
+// fiche pour tous ses numéros — et commande directe chez celui choisi.
+function OngletFournisseurs({ piece, fournisseurs }) {
+  const router = useRouter();
+  const [ajout, setAjout] = useState(false);
+  const [nouveauFournisseur, setNouveauFournisseur] = useState("");
+  const [nouveauNumero, setNouveauNumero] = useState("");
+  const [nouveauCout, setNouveauCout] = useState("");
+  const [edition, setEdition] = useState(null); // { id, numero, cout }
+  const [commande, setCommande] = useState(null); // { fournisseurId, qte }
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  // Quantité déjà reçue de chaque fournisseur (réceptions sur dépenses)
+  const recuParFournisseur = {};
+  for (const l of piece.lignesDepense) recuParFournisseur[l.depense.fournisseurId] = (recuParFournisseur[l.depense.fournisseurId] || 0) + l.qteRecue;
+  const liens = [...piece.fournisseurs].sort((a, b) => (a.coutant ?? Infinity) - (b.coutant ?? Infinity));
+  const moinsCher = liens.find((l) => l.coutant != null);
+  const fournisseursLibres = fournisseurs.filter((f) => !piece.fournisseurs.some((l) => l.fournisseurId === f.id));
+
+  async function appel(url, methode, corps) {
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(url, { method: methode, headers: { "Content-Type": "application/json" }, body: corps ? JSON.stringify(corps) : undefined });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    if (!res.ok) {
+      setErreur(data.erreur || "Erreur.");
+      return null;
     }
+    return data;
   }
-  const fournisseursHistorique = Array.from(parFournisseur.values()).sort((a, b) => new Date(b.derniereDate) - new Date(a.derniereDate));
+
+  async function ajouterLien(e) {
+    e.preventDefault();
+    if (!nouveauFournisseur) return;
+    const ok = await appel("/api/pieces-fournisseurs", "POST", { pieceId: piece.id, fournisseurId: nouveauFournisseur, numeroFournisseur: nouveauNumero, coutant: nouveauCout });
+    if (!ok) return;
+    setAjout(false);
+    setNouveauFournisseur(""); setNouveauNumero(""); setNouveauCout("");
+    router.refresh();
+  }
+
+  async function enregistrerEdition() {
+    const ok = await appel(`/api/pieces-fournisseurs/${edition.id}`, "PATCH", { numeroFournisseur: edition.numero, coutant: edition.cout });
+    if (!ok) return;
+    setEdition(null);
+    router.refresh();
+  }
+
+  async function retirerLien(lien) {
+    if (!window.confirm(`Retirer ${lien.fournisseur.nom} des fournisseurs de cette pièce ?`)) return;
+    if (await appel(`/api/pieces-fournisseurs/${lien.id}`, "DELETE")) router.refresh();
+  }
+
+  async function commander() {
+    const data = await appel("/api/commandes-fournisseurs", "POST", {
+      fournisseurId: commande.fournisseurId,
+      lignes: [{ pieceId: piece.id, qte: Math.max(1, parseInt(commande.qte) || 1) }],
+      ajouterAuBrouillon: true,
+    });
+    if (data) router.push(`/secretaire/inventaire/commandes/${data.id}`);
+  }
 
   return (
     <>
       <div className="carte" style={{ marginBottom: 12 }}>
+        <TitreSection>Numéros et prix par fournisseur</TitreSection>
+        <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+          La même pièce peut avoir un numéro différent chez chaque fournisseur. Le dernier prix se met à jour à chaque réception ; la recherche et le scan trouvent la pièce par n'importe lequel de ces numéros.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {liens.map((l) => (
+            <div key={l.id} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
+              {edition?.id === l.id ? (
+                <>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>{l.fournisseur.nom}</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input value={edition.numero} onChange={(e) => setEdition({ ...edition, numero: e.target.value })} placeholder="No chez ce fournisseur" className="champ" style={{ flex: 2, marginBottom: 0 }} />
+                    <input type="number" min={0} step="0.01" value={edition.cout} onChange={(e) => setEdition({ ...edition, cout: e.target.value })} placeholder="Prix $" className="champ" style={{ flex: 1, marginBottom: 0 }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <button onClick={enregistrerEdition} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 7, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Enregistrer</button>
+                    <button onClick={() => setEdition(null)} className="bouton-3d-sombre" style={{ flex: 1, padding: 7, borderRadius: 8, fontSize: 12 }}>Annuler</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+                        {l.fournisseur.nom}
+                        {piece.fournisseurId === l.fournisseurId && <span style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 400 }}> · habituel</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{l.numeroFournisseur ? `No ${l.numeroFournisseur}` : "No fournisseur non saisi"}</div>
+                      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                        {l.dernierAchat ? `Dernier achat : ${new Date(l.dernierAchat).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}` : "Jamais acheté ici"}
+                        {recuParFournisseur[l.fournisseurId] ? ` · ${recuParFournisseur[l.fournisseurId]} reçues au total` : ""}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: moinsCher && l.id === moinsCher.id && liens.length > 1 ? "var(--success)" : "var(--text)" }}>
+                        {l.coutant != null ? `${l.coutant.toFixed(2)} $` : "—"}
+                      </div>
+                      {moinsCher && l.id === moinsCher.id && liens.length > 1 && <div style={{ fontSize: 10, color: "var(--success)" }}>le moins cher</div>}
+                    </div>
+                  </div>
+                  {commande?.fournisseurId === l.fournisseurId ? (
+                    <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: 12 }}>Qté :</span>
+                      <input type="number" min={1} value={commande.qte} onChange={(e) => setCommande({ ...commande, qte: e.target.value })} className="champ" style={{ width: 70, marginBottom: 0 }} />
+                      <button onClick={commander} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 7, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Ajouter à la commande</button>
+                      <button onClick={() => setCommande(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 12 }}>
+                      <button onClick={() => setCommande({ fournisseurId: l.fournisseurId, qte: "1" })} style={boutonLienStyle}>🛒 Commander ici</button>
+                      <button onClick={() => setEdition({ id: l.id, numero: l.numeroFournisseur || "", cout: l.coutant ?? "" })} style={boutonLienStyle}>✏️ Modifier</button>
+                      <button onClick={() => retirerLien(l)} style={{ ...boutonLienStyle, color: "var(--danger)" }}>Retirer</button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+          {liens.length === 0 && <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>Aucun fournisseur lié pour l'instant.</p>}
+        </div>
+
+        {ajout ? (
+          <form onSubmit={ajouterLien} style={{ marginTop: 10 }}>
+            <select value={nouveauFournisseur} onChange={(e) => setNouveauFournisseur(e.target.value)} className="champ" required>
+              <option value="">Choisir le fournisseur…</option>
+              {fournisseursLibres.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+            </select>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input value={nouveauNumero} onChange={(e) => setNouveauNumero(e.target.value)} placeholder="No chez ce fournisseur" className="champ" style={{ flex: 2 }} />
+              <input type="number" min={0} step="0.01" value={nouveauCout} onChange={(e) => setNouveauCout(e.target.value)} placeholder="Prix $" className="champ" style={{ flex: 1 }} />
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button type="submit" disabled={enCours || !nouveauFournisseur} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Lier ce fournisseur</button>
+              <button type="button" onClick={() => setAjout(false)} className="bouton-3d-sombre" style={{ flex: 1, padding: 8, borderRadius: 8, fontSize: 12 }}>Annuler</button>
+            </div>
+          </form>
+        ) : (
+          fournisseursLibres.length > 0 && (
+            <button onClick={() => setAjout(true)} className="bouton-3d-sombre" style={{ width: "100%", marginTop: 10, padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>+ Ajouter un fournisseur</button>
+          )
+        )}
+        {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "8px 0 0" }}>{erreur}</p>}
+      </div>
+
+      <div className="carte">
         <TitreSection>Fournisseur habituel</TitreSection>
         <Champ label="Fournisseur par défaut" valeur={piece.fournisseur?.nom || "Aucun — configurable dans Modifier"} />
+        <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: 0 }}>Proposé en premier quand la pièce passe sous le seuil minimum.</p>
       </div>
-      {fournisseursHistorique.length > 0 && (
-        <div className="carte">
-          <TitreSection>Fournisseurs ayant déjà livré cet article</TitreSection>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {fournisseursHistorique.map((f) => (
-              <div key={f.nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{f.nom}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                    Dernière réception : {new Date(f.derniereDate).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 700 }}>{f.dernierCout.toFixed(2)} $ / unité</div>
-                  <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{f.totalRecu} reçues au total</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 }
+
+// Fusion d'un doublon : cette fiche est versée dans une autre (stock,
+// historique, numéros fournisseurs), puis supprimée.
+function FusionPiece({ piece, autresPieces, onFermer }) {
+  const router = useRouter();
+  const [recherche, setRecherche] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const q = recherche.trim().toLowerCase();
+  const suggestions = q ? autresPieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)).slice(0, 8) : [];
+
+  async function fusionner(cible) {
+    if (!window.confirm(`Fusionner « ${piece.nom} » (${piece.numero}) dans « ${cible.nom} » (${cible.numero}) ?\n\nLe stock (${piece.qte}) s'ajoute à celui de « ${cible.nom} », tout l'historique et les numéros fournisseurs suivent, puis la fiche ${piece.numero} est supprimée. C'est irréversible.`)) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/inventaire/${piece.id}/fusionner`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cibleId: cible.id }) });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    if (!res.ok) return setErreur(data.erreur || "Erreur.");
+    router.push(`/secretaire/inventaire/${cible.id}`);
+  }
+
+  return (
+    <div className="carte" style={{ marginTop: 16, border: "1px solid var(--accent)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <strong style={{ fontSize: 13 }}>🔀 Fusionner ce doublon dans une autre fiche</strong>
+        <button onClick={onFermer} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>✕</button>
+      </div>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 8px" }}>
+        Pour la même pièce entrée deux fois (souvent sous les numéros de deux fournisseurs). Choisis la fiche à garder.
+      </p>
+      <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="🔍 Fiche à garder (nom ou numéro)…" className="champ" autoFocus />
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {suggestions.map((p) => (
+          <button key={p.id} onClick={() => fusionner(p)} disabled={enCours} style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12.5, cursor: "pointer" }}>
+            {p.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>— {p.numero} · stock {p.qte}{!p.actif ? " · désactivée" : ""}</span>
+          </button>
+        ))}
+      </div>
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "8px 0 0" }}>{erreur}</p>}
+    </div>
+  );
+}
+
+const boutonLienStyle = { background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, padding: 0 };
 
 function OngletHistorique({ historique }) {
   if (historique.length === 0) {

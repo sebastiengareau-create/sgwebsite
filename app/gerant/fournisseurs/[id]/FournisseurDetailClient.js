@@ -139,6 +139,9 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
             <Link href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${fournisseur.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
               💳 Ses comptes à payer
             </Link>
+            <Link href={`/secretaire/inventaire/commandes?fournisseur=${fournisseur.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
+              🛒 Commander des pièces
+            </Link>
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>

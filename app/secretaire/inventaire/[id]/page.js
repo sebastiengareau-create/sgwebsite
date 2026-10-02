@@ -18,17 +18,28 @@ export default async function DetailPiece(props) {
         lignesDepense: { where: { qteRecue: { not: null } }, include: { depense: { include: { fournisseur: true } } }, take: 50, orderBy: { id: "desc" } },
         mouvements: { take: 100, orderBy: { creeLe: "desc" } },
         historique: { take: 50, orderBy: { modifieLe: "desc" } },
+        fournisseurs: { include: { fournisseur: true }, orderBy: { creeLe: "asc" } },
+        lignesCommande: {
+          where: { commande: { statut: { in: ["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"] } } },
+          include: { commande: { include: { fournisseur: true } } },
+        },
       },
     }),
     prisma.categorieInventaire.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
   ]);
   if (!piece) notFound();
+  // Pour la fusion d'un doublon : les autres fiches, en version légère.
+  const autresPieces = await prisma.piece.findMany({
+    where: { id: { not: piece.id } },
+    select: { id: true, nom: true, numero: true, qte: true, actif: true },
+    orderBy: { nom: "asc" },
+  });
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <PieceDetailClient piece={piece} categories={categories} fournisseurs={fournisseurs} />
+      <PieceDetailClient piece={piece} categories={categories} fournisseurs={fournisseurs} autresPieces={autresPieces} />
     </div>
   );
 }
