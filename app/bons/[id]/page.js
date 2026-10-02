@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
@@ -35,7 +35,13 @@ export default async function DetailBonPage(props) {
   // il n'y a plus d'assignation restrictive.
 
   const inventaire = await prisma.piece.findMany({ where: { actif: true }, orderBy: { nom: "asc" } });
-  const mecaniciens = await prisma.user.findMany({ where: { role: "MECANICIEN", actif: true }, orderBy: { nom: "asc" } });
+  // Tous les employés actifs (pas seulement les mécaniciens) peuvent se voir
+  // attribuer du temps manuellement sur une tâche.
+  const employes = await prisma.user.findMany({
+    where: { actif: true, role: { in: ROLES_VALIDES } },
+    select: { id: true, nom: true },
+    orderBy: { nom: "asc" },
+  });
   await assurerPlanComptable();
   // Inclut aussi les comptes désactivés (affichés grisés, non sélectionnables)
   // pour qu'une tâche déjà classée dessus ne se retrouve jamais avec une
@@ -61,7 +67,7 @@ export default async function DetailBonPage(props) {
       <BonDetailClient
         bon={bon}
         inventaire={inventaire}
-        mecaniciens={mecaniciens}
+        employes={employes}
         postesRevenu={postesRevenu}
         comptesTresorerie={comptesTresorerie}
         tauxHoraireClient={tauxHoraireClient}
