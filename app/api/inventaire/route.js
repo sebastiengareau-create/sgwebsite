@@ -9,7 +9,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { nom, numero, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie } = await request.json();
+  const { nom, numero, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie } = await request.json();
   if (!nom || !numero || prix === undefined) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
   }
@@ -18,12 +18,17 @@ export async function POST(request) {
   if (existante) {
     return NextResponse.json({ erreur: "Ce numéro de pièce existe déjà." }, { status: 409 });
   }
+  const code = String(codeBarre || "").replace(/\s+/g, "") || null;
+  if (code && (await prisma.piece.findUnique({ where: { codeBarre: code } }))) {
+    return NextResponse.json({ erreur: "Ce code-barres est déjà associé à une autre pièce." }, { status: 409 });
+  }
 
   const qteInitiale = Number(qte) || 0;
   const piece = await prisma.piece.create({
     data: {
       nom,
       numero,
+      codeBarre: code,
       qte: qteInitiale,
       qteMin: Number(qteMin) || 0,
       qteMax: qteMax !== undefined && qteMax !== "" ? Number(qteMax) : null,

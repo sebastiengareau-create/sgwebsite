@@ -7,6 +7,7 @@ import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
 const ALIAS_CHAMPS = {
   nom: ["nom", "name", "description", "piece"],
   numero: ["numero", "no piece", "no", "sku", "code"],
+  codeBarre: ["code barre", "code barres", "code-barre", "code-barres", "codebarre", "upc", "ean"],
   qte: ["qte", "quantite", "qty", "quantity", "qte en stock", "stock"],
   qteMin: ["qte min", "quantite min", "qte minimum", "min"],
   qteMax: ["qte max", "quantite max", "qte maximum", "max"],
@@ -51,8 +52,9 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Le fichier doit avoir au moins les colonnes \"Nom\" et \"Numéro\"." }, { status: 400 });
   }
 
-  const [numerosExistants, categories, fournisseurs] = await Promise.all([
+  const [numerosExistants, codesExistants, categories, fournisseurs] = await Promise.all([
     prisma.piece.findMany({ select: { numero: true } }).then((r) => new Set(r.map((p) => p.numero.toLowerCase()))),
+    prisma.piece.findMany({ where: { codeBarre: { not: null } }, select: { codeBarre: true } }).then((r) => new Set(r.map((p) => p.codeBarre))),
     prisma.categorieInventaire.findMany(),
     prisma.fournisseur.findMany({ select: { id: true, nom: true } }),
   ]);
@@ -90,11 +92,16 @@ export async function POST(request) {
       : null;
 
     const qteInitiale = versNombre(donnees.qte) || 0;
+    // Un code-barres déjà pris par une autre pièce est laissé de côté plutôt
+    // que de faire échouer la ligne.
+    const codeBarre = (donnees.codeBarre || "").replace(/\s+/g, "");
+    const codeBarreLibre = codeBarre && !codesExistants.has(codeBarre) ? codeBarre : null;
 
     const piece = await prisma.piece.create({
       data: {
         nom,
         numero,
+        codeBarre: codeBarreLibre,
         qte: qteInitiale,
         qteMin: versNombre(donnees.qteMin) || 0,
         qteMax: versNombre(donnees.qteMax),
@@ -111,6 +118,7 @@ export async function POST(request) {
       },
     });
     numerosExistants.add(numero.toLowerCase());
+    if (codeBarreLibre) codesExistants.add(codeBarreLibre);
     piecesCreees.push(piece);
     importes++;
   }

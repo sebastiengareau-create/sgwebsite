@@ -14,6 +14,7 @@ export async function PATCH(request, props) {
   const data = {};
   if (body.nom !== undefined) data.nom = body.nom;
   if (body.numero !== undefined) data.numero = body.numero;
+  if (body.codeBarre !== undefined) data.codeBarre = String(body.codeBarre || "").replace(/\s+/g, "") || null;
   if (body.qte !== undefined) data.qte = Number(body.qte);
   if (body.qteMin !== undefined) data.qteMin = Number(body.qteMin);
   if (body.qteMax !== undefined) data.qteMax = body.qteMax === "" || body.qteMax === null ? null : Number(body.qteMax);
@@ -27,7 +28,7 @@ export async function PATCH(request, props) {
   // Champs suivis dans l'onglet Historique de la fiche (valeur avant/après) —
   // la quantité n'en fait pas partie, elle a son propre journal (Mouvements).
   const CHAMPS_SUIVIS = {
-    nom: "Nom", numero: "Numéro", prix: "Prix de vente", coutant: "Coût moyen",
+    nom: "Nom", numero: "Numéro", codeBarre: "Code-barres fabricant", prix: "Prix de vente", coutant: "Coût moyen",
     qteMin: "Seuil minimum", qteMax: "Seuil maximum", emplacement: "Emplacement",
     fournisseurId: "Fournisseur habituel", categorie: "Catégorie", actif: "Statut",
   };
@@ -94,7 +95,8 @@ export async function PATCH(request, props) {
     return NextResponse.json({ ...piece, avertissementComptable });
   } catch (e) {
     if (e.code === "P2002") {
-      return NextResponse.json({ erreur: "Ce numéro de pièce existe déjà." }, { status: 409 });
+      const surCodeBarre = String(e.meta?.target || "").includes("codeBarre");
+      return NextResponse.json({ erreur: surCodeBarre ? "Ce code-barres est déjà associé à une autre pièce." : "Ce numéro de pièce existe déjà." }, { status: 409 });
     }
     return NextResponse.json({ erreur: "Erreur lors de la mise à jour." }, { status: 500 });
   }

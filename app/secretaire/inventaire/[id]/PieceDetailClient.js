@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection } from "../../../components/ui";
+import ScannerCodeBarres from "../../../components/ScannerCodeBarres";
+import ImpressionEtiquettes from "../../../components/ImpressionEtiquettes";
+import { extraireIdEtiquette } from "@/lib/codesBarres";
 
 const ONGLETS = [
   { code: "resume", label: "Résumé" },
@@ -26,9 +29,12 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const [onglet, setOnglet] = useState("resume");
+  const [afficherEtiquettes, setAfficherEtiquettes] = useState(false);
+  const [scannerOuvert, setScannerOuvert] = useState(false);
 
   const [nom, setNom] = useState(piece.nom);
   const [numero, setNumero] = useState(piece.numero);
+  const [codeBarre, setCodeBarre] = useState(piece.codeBarre || "");
   const [qte, setQte] = useState(piece.qte);
   const [qteMin, setQteMin] = useState(piece.qteMin);
   const [qteMax, setQteMax] = useState(piece.qteMax ?? "");
@@ -50,7 +56,7 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nom, numero, qte, qteMin, prix, coutant, categorie,
+        nom, numero, qte, qteMin, prix, coutant, categorie, codeBarre,
         qteMax: qteMax === "" ? null : qteMax,
         emplacement: emplacement.trim() || null,
         fournisseurId: fournisseurId || null,
@@ -126,6 +132,26 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Numéro de référence</label>
           <input value={numero} onChange={(e) => setNumero(e.target.value)} className="champ" />
+          <label className="etiquette">Code-barres du fabricant (UPC/EAN) — optionnel</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" className="champ" style={{ flex: 1 }} />
+            <button type="button" onClick={() => setScannerOuvert(true)} className="bouton-3d-sombre" title="Scanner le code de la boîte" style={{ padding: "0 12px", borderRadius: 8, fontSize: 15, alignSelf: "stretch", marginBottom: 8 }}>📷</button>
+          </div>
+          {scannerOuvert && (
+            <ScannerCodeBarres
+              titre="Code-barres de la boîte"
+              onFermer={() => setScannerOuvert(false)}
+              onDetecte={(texte) => {
+                setScannerOuvert(false);
+                if (extraireIdEtiquette(texte)) {
+                  setErreur("C'est une étiquette de l'appli, pas le code du fabricant — scanne le code-barres imprimé sur la boîte.");
+                  return;
+                }
+                setErreur("");
+                setCodeBarre(texte.trim());
+              }}
+            />
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
               <label className="etiquette">Stock</label>
@@ -203,7 +229,16 @@ export default function PieceDetailClient({ piece, categories, fournisseurs }) {
           {onglet === "fournisseurs" && <OngletFournisseurs piece={piece} lignesDepense={piece.lignesDepense} />}
           {onglet === "historique" && <OngletHistorique historique={piece.historique} />}
 
+          {afficherEtiquettes && (
+            <div style={{ marginTop: 16 }}>
+              <ImpressionEtiquettes pieces={[{ id: piece.id, qte: piece.qte }]} uneSeule onFermer={() => setAfficherEtiquettes(false)} />
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <button onClick={() => setAfficherEtiquettes((v) => !v)} className="bouton-3d-sombre" title="Imprimer une étiquette code-barres" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+              🏷️
+            </button>
             <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
               ✏️ Modifier
             </button>
@@ -229,6 +264,7 @@ function OngletResume({ piece, marge, margePct }) {
         <Champ label="Seuil minimum" valeur={`${piece.qteMin}`} />
         {piece.qteMax != null && <Champ label="Seuil maximum" valeur={`${piece.qteMax}`} />}
         {piece.emplacement && <Champ label="Emplacement" valeur={piece.emplacement} />}
+        <Champ label="Code-barres fabricant" valeur={piece.codeBarre || "Aucun"} />
       </div>
 
       <div className="carte" style={{ marginBottom: 12 }}>

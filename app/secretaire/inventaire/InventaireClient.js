@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
+import ScannerCodeBarres from "../../components/ScannerCodeBarres";
+import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
+import { trouverPieceParScan, normaliserCode, extraireIdEtiquette } from "@/lib/codesBarres";
 
 export default function InventaireClient({ pieces, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
   const router = useRouter();
@@ -12,6 +15,12 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
   const [afficherCategories, setAfficherCategories] = useState(false);
   const [recherche, setRecherche] = useState("");
   const [voirDesactivees, setVoirDesactivees] = useState(false);
+  const [scannerOuvert, setScannerOuvert] = useState(false);
+  const [codeInconnu, setCodeInconnu] = useState(null);
+  const [messageScan, setMessageScan] = useState("");
+  const [codeBarreNouvelle, setCodeBarreNouvelle] = useState("");
+  const [modeEtiquettes, setModeEtiquettes] = useState(false);
+  const [selection, setSelection] = useState(() => new Set());
   const nombreDesactivees = pieces.filter((p) => !p.actif).length;
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
@@ -20,8 +29,29 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
     if (!p.actif && !voirDesactivees) return false;
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q);
+    return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)
+      || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)));
   });
+
+  // Un scan ouvre la fiche de la pièce ; un code inconnu (boîte d'un
+  // fabricant jamais scannée) propose de l'associer à une pièce.
+  function scanDetecte(texte) {
+    setScannerOuvert(false);
+    setMessageScan("");
+    const { piece, code, parEtiquette } = trouverPieceParScan(pieces, texte);
+    if (piece) return router.push(`/secretaire/inventaire/${piece.id}`);
+    if (parEtiquette) return setMessageScan("Cette étiquette correspond à une pièce qui n'existe plus dans l'inventaire.");
+    setCodeInconnu(code);
+  }
+
+  function basculerSelection(id) {
+    setSelection((s) => {
+      const copie = new Set(s);
+      if (copie.has(id)) copie.delete(id); else copie.add(id);
+      return copie;
+    });
+  }
+  const piecesSelectionnees = pieces.filter((p) => selection.has(p.id));
 
   return (
     <div className="conteneur-page">
@@ -29,10 +59,36 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
 
       {alignement && <AlignementInventaire alignement={alignement} />}
 
+      <button
+        onClick={() => { setCodeInconnu(null); setScannerOuvert(true); }}
+        className="bouton-3d"
+        style={{ display: "block", width: "100%", padding: 12, borderRadius: 10, fontSize: 14, fontWeight: 700, marginBottom: 12 }}
+      >
+        📷 Scanner une pièce
+      </button>
+      {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
+      {messageScan && <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 12px" }}>{messageScan}</p>}
+      {codeInconnu && (
+        <CodeInconnu
+          code={codeInconnu}
+          pieces={pieces.filter((p) => p.actif)}
+          onAssociee={(id) => router.push(`/secretaire/inventaire/${id}`)}
+          onNouvelle={() => { setCodeBarreNouvelle(codeInconnu); setCodeInconnu(null); setAfficherFormulaire(true); }}
+          onFermer={() => setCodeInconnu(null)}
+        />
+      )}
+
       <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        <button
+          onClick={() => { setModeEtiquettes((v) => !v); setSelection(new Set()); }}
+          className="bouton-3d-sombre"
+          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+        >
+          {modeEtiquettes ? "Terminer les étiquettes" : "🏷️ Étiquettes"}
+        </button>
         {peutImporter && <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />}
         <button
-          onClick={() => setAfficherFormulaire((v) => !v)}
+          onClick={() => { setAfficherFormulaire((v) => !v); setCodeBarreNouvelle(""); }}
           className="bouton-3d"
           style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
         >
@@ -74,15 +130,31 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
         </label>
       )}
 
+      {modeEtiquettes && (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 8, gap: 8 }}>
+            <span style={{ color: "var(--text-muted)" }}>Touche les pièces à étiqueter — {selection.size} choisie{selection.size > 1 ? "s" : ""}</span>
+            <span style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+              <button onClick={() => setSelection(new Set(piecesFiltrees.map((p) => p.id)))} style={boutonLien}>Tout ({piecesFiltrees.length})</button>
+              <button onClick={() => setSelection(new Set())} style={boutonLien}>Aucune</button>
+            </span>
+          </div>
+          {piecesSelectionnees.length > 0 && (
+            <ImpressionEtiquettes pieces={piecesSelectionnees.map((p) => ({ id: p.id, qte: p.qte }))} />
+          )}
+        </>
+      )}
+
       {afficherFormulaire && (
-        <FormulaireCreation categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
+        <FormulaireCreation key={codeBarreNouvelle} codeBarreInitial={codeBarreNouvelle} categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-        {piecesFiltrees.map((p) => (
-          <Link key={p.id} href={`/secretaire/inventaire/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ background: "var(--surface)", border: p.actif && p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", opacity: p.actif ? 1 : 0.55 }}>
-              <div>
+        {piecesFiltrees.map((p) => {
+          const carte = (
+            <div style={{ background: "var(--surface)", border: modeEtiquettes && selection.has(p.id) ? "1px solid var(--accent)" : p.actif && p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: p.actif ? 1 : 0.55 }}>
+              {modeEtiquettes && <input type="checkbox" checked={selection.has(p.id)} readOnly style={{ flexShrink: 0, pointerEvents: "none" }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{p.nom}{!p.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivée)</span>}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.numero}</div>
                 <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(p.categorie)}</div>
@@ -92,8 +164,13 @@ export default function InventaireClient({ pieces, categories, comptesRevenu, fo
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.prix.toFixed(2)} $ vente</div>
               </div>
             </div>
-          </Link>
-        ))}
+          );
+          return modeEtiquettes ? (
+            <div key={p.id} onClick={() => basculerSelection(p.id)} style={{ cursor: "pointer" }}>{carte}</div>
+          ) : (
+            <Link key={p.id} href={`/secretaire/inventaire/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>{carte}</Link>
+          );
+        })}
         {piecesFiltrees.length === 0 && pieces.length > 0 && recherche.trim() && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce ne correspond à "{recherche}".</p>
         )}
@@ -244,9 +321,11 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   );
 }
 
-function FormulaireCreation({ categories, fournisseurs, onCree }) {
+function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial = "" }) {
   const [nom, setNom] = useState("");
   const [numero, setNumero] = useState("");
+  const [codeBarre, setCodeBarre] = useState(codeBarreInitial);
+  const [scannerOuvert, setScannerOuvert] = useState(false);
   const [qte, setQte] = useState("0");
   const [qteMin, setQteMin] = useState("0");
   const [qteMax, setQteMax] = useState("");
@@ -265,7 +344,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree }) {
     const res = await fetch("/api/inventaire", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, numero, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie }),
+      body: JSON.stringify({ nom, numero, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -284,6 +363,22 @@ function FormulaireCreation({ categories, fournisseurs, onCree }) {
     <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 4 }}>
       <input required placeholder="Nom de la pièce (ex : Filtre à huile)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input required placeholder="Numéro de référence (ex : FO-2201)" value={numero} onChange={(e) => setNumero(e.target.value)} style={champStyle} />
+      <label style={labelStyle}>Code-barres du fabricant (UPC/EAN) — optionnel</label>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" style={{ ...champStyle, flex: 1 }} />
+        <button type="button" onClick={() => setScannerOuvert(true)} className="bouton-3d-sombre" title="Scanner le code de la boîte" style={{ padding: "0 12px", borderRadius: 8, fontSize: 15, marginBottom: 8 }}>📷</button>
+      </div>
+      {scannerOuvert && (
+        <ScannerCodeBarres
+          titre="Code-barres de la boîte"
+          onFermer={() => setScannerOuvert(false)}
+          onDetecte={(texte) => {
+            setScannerOuvert(false);
+            if (extraireIdEtiquette(texte)) return setErreur("C'est une étiquette de l'appli, pas le code du fabricant — scanne le code-barres imprimé sur la boîte.");
+            setCodeBarre(texte.trim());
+          }}
+        />
+      )}
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Quantité en stock</label>
@@ -332,6 +427,7 @@ const champStyle = {
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
 const labelStyle = { display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 3 };
+const boutonLien = { background: "none", border: "none", color: "var(--accent)", textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0 };
 const boutonSecondaire = {
   flex: 1, padding: 8, borderRadius: 8, border: "1px solid var(--border)", background: "none",
   color: "var(--text-muted)", cursor: "pointer", fontSize: 11.5, fontWeight: 600,
@@ -389,6 +485,76 @@ function AlignementInventaire({ alignement }) {
         </>
       )}
       {erreur && <p style={{ color: "var(--danger)", margin: "6px 0 0" }}>{erreur}</p>}
+    </div>
+  );
+}
+
+// Code scanné qui ne correspond à aucune pièce (typiquement le code-barres
+// d'un fabricant, la première fois) : l'associer à une pièce existante ou
+// créer la pièce avec ce code.
+function CodeInconnu({ code, pieces, onAssociee, onNouvelle, onFermer }) {
+  const [recherche, setRecherche] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  const q = recherche.trim().toLowerCase();
+  const suggestions = q
+    ? pieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)).slice(0, 8)
+    : [];
+
+  async function associer(piece) {
+    if (piece.codeBarre && !window.confirm(`« ${piece.nom} » a déjà le code ${piece.codeBarre}. Le remplacer par ${code} ?`)) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/inventaire/${piece.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codeBarre: code }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    onAssociee(piece.id);
+  }
+
+  return (
+    <div className="carte carte-m" style={{ marginBottom: 12, border: "1px solid var(--accent)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div style={{ fontSize: 13 }}>
+          Code inconnu : <strong style={{ fontFamily: "monospace" }}>{code}</strong>
+          <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 2 }}>Associe-le à une pièce : la prochaine fois, le scan la trouvera directement.</div>
+        </div>
+        <button onClick={onFermer} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>✕</button>
+      </div>
+      <input
+        value={recherche}
+        onChange={(e) => setRecherche(e.target.value)}
+        placeholder="🔍 Chercher la pièce par nom ou numéro…"
+        autoFocus
+        style={{ ...champStyle, marginTop: 10 }}
+      />
+      {suggestions.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+          {suggestions.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => associer(p)}
+              disabled={enCours}
+              style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12.5, cursor: "pointer" }}
+            >
+              {p.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>— {p.numero}</span>
+              {p.codeBarre && <span style={{ color: "var(--text-muted)" }}> (a déjà un code)</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 8px" }}>{erreur}</p>}
+      <button onClick={onNouvelle} className="bouton-3d-sombre" style={{ width: "100%", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+        + Nouvelle pièce avec ce code
+      </button>
     </div>
   );
 }
