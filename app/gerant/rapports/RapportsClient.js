@@ -36,16 +36,19 @@ function numeroTache(entree) {
   return entree.probleme.bon.problemes.findIndex((p) => p.id === entree.probleme.id) + 1;
 }
 
-const DEBUT_ECHELLE = 6; // 6h
-const FIN_ECHELLE = 19; // 19h
-const PORTEE = FIN_ECHELLE - DEBUT_ECHELLE;
+// Échelle de la frise : 5h à 22h, élargie au besoin pour couvrir les heures
+// d'ouverture du jour.
+const DEBUT_ECHELLE = 5;
+const FIN_ECHELLE = 22;
 
-function pourcentagePourHeure(date) {
-  const h = date.getHours() + date.getMinutes() / 60;
-  return Math.min(100, Math.max(0, ((h - DEBUT_ECHELLE) / PORTEE) * 100));
-}
+function FriseHoraire({ entrees, entreesInternes, couleurs, heuresOuverture }) {
+  const debutEchelle = Math.min(DEBUT_ECHELLE, heuresOuverture ? Math.floor(heuresOuverture.debut) : DEBUT_ECHELLE);
+  const finEchelle = Math.max(FIN_ECHELLE, heuresOuverture ? Math.ceil(heuresOuverture.fin) : FIN_ECHELLE);
+  const portee = finEchelle - debutEchelle;
+  const pourcentage = (h) => Math.min(100, Math.max(0, ((h - debutEchelle) / portee) * 100));
+  const pourcentagePourHeure = (date) => pourcentage(date.getHours() + date.getMinutes() / 60);
+  const heures = Array.from({ length: portee + 1 }, (_, i) => debutEchelle + i);
 
-function FriseHoraire({ entrees, entreesInternes, couleurs }) {
   const bonsUniques = [];
   const vus = new Set();
   for (const e of entrees) {
@@ -60,8 +63,8 @@ function FriseHoraire({ entrees, entreesInternes, couleurs }) {
   return (
     <div style={{ marginTop: 10 }}>
       <div style={{ position: "relative", height: 32, background: "var(--bg)", borderRadius: 6, overflow: "hidden" }}>
-        {Array.from({ length: PORTEE + 1 }, (_, i) => DEBUT_ECHELLE + i).map((h) => (
-          <div key={h} style={{ position: "absolute", left: `${((h - DEBUT_ECHELLE) / PORTEE) * 100}%`, top: 0, bottom: 0, width: 1, background: "var(--border)" }} />
+        {heures.map((h) => (
+          <div key={h} style={{ position: "absolute", left: `${pourcentage(h)}%`, top: 0, bottom: 0, width: 1, background: "var(--border)" }} />
         ))}
         {entrees.map((e) => {
           const debut = new Date(e.debut);
@@ -96,11 +99,32 @@ function FriseHoraire({ entrees, entreesInternes, couleurs }) {
             />
           );
         })}
+        {heuresOuverture && (
+          <div
+            title={`Heures d'ouverture ${heuresOuverture.libelle}`}
+            style={{
+              position: "absolute", left: `${pourcentage(heuresOuverture.debut)}%`,
+              width: `${pourcentage(heuresOuverture.fin) - pourcentage(heuresOuverture.debut)}%`,
+              top: 0, bottom: 0, border: "2px solid var(--text)", borderRadius: 6,
+              boxSizing: "border-box", pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
-        <span>{DEBUT_ECHELLE}h</span>
-        <span>{Math.round((DEBUT_ECHELLE + FIN_ECHELLE) / 2)}h</span>
-        <span>{FIN_ECHELLE}h</span>
+      <div style={{ position: "relative", height: 12, fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
+        {heures.map((h, i) => (
+          <span
+            key={h}
+            style={{
+              position: "absolute", left: `${pourcentage(h)}%`,
+              transform: i === 0 ? "none" : i === heures.length - 1 ? "translateX(-100%)" : "translateX(-50%)",
+              fontWeight: heuresOuverture && (h === heuresOuverture.debut || h === heuresOuverture.fin) ? 700 : 400,
+              color: heuresOuverture && h >= heuresOuverture.debut && h <= heuresOuverture.fin ? "var(--text)" : undefined,
+            }}
+          >
+            {h}
+          </span>
+        ))}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
         {bonsUniques.map((b) => (
@@ -120,7 +144,7 @@ function FriseHoraire({ entrees, entreesInternes, couleurs }) {
   );
 }
 
-export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues, coutHoraire, tauxHoraireClient }) {
+export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues, coutHoraire, tauxHoraireClient, heuresOuverture }) {
   const router = useRouter();
 
   function changerDate(nouvelleDate) {
@@ -221,7 +245,7 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                 <span style={{ color: margeJour >= 0 ? "var(--success)" : "var(--danger)" }}>{margeJour.toFixed(2)} $</span>
               </div>
 
-              {(entrees.length > 0 || entreesInternes.length > 0) && <FriseHoraire entrees={entrees} entreesInternes={entreesInternes} couleurs={couleurs} />}
+              {(entrees.length > 0 || entreesInternes.length > 0) && <FriseHoraire entrees={entrees} entreesInternes={entreesInternes} couleurs={couleurs} heuresOuverture={heuresOuverture} />}
 
               {(entrees.length > 0 || entreesInternes.length > 0) && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>

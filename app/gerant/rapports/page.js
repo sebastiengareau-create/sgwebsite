@@ -2,6 +2,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
+import { chargerReglagesDisponibilites } from "@/lib/disponibilites";
 import EnTete from "../../components/EnTete";
 import RapportsClient from "./RapportsClient";
 
@@ -25,7 +26,7 @@ export default async function RapportJournalier(props) {
   // app/bons/[id]/page.js) — s'il n'était pas inclus ici, ses heures
   // facturées seraient bel et bien enregistrées mais absentes du rapport et
   // du revenu total de l'équipe.
-  const [parametres, mecaniciens, entrees, entreesInternes] = await Promise.all([
+  const [parametres, mecaniciens, entrees, entreesInternes, reglages] = await Promise.all([
     prisma.parametre.findMany(),
     prisma.user.findMany({ where: { role: { in: ["MECANICIEN", "GERANT"] } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
@@ -41,12 +42,21 @@ export default async function RapportJournalier(props) {
       include: { employe: true, tacheInterne: true },
       orderBy: { debut: "asc" },
     }),
+    chargerReglagesDisponibilites(),
   ]);
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const heuresAttendues = Number(dict[`heures_${jourSemaine}`] ?? 8);
   const coutHoraire = Number(dict.cout_horaire_mecanicien || 95);
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
+
+  // Heures d'ouverture du jour (mêmes réglages que le calendrier), en heures
+  // décimales pour l'encadré de la frise ; null si le commerce est fermé.
+  const horaireJour = reglages.heures[jourSemaine];
+  const versHeures = (str) => { const [h, m] = str.split(":").map(Number); return h + m / 60; };
+  const heuresOuverture = horaireJour
+    ? { debut: versHeures(horaireJour.ouverture), fin: versHeures(horaireJour.fermeture), libelle: `${horaireJour.ouverture}–${horaireJour.fermeture}` }
+    : null;
 
   const parMecanicien = mecaniciens.map((m) => {
     const siennes = entrees.filter((e) => e.employeId === m.id);
@@ -80,6 +90,7 @@ export default async function RapportJournalier(props) {
         heuresAttendues={heuresAttendues}
         coutHoraire={coutHoraire}
         tauxHoraireClient={tauxHoraireClient}
+        heuresOuverture={heuresOuverture}
       />
     </div>
   );
