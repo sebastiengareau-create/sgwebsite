@@ -65,7 +65,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -635,7 +635,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
             index={idx}
             bonId={bon.id}
             inventaire={inventaire}
-            mecaniciens={mecaniciens}
+            employes={employes}
             postesRevenu={postesRevenu}
             peutModifier={peutModifier}
             peutPoinconner={peutPoinconner}
@@ -664,7 +664,7 @@ export default function BonDetailClient({ bon, inventaire, mecaniciens, postesRe
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
   const [recherchePiece, setRecherchePiece] = useState("");
   const [afficherSuggestionsPiece, setAfficherSuggestionsPiece] = useState(false);
@@ -1097,13 +1097,13 @@ function LigneTache({ probleme, index, bonId, inventaire, mecaniciens, postesRev
         )}
 
         {/* Ajouter du temps manuellement — pour un employé qui a oublié de poinçonner */}
-        {peutModifier && !verrouille && mecaniciens && mecaniciens.length > 0 && (
+        {peutModifier && !verrouille && employes && employes.length > 0 && (
           <div style={{ marginTop: 8 }}>
             {afficherTempsManuel ? (
               <div style={{ background: "var(--bg)", borderRadius: 8, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                 <select value={empChoisi} onChange={(e) => setEmpChoisi(e.target.value)} style={champPetit}>
                   <option value="">Choisir un employé…</option>
-                  {mecaniciens.map((m) => <option key={m.id} value={m.id}>{m.nom}</option>)}
+                  {employes.map((e) => <option key={e.id} value={e.id}>{e.nom}</option>)}
                 </select>
                 <input type="datetime-local" value={debutManuel} onChange={(e) => setDebutManuel(e.target.value)} style={champPetit} />
                 <input type="datetime-local" value={finManuel} onChange={(e) => setFinManuel(e.target.value)} style={champPetit} />
