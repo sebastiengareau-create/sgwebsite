@@ -8,6 +8,8 @@ import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
+import ScannerCodeBarres from "../components/ScannerCodeBarres";
+import { trouverPieceParScan, normaliserCode } from "@/lib/codesBarres";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -672,6 +674,7 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
   const [qtePiece, setQtePiece] = useState("1");
   const [erreurPiece, setErreurPiece] = useState("");
   const [confirmationPiece, setConfirmationPiece] = useState("");
+  const [scannerOuvert, setScannerOuvert] = useState(false);
   const [erreurPhoto, setErreurPhoto] = useState("");
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [enCoursPoincon, setEnCoursPoincon] = useState(false);
@@ -701,7 +704,8 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
   const suggestionsPieces = qPiece
-    ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece))
+    ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece)
+      || (p.codeBarre && normaliserCode(p.codeBarre) === normaliserCode(qPiece)))
     : piecesDisponibles;
   const pieceSelectionnee = piecesDisponibles.find((p) => p.id === pieceChoisie);
 
@@ -719,6 +723,25 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
     setPieceChoisie(p.id);
     setRecherchePiece("");
     setAfficherSuggestionsPiece(false);
+  }
+  // Un scan choisit la pièce ; la quantité reste à confirmer avec « + ».
+  function scanDetecte(texte) {
+    setScannerOuvert(false);
+    setErreurPiece("");
+    setConfirmationPiece("");
+    const { piece, code, parEtiquette } = trouverPieceParScan(inventaire, texte);
+    if (!piece) {
+      setErreurPiece(parEtiquette
+        ? "Cette pièce est désactivée ou n'existe plus dans l'inventaire."
+        : `Code « ${code} » inconnu — associe-le à une pièce dans Inventaire (📷 Scanner une pièce).`);
+      return;
+    }
+    if (piece.qte <= 0) {
+      setErreurPiece(`${piece.nom} : rupture de stock (0 en stock).`);
+      return;
+    }
+    choisirPiece(piece);
+    setConfirmationPiece(`${piece.nom} trouvée — ajuste la quantité, puis +`);
   }
   const totalLigne = probleme.pieces.reduce((s, l) => s + l.qte * l.prix, 0);
 
@@ -1184,6 +1207,8 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
 
           {!verrouille && (
             <div style={{ display: "flex", gap: 6 }}>
+              <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner une pièce" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>📷</button>
+              {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce pour ce bon" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
               <div ref={boiteRecherchePieceRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
                 <button
                   type="button"

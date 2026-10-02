@@ -181,6 +181,7 @@ model Piece {
   id            String                @id @default(cuid())
   nom           String
   numero        String                @unique
+  codeBarre     String?               @unique // code UPC/EAN imprimé par le fabricant — scanner la boîte d'origine trouve la pièce
   qte           Int                   @default(0)
   qteMin        Int                   @default(0)
   qteMax        Int? // seuil de réapprovisionnement suggéré — informatif seulement
