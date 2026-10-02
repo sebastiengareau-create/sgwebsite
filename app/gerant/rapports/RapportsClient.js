@@ -36,10 +36,10 @@ function numeroTache(entree) {
   return entree.probleme.bon.problemes.findIndex((p) => p.id === entree.probleme.id) + 1;
 }
 
-// Échelle de la frise : 5h à 22h, élargie au besoin pour couvrir les heures
+// Échelle de la frise : 7h à 19h, élargie au besoin pour couvrir les heures
 // d'ouverture du jour.
-const DEBUT_ECHELLE = 5;
-const FIN_ECHELLE = 22;
+const DEBUT_ECHELLE = 7;
+const FIN_ECHELLE = 19;
 
 function FriseHoraire({ entrees, entreesInternes, couleurs, heuresOuverture }) {
   const debutEchelle = Math.min(DEBUT_ECHELLE, heuresOuverture ? Math.floor(heuresOuverture.debut) : DEBUT_ECHELLE);
@@ -112,7 +112,8 @@ function FriseHoraire({ entrees, entreesInternes, couleurs, heuresOuverture }) {
         )}
       </div>
       <div style={{ position: "relative", height: 12, fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
-        {heures.map((h, i) => (
+        {/* Une heure sur deux, pour que les repères tiennent sur un téléphone */}
+        {heures.map((h, i) => i % 2 === 0 && (
           <span
             key={h}
             style={{
@@ -122,7 +123,7 @@ function FriseHoraire({ entrees, entreesInternes, couleurs, heuresOuverture }) {
               color: heuresOuverture && h >= heuresOuverture.debut && h <= heuresOuverture.fin ? "var(--text)" : undefined,
             }}
           >
-            {h}
+            {h}h
           </span>
         ))}
       </div>
