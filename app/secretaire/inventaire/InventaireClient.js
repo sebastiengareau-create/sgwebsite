@@ -361,13 +361,13 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
   // l'écrase plus (vider le champ la rétablit)
   const [prixManuel, setPrixManuel] = useState(false);
   const [categorie, setCategorie] = useState(categories[0]?.code || "PIECE");
-  const majoration = CLIENT.majorationPrixVente;
+  const marge = CLIENT.margePrixVente;
 
   function changerCoutant(valeur) {
     setCoutant(valeur);
-    if (majoration == null || prixManuel) return;
+    if (marge == null || prixManuel) return;
     const c = parseFloat(valeur);
-    setPrix(Number.isFinite(c) && c >= 0 ? (c * (1 + majoration / 100)).toFixed(2) : "");
+    setPrix(Number.isFinite(c) && c >= 0 ? (c / (1 - marge / 100)).toFixed(2) : "");
   }
 
   function changerPrix(valeur) {
@@ -433,7 +433,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
           <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" style={champStyle} />
         </div>
       </div>
-      {majoration == null ? (
+      {marge == null ? (
         <>
           <label style={labelStyle}>Prix unitaire ($)</label>
           <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} style={champStyle} />
@@ -444,7 +444,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
         <>
           <label style={labelStyle}>Prix coûtant ($)</label>
           <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Prix de vente ($) — proposé à coûtant + {majoration} %, modifiable</label>
+          <label style={labelStyle}>Prix de vente ($) — proposé pour une marge de {marge} %, modifiable</label>
           <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} style={champStyle} />
         </>
       )}
