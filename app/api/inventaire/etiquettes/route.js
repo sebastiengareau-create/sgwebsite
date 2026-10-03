@@ -3,8 +3,31 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { genererPdfEtiquettesPieces, FORMATS_ETIQUETTES } from "@/lib/pdfEtiquettesPieces";
 import { urlEtiquettePiece } from "@/lib/codesBarres";
 import { obtenirInfosEntreprise } from "@/lib/config";
+import { image } from "@/lib/client";
+import path from "path";
+import sharp from "sharp";
 
 const MAX_ETIQUETTES = 3000;
+
+// Logo du client (le même que dans l'en-tête de l'appli), réduit et posé
+// sur fond blanc — un logo de 1500 px alourdirait chaque PDF, et une
+// transparence s'imprime mal sur une imprimante thermique. Préparé une fois.
+let logoEtiquette;
+async function obtenirLogo() {
+  if (logoEtiquette === undefined) {
+    try {
+      logoEtiquette = await sharp(path.join(process.cwd(), "public", image("logo.png")))
+        .resize(400, 400, { fit: "inside", withoutEnlargement: true })
+        .flatten({ background: "#ffffff" })
+        .png()
+        .toBuffer();
+    } catch (e) {
+      console.error("Logo des étiquettes introuvable :", e.message);
+      logoEtiquette = null;
+    }
+  }
+  return logoEtiquette;
+}
 
 // Adresse publique de l'appli, encodée dans les QR : celle d'où l'utilisateur
 // imprime (envoyée par le navigateur), sinon reconstituée des en-têtes du
@@ -46,9 +69,9 @@ export async function POST(request) {
   }
 
   // Nom de l'entreprise (Administrateur → Informations de l'entreprise) en
-  // première ligne.
-  const { nomEntreprise } = await obtenirInfosEntreprise();
-  const pdf = await genererPdfEtiquettesPieces(etiquettes, format, depart, nomEntreprise);
+  // première ligne, logo dans le coin supérieur droit.
+  const [{ nomEntreprise }, logo] = await Promise.all([obtenirInfosEntreprise(), obtenirLogo()]);
+  const pdf = await genererPdfEtiquettesPieces(etiquettes, format, depart, { nomEntreprise, logo });
   return new Response(pdf, {
     headers: {
       "Content-Type": "application/pdf",
