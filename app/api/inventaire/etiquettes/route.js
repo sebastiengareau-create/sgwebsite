@@ -46,7 +46,7 @@ export async function POST(request) {
   }
 
   // Nom de l'entreprise (Administrateur → Informations de l'entreprise) en
-  // première ligne, tel qu'affiché dans la fenêtre d'impression.
+  // première ligne.
   const { nomEntreprise } = await obtenirInfosEntreprise();
   const pdf = await genererPdfEtiquettesPieces(etiquettes, format, depart, nomEntreprise);
   return new Response(pdf, {
