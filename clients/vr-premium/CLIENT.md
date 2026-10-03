@@ -14,6 +14,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 - `vehiculeObligatoire: true` — chaque bon porte sur un véhicule (marque et
   modèle exigés, pas d'option « Non précisé », premier véhicule du client
   présélectionné).
+- `majorationPrixVente: 40` — à la création d'une pièce d'inventaire, le
+  prix de vente est proposé à **coûtant + 40 %** (ex. 10,00 $ → 14,00 $).
+  Le champ reste modifiable ; une fois modifié à la main, le coûtant ne
+  l'écrase plus.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

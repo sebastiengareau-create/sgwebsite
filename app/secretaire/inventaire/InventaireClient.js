@@ -9,6 +9,7 @@ import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
+import { CLIENT } from "@/lib/client";
 
 export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
   const router = useRouter();
@@ -356,7 +357,23 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
   const [fournisseurId, setFournisseurId] = useState("");
   const [prix, setPrix] = useState("");
   const [coutant, setCoutant] = useState("");
+  // Prix de vente saisi à la main : la proposition calculée du coûtant ne
+  // l'écrase plus (vider le champ la rétablit)
+  const [prixManuel, setPrixManuel] = useState(false);
   const [categorie, setCategorie] = useState(categories[0]?.code || "PIECE");
+  const majoration = CLIENT.majorationPrixVente;
+
+  function changerCoutant(valeur) {
+    setCoutant(valeur);
+    if (majoration == null || prixManuel) return;
+    const c = parseFloat(valeur);
+    setPrix(Number.isFinite(c) && c >= 0 ? (c * (1 + majoration / 100)).toFixed(2) : "");
+  }
+
+  function changerPrix(valeur) {
+    setPrix(valeur);
+    setPrixManuel(valeur !== "");
+  }
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -416,10 +433,21 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
           <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" style={champStyle} />
         </div>
       </div>
-      <label style={labelStyle}>Prix unitaire ($)</label>
-      <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => setPrix(e.target.value)} style={champStyle} />
-      <label style={labelStyle}>Prix coûtant ($) — optionnel, pour le calcul de marge</label>
-      <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => setCoutant(e.target.value)} style={champStyle} />
+      {majoration == null ? (
+        <>
+          <label style={labelStyle}>Prix unitaire ($)</label>
+          <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} style={champStyle} />
+          <label style={labelStyle}>Prix coûtant ($) — optionnel, pour le calcul de marge</label>
+          <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} style={champStyle} />
+        </>
+      ) : (
+        <>
+          <label style={labelStyle}>Prix coûtant ($)</label>
+          <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} style={champStyle} />
+          <label style={labelStyle}>Prix de vente ($) — proposé à coûtant + {majoration} %, modifiable</label>
+          <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} style={champStyle} />
+        </>
+      )}
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Emplacement — optionnel</label>
