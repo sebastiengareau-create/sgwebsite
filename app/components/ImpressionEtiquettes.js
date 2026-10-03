@@ -84,8 +84,7 @@ export default function ImpressionEtiquettes({ pieces, uneSeule = false, nomEntr
       {nomEntreprise && (
         <p style={{ fontSize: 11.5, margin: "0 0 8px", color: "var(--text-muted)" }}>
           Première ligne : <strong style={{ color: "var(--text)" }}>{nomEntreprise}</strong>
-          {/* DEFAUTS.nomEntreprise de lib/config.js (non importable ici, côté navigateur) */}
-          {nomEntreprise === "Ton Entreprise" && <span style={{ color: "var(--danger)" }}> — nom de démonstration, à changer dans Administrateur → Informations de l'entreprise</span>}
+          <span> (Administrateur → Informations de l'entreprise)</span>
         </p>
       )}
 
