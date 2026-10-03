@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { genererPdfRapportInventaire } from "@/lib/pdfRapportInventaire";
-import { FILTRE_PIECES_RAPPORT, libellePieceRapport } from "@/lib/rapportInventaire";
+import { FILTRE_PIECES_RAPPORT, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 
 export async function GET() {
   const session = await obtenirSession();
@@ -11,11 +11,11 @@ export async function GET() {
   }
 
   const [pieces, { nomEntreprise }] = await Promise.all([
-    prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, orderBy: { nom: "asc" } }),
+    prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, include: { fournisseurs: { include: { fournisseur: true } } }, orderBy: { nom: "asc" } }),
     obtenirInfosEntreprise(),
   ]);
 
-  const pdf = await genererPdfRapportInventaire(pieces.map((p) => ({ ...p, nom: libellePieceRapport(p) })), nomEntreprise);
+  const pdf = await genererPdfRapportInventaire(pieces.map((p) => ({ ...p, nom: libellePieceRapport(p), numerosFournisseurs: libelleNumerosFournisseurs(p) })), nomEntreprise);
   const nomFichier = `rapport-inventaire-${new Date().toISOString().slice(0, 10)}.pdf`;
 
   return new Response(pdf, {

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { FILTRE_PIECES_RAPPORT, libellePieceRapport } from "@/lib/rapportInventaire";
+import { FILTRE_PIECES_RAPPORT, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 
 function echapperCsv(valeur) {
   const texte = String(valeur ?? "");
@@ -16,10 +16,10 @@ export async function GET() {
     return new Response(JSON.stringify({ erreur: "Accès refusé." }), { status: 403 });
   }
 
-  const pieces = await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, orderBy: { nom: "asc" } });
+  const pieces = await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, include: { fournisseurs: { include: { fournisseur: true } } }, orderBy: { nom: "asc" } });
 
   const lignesCsv = [
-    ["No pièce", "Description", "Qté", "Coûtant", "Vendant", "Marge", "Marge %"].join(";"),
+    ["No pièce", "Description", "Numéros fournisseurs", "Qté", "Coûtant", "Vendant", "Marge", "Marge %"].join(";"),
   ];
   for (const p of pieces) {
     const marge = p.prix - p.coutant;
@@ -27,6 +27,7 @@ export async function GET() {
     lignesCsv.push([
       echapperCsv(p.numero),
       echapperCsv(libellePieceRapport(p)),
+      echapperCsv(libelleNumerosFournisseurs(p, " | ")),
       p.qte,
       p.coutant.toFixed(2).replace(".", ","),
       p.prix.toFixed(2).replace(".", ","),
