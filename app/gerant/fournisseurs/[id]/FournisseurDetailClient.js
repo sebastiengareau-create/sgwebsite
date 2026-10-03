@@ -142,6 +142,9 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
             <Link href={`/secretaire/inventaire/commandes?fournisseur=${fournisseur.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
               🛒 Commander des pièces
             </Link>
+            <Link href={`/gerant/comptabilite/rapports/inventaire-fournisseurs?fournisseur=${fournisseur.id}`} target="_blank" className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
+              📄 Inventaire de ce fournisseur
+            </Link>
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>

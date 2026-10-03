@@ -8,6 +8,7 @@ import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette } from "@/lib/codesBarres";
+import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 
 export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
   const router = useRouter();
@@ -104,14 +105,24 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       >
         🛒 Commandes fournisseurs
       </Link>
-      <Link
-        href="/gerant/comptabilite/rapports/inventaire"
-        target="_blank"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
-      >
-        📄 Rapport d'inventaire (PDF / Excel / imprimer)
-      </Link>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <Link
+          href="/gerant/comptabilite/rapports/inventaire"
+          target="_blank"
+          className="bouton-3d-sombre"
+          style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
+        >
+          📄 Rapport d'inventaire
+        </Link>
+        <Link
+          href="/gerant/comptabilite/rapports/inventaire-fournisseurs"
+          target="_blank"
+          className="bouton-3d-sombre"
+          style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
+        >
+          🏢 Inventaire par fournisseur
+        </Link>
+      </div>
 
       {peutGererCategories && (
         <button
@@ -165,6 +176,9 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{p.nom}{!p.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivée)</span>}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.numero}</div>
+                {libelleNumerosFournisseurs(p) && (
+                  <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>{libelleNumerosFournisseurs(p)}</div>
+                )}
                 <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(p.categorie)}</div>
               </div>
               <div style={{ textAlign: "right" }}>
