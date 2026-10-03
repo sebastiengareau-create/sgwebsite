@@ -9,9 +9,7 @@ const CLE_FORMAT = "etiquettes_format";
 // copies, position de départ sur une feuille entamée), puis ouverture du PDF
 // dans un nouvel onglet, prêt à imprimer.
 // pieces : [{ id, qte }]. uneSeule : fiche d'une pièce (nombre de copies libre).
-// nomEntreprise : imprimé en première ligne, montré ici pour qu'on sache
-// d'avance ce qui sortira.
-export default function ImpressionEtiquettes({ pieces, uneSeule = false, nomEntreprise, onFermer }) {
+export default function ImpressionEtiquettes({ pieces, uneSeule = false, onFermer }) {
   const [format, setFormat] = useState(FORMATS_ETIQUETTES[0].code);
   const [modeCopies, setModeCopies] = useState("une"); // "une" | "stock" | "nombre"
   const [nombre, setNombre] = useState("1");
@@ -80,13 +78,6 @@ export default function ImpressionEtiquettes({ pieces, uneSeule = false, nomEntr
         <strong style={{ fontSize: 13 }}>🏷️ Imprimer {uneSeule ? "l'étiquette" : `les étiquettes (${pieces.length} pièce${pieces.length > 1 ? "s" : ""})`}</strong>
         {onFermer && <button onClick={onFermer} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 }}>✕</button>}
       </div>
-
-      {nomEntreprise && (
-        <p style={{ fontSize: 11.5, margin: "0 0 8px", color: "var(--text-muted)" }}>
-          Première ligne : <strong style={{ color: "var(--text)" }}>{nomEntreprise}</strong>
-          <span> (Administrateur → Informations de l'entreprise)</span>
-        </p>
-      )}
 
       <label style={labelStyle}>Imprimante / format</label>
       <select value={format} onChange={(e) => setFormat(e.target.value)} style={champStyle}>
