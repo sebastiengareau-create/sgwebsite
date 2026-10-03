@@ -24,6 +24,11 @@ export async function PATCH(request, props) {
   }
   // Véhicule du dossier client sur lequel porte le bon — null le retire
   if (body.vehiculeId !== undefined) {
+    // Bon d'un véhicule à vendre : il reste sur ce véhicule
+    const vente = await prisma.bonTravail.findUnique({ where: { id: params.id }, select: { vehiculeVenteId: true } });
+    if (vente?.vehiculeVenteId) {
+      return NextResponse.json({ erreur: "Ce bon porte sur un véhicule à vendre — son véhicule ne peut pas changer." }, { status: 409 });
+    }
     if (body.vehiculeId) {
       const [bon, vehicule] = await Promise.all([
         prisma.bonTravail.findUnique({ where: { id: params.id }, include: { facture: true } }),

@@ -38,6 +38,10 @@ export async function DELETE(request, props) {
     );
   }
 
+  if (await prisma.vehiculeVente.findUnique({ where: { vehiculeId: params.id } })) {
+    return NextResponse.json({ erreur: "Ce véhicule a une fiche dans les véhicules à vendre (Inventaire) — il ne peut pas être supprimé." }, { status: 409 });
+  }
+
   await prisma.vehicule.delete({ where: { id: params.id } }).catch(() => null);
   return NextResponse.json({ ok: true });
 }
