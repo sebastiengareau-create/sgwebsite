@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { posterFactureEmise } from "@/lib/comptabilite";
+import { MODE_PAIEMENT_COUTANT, posterCapitalisationBon } from "@/lib/vehiculesAVendre";
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -19,17 +20,25 @@ export async function POST(request, props) {
     where: { id: params.id },
     include: {
       facture: true,
+      vehiculeVente: { include: { factureVente: true } },
       problemes: { include: { pieces: { include: { piece: true } }, entreesTemps: true } },
     },
   });
   if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
   if (bon.facture) return NextResponse.json({ erreur: "Ce bon a déjà une facture." }, { status: 409 });
+  // Bon interne sur un véhicule à vendre : son montant s'ajoute au coûtant,
+  // ce qui n'est plus possible une fois le véhicule vendu (coûtant figé)
+  const vehiculeVente = bon.vehiculeVente;
+  if (vehiculeVente?.factureVente) {
+    return NextResponse.json({ erreur: `Le véhicule ${vehiculeVente.numero} est déjà vendu — son coûtant est figé sur la facture de vente.` }, { status: 409 });
+  }
 
   const parametres = await prisma.parametre.findMany();
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = bon.tauxHoraireOverride ?? Number(dict.taux_horaire_client || 195);
-  const tpsTaux = Number(dict.tps_taux || 5);
-  const tvqTaux = Number(dict.tvq_taux || 9.975);
+  // Bon interne (véhicule à vendre) : facture sans taxes
+  const tpsTaux = vehiculeVente ? 0 : Number(dict.tps_taux || 5);
+  const tvqTaux = vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
 
   // Main-d'œuvre : facturée sur les heures poinçonnées, seulement pour les
   // tâches restées sur le poste par défaut. Les autres postes de revenu
@@ -75,6 +84,8 @@ export async function POST(request, props) {
         tpsMontant,
         tvqMontant,
         totalAvecTaxes,
+        // Bon interne : payée d'office, son montant va au coûtant du véhicule
+        ...(vehiculeVente && { statut: "PAYEE", datePaiement: new Date(), modePaiement: MODE_PAIEMENT_COUTANT }),
       },
     });
     // Émettre la facture marque automatiquement le bon comme terminé
@@ -88,6 +99,7 @@ export async function POST(request, props) {
   let avertissementComptable = null;
   try {
     await posterFactureEmise(bon, facture, session.nom);
+    if (vehiculeVente) await posterCapitalisationBon(facture, vehiculeVente, session.nom);
   } catch (e) {
     if (e.message.startsWith("PERIODE_LOCK:")) {
       avertissementComptable = e.message.replace("PERIODE_LOCK:", "").split("\n")[0];

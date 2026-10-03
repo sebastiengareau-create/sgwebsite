@@ -16,6 +16,7 @@ export default async function DetailBonPage(props) {
     include: {
       client: { include: { vehicules: { orderBy: { creeLe: "desc" } } } },
       vehicule: true,
+      vehiculeVente: { select: { id: true, numero: true } },
       problemes: {
         orderBy: { id: "asc" },
         include: {
@@ -60,8 +61,9 @@ export default async function DetailBonPage(props) {
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
   const coutHoraireMecanicien = Number(dict.cout_horaire_mecanicien || 95);
-  const tpsTaux = Number(dict.tps_taux || 5);
-  const tvqTaux = Number(dict.tvq_taux || 9.975);
+  // Bon interne sur un véhicule à vendre : facturé sans taxes
+  const tpsTaux = bon.vehiculeVente ? 0 : Number(dict.tps_taux || 5);
+  const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const peutModifier = await aAccesSection(session, "operations");
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
 

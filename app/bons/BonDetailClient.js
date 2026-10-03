@@ -10,6 +10,7 @@ import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, normaliserCode } from "@/lib/codesBarres";
+import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -75,6 +76,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // Un bon facturé est figé — plus rien n'est modifiable dessus (tâches,
   // pièces, temps, photos, poste). Seul "Annuler la facture" le débloque.
   const factureExiste = !!bon.facture;
+  // Bon interne sur un véhicule à vendre : sa facture (sans taxes) est payée
+  // d'office en augmentant le coûtant du véhicule
+  const payeeParCoutant = bon.facture?.modePaiement === "COUTANT_VEHICULE";
 
   // Taux par défaut des Paramètres, sauf si ce bon précis a un taux ajusté
   const tauxHoraireEffectif = bon.tauxHoraireOverride ?? tauxHoraireClient;
@@ -351,7 +355,14 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </div>
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
-      <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste} />
+      <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
+      {bon.vehiculeVente && (
+        <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid #C9A227", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
+          🚐 Bon interne sur le véhicule à vendre{" "}
+          <Link href={`/secretaire/inventaire/vehicules/${bon.vehiculeVente.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>{bon.vehiculeVente.numero}</Link>
+          {" "}— facturé sans taxes ; la facture se paie en ajoutant son montant au coûtant du véhicule.
+        </div>
+      )}
       <FichiersRendezVous fichiers={bon.rendezVous?.fichiers} style={{ marginTop: 8 }} />
 
       {factureExiste && (
@@ -442,7 +453,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </div>
             )}
 
-            {peutModifier && (
+            {peutModifier && !payeeParCoutant && (
               <div style={{ marginBottom: 12 }}>
                 <button
                   onClick={declencherEnvoiCourriel}
@@ -469,7 +480,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 )}
               </div>
             )}
-            {peutModifier && bon.facture.statut !== "ANNULEE" && (
+            {payeeParCoutant && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>{LABEL_MODE_PAIEMENT.COUTANT_VEHICULE}</p>
+            )}
+            {peutModifier && bon.facture.statut !== "ANNULEE" && !payeeParCoutant && (
               <div style={{ display: "flex", gap: 8 }}>
                 {bon.facture.statut === "IMPAYEE" ? (
                   !afficherPaiementFacture && (

@@ -69,8 +69,9 @@ export default async function ImprimerBon(props) {
     : Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
   const totalFacture = estFacturee ? bon.facture.totalFacture : sousTotalAvantEscompte - escompteApplique;
 
-  const tpsTaux = Number(dict.tps_taux || 5);
-  const tvqTaux = Number(dict.tvq_taux || 9.975);
+  // Bon interne sur un véhicule à vendre : sans taxes
+  const tpsTaux = bon.vehiculeVenteId ? 0 : Number(dict.tps_taux || 5);
+  const tvqTaux = bon.vehiculeVenteId ? 0 : Number(dict.tvq_taux || 9.975);
   const tpsMontant = estFacturee ? bon.facture.tpsMontant : totalFacture * (tpsTaux / 100);
   const tvqMontant = estFacturee ? bon.facture.tvqMontant : totalFacture * (tvqTaux / 100);
   const totalAvecTaxes = estFacturee ? bon.facture.totalAvecTaxes : totalFacture + tpsMontant + tvqMontant;
@@ -128,6 +129,9 @@ export default async function ImprimerBon(props) {
             <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>
               {estFacturee ? STATUTS_FACTURE[bon.facture.statut] : STATUTS[bon.statut]}
             </div>
+            {estFacturee && bon.vehiculeVenteId && (
+              <div style={{ fontSize: 11, color: "#666" }}>Bon interne — ajouté au coûtant du véhicule</div>
+            )}
           </div>
         </div>
 

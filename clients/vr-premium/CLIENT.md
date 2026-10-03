@@ -19,6 +19,22 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   coûtant ÷ 0,60 (ex. 10,00 $ → 16,67 $).
   Le champ reste modifiable ; une fois modifié à la main, le coûtant ne
   l'écrase plus.
+- `vehiculesAVendre: true` — section **Véhicules à vendre** dans
+  l'Inventaire (`/secretaire/inventaire/vehicules`, `lib/vehiculesAVendre.js`)
+  pour les VR qui appartiennent au garage : fiche (VAV-001) avec coûtant
+  d'achat et prix demandé.
+  - Les **bons reliés** au VR (bouton sur sa fiche) sont des bons normaux au
+    nom du client interne « Véhicules à vendre (interne) ». Leur facture est
+    **sans taxes** et **payée d'office en augmentant le coûtant du VR** : la
+    facture tombe à zéro, le profit prévu sur la vente du VR baisse d'autant.
+  - La **vente** émet une facture de vente à part (VTE-001, avec TPS/TVQ) au
+    client acheteur ; le coûtant (achat + bons) y est figé pour le profit
+    réel, et le dossier du VR passe au client. Tous les bons doivent être
+    facturés avant. Le gérant peut annuler la vente (le VR revient en stock).
+  - Comptabilité : actif 1250 « Véhicules à vendre », revenu 4500 « Vente de
+    véhicules », coût 5010 « Coût des véhicules vendus ». L'achat d'un VR se
+    saisit dans les comptes à payer sur le poste « Achat de véhicule à vendre
+    (actif) » (débite 1250).
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

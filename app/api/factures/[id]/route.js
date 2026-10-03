@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { posterFacturePayee, verifierPeriodeModifiable } from "@/lib/comptabilite";
+import { MODE_PAIEMENT_COUTANT } from "@/lib/vehiculesAVendre";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -16,6 +17,9 @@ export async function PATCH(request, props) {
   }
 
   const ancienneFacture = await prisma.facture.findUnique({ where: { id: params.id } });
+  if (ancienneFacture?.modePaiement === MODE_PAIEMENT_COUTANT) {
+    return NextResponse.json({ erreur: "Cette facture est payée par le coûtant du véhicule à vendre — son statut ne se change pas." }, { status: 409 });
+  }
 
   let compteTresorerie = null;
   if (statut === "PAYEE") {
@@ -65,8 +69,13 @@ export async function DELETE(request, props) {
     return NextResponse.json({ erreur: "Seul le gérant peut supprimer une facture." }, { status: 403 });
   }
 
-  const facture = await prisma.facture.findUnique({ where: { id: params.id } });
+  const facture = await prisma.facture.findUnique({ where: { id: params.id }, include: { bon: { select: { vehiculeVente: { select: { numero: true, factureVente: { select: { id: true } } } } } } } });
   if (!facture) return NextResponse.json({ erreur: "Facture introuvable." }, { status: 404 });
+  // Bon d'un véhicule à vendre déjà vendu : son montant est compris dans le
+  // coûtant figé sur la facture de vente
+  if (facture.bon.vehiculeVente?.factureVente) {
+    return NextResponse.json({ erreur: `Le véhicule ${facture.bon.vehiculeVente.numero} est vendu — annule d'abord sa facture de vente.` }, { status: 409 });
+  }
 
   try {
     await verifierPeriodeModifiable(facture.dateEmission, { nouvellePiece: false });

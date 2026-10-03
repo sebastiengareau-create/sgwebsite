@@ -106,6 +106,15 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       >
         🛒 Commandes fournisseurs
       </Link>
+      {CLIENT.vehiculesAVendre && (
+        <Link
+          href="/secretaire/inventaire/vehicules"
+          className="bouton-3d-sombre"
+          style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
+        >
+          🚐 Véhicules à vendre
+        </Link>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <Link
           href="/gerant/comptabilite/rapports/inventaire"
