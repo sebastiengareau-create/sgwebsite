@@ -10,7 +10,7 @@ import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 
-export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
+export default function InventaireClient({ pieces, enCommande = {}, nomEntreprise, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -159,7 +159,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
             </span>
           </div>
           {piecesSelectionnees.length > 0 && (
-            <ImpressionEtiquettes pieces={piecesSelectionnees.map((p) => ({ id: p.id, qte: p.qte }))} />
+            <ImpressionEtiquettes pieces={piecesSelectionnees.map((p) => ({ id: p.id, qte: p.qte }))} nomEntreprise={nomEntreprise} />
           )}
         </>
       )}

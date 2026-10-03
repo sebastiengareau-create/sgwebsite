@@ -1,6 +1,7 @@
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
+import { obtenirInfosEntreprise } from "@/lib/config";
 import EnTete from "../../../components/EnTete";
 import PieceDetailClient from "./PieceDetailClient";
 
@@ -39,7 +40,7 @@ export default async function DetailPiece(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <PieceDetailClient piece={piece} categories={categories} fournisseurs={fournisseurs} autresPieces={autresPieces} />
+      <PieceDetailClient piece={piece} categories={categories} fournisseurs={fournisseurs} autresPieces={autresPieces} nomEntreprise={(await obtenirInfosEntreprise()).nomEntreprise} />
     </div>
   );
 }

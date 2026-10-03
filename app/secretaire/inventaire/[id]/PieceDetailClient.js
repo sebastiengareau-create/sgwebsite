@@ -23,7 +23,7 @@ const TYPE_MOUVEMENT = {
   AJUSTEMENT: { label: "Ajustement", couleur: "var(--text-muted)" },
 };
 
-export default function PieceDetailClient({ piece, categories, fournisseurs, autresPieces }) {
+export default function PieceDetailClient({ piece, categories, fournisseurs, autresPieces, nomEntreprise }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -234,7 +234,7 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
 
           {afficherEtiquettes && (
             <div style={{ marginTop: 16 }}>
-              <ImpressionEtiquettes pieces={[{ id: piece.id, qte: piece.qte }]} uneSeule onFermer={() => setAfficherEtiquettes(false)} />
+              <ImpressionEtiquettes pieces={[{ id: piece.id, qte: piece.qte }]} uneSeule nomEntreprise={nomEntreprise} onFermer={() => setAfficherEtiquettes(false)} />
             </div>
           )}
 
