@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { genererPdfEtiquettesPieces, FORMATS_ETIQUETTES } from "@/lib/pdfEtiquettesPieces";
 import { urlEtiquettePiece } from "@/lib/codesBarres";
-import { obtenirInfosEntreprise, DEFAUTS } from "@/lib/config";
+import { obtenirInfosEntreprise } from "@/lib/config";
 
 const MAX_ETIQUETTES = 3000;
 
@@ -46,10 +46,9 @@ export async function POST(request) {
   }
 
   // Nom de l'entreprise (Administrateur → Informations de l'entreprise) en
-  // première ligne — pas le nom par défaut d'une installation pas encore
-  // configurée.
+  // première ligne, tel qu'affiché dans la fenêtre d'impression.
   const { nomEntreprise } = await obtenirInfosEntreprise();
-  const pdf = await genererPdfEtiquettesPieces(etiquettes, format, depart, nomEntreprise === DEFAUTS.nomEntreprise ? "" : nomEntreprise);
+  const pdf = await genererPdfEtiquettesPieces(etiquettes, format, depart, nomEntreprise);
   return new Response(pdf, {
     headers: {
       "Content-Type": "application/pdf",
