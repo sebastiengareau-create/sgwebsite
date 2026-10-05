@@ -86,11 +86,12 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
             <JaugeScore score={sante.score} />
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: sante.score >= 60 ? "var(--success)" : sante.score >= 40 ? "#C9A227" : "var(--danger)" }}>{sante.label}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Estimation indicative</div>
+              <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Estimation indicative · 12 derniers mois ({sante.periode})</div>
             </div>
           </div>
-          <LigneSante label="Marge bénéficiaire" valeur={`${sante.margePct.toFixed(1)} %`} />
+          <LigneSante label="Marge bénéficiaire (12 mois)" valeur={`${sante.margePct.toFixed(1)} %`} />
           <LigneSante label="Liquidités" valeur={fmt(kpis.soldeBancaire)} />
+          {sante.moisReserve != null && <LigneSante label="Réserve (mois de dépenses)" valeur={sante.moisReserve.toFixed(1)} />}
           <LigneSante label="Comptes à recevoir" valeur={fmt(kpis.clientsARecevoir)} />
           <LigneSante label="Comptes à payer" valeur={fmt(kpis.fournisseursAPayer)} />
           <LigneSante label="Ratio d'endettement" valeur={`${sante.ratioEndettement.toFixed(0)} %`} />
