@@ -60,7 +60,7 @@ export async function POST(request) {
     const piece = parId.get(id);
     if (!piece) continue;
     const nombre = copies === "stock" ? Math.max(0, piece.qte) : Math.max(0, Math.floor(Number(copies) || 0));
-    const etiquette = { nom: piece.nom, numero: piece.numero, emplacement: piece.emplacement, contenuQr: urlEtiquettePiece(base, piece.id) };
+    const etiquette = { nom: piece.nom, numero: piece.numero, emplacement: piece.emplacement, prix: piece.prix, contenuQr: urlEtiquettePiece(base, piece.id) };
     for (let i = 0; i < nombre; i++) etiquettes.push(etiquette);
   }
   if (etiquettes.length === 0) return Response.json({ erreur: "Aucune étiquette à imprimer (stock à zéro ?)." }, { status: 400 });
@@ -69,7 +69,7 @@ export async function POST(request) {
   }
 
   // Nom de l'entreprise (Administrateur → Informations de l'entreprise) en
-  // première ligne, logo dans le coin supérieur droit.
+  // en-tête sur deux lignes, logo dans le coin supérieur droit.
   const [{ nomEntreprise }, logo] = await Promise.all([obtenirInfosEntreprise(), obtenirLogo()]);
   const pdf = await genererPdfEtiquettesPieces(etiquettes, format, depart, { nomEntreprise, logo });
   return new Response(pdf, {
