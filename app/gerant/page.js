@@ -20,16 +20,25 @@ function moisPrecedent(annee, mois) {
 // seulement (pas un ratio comptable certifié) : marge bénéficiaire (40 pts),
 // mois de réserve de liquidités (30 pts), ratio d'endettement fournisseurs
 // vs actifs liquides+à recevoir (30 pts).
-function calculerSanteFinanciere({ revenus, depenses, beneficeNet, soldeBancaire, clientsARecevoir, fournisseursAPayer }) {
+// Les flux (revenus, dépenses) portent sur les 12 derniers mois se terminant
+// au mois affiché — un seul mois, surtout le mois en cours incomplet, fait
+// trop varier le score. Les soldes (banque, à recevoir, à payer) restent
+// ceux de la fin du mois affiché.
+function calculerSanteFinanciere({ historique, soldeBancaire, clientsARecevoir, fournisseursAPayer }) {
+  const revenus = historique.reduce((s, m) => s + m.revenus, 0);
+  const depenses = historique.reduce((s, m) => s + m.depenses, 0);
   const aucuneDonnee = !revenus && !depenses && !soldeBancaire && !clientsARecevoir && !fournisseursAPayer;
   if (aucuneDonnee) {
-    return { score: 0, label: "Aucune donnée", ratioEndettement: 0, margePct: 0 };
+    return { score: 0, label: "Aucune donnée", ratioEndettement: 0, margePct: 0, moisReserve: 0 };
   }
 
-  const margePct = revenus > 0 ? beneficeNet / revenus : 0;
+  const margePct = revenus > 0 ? (revenus - depenses) / revenus : 0;
   const margeScore = Math.max(0, Math.min(40, (margePct / 0.25) * 40));
 
-  const depenseMensuelle = depenses > 0 ? depenses : 1;
+  // Moyenne sur les mois ayant de l'activité seulement, pour ne pas sous-
+  // estimer les dépenses d'une entreprise qui a moins de 12 mois d'historique.
+  const moisActifs = historique.filter((m) => m.revenus || m.depenses).length || 1;
+  const depenseMensuelle = depenses > 0 ? depenses / moisActifs : 1;
   const moisReserve = soldeBancaire / depenseMensuelle;
   const liquiditeScore = Math.max(0, Math.min(30, (moisReserve / 3) * 30));
 
@@ -43,7 +52,7 @@ function calculerSanteFinanciere({ revenus, depenses, beneficeNet, soldeBancaire
   else if (total >= 60) label = "Bonne";
   else if (total >= 40) label = "Moyenne";
 
-  return { score: Math.max(0, Math.min(100, total)), label, ratioEndettement: ratioEndettement * 100, margePct: margePct * 100 };
+  return { score: Math.max(0, Math.min(100, total)), label, ratioEndettement: ratioEndettement * 100, margePct: margePct * 100, moisReserve: depenses > 0 ? moisReserve : null };
 }
 
 export default async function EspaceGerant(props) {
@@ -141,7 +150,10 @@ export default async function EspaceGerant(props) {
     benefice: historiqueBrut[i].revenus - historiqueBrut[i].depenses,
   }));
 
-  const sante = calculerSanteFinanciere(resumeCourant);
+  const sante = {
+    ...calculerSanteFinanciere({ ...resumeCourant, historique: historiqueBrut }),
+    periode: `${NOMS_MOIS_COURT[moisGraphique[0].mois - 1]} ${moisGraphique[0].annee} – ${NOMS_MOIS_COURT[mois - 1]} ${annee}`,
+  };
 
   // Ajoute des jours à une journée civile Québec en restant ancré à midi
   // UTC — sinon l'ajout en millisecondes bruts peut retomber à minuit UTC,
