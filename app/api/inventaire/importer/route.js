@@ -9,7 +9,7 @@ const ALIAS_CHAMPS = {
   nom: ["nom", "name", "description", "piece"],
   numero: ["numero", "no piece", "no", "sku", "code"],
   // Numéros séparés par des virgules qui renvoient à la pièce ; une suite de
-  // 12 chiffres parmi eux est son code-barres UPC (voir separerUgs).
+  // 12 ou 13 chiffres parmi eux est son code-barres UPC/EAN (voir separerUgs).
   ugs: ["ugs", "autres numeros", "numeros alternatifs"],
   codeBarre: ["code barre", "code barres", "code-barre", "code-barres", "codebarre", "upc", "ean"],
   qte: ["qte", "quantite", "qty", "quantity", "qte en stock", "stock"],
@@ -84,7 +84,7 @@ export async function POST(request) {
     if (!nom || !numero) { ignores.push(`Ligne ${numLigne} — nom ou numéro manquant`); continue; }
     const autresNumeros = ugs.numeros.filter((n) => n.toLowerCase() !== numero.toLowerCase());
 
-    // Code-barres : la colonne dédiée d'abord, sinon la suite de 12 chiffres
+    // Code-barres : la colonne dédiée d'abord, sinon la suite de 12 ou 13 chiffres
     // trouvée dans les UGS. Les codes en trop restent cherchables comme
     // autres numéros.
     const codesCandidats = [(donnees.codeBarre || "").replace(/\s+/g, ""), ...ugs.codesBarres].filter(Boolean);
