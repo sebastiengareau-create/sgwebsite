@@ -57,6 +57,11 @@ export default function BoutonImporterFichier({ apiUrl, libelle, libellePluriel 
               <p style={{ margin: 0, fontWeight: 700 }}>
                 ✅ {resultat.importes} {libellePluriel || "élément"}{resultat.importes !== 1 ? "s" : ""} importé{resultat.importes !== 1 ? "s" : ""}
               </p>
+              {resultat.completes?.length > 0 && (
+                <p style={{ margin: "4px 0 0" }}>
+                  {resultat.completes.length} déjà existant{resultat.completes.length !== 1 ? "s" : ""} complété{resultat.completes.length !== 1 ? "s" : ""} (autres numéros ou code-barres) : {resultat.completes.join(", ")}
+                </p>
+              )}
               {resultat.doublons.length > 0 && (
                 <p style={{ margin: "4px 0 0", color: "var(--text-muted)" }}>
                   {resultat.doublons.length} ignoré{resultat.doublons.length !== 1 ? "s" : ""} (déjà existant{resultat.doublons.length !== 1 ? "s" : ""}) : {resultat.doublons.join(", ")}
