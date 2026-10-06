@@ -22,9 +22,19 @@ const ALIAS_CHAMPS = {
   fournisseur: ["fournisseur", "supplier", "vendeur"],
 };
 
+// « 12,50 $ », « $1,234.56 », « 1 234,56 » → nombre ; vide ou illisible
+// (« N/D », « — ») → null. Quand virgule et point sont tous deux présents,
+// le dernier des deux est le séparateur décimal.
 function versNombre(texte) {
   if (texte === undefined || texte === null || texte === "") return null;
-  const n = Number(String(texte).replace(",", ".").replace(/[^0-9.\-]/g, ""));
+  let t = String(texte).replace(/[^0-9.,\-]/g, "");
+  if (t.includes(",") && t.includes(".")) {
+    t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+  } else {
+    t = t.replace(",", ".");
+  }
+  if (!/\d/.test(t)) return null;
+  const n = Number(t);
   return isNaN(n) ? null : n;
 }
 
@@ -70,6 +80,7 @@ export async function POST(request) {
   const completes = [];
   const ignores = [];
   const piecesCreees = [];
+  const sansPrix = []; // importées quand même, prix de vente à 0 $ à compléter
 
   for (let numLigne = 2; numLigne <= feuille.rowCount; numLigne++) {
     const ligne = feuille.getRow(numLigne);
@@ -113,8 +124,9 @@ export async function POST(request) {
       continue;
     }
 
+    // Prix de vente ou coûtant absent : la pièce est importée quand même, à 0 $
     const prix = versNombre(donnees.prix);
-    if (prix === null) { ignores.push(`Ligne ${numLigne} (${numero}) — prix manquant ou invalide`); continue; }
+    if (prix === null) sansPrix.push(numero);
 
     const categorieTexte = (donnees.categorie || "").trim().toLowerCase();
     const categorieTrouvee = categories.find(
@@ -144,7 +156,7 @@ export async function POST(request) {
         qteMax: versNombre(donnees.qteMax),
         emplacement: donnees.emplacement || null,
         fournisseurId: fournisseurTrouve?.id || null,
-        prix,
+        prix: prix ?? 0,
         coutant: versNombre(donnees.coutant) || 0,
         categorie: categorieTrouvee?.code || "PIECE",
         ...(qteInitiale !== 0 && {
@@ -168,5 +180,9 @@ export async function POST(request) {
     ignores.push(`Écriture comptable non créée : ${e.message.replace(/^PERIODE_LOCK:/, "")}`);
   }
 
-  return NextResponse.json({ importes, doublons, completes, ignores });
+  const note = sansPrix.length > 0
+    ? `${sansPrix.length} pièce${sansPrix.length !== 1 ? "s" : ""} sans prix de vente — importée${sansPrix.length !== 1 ? "s" : ""} à 0 $, à compléter dans la fiche : ${sansPrix.slice(0, 20).join(", ")}${sansPrix.length > 20 ? "…" : ""}`
+    : null;
+
+  return NextResponse.json({ importes, doublons, completes, ignores, note });
 }
