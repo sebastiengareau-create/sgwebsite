@@ -8,7 +8,7 @@ export default async function InfosEntreprise() {
   const session = await obtenirSession();
   if (!estGerantOuDev(session)) redirect("/gerant");
 
-  const infos = await obtenirInfosEntreprise();
+  const infos = await obtenirInfosEntreprise({ brut: true });
 
   return (
     <div>

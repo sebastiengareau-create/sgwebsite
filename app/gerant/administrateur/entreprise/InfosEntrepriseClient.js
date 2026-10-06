@@ -9,6 +9,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
   const [nomEntreprise, setNomEntreprise] = useState(infosInit.nomEntreprise);
   const [adresseLigne1, setAdresseLigne1] = useState(infosInit.adresseLigne1);
   const [adresseLigne2, setAdresseLigne2] = useState(infosInit.adresseLigne2);
+  const [codePostal, setCodePostal] = useState(infosInit.codePostal);
   const [telephone, setTelephone] = useState(infosInit.telephone);
   const [courriel, setCourriel] = useState(infosInit.courriel);
   const [enCours, setEnCours] = useState(false);
@@ -21,7 +22,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
     const res = await fetch("/api/administrateur/entreprise", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nomEntreprise, adresseLigne1, adresseLigne2, telephone, courriel }),
+      body: JSON.stringify({ nomEntreprise, adresseLigne1, adresseLigne2, codePostal, telephone, courriel }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -50,7 +51,10 @@ export default function InfosEntrepriseClient({ infosInit }) {
         <input value={adresseLigne1} onChange={(e) => setAdresseLigne1(e.target.value)} placeholder="Ex : 880 Rang Ste Philomène" style={champStyle} />
 
         <label style={labelStyle}>Adresse — ligne 2</label>
-        <input value={adresseLigne2} onChange={(e) => setAdresseLigne2(e.target.value)} placeholder="Ex : Sainte-Geneviève-de-Berthier, QC J0K 0E8" style={champStyle} />
+        <input value={adresseLigne2} onChange={(e) => setAdresseLigne2(e.target.value)} placeholder="Ex : Sainte-Geneviève-de-Berthier, QC" style={champStyle} />
+
+        <label style={labelStyle}>Code postal</label>
+        <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} placeholder="Ex : J0K 0E8" style={champStyle} />
 
         <label style={labelStyle}>Téléphone</label>
         <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Ex : 438-526-8936" style={champStyle} />
