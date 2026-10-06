@@ -31,6 +31,7 @@ model User {
   telephone          String?
   adresse            String?
   ville              String?
+  province           String? // code à deux lettres (ex. « QC ») — voir lib/adresse.js
   codePostal         String?
   assignation        String? // ex. spécialité, poste, secteur assigné — texte libre
   numeroEmploye      String?   @unique // numéro séquentiel auto-généré, ex. "EMP-0001"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
@@ -11,7 +11,7 @@ import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroCo
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 
-export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter }) {
+export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -46,6 +46,15 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
     if (parEtiquette) return setMessageScan("Cette étiquette correspond à une pièce qui n'existe plus dans l'inventaire.");
     setCodeInconnu(code);
   }
+
+  // Code lu par le bouton « + » d'une autre page (?scan=…) : traité comme un
+  // scan fait ici, puis retiré de l'adresse.
+  useEffect(() => {
+    if (!scanInitial) return;
+    router.replace("/secretaire/inventaire");
+    scanDetecte(scanInitial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanInitial]);
 
   function basculerSelection(id) {
     setSelection((s) => {

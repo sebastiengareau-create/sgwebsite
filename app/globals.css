@@ -231,7 +231,7 @@ a { color: inherit; }
 .barre-laterale-lien.accentue:not(.actif) { color: var(--accent); }
 
 @media print {
-  .barre-laterale { display: none !important; }
+  .barre-laterale, .bouton-flottant { display: none !important; }
   body:has(.barre-laterale) { padding-left: 0; }
 }
 

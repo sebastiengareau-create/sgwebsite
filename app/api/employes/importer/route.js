@@ -3,7 +3,7 @@ import { randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estDeveloppeur, hashPassword, nomAffichageRole, ROLES_VALIDES } from "@/lib/auth";
 import { prochainNumeroEmploye } from "@/lib/numerotation";
-import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
+import { lireFeuille, mapperEntetes, lireLigne, nettoyerCoordonnees } from "@/lib/importFichier";
 
 const ALIAS_CHAMPS = {
   nom: ["nom", "name", "employe", "nom employe", "nom complet"],
@@ -13,6 +13,7 @@ const ALIAS_CHAMPS = {
   telephone: ["telephone", "tel", "phone", "cell", "cellulaire"],
   adresse: ["adresse", "address"],
   ville: ["ville", "city"],
+  province: ["province", "prov", "etat", "state"],
   codePostal: ["codepostal", "code postal", "postal", "zip", "zipcode"],
   assignation: ["assignation", "poste", "specialite", "titre"],
   dateEmbauche: ["date embauche", "date d'embauche", "embauche", "hire date"],
@@ -116,6 +117,9 @@ export async function POST(request) {
     // Le courriel est obligatoire et unique en base (c'est aussi l'identifiant
     // de connexion) : sans courriel dans le fichier, on génère un identifiant
     // unique à partir du numéro d'employé, modifiable ensuite sur la fiche.
+    // Adresse remise dans les bonnes cases (ville, province, code postal)
+    const coordonnees = nettoyerCoordonnees(donnees);
+
     const numeroEmploye = await prochainNumeroEmploye();
     const courrielGenere = !courriel;
     if (courrielGenere) courriel = `${numeroEmploye.toLowerCase()}@sans-courriel.local`;
@@ -126,10 +130,11 @@ export async function POST(request) {
         courriel,
         motDePasse: await hashPassword(motDePasse),
         role,
-        telephone: donnees.telephone || null,
-        adresse: donnees.adresse || null,
-        ville: donnees.ville || null,
-        codePostal: donnees.codePostal || null,
+        telephone: coordonnees.telephone,
+        adresse: coordonnees.adresse,
+        ville: coordonnees.ville,
+        province: coordonnees.province,
+        codePostal: coordonnees.codePostal,
         assignation: donnees.assignation || null,
         numeroEmploye,
         dateEmbauche,

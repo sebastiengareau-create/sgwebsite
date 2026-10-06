@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
+import SelectProvince from "../../../components/SelectProvince";
+import { ligneVille } from "@/lib/adresse";
 
 export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
   const router = useRouter();
@@ -17,6 +19,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [telephone, setTelephone] = useState(employe.telephone || "");
   const [adresse, setAdresse] = useState(employe.adresse || "");
   const [ville, setVille] = useState(employe.ville || "");
+  const [province, setProvince] = useState(employe.province || "");
   const [codePostal, setCodePostal] = useState(employe.codePostal || "");
   const [assignation, setAssignation] = useState(employe.assignation || "");
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
@@ -34,7 +37,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, ville, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
+    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     if (retirerPin) body.pin = "";
@@ -135,10 +138,12 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>
           <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
+          <label className="etiquette">Ville</label>
+          <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label className="etiquette">Ville</label>
-              <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
+              <label className="etiquette">Province</label>
+              <SelectProvince valeur={province} onChange={setProvince} className="champ" />
             </div>
             <div style={{ width: 110 }}>
               <label className="etiquette">Code postal</label>
@@ -252,7 +257,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <TitreSection>Coordonnées</TitreSection>
             <LigneInfo label="Numéro d'employé" valeur={employe.numeroEmploye} />
             <LigneInfo label="Adresse" valeur={employe.adresse} />
-            <LigneInfo label="Ville" valeur={[employe.ville, employe.codePostal].filter(Boolean).join(" ") || null} />
+            <LigneInfo label="Ville" valeur={ligneVille(employe) || null} />
             <LigneInfo label="Téléphone" valeur={employe.telephone && <a href={`tel:${employe.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{employe.telephone}</a>} />
             <LigneInfo label="Courriel" valeur={employe.courriel && <a href={`mailto:${employe.courriel}`} style={{ color: "inherit" }}>{employe.courriel}</a>} />
             <LigneInfo label="NIP" valeur={employe.pin ? "Défini" : "Aucun"} />

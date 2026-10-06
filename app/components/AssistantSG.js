@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import useBulleDeplacable from "./useBulleDeplacable";
 
 const CLE_POSITION = "assistant-sg-position";
 const BAS_MIN = 20;
@@ -20,17 +21,14 @@ export default function AssistantSG() {
   const [micDisponible, setMicDisponible] = useState(false);
   const zoneMessagesRef = useRef(null);
   const reconnaissanceRef = useRef(null);
-  // Position de la bulle, déplaçable en la glissant (mémorisée sur cet appareil)
-  const [position, setPosition] = useState({ cote: "gauche", bas: BAS_MIN });
-  const [glissement, setGlissement] = useState(null); // { x, y } pendant qu'on glisse la bulle
-  const glisseRef = useRef(null); // { x, y, deplace }
-
-  useEffect(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem(CLE_POSITION));
-      if (p && (p.cote === "gauche" || p.cote === "droite") && Number.isFinite(p.bas)) setPosition(p);
-    } catch {}
-  }, []);
+  // Position de la bulle, déplaçable en la glissant (mémorisée sur cet
+  // appareil) ; à droite, elle reste au-dessus du bouton « + ».
+  const { position, aDroite, placement, glissement, estUnClic, gestionnaires } = useBulleDeplacable({
+    cle: CLE_POSITION,
+    defaut: { cote: "gauche", bas: BAS_MIN },
+    basMin: (cote) => (cote === "droite" ? BAS_MIN_DROITE : BAS_MIN),
+    onDebut: () => setOuvert(false),
+  });
 
   useEffect(() => {
     const Reconnaissance = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -102,44 +100,9 @@ export default function AssistantSG() {
     setEcoute(true);
   }
 
-  function debutGlissement(e) {
-    glisseRef.current = { x: e.clientX, y: e.clientY, deplace: false };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-  }
-
-  function pendantGlissement(e) {
-    const g = glisseRef.current;
-    if (!g) return;
-    if (!g.deplace && Math.hypot(e.clientX - g.x, e.clientY - g.y) < 8) return;
-    g.deplace = true;
-    setOuvert(false);
-    setGlissement({ x: e.clientX, y: e.clientY });
-  }
-
-  function finGlissement(e) {
-    const g = glisseRef.current;
-    if (!g || !g.deplace) { glisseRef.current = null; return; }
-    // On garde le drapeau jusqu'au clic qui suit, pour ne pas ouvrir la fenêtre
-    setGlissement(null);
-    const cote = e.clientX < window.innerWidth / 2 ? "gauche" : "droite";
-    // À droite, rester au-dessus du bouton « + » des listes
-    const min = cote === "droite" ? BAS_MIN_DROITE : BAS_MIN;
-    const bas = Math.round(Math.min(Math.max(window.innerHeight - e.clientY - 28, min), window.innerHeight - 76));
-    const nouvelle = { cote, bas };
-    setPosition(nouvelle);
-    try { localStorage.setItem(CLE_POSITION, JSON.stringify(nouvelle)); } catch {}
-  }
-
   function clicBulle() {
-    if (glisseRef.current?.deplace) { glisseRef.current = null; return; }
-    glisseRef.current = null;
-    setOuvert((v) => !v);
+    if (estUnClic()) setOuvert((v) => !v);
   }
-
-  const aDroite = position.cote === "droite";
-  const placement = glissement
-    ? { left: glissement.x - 28, top: glissement.y - 28 }
-    : { bottom: position.bas, [aDroite ? "right" : "left"]: 16 };
 
   return (
     <>
@@ -234,10 +197,7 @@ export default function AssistantSG() {
 
         <button
           onClick={clicBulle}
-          onPointerDown={debutGlissement}
-          onPointerMove={pendantGlissement}
-          onPointerUp={finGlissement}
-          onPointerCancel={finGlissement}
+          {...gestionnaires}
           className="bouton-3d"
           style={{ width: 56, height: 56, borderRadius: "50%", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", touchAction: "none", cursor: glissement ? "grabbing" : "pointer" }}
           aria-label="Assistant SG"

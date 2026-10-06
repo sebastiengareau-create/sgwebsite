@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, hashPassword, aAccesSection, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { validerPin } from "@/lib/employes";
 import { prochainNumeroEmploye } from "@/lib/numerotation";
+import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -12,7 +13,7 @@ export async function POST(request) {
 
   const {
     nom, courriel, motDePasse, role, pin,
-    telephone, adresse, ville, codePostal, assignation, dateEmbauche,
+    telephone, adresse, ville, province, codePostal, assignation, dateEmbauche,
     typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
   } = await request.json();
   if (!nom || !courriel || !motDePasse || !ROLES_VALIDES.includes(role)) {
@@ -46,7 +47,8 @@ export async function POST(request) {
       telephone: telephone || null,
       adresse: adresse || null,
       ville: ville || null,
-      codePostal: codePostal || null,
+      province: normaliserProvince(province),
+      codePostal: normaliserCodePostal(codePostal),
       assignation: assignation || null,
       numeroEmploye: await prochainNumeroEmploye(),
       dateEmbauche: dateEmbauche ? new Date(dateEmbauche) : null,

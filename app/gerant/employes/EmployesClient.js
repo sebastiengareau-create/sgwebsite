@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
+import SelectProvince from "../../components/SelectProvince";
+import { PROVINCE_DEFAUT } from "@/lib/adresse";
 
 export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
   const router = useRouter();
@@ -122,6 +124,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   const [telephone, setTelephone] = useState("");
   const [adresse, setAdresse] = useState("");
   const [ville, setVille] = useState("");
+  const [province, setProvince] = useState(PROVINCE_DEFAUT);
   const [codePostal, setCodePostal] = useState("");
   const [assignation, setAssignation] = useState("");
   const [dateEmbauche, setDateEmbauche] = useState("");
@@ -142,7 +145,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nom, courriel, motDePasse, role, pin: pin || undefined,
-        telephone, adresse, ville, codePostal, assignation, dateEmbauche,
+        telephone, adresse, ville, province, codePostal, assignation, dateEmbauche,
         typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances,
       }),
     });
@@ -169,8 +172,9 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
       <input placeholder="NIP (optionnel, 4 chiffres)" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+      <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>
-        <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1 }} />
+        <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1 }} />
         <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
       </div>
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />

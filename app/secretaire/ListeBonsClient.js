@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BoutonFlottantNouveau from "../components/BoutonFlottantNouveau";
 import { dateBon, bonEstAVenir, regrouperParJour, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
@@ -87,7 +86,6 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
       ) : (
         <TableauBons bons={bonsRecherches} />
       )}
-      <BoutonFlottantNouveau />
     </div>
   );
 }
