@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
 import { libelleVehicule } from "@/lib/vehicules";
 import { image } from "@/lib/client";
+import { adresseComplete } from "@/lib/adresse";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -140,7 +141,7 @@ export default async function ImprimerBon(props) {
           <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
           {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
           {(bon.client.adresse || bon.client.ville) && (
-            <div style={{ fontSize: 13 }}>{[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>
+            <div style={{ fontSize: 13 }}>{adresseComplete(bon.client)}</div>
           )}
           {bon.client.garantieProlongee && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>

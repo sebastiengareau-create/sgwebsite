@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
+import SelectProvince from "../../components/SelectProvince";
+import { adresseComplete, PROVINCE_DEFAUT } from "@/lib/adresse";
 
 export default function FournisseursClient({ fournisseurs, peutImporter }) {
   const router = useRouter();
@@ -14,7 +16,7 @@ export default function FournisseursClient({ fournisseurs, peutImporter }) {
   const fournisseursFiltres = fournisseurs.filter((f) => {
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    const champs = [f.nom, f.telephone, f.courriel, f.adresse];
+    const champs = [f.nom, f.telephone, f.courriel, f.adresse, f.ville, f.province, f.codePostal];
     return champs.some((champ) => champ && champ.toLowerCase().includes(q));
   });
 
@@ -79,7 +81,7 @@ export default function FournisseursClient({ fournisseurs, peutImporter }) {
                   {f.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{f.numero}</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {[f.telephone, f.courriel, f.adresse].filter(Boolean).join(" · ") || "Aucune coordonnée"}
+                  {[f.telephone, f.courriel, adresseComplete(f)].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
@@ -107,6 +109,7 @@ function FormulaireCreation({ onCree }) {
   const [courriel, setCourriel] = useState("");
   const [adresse, setAdresse] = useState("");
   const [ville, setVille] = useState("");
+  const [province, setProvince] = useState(PROVINCE_DEFAUT);
   const [codePostal, setCodePostal] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -118,7 +121,7 @@ function FormulaireCreation({ onCree }) {
     const res = await fetch("/api/fournisseurs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, province, codePostal }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -135,8 +138,9 @@ function FormulaireCreation({ onCree }) {
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
       <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+      <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>
-        <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={{ ...champStyle, flex: 1, marginBottom: 0 }} />
+        <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1, marginBottom: 0 }} />
         <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110, marginBottom: 0 }} />
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}

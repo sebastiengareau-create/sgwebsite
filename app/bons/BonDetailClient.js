@@ -11,6 +11,7 @@ import FichiersRendezVous from "../components/FichiersRendezVous";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
+import { adresseComplete } from "@/lib/adresse";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -351,7 +352,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
       {(bon.client.adresse || bon.client.ville) && (
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-          {[bon.client.adresse, [bon.client.ville, bon.client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+          {adresseComplete(bon.client)}
         </div>
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}

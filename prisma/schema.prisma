@@ -68,6 +68,7 @@ model Client {
   courriel          String?
   adresse           String?
   ville             String?
+  province          String? // code à deux lettres (ex. « QC ») — voir lib/adresse.js
   codePostal        String?
   garantieProlongee String? // numéro de contrat de garantie prolongée, si applicable
   vehicules         Vehicule[]
@@ -638,6 +639,7 @@ model Fournisseur {
   courriel     String?
   adresse      String?
   ville        String?
+  province     String? // code à deux lettres (ex. « QC ») — voir lib/adresse.js
   codePostal   String?
   actif        Boolean   @default(true)
   depenses     Depense[]

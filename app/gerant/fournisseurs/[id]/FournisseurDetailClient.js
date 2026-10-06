@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
+import SelectProvince from "../../../components/SelectProvince";
+import { ligneVille } from "@/lib/adresse";
 import { etatEcheance } from "@/lib/echeance";
 
 export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpayees }) {
@@ -17,6 +19,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
   const [courriel, setCourriel] = useState(fournisseur.courriel || "");
   const [adresse, setAdresse] = useState(fournisseur.adresse || "");
   const [ville, setVille] = useState(fournisseur.ville || "");
+  const [province, setProvince] = useState(fournisseur.province || "");
   const [codePostal, setCodePostal] = useState(fournisseur.codePostal || "");
 
   async function sauvegarder() {
@@ -25,7 +28,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
     const res = await fetch(`/api/fournisseurs/${fournisseur.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, province, codePostal }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -99,10 +102,12 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>
           <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
+          <label className="etiquette">Ville</label>
+          <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <label className="etiquette">Ville</label>
-              <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" style={{ marginBottom: 0 }} />
+              <label className="etiquette">Province</label>
+              <SelectProvince valeur={province} onChange={setProvince} className="champ" style={{ marginBottom: 0 }} />
             </div>
             <div style={{ width: 110 }}>
               <label className="etiquette">Code postal</label>
@@ -127,7 +132,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
             <LigneInfo label="Téléphone" valeur={fournisseur.telephone} />
             <LigneInfo label="Courriel" valeur={fournisseur.courriel} />
             <LigneInfo label="Adresse" valeur={fournisseur.adresse} />
-            <LigneInfo label="Ville" valeur={[fournisseur.ville, fournisseur.codePostal].filter(Boolean).join(" ") || null} />
+            <LigneInfo label="Ville" valeur={ligneVille(fournisseur) || null} />
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>
