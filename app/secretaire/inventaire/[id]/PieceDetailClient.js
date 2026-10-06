@@ -36,6 +36,7 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
   const [nom, setNom] = useState(piece.nom);
   const [numero, setNumero] = useState(piece.numero);
   const [codeBarre, setCodeBarre] = useState(piece.codeBarre || "");
+  const [autresNumeros, setAutresNumeros] = useState(piece.autresNumeros.join(", "));
   const [qte, setQte] = useState(piece.qte);
   const [qteMin, setQteMin] = useState(piece.qteMin);
   const [qteMax, setQteMax] = useState(piece.qteMax ?? "");
@@ -57,7 +58,7 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nom, numero, qte, qteMin, prix, coutant, categorie, codeBarre,
+        nom, numero, qte, qteMin, prix, coutant, categorie, codeBarre, autresNumeros,
         qteMax: qteMax === "" ? null : qteMax,
         emplacement: emplacement.trim() || null,
         fournisseurId: fournisseurId || null,
@@ -133,6 +134,8 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Numéro de référence</label>
           <input value={numero} onChange={(e) => setNumero(e.target.value)} className="champ" />
+          <label className="etiquette">Autres numéros (UGS) — séparés par des virgules, trouvés en recherche</label>
+          <input value={autresNumeros} onChange={(e) => setAutresNumeros(e.target.value)} placeholder="ex. ABC-123, 4567" className="champ" />
           <label className="etiquette">Code-barres du fabricant (UPC/EAN) — optionnel</label>
           <div style={{ display: "flex", gap: 6 }}>
             <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" className="champ" style={{ flex: 1 }} />
@@ -271,6 +274,7 @@ function OngletResume({ piece, marge, margePct }) {
         {piece.qteMax != null && <Champ label="Seuil maximum" valeur={`${piece.qteMax}`} />}
         {piece.emplacement && <Champ label="Emplacement" valeur={piece.emplacement} />}
         <Champ label="Code-barres fabricant" valeur={piece.codeBarre || "Aucun"} />
+        {piece.autresNumeros.length > 0 && <Champ label="Autres numéros" valeur={piece.autresNumeros.join(", ")} />}
         {piece.lignesCommande.length > 0 && (
           <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
             {piece.lignesCommande.map((l) => (

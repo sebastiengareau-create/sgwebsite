@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, estDeveloppeur } from "@/lib/auth";
 import { alignerInventaireAuGL } from "@/lib/comptabilite";
 import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
+import { separerUgs } from "@/lib/codesBarres";
 
 const ALIAS_CHAMPS = {
   nom: ["nom", "name", "description", "piece"],
   numero: ["numero", "no piece", "no", "sku", "code"],
+  // Numéros séparés par des virgules qui renvoient à la pièce ; une suite de
+  // 12 chiffres parmi eux est son code-barres UPC (voir separerUgs).
+  ugs: ["ugs", "autres numeros", "numeros alternatifs"],
   codeBarre: ["code barre", "code barres", "code-barre", "code-barres", "codebarre", "upc", "ean"],
   qte: ["qte", "quantite", "qty", "quantity", "qte en stock", "stock"],
   qteMin: ["qte min", "quantite min", "qte minimum", "min"],
@@ -48,12 +52,14 @@ export async function POST(request) {
   }
 
   const mappage = mapperEntetes(feuille.getRow(1), ALIAS_CHAMPS);
-  if (!Object.values(mappage).includes("nom") || !Object.values(mappage).includes("numero")) {
-    return NextResponse.json({ erreur: "Le fichier doit avoir au moins les colonnes \"Nom\" et \"Numéro\"." }, { status: 400 });
+  const colonnes = Object.values(mappage);
+  if (!colonnes.includes("nom") || (!colonnes.includes("numero") && !colonnes.includes("ugs"))) {
+    return NextResponse.json({ erreur: "Le fichier doit avoir au moins les colonnes \"Nom\" et \"Numéro\" (ou \"UGS\")." }, { status: 400 });
   }
 
-  const [numerosExistants, codesExistants, categories, fournisseurs] = await Promise.all([
-    prisma.piece.findMany({ select: { numero: true } }).then((r) => new Set(r.map((p) => p.numero.toLowerCase()))),
+  const [piecesExistantes, codesExistants, categories, fournisseurs] = await Promise.all([
+    prisma.piece.findMany({ select: { id: true, numero: true, codeBarre: true, autresNumeros: true } })
+      .then((r) => new Map(r.map((p) => [p.numero.toLowerCase(), p]))),
     prisma.piece.findMany({ where: { codeBarre: { not: null } }, select: { codeBarre: true } }).then((r) => new Set(r.map((p) => p.codeBarre))),
     prisma.categorieInventaire.findMany(),
     prisma.fournisseur.findMany({ select: { id: true, nom: true } }),
@@ -61,6 +67,7 @@ export async function POST(request) {
 
   let importes = 0;
   const doublons = [];
+  const completes = [];
   const ignores = [];
   const piecesCreees = [];
 
@@ -70,16 +77,44 @@ export async function POST(request) {
 
     const donnees = lireLigne(ligne, mappage);
     const nom = (donnees.nom || "").trim();
-    const numero = (donnees.numero || "").trim();
+    const ugs = separerUgs(donnees.ugs);
+    // Sans colonne Numéro, le premier numéro UGS devient le numéro de
+    // référence ; les autres restent des numéros qui renvoient à la pièce.
+    const numero = (donnees.numero || "").trim() || ugs.numeros[0] || "";
     if (!nom || !numero) { ignores.push(`Ligne ${numLigne} — nom ou numéro manquant`); continue; }
+    const autresNumeros = ugs.numeros.filter((n) => n.toLowerCase() !== numero.toLowerCase());
+
+    // Code-barres : la colonne dédiée d'abord, sinon la suite de 12 chiffres
+    // trouvée dans les UGS. Les codes en trop restent cherchables comme
+    // autres numéros.
+    const codesCandidats = [(donnees.codeBarre || "").replace(/\s+/g, ""), ...ugs.codesBarres].filter(Boolean);
+    const codesUniques = codesCandidats.filter((c, i) => codesCandidats.indexOf(c) === i);
+
+    const existante = piecesExistantes.get(numero.toLowerCase());
+    if (existante) {
+      // Pièce déjà là : on la complète avec ses numéros UGS et son
+      // code-barres s'il lui manque, sans toucher au reste.
+      const nouveauxNumeros = [...autresNumeros, ...codesUniques].filter((n) =>
+        n.toLowerCase() !== existante.numero.toLowerCase() && n !== existante.codeBarre
+        && !existante.autresNumeros.some((a) => a.toLowerCase() === n.toLowerCase()));
+      const codeAjoute = !existante.codeBarre ? codesUniques.find((c) => !codesExistants.has(c)) || null : null;
+      const numerosAjoutes = nouveauxNumeros.filter((n) => n !== codeAjoute);
+      if (!codeAjoute && numerosAjoutes.length === 0) { doublons.push(numero); continue; }
+      await prisma.piece.update({
+        where: { id: existante.id },
+        data: {
+          ...(codeAjoute && { codeBarre: codeAjoute }),
+          ...(numerosAjoutes.length > 0 && { autresNumeros: [...existante.autresNumeros, ...numerosAjoutes] }),
+        },
+      });
+      if (codeAjoute) { existante.codeBarre = codeAjoute; codesExistants.add(codeAjoute); }
+      existante.autresNumeros.push(...numerosAjoutes);
+      completes.push(numero);
+      continue;
+    }
 
     const prix = versNombre(donnees.prix);
     if (prix === null) { ignores.push(`Ligne ${numLigne} (${numero}) — prix manquant ou invalide`); continue; }
-
-    if (numerosExistants.has(numero.toLowerCase())) {
-      doublons.push(numero);
-      continue;
-    }
 
     const categorieTexte = (donnees.categorie || "").trim().toLowerCase();
     const categorieTrouvee = categories.find(
@@ -92,16 +127,18 @@ export async function POST(request) {
       : null;
 
     const qteInitiale = versNombre(donnees.qte) || 0;
-    // Un code-barres déjà pris par une autre pièce est laissé de côté plutôt
-    // que de faire échouer la ligne.
-    const codeBarre = (donnees.codeBarre || "").replace(/\s+/g, "");
-    const codeBarreLibre = codeBarre && !codesExistants.has(codeBarre) ? codeBarre : null;
+    // Un code-barres déjà pris par une autre pièce n'est pas mis dans le
+    // champ dédié (il est unique) mais reste cherchable comme autre numéro,
+    // plutôt que de faire échouer la ligne.
+    const codeBarreLibre = codesUniques.find((c) => !codesExistants.has(c)) || null;
+    const autresNumerosPiece = [...autresNumeros, ...codesUniques.filter((c) => c !== codeBarreLibre)];
 
     const piece = await prisma.piece.create({
       data: {
         nom,
         numero,
         codeBarre: codeBarreLibre,
+        autresNumeros: autresNumerosPiece,
         qte: qteInitiale,
         qteMin: versNombre(donnees.qteMin) || 0,
         qteMax: versNombre(donnees.qteMax),
@@ -117,7 +154,7 @@ export async function POST(request) {
         }),
       },
     });
-    numerosExistants.add(numero.toLowerCase());
+    piecesExistantes.set(numero.toLowerCase(), { id: piece.id, numero, codeBarre: codeBarreLibre, autresNumeros: autresNumerosPiece });
     if (codeBarreLibre) codesExistants.add(codeBarreLibre);
     piecesCreees.push(piece);
     importes++;
@@ -131,5 +168,5 @@ export async function POST(request) {
     ignores.push(`Écriture comptable non créée : ${e.message.replace(/^PERIODE_LOCK:/, "")}`);
   }
 
-  return NextResponse.json({ importes, doublons, ignores });
+  return NextResponse.json({ importes, doublons, completes, ignores });
 }

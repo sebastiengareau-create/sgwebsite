@@ -63,6 +63,10 @@ export async function POST(request, props) {
         qte,
         coutant,
         ...(!cible.codeBarre && source.codeBarre && { codeBarre: source.codeBarre }),
+        // Le numéro du doublon et ses autres numéros continuent de mener à
+        // la pièce fusionnée.
+        autresNumeros: [...cible.autresNumeros, source.numero, ...source.autresNumeros]
+          .filter((n, i, t) => n.toLowerCase() !== cible.numero.toLowerCase() && t.findIndex((x) => x.toLowerCase() === n.toLowerCase()) === i),
         ...(!cible.fournisseurId && source.fournisseurId && { fournisseurId: source.fournisseurId }),
         ...(!cible.emplacement && source.emplacement && { emplacement: source.emplacement }),
         historique: {

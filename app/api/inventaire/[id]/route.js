@@ -15,6 +15,11 @@ export async function PATCH(request, props) {
   if (body.nom !== undefined) data.nom = body.nom;
   if (body.numero !== undefined) data.numero = body.numero;
   if (body.codeBarre !== undefined) data.codeBarre = String(body.codeBarre || "").replace(/\s+/g, "") || null;
+  if (body.autresNumeros !== undefined) {
+    // Liste ou texte séparé par des virgules ; sans vides ni doublons.
+    const liste = Array.isArray(body.autresNumeros) ? body.autresNumeros : String(body.autresNumeros || "").split(/[,;\n]+/);
+    data.autresNumeros = liste.map((n) => String(n).trim()).filter((n, i, t) => n && t.findIndex((x) => x.toLowerCase() === n.toLowerCase()) === i);
+  }
   if (body.qte !== undefined) data.qte = Number(body.qte);
   if (body.qteMin !== undefined) data.qteMin = Number(body.qteMin);
   if (body.qteMax !== undefined) data.qteMax = body.qteMax === "" || body.qteMax === null ? null : Number(body.qteMax);
@@ -63,6 +68,15 @@ export async function PATCH(request, props) {
           : (data[champ] != null ? String(data[champ]) : null),
         modifiePar: session.nom,
       }));
+    // Liste : comparée par son contenu plutôt que par référence.
+    if (data.autresNumeros !== undefined && data.autresNumeros.join(", ") !== avant.autresNumeros.join(", ")) {
+      evenementsHistorique.push({
+        champ: "Autres numéros",
+        ancienneValeur: avant.autresNumeros.join(", ") || null,
+        nouvelleValeur: data.autresNumeros.join(", ") || null,
+        modifiePar: session.nom,
+      });
+    }
 
     const differenceQte = data.qte !== undefined ? data.qte - avant.qte : 0;
 

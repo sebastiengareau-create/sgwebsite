@@ -7,7 +7,7 @@ import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
-import { trouverPieceParScan, normaliserCode, extraireIdEtiquette } from "@/lib/codesBarres";
+import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroContient } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 
@@ -31,7 +31,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
     if (!p.actif && !voirDesactivees) return false;
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)
+    return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q) || autreNumeroContient(p, q)
       || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)))
       || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q));
   });

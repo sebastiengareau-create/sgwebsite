@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ScannerCodeBarres from "../../../../components/ScannerCodeBarres";
 import { STATUTS_COMMANDE, resteARecevoir, quantiteSuggeree } from "@/lib/commandesFournisseurs";
-import { trouverPieceParScan, normaliserCode } from "@/lib/codesBarres";
+import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
 
 const dateFr = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 const aujourdhui = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -317,7 +317,7 @@ function AjoutPiece({ pieces, onAjouter }) {
 
   const q = recherche.trim().toLowerCase();
   const suggestions = q
-    ? pieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)
+    ? pieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q) || autreNumeroContient(p, q)
         || (p.codeBarre && normaliserCode(p.codeBarre) === normaliserCode(q))
         || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q))).slice(0, 8)
     : [];
