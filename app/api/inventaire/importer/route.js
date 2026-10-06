@@ -2,25 +2,37 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estDeveloppeur } from "@/lib/auth";
 import { alignerInventaireAuGL } from "@/lib/comptabilite";
-import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
+import { lireFeuille, analyserFeuille } from "@/lib/importFichier";
 import { separerUgs } from "@/lib/codesBarres";
 import { prochainNumero } from "@/lib/numerotation";
 
+// En-têtes reconnus (sans accents, casse ni ponctuation) : intitulé exact,
+// sinon tous les mots d'un alias présents dans l'en-tête (« Prix de vente
+// ($) », « Qté en stock »). Quelques colonnes sont reconnues seulement pour
+// ne pas être prises pour une autre (valeur du stock, code fournisseur).
 const ALIAS_CHAMPS = {
-  nom: ["nom", "name", "description", "piece"],
-  numero: ["numero", "no piece", "no", "sku", "code"],
+  nom: ["nom", "name", "description", "piece", "nom piece", "nom de la piece", "article", "produit", "item", "designation", "libelle"],
+  numero: ["numero", "no piece", "no", "sku", "code", "numero piece", "numero de piece", "no article", "numero article", "code article", "code produit", "part number", "part no", "item number"],
   // Numéros séparés par des virgules qui renvoient à la pièce ; une suite de
   // 12 ou 13 chiffres parmi eux est son code-barres UPC/EAN (voir separerUgs).
   ugs: ["ugs", "autres numeros", "numeros alternatifs"],
-  codeBarre: ["code barre", "code barres", "code-barre", "code-barres", "codebarre", "upc", "ean"],
-  qte: ["qte", "quantite", "qty", "quantity", "qte en stock", "stock"],
-  qteMin: ["qte min", "quantite min", "qte minimum", "min"],
-  qteMax: ["qte max", "quantite max", "qte maximum", "max"],
-  emplacement: ["emplacement", "location", "tablette"],
-  prix: ["prix", "prix vente", "price", "vendant"],
-  coutant: ["coutant", "cout", "cost", "prix coutant"],
-  categorie: ["categorie", "category"],
-  fournisseur: ["fournisseur", "supplier", "vendeur"],
+  codeBarre: ["code barre", "code barres", "code-barre", "code-barres", "codebarre", "upc", "ean", "barcode"],
+  qte: [
+    "qte", "quantite", "qty", "quantity", "qte en stock", "stock", "en stock", "stock actuel", "qte stock", "quantite en stock",
+    "qte en main", "quantite en main", "qte disponible", "quantite disponible", "disponible", "inventaire", "on hand", "qty on hand", "in stock",
+  ],
+  qteMin: ["qte min", "quantite min", "qte minimum", "min", "minimum", "stock min", "stock minimum", "seuil", "point de commande", "reorder point"],
+  qteMax: ["qte max", "quantite max", "qte maximum", "max", "maximum", "stock max", "stock maximum"],
+  emplacement: ["emplacement", "location", "tablette", "localisation", "bin", "rayon", "etagere"],
+  prix: [
+    "prix", "prix vente", "prix de vente", "price", "vendant", "prix vendant", "prix detail", "prix de detail", "prix client",
+    "pdsf", "msrp", "retail", "retail price", "sell price", "selling price", "sale price", "prix unitaire",
+  ],
+  coutant: ["coutant", "cout", "cost", "prix coutant", "prix cout", "cout unitaire", "prix achat", "prix d achat", "unit cost", "cout moyen"],
+  categorie: ["categorie", "category", "type", "famille"],
+  fournisseur: ["fournisseur", "supplier", "vendeur", "nom fournisseur", "vendor"],
+  numeroFournisseur: ["code fournisseur", "no fournisseur", "numero fournisseur", "no piece fournisseur", "numero chez fournisseur", "vendor part number"],
+  valeur: ["valeur", "valeur stock", "valeur du stock", "valeur inventaire", "valeur totale", "cout total", "total", "montant", "prix total", "total value"],
 };
 
 // « 12,50 $ », « $1,234.56 », « 1 234,56 » → nombre ; vide ou illisible
@@ -62,8 +74,8 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Le fichier est vide ou n'a pas de ligne d'en-têtes." }, { status: 400 });
   }
 
-  const mappage = mapperEntetes(feuille.getRow(1), ALIAS_CHAMPS);
-  const colonnes = Object.values(mappage);
+  const analyse = analyserFeuille(feuille, ALIAS_CHAMPS);
+  const colonnes = [...analyse.champs];
   // Il faut de quoi identifier une pièce : un nom ou un numéro (le reste
   // peut manquer et se complète ensuite dans la fiche).
   if (!["nom", "numero", "ugs", "codeBarre"].some((c) => colonnes.includes(c))) {
@@ -71,7 +83,7 @@ export async function POST(request) {
   }
 
   const [piecesExistantes, codesExistants, categories, fournisseurs] = await Promise.all([
-    prisma.piece.findMany({ select: { id: true, numero: true, codeBarre: true, autresNumeros: true } })
+    prisma.piece.findMany({ select: { id: true, numero: true, codeBarre: true, autresNumeros: true, prix: true, coutant: true, qte: true } })
       .then((r) => new Map(r.map((p) => [p.numero.toLowerCase(), p]))),
     prisma.piece.findMany({ where: { codeBarre: { not: null } }, select: { codeBarre: true } }).then((r) => new Set(r.map((p) => p.codeBarre))),
     prisma.categorieInventaire.findMany(),
@@ -86,11 +98,11 @@ export async function POST(request) {
   const sansPrix = []; // importées quand même, prix de vente à 0 $ à compléter
   const numerosGeneres = []; // pièces sans numéro dans le fichier
 
-  for (let numLigne = 2; numLigne <= feuille.rowCount; numLigne++) {
+  for (let numLigne = analyse.premiereLigne; numLigne <= feuille.rowCount; numLigne++) {
     const ligne = feuille.getRow(numLigne);
     if (!ligne.hasValues) continue;
 
-    const donnees = lireLigne(ligne, mappage);
+    const donnees = analyse.lire(ligne);
     const ugs = separerUgs(donnees.ugs);
     const codeBarreFichier = (donnees.codeBarre || "").replace(/\s+/g, "");
     // Sans colonne Numéro, le premier numéro UGS (sinon le code-barres)
@@ -112,23 +124,46 @@ export async function POST(request) {
     const codesCandidats = [(donnees.codeBarre || "").replace(/\s+/g, ""), ...ugs.codesBarres].filter(Boolean);
     const codesUniques = codesCandidats.filter((c, i) => codesCandidats.indexOf(c) === i);
 
+    const prixFichier = versNombre(donnees.prix);
+    const coutantFichier = versNombre(donnees.coutant);
+    const qteFichier = versNombre(donnees.qte);
+
     const existante = piecesExistantes.get(numero.toLowerCase());
     if (existante) {
       // Pièce déjà là : on la complète avec ses numéros UGS et son
-      // code-barres s'il lui manque, sans toucher au reste.
+      // code-barres s'il lui manque, et avec le prix, le coûtant et le stock
+      // du fichier s'ils sont encore à 0 (ex. pièce créée par un import
+      // précédent qui ne les avait pas lus) — sans écraser une valeur saisie.
       const nouveauxNumeros = [...autresNumeros, ...codesUniques].filter((n) =>
         n.toLowerCase() !== existante.numero.toLowerCase() && n !== existante.codeBarre
         && !existante.autresNumeros.some((a) => a.toLowerCase() === n.toLowerCase()));
       const codeAjoute = !existante.codeBarre ? codesUniques.find((c) => !codesExistants.has(c)) || null : null;
       const numerosAjoutes = nouveauxNumeros.filter((n) => n !== codeAjoute);
-      if (!codeAjoute && numerosAjoutes.length === 0) { doublons.push(numero); continue; }
+      const prixAjoute = !existante.prix && prixFichier ? prixFichier : null;
+      const coutantAjoute = !existante.coutant && coutantFichier ? coutantFichier : null;
+      const stockAjoute = !existante.qte && qteFichier ? qteFichier : null;
+      if (!codeAjoute && numerosAjoutes.length === 0 && prixAjoute === null && coutantAjoute === null && stockAjoute === null) {
+        doublons.push(numero);
+        continue;
+      }
       await prisma.piece.update({
         where: { id: existante.id },
         data: {
           ...(codeAjoute && { codeBarre: codeAjoute }),
           ...(numerosAjoutes.length > 0 && { autresNumeros: [...existante.autresNumeros, ...numerosAjoutes] }),
+          ...(prixAjoute !== null && { prix: prixAjoute }),
+          ...(coutantAjoute !== null && { coutant: coutantAjoute }),
+          ...(stockAjoute !== null && {
+            qte: stockAjoute,
+            mouvements: {
+              create: { type: "AJUSTEMENT", qte: stockAjoute, solde: stockAjoute, note: "Stock de départ (import)", creePar: session.nom },
+            },
+          }),
         },
       });
+      if (prixAjoute !== null) existante.prix = prixAjoute;
+      if (coutantAjoute !== null) existante.coutant = coutantAjoute;
+      if (stockAjoute !== null) existante.qte = stockAjoute;
       if (codeAjoute) { existante.codeBarre = codeAjoute; codesExistants.add(codeAjoute); }
       existante.autresNumeros.push(...numerosAjoutes);
       completes.push(numero);
@@ -136,7 +171,7 @@ export async function POST(request) {
     }
 
     // Prix de vente ou coûtant absent : la pièce est importée quand même, à 0 $
-    const prix = versNombre(donnees.prix);
+    const prix = prixFichier;
     if (prix === null) sansPrix.push(numero);
 
     const categorieTexte = (donnees.categorie || "").trim().toLowerCase();
@@ -149,7 +184,7 @@ export async function POST(request) {
       ? fournisseurs.find((f) => f.nom.toLowerCase() === fournisseurTexte)
       : null;
 
-    const qteInitiale = versNombre(donnees.qte) || 0;
+    const qteInitiale = qteFichier || 0;
     // Un code-barres déjà pris par une autre pièce n'est pas mis dans le
     // champ dédié (il est unique) mais reste cherchable comme autre numéro,
     // plutôt que de faire échouer la ligne.
@@ -168,7 +203,7 @@ export async function POST(request) {
         emplacement: donnees.emplacement || null,
         fournisseurId: fournisseurTrouve?.id || null,
         prix: prix ?? 0,
-        coutant: versNombre(donnees.coutant) || 0,
+        coutant: coutantFichier || 0,
         categorie: categorieTrouvee?.code || "PIECE",
         ...(qteInitiale !== 0 && {
           mouvements: {
@@ -177,7 +212,7 @@ export async function POST(request) {
         }),
       },
     });
-    piecesExistantes.set(numero.toLowerCase(), { id: piece.id, numero, codeBarre: codeBarreLibre, autresNumeros: autresNumerosPiece });
+    piecesExistantes.set(numero.toLowerCase(), { id: piece.id, numero, codeBarre: codeBarreLibre, autresNumeros: autresNumerosPiece, prix: piece.prix, coutant: piece.coutant, qte: piece.qte });
     if (codeBarreLibre) codesExistants.add(codeBarreLibre);
     piecesCreees.push(piece);
     importes++;
