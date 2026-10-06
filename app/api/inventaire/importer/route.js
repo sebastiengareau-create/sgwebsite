@@ -4,6 +4,7 @@ import { obtenirSession, estDeveloppeur } from "@/lib/auth";
 import { alignerInventaireAuGL } from "@/lib/comptabilite";
 import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
 import { separerUgs } from "@/lib/codesBarres";
+import { prochainNumero } from "@/lib/numerotation";
 
 const ALIAS_CHAMPS = {
   nom: ["nom", "name", "description", "piece"],
@@ -22,9 +23,19 @@ const ALIAS_CHAMPS = {
   fournisseur: ["fournisseur", "supplier", "vendeur"],
 };
 
+// « 12,50 $ », « $1,234.56 », « 1 234,56 » → nombre ; vide ou illisible
+// (« N/D », « — ») → null. Quand virgule et point sont tous deux présents,
+// le dernier des deux est le séparateur décimal.
 function versNombre(texte) {
   if (texte === undefined || texte === null || texte === "") return null;
-  const n = Number(String(texte).replace(",", ".").replace(/[^0-9.\-]/g, ""));
+  let t = String(texte).replace(/[^0-9.,\-]/g, "");
+  if (t.includes(",") && t.includes(".")) {
+    t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+  } else {
+    t = t.replace(",", ".");
+  }
+  if (!/\d/.test(t)) return null;
+  const n = Number(t);
   return isNaN(n) ? null : n;
 }
 
@@ -53,8 +64,10 @@ export async function POST(request) {
 
   const mappage = mapperEntetes(feuille.getRow(1), ALIAS_CHAMPS);
   const colonnes = Object.values(mappage);
-  if (!colonnes.includes("nom") || (!colonnes.includes("numero") && !colonnes.includes("ugs"))) {
-    return NextResponse.json({ erreur: "Le fichier doit avoir au moins les colonnes \"Nom\" et \"Numéro\" (ou \"UGS\")." }, { status: 400 });
+  // Il faut de quoi identifier une pièce : un nom ou un numéro (le reste
+  // peut manquer et se complète ensuite dans la fiche).
+  if (!["nom", "numero", "ugs", "codeBarre"].some((c) => colonnes.includes(c))) {
+    return NextResponse.json({ erreur: "Le fichier doit avoir au moins une colonne \"Nom\" ou \"Numéro\" (ou \"UGS\")." }, { status: 400 });
   }
 
   const [piecesExistantes, codesExistants, categories, fournisseurs] = await Promise.all([
@@ -70,18 +83,27 @@ export async function POST(request) {
   const completes = [];
   const ignores = [];
   const piecesCreees = [];
+  const sansPrix = []; // importées quand même, prix de vente à 0 $ à compléter
+  const numerosGeneres = []; // pièces sans numéro dans le fichier
 
   for (let numLigne = 2; numLigne <= feuille.rowCount; numLigne++) {
     const ligne = feuille.getRow(numLigne);
     if (!ligne.hasValues) continue;
 
     const donnees = lireLigne(ligne, mappage);
-    const nom = (donnees.nom || "").trim();
     const ugs = separerUgs(donnees.ugs);
-    // Sans colonne Numéro, le premier numéro UGS devient le numéro de
-    // référence ; les autres restent des numéros qui renvoient à la pièce.
-    const numero = (donnees.numero || "").trim() || ugs.numeros[0] || "";
-    if (!nom || !numero) { ignores.push(`Ligne ${numLigne} — nom ou numéro manquant`); continue; }
+    const codeBarreFichier = (donnees.codeBarre || "").replace(/\s+/g, "");
+    // Sans colonne Numéro, le premier numéro UGS (sinon le code-barres)
+    // devient le numéro de référence ; les autres restent des numéros qui
+    // renvoient à la pièce.
+    let numero = (donnees.numero || "").trim() || ugs.numeros[0] || codeBarreFichier || "";
+    // Sans nom, le numéro en tient lieu (et inversement, un numéro est attribué)
+    const nom = (donnees.nom || "").trim() || numero;
+    if (!nom) { ignores.push(`Ligne ${numLigne} — ni nom ni numéro`); continue; }
+    if (!numero) {
+      numero = await prochainNumero(prisma.piece, "numero", "PIECE");
+      numerosGeneres.push(`${nom} → ${numero}`);
+    }
     const autresNumeros = ugs.numeros.filter((n) => n.toLowerCase() !== numero.toLowerCase());
 
     // Code-barres : la colonne dédiée d'abord, sinon la suite de 12 ou 13 chiffres
@@ -113,8 +135,9 @@ export async function POST(request) {
       continue;
     }
 
+    // Prix de vente ou coûtant absent : la pièce est importée quand même, à 0 $
     const prix = versNombre(donnees.prix);
-    if (prix === null) { ignores.push(`Ligne ${numLigne} (${numero}) — prix manquant ou invalide`); continue; }
+    if (prix === null) sansPrix.push(numero);
 
     const categorieTexte = (donnees.categorie || "").trim().toLowerCase();
     const categorieTrouvee = categories.find(
@@ -144,7 +167,7 @@ export async function POST(request) {
         qteMax: versNombre(donnees.qteMax),
         emplacement: donnees.emplacement || null,
         fournisseurId: fournisseurTrouve?.id || null,
-        prix,
+        prix: prix ?? 0,
         coutant: versNombre(donnees.coutant) || 0,
         categorie: categorieTrouvee?.code || "PIECE",
         ...(qteInitiale !== 0 && {
@@ -168,5 +191,13 @@ export async function POST(request) {
     ignores.push(`Écriture comptable non créée : ${e.message.replace(/^PERIODE_LOCK:/, "")}`);
   }
 
-  return NextResponse.json({ importes, doublons, completes, ignores });
+  // Ce qui manquait dans le fichier : importé quand même, à compléter
+  const liste = (t) => t.slice(0, 20).join(", ") + (t.length > 20 ? "…" : "");
+  const pluriel = (n) => (n !== 1 ? "s" : "");
+  const notes = [];
+  if (sansPrix.length > 0) notes.push(`${sansPrix.length} pièce${pluriel(sansPrix.length)} sans prix de vente — importée${pluriel(sansPrix.length)} à 0 $, à compléter dans la fiche : ${liste(sansPrix)}`);
+  if (numerosGeneres.length > 0) notes.push(`${numerosGeneres.length} pièce${pluriel(numerosGeneres.length)} sans numéro — numéro attribué : ${liste(numerosGeneres)}`);
+  const note = notes.join(" · ") || null;
+
+  return NextResponse.json({ importes, doublons, completes, ignores, note });
 }
