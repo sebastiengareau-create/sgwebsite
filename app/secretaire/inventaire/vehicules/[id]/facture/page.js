@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { libelleVehicule } from "@/lib/vehicules";
 import { image } from "@/lib/client";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
+import { adresseComplete } from "@/lib/adresse";
 
 // Facture de vente d'un véhicule à vendre, à imprimer — même présentation
 // que la facture d'un bon (app/bons/[id]/imprimer).
@@ -65,7 +66,7 @@ export default async function ImprimerFactureVente(props) {
           <div style={{ fontWeight: 600 }}>{client.nom}</div>
           {client.telephone && <div style={{ fontSize: 13 }}>{client.telephone}</div>}
           {(client.adresse || client.ville) && (
-            <div style={{ fontSize: 13 }}>{[client.adresse, [client.ville, client.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</div>
+            <div style={{ fontSize: 13 }}>{adresseComplete(client)}</div>
           )}
         </div>
 

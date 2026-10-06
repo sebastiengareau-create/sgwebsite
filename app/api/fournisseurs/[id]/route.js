@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
+import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -15,7 +16,8 @@ export async function PATCH(request, props) {
   if (body.courriel !== undefined) data.courriel = body.courriel || null;
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
   if (body.ville !== undefined) data.ville = body.ville || null;
-  if (body.codePostal !== undefined) data.codePostal = body.codePostal || null;
+  if (body.province !== undefined) data.province = normaliserProvince(body.province);
+  if (body.codePostal !== undefined) data.codePostal = normaliserCodePostal(body.codePostal);
   if (typeof body.actif === "boolean") data.actif = body.actif;
 
   const fournisseur = await prisma.fournisseur.update({ where: { id: params.id }, data });

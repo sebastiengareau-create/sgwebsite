@@ -3,6 +3,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonsExportListe from "../BoutonsExportListe";
+import { adresseComplete } from "@/lib/adresse";
 
 export default async function RapportFournisseurs() {
   const session = await obtenirSession();
@@ -48,7 +49,7 @@ export default async function RapportFournisseurs() {
               <tr key={f.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{f.numero || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{f.nom}</td>
-                <td style={{ padding: "6px 4px" }}>{[f.adresse, f.ville, f.codePostal].filter(Boolean).join(", ") || "—"}</td>
+                <td style={{ padding: "6px 4px" }}>{adresseComplete(f) || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{f.telephone || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{f.courriel || "—"}</td>
                 <td style={{ padding: "6px 4px", color: f.actif ? "#17150f" : "#a83232" }}>{f.actif ? "Actif" : "Inactif"}</td>

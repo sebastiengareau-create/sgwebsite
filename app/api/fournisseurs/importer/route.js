@@ -2,15 +2,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estDeveloppeur } from "@/lib/auth";
 import { prochainNumeroFournisseur } from "@/lib/numerotation";
-import { lireFeuille, mapperEntetes, lireLigne } from "@/lib/importFichier";
+import { lireFeuille, analyserFeuille, ALIAS_COORDONNEES, nettoyerCoordonnees, noteDetection } from "@/lib/importFichier";
 
+// En-têtes reconnus (sans accents, casse ni ponctuation) — en plus des
+// coordonnées communes (lib/importFichier.js). La personne-ressource et le
+// numéro de fournisseur sont reconnus pour ne pas être pris pour le nom.
+const { prenom, ...COORDONNEES } = ALIAS_COORDONNEES;
 const ALIAS_CHAMPS = {
-  nom: ["nom", "name", "fournisseur", "nomfournisseur"],
-  telephone: ["telephone", "tel", "phone", "cell", "cellulaire"],
-  courriel: ["courriel", "email", "courriel electronique", "e mail", "adresse courriel"],
-  adresse: ["adresse", "address"],
-  ville: ["ville", "city"],
-  codePostal: ["codepostal", "code postal", "postal", "zip", "zipcode"],
+  ...COORDONNEES,
+  nom: [
+    "nom", "name", "fournisseur", "nomfournisseur", "nom fournisseur", "nom du fournisseur", "compagnie", "nom compagnie",
+    "entreprise", "nom entreprise", "nom de l entreprise", "raison sociale", "company", "company name", "supplier", "vendor", "vendor name",
+  ],
+  contact: ["contact", "nom du contact", "nom contact", "personne ressource", "representant", "contact name", ...prenom],
+  numero: ["no fournisseur", "numero fournisseur", "numero du fournisseur", "code fournisseur", "id fournisseur", "vendor id", "id"],
 };
 
 export async function POST(request) {
@@ -36,9 +41,9 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Le fichier est vide ou n'a pas de ligne d'en-têtes." }, { status: 400 });
   }
 
-  const mappage = mapperEntetes(feuille.getRow(1), ALIAS_CHAMPS);
-  if (!Object.values(mappage).includes("nom")) {
-    return NextResponse.json({ erreur: "Aucune colonne \"Nom\" trouvée dans la première ligne du fichier." }, { status: 400 });
+  const analyse = analyserFeuille(feuille, ALIAS_CHAMPS);
+  if (!analyse.champs.has("nom")) {
+    return NextResponse.json({ erreur: "Aucune colonne \"Nom\" trouvée dans le fichier." }, { status: 400 });
   }
 
   const nomsExistants = new Set(
@@ -49,12 +54,13 @@ export async function POST(request) {
   const doublons = [];
   const ignores = [];
 
-  for (let numLigne = 2; numLigne <= feuille.rowCount; numLigne++) {
+  for (let numLigne = analyse.premiereLigne; numLigne <= feuille.rowCount; numLigne++) {
     const ligne = feuille.getRow(numLigne);
     if (!ligne.hasValues) continue;
 
-    const donnees = lireLigne(ligne, mappage);
-    const nom = (donnees.nom || "").trim();
+    const brut = analyse.lire(ligne);
+    const donnees = nettoyerCoordonnees(brut);
+    const nom = donnees.nom;
     if (!nom) { ignores.push(`Ligne ${numLigne} — nom manquant`); continue; }
 
     if (nomsExistants.has(nom.toLowerCase())) {
@@ -66,16 +72,17 @@ export async function POST(request) {
       data: {
         numero: await prochainNumeroFournisseur(),
         nom,
-        telephone: donnees.telephone || null,
-        courriel: donnees.courriel || null,
-        adresse: donnees.adresse || null,
-        ville: donnees.ville || null,
-        codePostal: donnees.codePostal || null,
+        telephone: donnees.telephone,
+        courriel: donnees.courriel,
+        adresse: donnees.adresse,
+        ville: donnees.ville,
+        province: donnees.province,
+        codePostal: donnees.codePostal,
       },
     });
     nomsExistants.add(nom.toLowerCase());
     importes++;
   }
 
-  return NextResponse.json({ importes, doublons, ignores });
+  return NextResponse.json({ importes, doublons, ignores, note: noteDetection(analyse.detectees) });
 }

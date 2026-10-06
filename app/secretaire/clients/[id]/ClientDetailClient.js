@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
+import SelectProvince from "../../../components/SelectProvince";
+import { ligneVille } from "@/lib/adresse";
 import DossierVehicules from "./DossierVehicules";
 import { libelleVehicule } from "@/lib/vehicules";
 
@@ -24,6 +26,7 @@ export default function ClientDetailClient({ client }) {
   const [courriel, setCourriel] = useState(client.courriel || "");
   const [adresse, setAdresse] = useState(client.adresse || "");
   const [ville, setVille] = useState(client.ville || "");
+  const [province, setProvince] = useState(client.province || "");
   const [codePostal, setCodePostal] = useState(client.codePostal || "");
   const [garantieProlongee, setGarantieProlongee] = useState(client.garantieProlongee || "");
 
@@ -40,7 +43,7 @@ export default function ClientDetailClient({ client }) {
     const res = await fetch(`/api/clients/${client.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, codePostal, garantieProlongee, confirmerDoublon }),
+      body: JSON.stringify({ nom, telephone, courriel, adresse, ville, province, codePostal, garantieProlongee, confirmerDoublon }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -123,10 +126,12 @@ export default function ClientDetailClient({ client }) {
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>
           <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
+          <label className="etiquette">Ville</label>
+          <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label className="etiquette">Ville</label>
-              <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
+              <label className="etiquette">Province</label>
+              <SelectProvince valeur={province} onChange={setProvince} className="champ" />
             </div>
             <div style={{ width: 110 }}>
               <label className="etiquette">Code postal</label>
@@ -153,7 +158,7 @@ export default function ClientDetailClient({ client }) {
             <LigneInfo label="Téléphone" valeur={client.telephone && <a href={`tel:${client.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{client.telephone}</a>} />
             <LigneInfo label="Courriel" valeur={client.courriel && <a href={`mailto:${client.courriel}`} style={{ color: "inherit" }}>{client.courriel}</a>} />
             <LigneInfo label="Adresse" valeur={client.adresse} />
-            <LigneInfo label="Ville" valeur={[client.ville, client.codePostal].filter(Boolean).join(" ") || null} />
+            <LigneInfo label="Ville" valeur={ligneVille(client) || null} />
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>

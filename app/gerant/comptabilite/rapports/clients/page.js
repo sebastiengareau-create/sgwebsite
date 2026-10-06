@@ -3,6 +3,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonsExportListe from "../BoutonsExportListe";
+import { adresseComplete } from "@/lib/adresse";
 
 export default async function RapportClients() {
   const session = await obtenirSession();
@@ -51,7 +52,7 @@ export default async function RapportClients() {
               <tr key={c.id} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "6px 4px", fontFamily: "monospace" }}>{c.numero || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{c.nom}</td>
-                <td style={{ padding: "6px 4px" }}>{[c.adresse, c.ville, c.codePostal].filter(Boolean).join(", ") || "—"}</td>
+                <td style={{ padding: "6px 4px" }}>{adresseComplete(c) || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{c.telephone || "—"}</td>
                 <td style={{ padding: "6px 4px" }}>{c.courriel || "—"}</td>
                 <td style={{ padding: "6px 4px", textAlign: "right" }}>{c._count.bons}</td>
