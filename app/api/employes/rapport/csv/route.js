@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { adresseComplete } from "@/lib/adresse";
 
 function echapperCsv(valeur) {
   const texte = String(valeur ?? "");
@@ -24,7 +25,7 @@ export async function GET() {
     lignesCsv.push([
       echapperCsv(e.numeroEmploye),
       echapperCsv(e.nom),
-      echapperCsv([e.adresse, e.ville, e.codePostal].filter(Boolean).join(", ")),
+      echapperCsv(adresseComplete(e)),
       echapperCsv(e.assignation),
       echapperCsv(e.telephone),
       echapperCsv(e.courriel),

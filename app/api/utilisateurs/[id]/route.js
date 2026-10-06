@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { validerPin } from "@/lib/employes";
+import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -77,7 +78,8 @@ export async function PATCH(request, props) {
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
   if (body.ville !== undefined) data.ville = body.ville || null;
-  if (body.codePostal !== undefined) data.codePostal = body.codePostal || null;
+  if (body.province !== undefined) data.province = normaliserProvince(body.province);
+  if (body.codePostal !== undefined) data.codePostal = normaliserCodePostal(body.codePostal);
   if (body.assignation !== undefined) data.assignation = body.assignation || null;
   if (body.dateEmbauche !== undefined) data.dateEmbauche = body.dateEmbauche ? new Date(body.dateEmbauche) : null;
 
