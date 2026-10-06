@@ -6,7 +6,8 @@ import { quantitesEnCommande } from "@/lib/commandesFournisseurs";
 import EnTete from "../../components/EnTete";
 import InventaireClient from "./InventaireClient";
 
-export default async function GestionInventaire() {
+export default async function GestionInventaire(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "inventaire"))) redirect("/mecanicien");
 
@@ -30,7 +31,7 @@ export default async function GestionInventaire() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <InventaireClient pieces={pieces} enCommande={enCommande} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} />
+      <InventaireClient pieces={pieces} enCommande={enCommande} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} scanInitial={typeof searchParams?.scan === "string" ? searchParams.scan : ""} />
     </div>
   );
 }

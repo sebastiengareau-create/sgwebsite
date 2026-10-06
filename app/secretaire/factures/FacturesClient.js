@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
 import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
 import { regrouperParJour } from "@/lib/regroupementDates";
 
@@ -162,7 +161,6 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
           </div>
         )}
       </div>
-      <BoutonFlottantNouveau />
     </div>
   );
 }

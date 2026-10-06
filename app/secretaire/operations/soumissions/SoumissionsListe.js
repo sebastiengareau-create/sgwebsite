@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BoutonFlottantNouveau from "../../../components/BoutonFlottantNouveau";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -117,7 +116,6 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
           </div>
         )}
       </div>
-      <BoutonFlottantNouveau />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession } from "@/lib/auth";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
 import AssistantSG from "./components/AssistantSG";
+import BoutonFlottantNouveau from "./components/BoutonFlottantNouveau";
 import "./globals.css";
 import { image } from "@/lib/client";
 
@@ -76,10 +77,19 @@ export default async function RootLayout({ children }) {
 
   const { theme, tailleTexte } = await obtenirPreferencesAffichage(session);
 
+  // Sections permises pour le bouton « + » (nouveau bon, rendez-vous, scan)
+  const sectionsBouton = [];
+  if (session && !verrouille) {
+    for (const section of ["operations", "calendrier", "inventaire"]) {
+      if (await aAccesSection(session, section)) sectionsBouton.push(section);
+    }
+  }
+
   return (
     <html lang="fr" data-theme={theme === "clair" ? "light" : "dark"} data-taille={tailleTexte === "grand" ? "grand" : "normal"}>
       <body>
         {verrouille ? <EcranVerrouille /> : children}
+        {!verrouille && session && <BoutonFlottantNouveau sections={sectionsBouton} />}
         {!verrouille && session && <AssistantSG />}
       </body>
     </html>

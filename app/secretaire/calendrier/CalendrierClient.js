@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BoutonFlottantNouveau from "../../components/BoutonFlottantNouveau";
 import BandeauSection from "../../components/BandeauSection";
 import FichiersRendezVous from "../../components/FichiersRendezVous";
 
@@ -241,7 +240,6 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
         dateParDefaut={jourActif}
         onChange={() => router.refresh()}
       />
-      <BoutonFlottantNouveau />
     </div>
   );
 }
