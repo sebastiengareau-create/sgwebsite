@@ -6,11 +6,14 @@ import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 // « 🛒 Commander » une pièce à commander d'un bon : trouve sa fiche
 // d'inventaire (par le numéro, chez ce fournisseur ou ailleurs) ou la crée
-// (quantité 0), l'ajoute au brouillon de commande de ce fournisseur, et
-// l'ajoute tout de suite à une tâche du bon en B/O : elle compte dans le
-// total du bon, et sort du stock à la réception de la commande. La suite est
-// le circuit habituel des commandes : envoyer, recevoir avec la facture
-// (stock + dépense à payer), payer dans les comptes à payer.
+// (quantité 0), la met dans une nouvelle commande à ce fournisseur, déjà
+// marquée envoyée (l'employé passe la commande au moment de l'enregistrer —
+// le brouillon du fournisseur, qui peut contenir d'autres pièces pas encore
+// commandées, n'est pas touché), et l'ajoute tout de suite à une tâche du
+// bon en B/O : elle compte dans le total du bon, et sort du stock à la
+// réception de la commande. La suite est le circuit habituel des commandes :
+// recevoir avec la facture (stock + dépense à payer), payer dans les comptes
+// à payer.
 export async function POST(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
@@ -79,7 +82,8 @@ export async function POST(request, props) {
   const commande = await ajouterACommande({
     fournisseurId: fournisseur.id,
     lignes: [{ pieceId: pieceCommandee.id, qte, coutUnitaire: cout ?? undefined, numeroFournisseur: numero }],
-    ajouterAuBrouillon: true,
+    ajouterAuBrouillon: false,
+    envoyee: true,
     note: `Pour le bon #${ligne.bon.numero}`,
     creePar: session.nom,
   });
