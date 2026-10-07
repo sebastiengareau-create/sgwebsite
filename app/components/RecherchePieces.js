@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { lienRecherche, lienRechercheTous, texteVehicule } from "@/lib/recherchePieces";
 
 // Fenêtre « Rechercher des pièces » d'un bon : le véhicule et son NIV (à
-// copier dans le catalogue d'un fournisseur), une recherche chez tous les
-// fournisseurs à la fois et un lien par fournisseur, pré-remplis avec la
-// pièce et le véhicule. Voir lib/recherchePieces.js.
+// copier dans le catalogue d'un fournisseur), un bouton par fournisseur qui
+// ouvre son site sur la pièce ou le véhicule, et une recherche Google chez
+// tous à la fois. Voir lib/recherchePieces.js.
 export default function RecherchePieces({ vehicule, sites, pieceInitiale = "", onFermer }) {
   const [piece, setPiece] = useState(pieceInitiale);
   const [copie, setCopie] = useState(false);
@@ -27,8 +27,14 @@ export default function RecherchePieces({ vehicule, sites, pieceInitiale = "", o
     }
   }
 
-  function rechercher(e) {
+  // Entrée : le premier fournisseur de la liste
+  function ouvrirPremier(e) {
     e.preventDefault();
+    const lien = sites.length ? lienRecherche(sites[0], piece, vehicule) : lienRechercheTous(sites, piece, vehicule);
+    window.open(lien, "_blank", "noopener,noreferrer");
+  }
+
+  function chercherPartout() {
     if (!piece.trim()) return;
     window.open(lienRechercheTous(sites, piece, vehicule), "_blank", "noopener,noreferrer");
   }
@@ -65,46 +71,45 @@ export default function RecherchePieces({ vehicule, sites, pieceInitiale = "", o
           )}
         </div>
 
-        <form onSubmit={rechercher} style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        <form onSubmit={ouvrirPremier} style={{ marginBottom: 12 }}>
           <input
             value={piece}
             onChange={(e) => setPiece(e.target.value)}
-            placeholder="Ex. : plaquettes de frein avant"
+            placeholder="Pièce recherchée — ex. : plaquettes de frein avant"
             autoFocus
             maxLength={150}
             className="champ"
-            style={{ flex: 1, minWidth: 0 }}
+            style={{ width: "100%", boxSizing: "border-box" }}
           />
-          <button type="submit" disabled={!aRecherche} className="bouton-3d" style={{ padding: "0 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-            🔎 Rechercher
-          </button>
         </form>
 
-        {sites.length > 1 && (
-          <div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 5 }}>
-              « Rechercher » cherche chez tous les fournisseurs à la fois. Ou chez un seul :
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {sites.map((s, i) => (
-                <a
-                  key={i}
-                  href={aRecherche ? lienRecherche(s, piece, vehicule) : undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-disabled={!aRecherche}
-                  style={{
-                    fontSize: 12, fontWeight: 600, padding: "5px 11px", borderRadius: 999, textDecoration: "none",
-                    border: "1px solid var(--border)", background: "var(--surface)", color: "var(--accent)",
-                    opacity: aRecherche ? 1 : 0.5, pointerEvents: aRecherche ? "auto" : "none",
-                  }}
-                >
-                  ↗ {s.nom}
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>Ouvrir le site du fournisseur :</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+          {sites.map((s, i) => (
+            <a
+              key={i}
+              href={lienRecherche(s, piece, vehicule)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bouton-3d"
+              style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}
+            >
+              ↗ {s.nom}
+            </a>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={chercherPartout}
+          disabled={!aRecherche}
+          style={{ fontSize: 12, color: "var(--accent)", background: "none", border: "1px dashed var(--border)", borderRadius: 8, padding: "6px 12px", cursor: aRecherche ? "pointer" : "default", opacity: aRecherche ? 1 : 0.5 }}
+        >
+          🔎 Chercher chez tous les fournisseurs à la fois (Google)
+        </button>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 10 }}>
+          Sur le site du fournisseur, choisis le véhicule (colle le NIV copié ci-dessus s'il le demande) pour voir les pièces qui lui conviennent.
+        </p>
       </div>
     </div>
   );
