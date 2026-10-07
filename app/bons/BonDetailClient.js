@@ -727,7 +727,7 @@ function PiecesACommander({ bonId, lignes, modifiable }) {
   const restantes = lignes.filter((l) => !l.commandee).length;
 
   return (
-    <div style={{ marginTop: 20 }}>
+    <div style={{ marginTop: 20, paddingBottom: 72 }}>
       <Label>📦 Pièces à commander ({restantes ? `${restantes} à commander` : "toutes commandées"})</Label>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {lignes.map((l) => (

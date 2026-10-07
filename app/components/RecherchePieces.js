@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { lienRecherche, lienRechercheTous, texteVehicule, lireResultatColle } from "@/lib/recherchePieces";
 
@@ -92,7 +93,8 @@ export default function RecherchePieces({ bonId, vehicule, sites, pieceInitiale 
   const libelle = texteVehicule(vehicule);
   const aRecherche = piece.trim().length > 0;
 
-  return (
+  // Rendue dans <body> : au-dessus de tout, y compris les boutons flottants
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -212,7 +214,8 @@ export default function RecherchePieces({ bonId, vehicule, sites, pieceInitiale 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
