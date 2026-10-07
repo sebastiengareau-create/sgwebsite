@@ -41,17 +41,18 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Sites de pièces</div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Fournisseurs offerts dans « 🔎 Rechercher des pièces » d'un bon : un clic y cherche la pièce avec l'année, la
-          marque et le modèle du véhicule. Mets le domaine du site
-          (ex. napacanada.com — la recherche passe par Google, limitée à ce site), ou son adresse de recherche
-          avec {"{q}"} à la place des mots cherchés (ex. https://www.exemple.ca/recherche?q={"{q}"}).
+          Fournisseurs offerts dans « 🔎 Rechercher des pièces » d'un bon. Mets l'adresse de recherche du site, avec
+          entre accolades ce qu'il faut y mettre : {"{piece}"} (la pièce), {"{q}"} (la pièce et le véhicule),
+          {" "}{"{annee}"}, {"{marque}"}, {"{modele}"} ou {"{niv}"} — ex. https://www.napacanada.com/fr/search?text={"{piece}"}.
+          Pour la trouver : cherche « test » sur le site, copie l'adresse de la page de résultats et remplace « test »
+          par {"{piece}"}. Ou mets seulement le domaine (ex. exemple.ca) : la recherche passera par Google, limitée à ce site.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
           {sites.map((s, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input value={s.nom} onChange={(e) => changer(i, "nom", e.target.value)} placeholder="Nom" maxLength={40} style={{ ...champ, flex: "0 1 140px" }} />
-              <input value={s.url} onChange={(e) => changer(i, "url", e.target.value)} placeholder="napacanada.com" style={{ ...champ, flex: 1 }} />
+              <input value={s.url} onChange={(e) => changer(i, "url", e.target.value)} placeholder="https://www.exemple.ca/recherche?q={piece}" style={{ ...champ, flex: 1 }} />
               <button
                 onClick={() => { setSites((prev) => prev.filter((_, j) => j !== i)); setMessage(""); }}
                 aria-label={`Retirer ${s.nom}`}

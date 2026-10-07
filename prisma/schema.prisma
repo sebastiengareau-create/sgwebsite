@@ -123,9 +123,30 @@ model BonTravail {
   // taxes, et payé en ajoutant son montant au coûtant du véhicule
   vehiculeVenteId     String?
   vehiculeVente       VehiculeVente? @relation(fields: [vehiculeVenteId], references: [id])
+  piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
+}
+
+// Pièce trouvée chez un fournisseur (« 🔎 Rechercher des pièces » du bon,
+// résultat collé) et notée à commander pour ce bon. Simple liste de suivi :
+// ne touche ni à l'inventaire ni à la facture.
+model PieceACommander {
+  id          String     @id @default(cuid())
+  bonId       String
+  bon         BonTravail @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  description String
+  numero      String? // numéro de pièce chez le fournisseur
+  fournisseur String? // nom du fournisseur (texte libre, souvent un site de Paramètres → Sites de pièces)
+  prix        Float? // prix unitaire vu chez le fournisseur
+  qte         Int        @default(1)
+  lien        String? // page de la pièce chez le fournisseur
+  commandee   Boolean    @default(false)
+  creePar     String?
+  creeLe      DateTime   @default(now())
+
+  @@index([bonId])
 }
 
 // ---------- VÉHICULES À VENDRE (profil vehiculesAVendre) ----------
