@@ -117,7 +117,7 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
             <div style={{ fontSize: 18, fontWeight: 700 }}>{commande.numero}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 2 }}>
               Créée le {dateFr(commande.creeLe)}{commande.creePar ? ` par ${commande.creePar}` : ""}
-              {commande.dateEnvoi && ` · envoyée le ${dateFr(commande.dateEnvoi)}`}
+              {commande.dateEnvoi && ` · passée le ${dateFr(commande.dateEnvoi)}`}
             </div>
           </div>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: statut.couleur, border: `1px solid ${statut.couleur}`, borderRadius: 999, padding: "3px 10px", flexShrink: 0 }}>{statut.label}</span>
@@ -193,7 +193,7 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
             <button onClick={ouvrirPdf} disabled={enCours} className="bouton-3d-sombre" style={boutonAction}>📄 Bon de commande (PDF)</button>
             {commande.statut === "BROUILLON" && (
-              <button onClick={() => changerStatut("ENVOYEE")} disabled={enCours || lignes.length === 0} className="bouton-3d" style={boutonAction}>✉️ Marquer envoyée</button>
+              <button onClick={() => changerStatut("ENVOYEE")} disabled={enCours || lignes.length === 0} className="bouton-3d" style={boutonAction}>✅ Commande passée</button>
             )}
             {peutRecevoir && !modifie && (
               <button onClick={() => setModeReception(true)} disabled={enCours} className="bouton-3d" style={boutonAction}>
