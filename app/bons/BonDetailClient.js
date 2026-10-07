@@ -8,6 +8,7 @@ import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
+import RecherchePieces from "../components/RecherchePieces";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
@@ -69,8 +70,12 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
+  // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
+  const [rechercheWeb, setRechercheWeb] = useState(null);
+  // Il faut au moins le NIV, ou la marque et le modèle, pour chercher
+  const vehiculeRecherchable = !!bon.vehicule && !!(bon.vehicule.niv || (bon.vehicule.marque && bon.vehicule.modele));
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -357,6 +362,18 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
       <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
+      {vehiculeRecherchable && (
+        <button
+          type="button"
+          onClick={() => setRechercheWeb("")}
+          style={{ marginTop: 6, fontSize: 12, fontWeight: 600, color: "var(--accent)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 999, padding: "4px 11px", cursor: "pointer" }}
+        >
+          🔎 Rechercher des pièces
+        </button>
+      )}
+      {rechercheWeb !== null && (
+        <RecherchePieces bonId={bon.id} vehicule={bon.vehicule} sites={sitesPieces} pieceInitiale={rechercheWeb} onFermer={() => setRechercheWeb(null)} />
+      )}
       {bon.vehiculeVente && (
         <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid #C9A227", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
           🚐 Bon interne sur le véhicule à vendre{" "}
@@ -661,6 +678,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             verrouille={factureExiste}
             peutSupprimer={peutModifier && !factureExiste && bon.problemes.length > 1}
             onSupprimer={() => supprimerProbleme(pr.id)}
+            onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb(pr.description) : null}
             onRafraichir={() => router.refresh()}
           />
         ))}
@@ -681,7 +699,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
   const [recherchePiece, setRecherchePiece] = useState("");
   const [afficherSuggestionsPiece, setAfficherSuggestionsPiece] = useState(false);
@@ -1225,6 +1243,9 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
             <div style={{ display: "flex", gap: 6 }}>
               <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner une pièce" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>📷</button>
               {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce pour ce bon" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
+              {onRechercherPieces && (
+                <button type="button" onClick={onRechercherPieces} title="Rechercher la pièce chez les fournisseurs (web)" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>🔎</button>
+              )}
               <div ref={boiteRecherchePieceRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
                 <button
                   type="button"
