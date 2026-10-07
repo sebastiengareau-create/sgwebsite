@@ -31,6 +31,7 @@ export default async function DetailBonPage(props) {
         orderBy: { creeLe: "asc" },
         include: {
           piece: { select: { id: true, nom: true, numero: true, qte: true, actif: true } },
+          pieceUtilisee: { select: { id: true, bo: true, problemeId: true } },
           commande: { select: { id: true, numero: true, statut: true, depenses: { select: { id: true, statut: true } } } },
         },
       },

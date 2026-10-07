@@ -77,6 +77,7 @@ export async function DELETE(request, props) {
     // Remet en stock toutes les pièces utilisées sur ce bon avant de le supprimer
     for (const pr of problemes) {
       for (const ligne of pr.pieces) {
+        if (ligne.bo) continue; // B/O : jamais sortie du stock
         await tx.piece.update({ where: { id: ligne.pieceId }, data: { qte: { increment: ligne.qte } } });
       }
     }

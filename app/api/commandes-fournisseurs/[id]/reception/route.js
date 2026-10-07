@@ -4,6 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { verifierPeriodeModifiable, assurerCategorieInventairePieces } from "@/lib/comptabilite";
 import { jourCivil, creerDepenseDansTransaction, comptabiliserDepenseRecue } from "@/lib/depenses";
 import { resteARecevoir } from "@/lib/commandesFournisseurs";
+import { sortirPiecesBoRecues } from "@/lib/brouillonsCommande";
 
 const arrondi = (n) => Math.round(n * 100) / 100;
 
@@ -83,6 +84,8 @@ export async function POST(request, props) {
       where: { id: commande.id },
       data: { statut: toutRecu ? "RECUE" : "RECUE_PARTIELLE", ...(!commande.dateEnvoi && { dateEnvoi: new Date() }) },
     });
+    // Pièces B/O des bons qui attendaient cette commande : sortent du stock
+    await sortirPiecesBoRecues(tx, commande.id, session.nom);
     return creee;
   });
 

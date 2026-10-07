@@ -43,7 +43,8 @@ export async function PATCH(request, props) {
   if (qte !== undefined) {
     const nouvelleQte = Number(qte);
     if (isNaN(nouvelleQte) || nouvelleQte < 1) return NextResponse.json({ erreur: "Quantité invalide." }, { status: 400 });
-    const difference = nouvelleQte - ligne.qte; // positif = en prendre plus au stock
+    // Pièce B/O : pas encore sortie du stock — seule la quantité change
+    const difference = ligne.bo ? 0 : nouvelleQte - ligne.qte; // positif = en prendre plus au stock
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -103,6 +104,11 @@ export async function DELETE(request, props) {
       include: { probleme: { include: { bon: { include: { client: true } } } } },
     });
     if (!ligne || ligne.probleme.bonId !== params.id) return; // pas la bonne ligne
+    // Pièce B/O : jamais sortie du stock, rien à y remettre
+    if (ligne.bo) {
+      await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
+      return;
+    }
 
     const piece = await tx.piece.findUnique({ where: { id: ligne.pieceId } });
     const nouvelleQte = piece.qte + ligne.qte;

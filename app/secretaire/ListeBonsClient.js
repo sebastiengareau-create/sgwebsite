@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BanderoleBo from "../components/BanderoleBo";
 import { dateBon, bonEstAVenir, regrouperParJour, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
@@ -130,6 +131,7 @@ function CarteBonCompacte({ b }) {
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: `3px solid ${infos.color}`, borderRadius: 8, padding: "8px 10px" }}>
+        <BanderoleBo bon={b} compact style={{ marginBottom: 6 }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
           {b.datePrevue && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>🕒 {heureQuebec(b.datePrevue)}</span>}
@@ -169,6 +171,7 @@ function CarteBon({ b }) {
               {b.problemes[0].description}
             </div>
           )}
+          <BanderoleBo bon={b} compact style={{ marginTop: 6 }} />
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
             {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
           </div>

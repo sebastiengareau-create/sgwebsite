@@ -26,6 +26,14 @@ export async function POST(request, props) {
   });
   if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
   if (bon.facture) return NextResponse.json({ erreur: "Ce bon a déjà une facture." }, { status: 409 });
+  // Pièce commandée pas encore reçue (B/O) : pas sortie du stock, coût inconnu
+  const piecesBo = bon.problemes.flatMap((pr) => pr.pieces.filter((l) => l.bo));
+  if (piecesBo.length > 0) {
+    return NextResponse.json(
+      { erreur: `B/O : ${piecesBo.map((l) => l.piece.nom).join(", ")} — pièce commandée pas encore reçue. Reçois la commande avant de facturer (ou retire la pièce du bon).` },
+      { status: 409 }
+    );
+  }
   // Bon interne sur un véhicule à vendre : son montant s'ajoute au coûtant,
   // ce qui n'est plus possible une fois le véhicule vendu (coûtant figé)
   const vehiculeVente = bon.vehiculeVente;

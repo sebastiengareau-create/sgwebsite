@@ -49,7 +49,8 @@ export async function POST(request, props) {
       // Le coût unitaire est figé à la sortie du stock : c'est lui que la
       // facture passera en coût des pièces vendues, même si le coût moyen de
       // la pièce change d'ici là (sinon inventaire et grand livre divergent).
-      const existante = await tx.pieceUtilisee.findFirst({ where: { problemeId, pieceId } });
+      // (une ligne B/O de la même pièce reste à part : elle n'est pas sortie du stock)
+      const existante = await tx.pieceUtilisee.findFirst({ where: { problemeId, pieceId, bo: false } });
       if (existante) {
         const qteTotale = existante.qte + quantite;
         const coutant = (existante.qte * (existante.coutant ?? piece.coutant) + quantite * piece.coutant) / qteTotale;

@@ -8,9 +8,10 @@ import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 
 // Pièces trouvées chez un fournisseur et notées à commander pour ce bon
 // (collées dans « 🔎 Rechercher des pièces »). « 🛒 Commander » les met dans
-// une commande fournisseur ; la suite suit le circuit des commandes :
-// envoyer, recevoir avec la facture (stock + dépense à payer), payer. Une
-// fois reçue, la pièce se met sur une tâche du bon.
+// une commande fournisseur et sur une tâche du bon en B/O (comptée dans le
+// total, pas encore sortie du stock) ; la suite suit le circuit des
+// commandes : envoyer, recevoir avec la facture (stock + dépense à payer,
+// la pièce B/O sort alors du stock), payer.
 export default function PiecesACommander({ bon, lignes, inventaire, fournisseurs, modifiable, peutCommander, verrouille }) {
   const router = useRouter();
   const [erreur, setErreur] = useState("");
@@ -73,11 +74,11 @@ export default function PiecesACommander({ bon, lignes, inventaire, fournisseurs
               </div>
 
               {enCommande ? (
-                <SuiviCommande bon={bon} ligne={l} verrouille={verrouille} modifiable={modifiable} onErreur={setErreur} />
-              ) : peutCommander && modifiable && (
+                <SuiviCommande bon={bon} ligne={l} />
+              ) : peutCommander && modifiable && !verrouille && (
                 commandeOuverte === l.id ? (
                   <FormulaireCommande
-                    bonId={bon.id} ligne={l} inventaire={inventaire} fournisseurs={fournisseurs}
+                    bonId={bon.id} ligne={l} problemes={bon.problemes} inventaire={inventaire} fournisseurs={fournisseurs}
                     onFermer={() => setCommandeOuverte(null)}
                   />
                 ) : (
@@ -113,12 +114,13 @@ function pieceExistante(numero, fournisseurId, inventaire) {
     || null;
 }
 
-function FormulaireCommande({ bonId, ligne, inventaire, fournisseurs, onFermer }) {
+function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs, onFermer }) {
   const router = useRouter();
   const marge = CLIENT.margePrixVente;
   const [fournisseurId, setFournisseurId] = useState(fournisseurPropose(ligne.fournisseur, fournisseurs));
   const [numero, setNumero] = useState(ligne.numero || "");
   const [qte, setQte] = useState(String(ligne.qte || 1));
+  const [problemeId, setProblemeId] = useState(problemes[0]?.id || "");
   const [cout, setCout] = useState(ligne.prix != null ? ligne.prix.toFixed(2) : "");
   const [prixVente, setPrixVente] = useState(
     marge != null && ligne.prix != null ? (ligne.prix / (1 - marge / 100)).toFixed(2) : ""
@@ -134,7 +136,7 @@ function FormulaireCommande({ bonId, ligne, inventaire, fournisseurs, onFermer }
     const res = await fetch(`/api/bons/${bonId}/pieces-a-commander/${ligne.id}/commander`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fournisseurId, numero, qte: Number(qte), coutUnitaire: cout, prixVente: existante ? undefined : prixVente }),
+      body: JSON.stringify({ fournisseurId, numero, qte: Number(qte), coutUnitaire: cout, prixVente: existante ? undefined : prixVente, problemeId }),
     }).catch(() => null);
     const data = (await res?.json().catch(() => ({}))) || {};
     setEnCours(false);
@@ -180,11 +182,15 @@ function FormulaireCommande({ bonId, ligne, inventaire, fournisseurs, onFermer }
           <input value={prixVente} onChange={(e) => setPrixVente(e.target.value)} inputMode="decimal" required className="champ" />
         </Champ>
       )}
-      {!existante && (
-        <p style={{ gridColumn: "1 / -1", fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
-          Nouvelle pièce : une fiche d'inventaire sera créée (« {ligne.description} », n° {numero || "…"}, quantité 0).
-        </p>
-      )}
+      <Champ libelle="Ajouter au bon sur la tâche" plein>
+        <select value={problemeId} onChange={(e) => setProblemeId(e.target.value)} required className="champ">
+          {problemes.map((pr, i) => <option key={pr.id} value={pr.id}>{i + 1}. {pr.description}</option>)}
+        </select>
+      </Champ>
+      <p style={{ gridColumn: "1 / -1", fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+        {!existante && <>Nouvelle pièce : une fiche d'inventaire sera créée (« {ligne.description} », n° {numero || "…"}, quantité 0). </>}
+        La pièce s'ajoute au bon en <strong style={{ color: "#D9822B" }}>B/O</strong> à son prix de vente (comptée dans le total) ; elle sort du stock à la réception de la commande.
+      </p>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
           {enCours ? "Ajout…" : "🛒 Ajouter à la commande du fournisseur"}
@@ -197,35 +203,16 @@ function FormulaireCommande({ bonId, ligne, inventaire, fournisseurs, onFermer }
 }
 
 // Où en est la pièce : commande (à envoyer, en route, reçue), dépense à
-// payer, et mise sur une tâche une fois reçue
-function SuiviCommande({ bon, ligne, verrouille, modifiable, onErreur }) {
-  const router = useRouter();
-  const [problemeId, setProblemeId] = useState(bon.problemes[0]?.id || "");
-  const [enCours, setEnCours] = useState(false);
+// payer, et sa ligne sur le bon (B/O jusqu'à la réception)
+function SuiviCommande({ bon, ligne }) {
   const c = ligne.commande;
   const statut = STATUTS_COMMANDE[c.statut] || { label: c.statut, couleur: "var(--text)" };
   const recue = ["RECUE", "RECUE_PARTIELLE"].includes(c.statut);
   const aPayer = c.depenses.filter((d) => d.statut !== "PAYEE");
   const lienCommande = `/secretaire/inventaire/commandes/${c.id}`;
-  const surTache = ligne.piece && bon.problemes.find((pr) => pr.pieces.some((pu) => pu.pieceId === ligne.piece.id));
-  const enStock = ligne.piece?.qte ?? 0;
-
-  async function mettreSurTache() {
-    onErreur("");
-    setEnCours(true);
-    const res = await fetch(`/api/bons/${bon.id}/pieces`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problemeId, pieceId: ligne.piece.id, qte: ligne.qte }),
-    }).catch(() => null);
-    setEnCours(false);
-    if (!res?.ok) {
-      const d = (await res?.json().catch(() => ({}))) || {};
-      onErreur(d.erreur || "Erreur de connexion.");
-      return;
-    }
-    router.refresh();
-  }
+  const surBon = ligne.pieceUtilisee;
+  const indexTache = surBon ? bon.problemes.findIndex((pr) => pr.id === surBon.problemeId) : -1;
+  const tache = indexTache >= 0 ? `${indexTache + 1}. ${bon.problemes[indexTache].description}` : "";
 
   const etape = { fontSize: 11.5, fontWeight: 700, textDecoration: "none", padding: "4px 10px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--bg)" };
 
@@ -240,21 +227,12 @@ function SuiviCommande({ bon, ligne, verrouille, modifiable, onErreur }) {
         <Link key={d.id} href={`/gerant/comptabilite/comptes-a-payer/${d.id}`} style={{ ...etape, color: "var(--danger)" }}>💲 Payer →</Link>
       ))}
       {recue && c.depenses.length > 0 && aPayer.length === 0 && <span style={{ ...etape, color: "var(--success)" }}>✓ Payée</span>}
-      {recue && ligne.piece && (
-        surTache ? (
-          <span style={{ ...etape, color: "var(--success)" }}>✓ Sur la tâche « {surTache.description} »</span>
-        ) : modifiable && !verrouille && enStock >= ligne.qte && bon.problemes.length > 0 ? (
-          <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-            <select value={problemeId} onChange={(e) => setProblemeId(e.target.value)} className="champ" style={{ width: "auto", maxWidth: 170, fontSize: 11.5, padding: "4px 6px" }}>
-              {bon.problemes.map((pr, i) => <option key={pr.id} value={pr.id}>{i + 1}. {pr.description}</option>)}
-            </select>
-            <button onClick={mettreSurTache} disabled={enCours} className="bouton-3d" style={{ padding: "5px 10px", borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
-              {enCours ? "…" : "+ Mettre sur la tâche"}
-            </button>
-          </span>
-        ) : enStock < ligne.qte ? (
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{enStock} en stock</span>
-        ) : null
+      {surBon ? (
+        surBon.bo
+          ? <span style={{ ...etape, color: "#D9822B", borderColor: "#D9822B" }}>B/O sur la tâche {tache}</span>
+          : <span style={{ ...etape, color: "var(--success)" }}>✓ Reçue — sur la tâche {tache}</span>
+      ) : (
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Retirée du bon</span>
       )}
     </div>
   );
