@@ -9,6 +9,7 @@ import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
+import PiecesACommander from "./PiecesACommander";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
@@ -70,7 +71,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
@@ -696,68 +697,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </div>
       )}
 
-      <PiecesACommander bonId={bon.id} lignes={bon.piecesACommander || []} modifiable={peutModifier} />
-    </div>
-  );
-}
-
-// Pièces trouvées chez un fournisseur et notées à commander pour ce bon
-// (collées dans « 🔎 Rechercher des pièces ») — liste de suivi seulement,
-// sans effet sur l'inventaire ni la facture.
-function PiecesACommander({ bonId, lignes, modifiable }) {
-  const router = useRouter();
-  const [erreur, setErreur] = useState("");
-
-  async function modifier(ligne, data) {
-    setErreur("");
-    const res = await fetch(`/api/bons/${bonId}/pieces-a-commander/${ligne.id}`, {
-      method: data ? "PATCH" : "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: data ? JSON.stringify(data) : undefined,
-    }).catch(() => null);
-    if (!res?.ok) {
-      const d = (await res?.json().catch(() => ({}))) || {};
-      setErreur(d.erreur || "Erreur de connexion.");
-      return;
-    }
-    router.refresh();
-  }
-
-  if (lignes.length === 0) return null;
-  const restantes = lignes.filter((l) => !l.commandee).length;
-
-  return (
-    <div style={{ marginTop: 20, paddingBottom: 72 }}>
-      <Label>📦 Pièces à commander ({restantes ? `${restantes} à commander` : "toutes commandées"})</Label>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {lignes.map((l) => (
-          <div key={l.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", opacity: l.commandee ? 0.6 : 1 }}>
-            <input
-              type="checkbox"
-              checked={l.commandee}
-              disabled={!modifiable}
-              onChange={() => modifier(l, { commandee: !l.commandee })}
-              title={l.commandee ? "Commandée" : "Cocher une fois commandée"}
-              style={{ marginTop: 3 }}
-            />
-            <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
-              <div style={{ textDecoration: l.commandee ? "line-through" : "none", overflowWrap: "anywhere" }}>
-                {l.qte > 1 && <strong>{l.qte} × </strong>}{l.description}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-                {l.fournisseur && <span>{l.fournisseur}</span>}
-                {l.numero && <span style={{ fontFamily: "monospace", userSelect: "all" }}>N° {l.numero}</span>}
-                {l.prix != null && <span>{l.prix.toFixed(2)} $</span>}
-                {l.lien && <a href={l.lien} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>↗ Voir la pièce</a>}
-              </div>
-            </div>
-            {modifiable && (
-              <button onClick={() => { if (window.confirm(`Retirer « ${l.description} » des pièces à commander ?`)) modifier(l, null); }} style={boutonTexte} aria-label="Retirer">✕</button>
-            )}
-          </div>
-        ))}
-      </div>
-      {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreur}</p>}
+      <PiecesACommander bon={bon} lignes={bon.piecesACommander || []} inventaire={inventaire} fournisseurs={fournisseurs} modifiable={peutModifier} peutCommander={peutCommander} verrouille={factureExiste} />
     </div>
   );
 }
