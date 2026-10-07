@@ -46,7 +46,7 @@ export async function PATCH(request, props) {
     ? lignes.filter((l) => l.pieceId && Math.floor(Number(l.qteCommandee)) > 0)
     : nouveauFournisseur ? commande.lignes : null;
   if (statut === "ENVOYEE" && (lignesCibles ?? commande.lignes).length === 0) {
-    return NextResponse.json({ erreur: "Ajoute au moins une pièce avant d'envoyer la commande." }, { status: 400 });
+    return NextResponse.json({ erreur: "Ajoute au moins une pièce avant de marquer la commande passée." }, { status: 400 });
   }
 
   // Changer de fournisseur reprend, pour chaque pièce, le numéro et le

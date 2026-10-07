@@ -10,7 +10,7 @@ import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 // (collées dans « 🔎 Rechercher des pièces »). « 🛒 Commander » les met dans
 // une commande fournisseur et sur une tâche du bon en B/O (comptée dans le
 // total, pas encore sortie du stock) ; la suite suit le circuit des
-// commandes : envoyer, recevoir avec la facture (stock + dépense à payer,
+// commandes : commande passée, recevoir avec la facture (stock + dépense à payer,
 // la pièce B/O sort alors du stock), payer.
 export default function PiecesACommander({ bon, lignes, inventaire, fournisseurs, modifiable, peutCommander, verrouille }) {
   const router = useRouter();
@@ -189,6 +189,7 @@ function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs,
       </Champ>
       <p style={{ gridColumn: "1 / -1", fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
         {!existante && <>Nouvelle pièce : une fiche d'inventaire sera créée (« {ligne.description} », n° {numero || "…"}, quantité 0). </>}
+        Elle s'ajoute au brouillon de commande de ce fournisseur, avec les autres pièces à lui commander ; une fois la commande faite chez lui, marque-la « Commande passée ».
         La pièce s'ajoute au bon en <strong style={{ color: "#D9822B" }}>B/O</strong> à son prix de vente (comptée dans le total) ; elle sort du stock à la réception de la commande.
       </p>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -202,7 +203,7 @@ function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs,
   );
 }
 
-// Où en est la pièce : commande (à envoyer, en route, reçue), dépense à
+// Où en est la pièce : commande (brouillon, passée, reçue), dépense à
 // payer, et sa ligne sur le bon (B/O jusqu'à la réception)
 function SuiviCommande({ bon, ligne }) {
   const c = ligne.commande;
@@ -221,7 +222,7 @@ function SuiviCommande({ bon, ligne }) {
       <Link href={lienCommande} style={{ ...etape, color: statut.couleur, borderColor: statut.couleur }}>
         🛒 {c.numero} · {statut.label}
       </Link>
-      {c.statut === "BROUILLON" && <Link href={lienCommande} style={{ ...etape, color: "var(--accent)" }}>Envoyer la commande →</Link>}
+      {c.statut === "BROUILLON" && <Link href={lienCommande} style={{ ...etape, color: "var(--accent)" }}>À commander — marquer « Commande passée » →</Link>}
       {(c.statut === "ENVOYEE" || c.statut === "RECUE_PARTIELLE") && <Link href={lienCommande} style={{ ...etape, color: "var(--accent)" }}>📦 Recevoir →</Link>}
       {aPayer.map((d) => (
         <Link key={d.id} href={`/gerant/comptabilite/comptes-a-payer/${d.id}`} style={{ ...etape, color: "var(--danger)" }}>💲 Payer →</Link>
