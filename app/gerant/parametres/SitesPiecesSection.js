@@ -42,7 +42,7 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Sites de pièces</div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
           Fournisseurs offerts dans « 🔎 Rechercher des pièces » d'un bon : un clic y cherche la pièce avec l'année, la
-          marque et le modèle du véhicule, et la recherche IA les consulte en premier. Mets le domaine du site
+          marque et le modèle du véhicule. Mets le domaine du site
           (ex. napacanada.com — la recherche passe par Google, limitée à ce site), ou son adresse de recherche
           avec {"{q}"} à la place des mots cherchés (ex. https://www.exemple.ca/recherche?q={"{q}"}).
         </p>
@@ -61,7 +61,7 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
               </button>
             </div>
           ))}
-          {sites.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun site — seule la recherche IA sera offerte.</p>}
+          {sites.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun site — la recherche se fera sur tout le web (Google).</p>}
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>

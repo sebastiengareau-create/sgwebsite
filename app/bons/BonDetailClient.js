@@ -372,7 +372,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </button>
       )}
       {rechercheWeb !== null && (
-        <RecherchePieces bonId={bon.id} vehicule={bon.vehicule} sites={sitesPieces} pieceInitiale={rechercheWeb} onFermer={() => setRechercheWeb(null)} />
+        <RecherchePieces vehicule={bon.vehicule} sites={sitesPieces} pieceInitiale={rechercheWeb} onFermer={() => setRechercheWeb(null)} />
       )}
       {bon.vehiculeVente && (
         <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid #C9A227", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
