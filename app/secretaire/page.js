@@ -17,7 +17,7 @@ export default async function EspaceSecretaire(props) {
   // Tous les bons : le filtre (?statut=…) est appliqué côté client pour
   // afficher le compte de chaque catégorie, dont « Planifiés ».
   const bons = await prisma.bonTravail.findMany({
-    include: { client: true, problemes: { orderBy: { id: "asc" }, include: { pieces: true } } },
+    include: { client: true, problemes: { orderBy: { id: "asc" }, include: { pieces: { include: { piece: { select: { nom: true } } } } } } },
     orderBy: { creeLe: "desc" },
   });
 

@@ -143,6 +143,16 @@ model PieceACommander {
   qte         Int        @default(1)
   lien        String? // page de la pièce chez le fournisseur
   commandee   Boolean    @default(false)
+  // « 🛒 Commander » : fiche d'inventaire (trouvée ou créée) et commande
+  // fournisseur où la pièce a été ajoutée — la réception et le paiement
+  // suivent le circuit des commandes (réception → dépense à payer)
+  pieceId     String?
+  piece       Piece?               @relation(fields: [pieceId], references: [id], onDelete: SetNull)
+  commandeId  String?
+  commande    CommandeFournisseur? @relation(fields: [commandeId], references: [id], onDelete: SetNull)
+  // Ligne ajoutée au bon (B/O) à la commande, sortie du stock à la réception
+  pieceUtiliseeId String?        @unique
+  pieceUtilisee   PieceUtilisee? @relation(fields: [pieceUtiliseeId], references: [id], onDelete: SetNull)
   creePar     String?
   creeLe      DateTime   @default(now())
 
@@ -282,6 +292,7 @@ model Piece {
   historique    HistoriquePiece[]
   fournisseurs  PieceFournisseur[] // numéro et prix de la même pièce chez chaque fournisseur
   lignesCommande LigneCommandeFournisseur[]
+  piecesACommander PieceACommander[] // lignes « à commander » de bons commandées sous cette fiche
 }
 
 // Une même pièce peut porter un numéro différent chez chaque fournisseur :
@@ -315,6 +326,7 @@ model CommandeFournisseur {
   dateEnvoi     DateTime?
   lignes        LigneCommandeFournisseur[]
   depenses      Depense[] // une par réception
+  piecesACommander PieceACommander[] // pièces à commander de bons mises dans cette commande
   creePar       String?
   creeLe        DateTime                   @default(now())
 }
@@ -340,6 +352,12 @@ model PieceUtilisee {
   qte        Int
   prix       Float // prix figé au moment de l'ajout (historique de facturation)
   coutant    Float? // coût unitaire figé à la sortie du stock — base du coût des pièces vendues (vide = lignes antérieures, coût actuel de la pièce)
+  // B/O : pièce commandée chez le fournisseur, pas encore reçue. Elle compte
+  // déjà dans le total du bon, mais n'est pas sortie du stock (coûtant vide) ;
+  // elle en sort à la réception de la commande, et le bon ne se facture pas
+  // avant. Voir PieceACommander.
+  bo         Boolean  @default(false)
+  aCommander PieceACommander?
 }
 
 // Journal des mouvements de stock (ventes, réceptions, ajustements manuels) —

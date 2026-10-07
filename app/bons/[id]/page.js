@@ -27,7 +27,14 @@ export default async function DetailBonPage(props) {
         },
       },
       facture: true,
-      piecesACommander: { orderBy: { creeLe: "asc" } },
+      piecesACommander: {
+        orderBy: { creeLe: "asc" },
+        include: {
+          piece: { select: { id: true, nom: true, numero: true, qte: true, actif: true } },
+          pieceUtilisee: { select: { id: true, bo: true, problemeId: true } },
+          commande: { select: { id: true, numero: true, statut: true, depenses: { select: { id: true, statut: true } } } },
+        },
+      },
       // Fichiers joints au rendez-vous d'où vient le bon : noms seulement
       rendezVous: { select: { fichiers: { select: { id: true, nom: true }, orderBy: { creeLe: "asc" } } } },
     },
@@ -39,7 +46,7 @@ export default async function DetailBonPage(props) {
 
   const inventaire = await prisma.piece.findMany({
     where: { actif: true },
-    include: { fournisseurs: { select: { numeroFournisseur: true } } },
+    include: { fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true } } },
     orderBy: { nom: "asc" },
   });
   // Tous les employés actifs (pas seulement les mécaniciens) peuvent se voir
@@ -68,6 +75,11 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutModifier = await aAccesSection(session, "operations");
+  // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
+  const peutCommander = await aAccesSection(session, "inventaire");
+  const fournisseurs = peutCommander
+    ? await prisma.fournisseur.findMany({ where: { actif: true }, select: { id: true, nom: true }, orderBy: { nom: "asc" } })
+    : [];
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
 
   return (
@@ -84,6 +96,8 @@ export default async function DetailBonPage(props) {
         tpsTaux={tpsTaux}
         tvqTaux={tvqTaux}
         sitesPieces={sitesPieces}
+        fournisseurs={fournisseurs}
+        peutCommander={peutCommander}
         peutModifier={peutModifier}
         peutPoinconner={peutPoinconner}
         estGerant={estGerantOuDev(session)}

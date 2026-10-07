@@ -188,7 +188,7 @@ export default async function ImprimerBon(props) {
               <LigneTravail description={pr.factureDescription || "Service"} qte={pr.factureQte || 1} prix={pr.facturePrixUnitaire || 0} total={montantManuel} />
             )}
             {pr.pieces.map((l) => (
-              <LigneTravail key={l.id} description={l.piece.nom} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />
+              <LigneTravail key={l.id} description={l.bo ? `${l.piece.nom} (B/O — en commande)` : l.piece.nom} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />
             ))}
 
             {pr.photos.length > 0 && (

@@ -9,6 +9,8 @@ import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
+import PiecesACommander from "./PiecesACommander";
+import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
@@ -70,7 +72,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
@@ -82,6 +84,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // Un bon facturé est figé — plus rien n'est modifiable dessus (tâches,
   // pièces, temps, photos, poste). Seul "Annuler la facture" le débloque.
   const factureExiste = !!bon.facture;
+  // Pièce commandée pas encore reçue : le bon ne se facture pas avant
+  const aDesPiecesBo = piecesBo(bon).length > 0;
   // Bon interne sur un véhicule à vendre : sa facture (sans taxes) est payée
   // d'office en augmentant le coûtant du véhicule
   const payeeParCoutant = bon.facture?.modePaiement === "COUTANT_VEHICULE";
@@ -382,6 +386,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </div>
       )}
       <FichiersRendezVous fichiers={bon.rendezVous?.fichiers} style={{ marginTop: 8 }} />
+      <BanderoleBo bon={bon} style={{ marginTop: 10, whiteSpace: "normal" }} />
 
       {factureExiste && (
         <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
@@ -640,15 +645,19 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               <div style={{ marginTop: 12 }}>
                 <button
                   onClick={creerFacture}
-                  disabled={enCours}
+                  disabled={enCours || aDesPiecesBo}
                   style={{
-                    width: "100%", padding: 10, borderRadius: 8, border: "none", fontWeight: 700, cursor: "pointer",
-                    background: "var(--accent)", color: "#17150f",
+                    width: "100%", padding: 10, borderRadius: 8, border: "none", fontWeight: 700, cursor: aDesPiecesBo ? "default" : "pointer",
+                    background: "var(--accent)", color: "#17150f", opacity: aDesPiecesBo ? 0.5 : 1,
                   }}
                 >
                   📄 Émettre la facture officielle
                 </button>
-                <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>Le bon passera automatiquement au statut « Facturé ».</p>
+                <p style={{ fontSize: 10.5, color: aDesPiecesBo ? "#D9822B" : "var(--text-muted)", marginTop: 6 }}>
+                  {aDesPiecesBo
+                    ? "B/O : une pièce commandée n'est pas encore reçue — la facture s'émet une fois la commande reçue."
+                    : "Le bon passera automatiquement au statut « Facturé »."}
+                </p>
                 {erreurFacture && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurFacture}</p>}
                 {avertissementFacture && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 6 }}>⚠️ {avertissementFacture}</p>}
               </div>
@@ -696,68 +705,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </div>
       )}
 
-      <PiecesACommander bonId={bon.id} lignes={bon.piecesACommander || []} modifiable={peutModifier} />
-    </div>
-  );
-}
-
-// Pièces trouvées chez un fournisseur et notées à commander pour ce bon
-// (collées dans « 🔎 Rechercher des pièces ») — liste de suivi seulement,
-// sans effet sur l'inventaire ni la facture.
-function PiecesACommander({ bonId, lignes, modifiable }) {
-  const router = useRouter();
-  const [erreur, setErreur] = useState("");
-
-  async function modifier(ligne, data) {
-    setErreur("");
-    const res = await fetch(`/api/bons/${bonId}/pieces-a-commander/${ligne.id}`, {
-      method: data ? "PATCH" : "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: data ? JSON.stringify(data) : undefined,
-    }).catch(() => null);
-    if (!res?.ok) {
-      const d = (await res?.json().catch(() => ({}))) || {};
-      setErreur(d.erreur || "Erreur de connexion.");
-      return;
-    }
-    router.refresh();
-  }
-
-  if (lignes.length === 0) return null;
-  const restantes = lignes.filter((l) => !l.commandee).length;
-
-  return (
-    <div style={{ marginTop: 20, paddingBottom: 72 }}>
-      <Label>📦 Pièces à commander ({restantes ? `${restantes} à commander` : "toutes commandées"})</Label>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {lignes.map((l) => (
-          <div key={l.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px", opacity: l.commandee ? 0.6 : 1 }}>
-            <input
-              type="checkbox"
-              checked={l.commandee}
-              disabled={!modifiable}
-              onChange={() => modifier(l, { commandee: !l.commandee })}
-              title={l.commandee ? "Commandée" : "Cocher une fois commandée"}
-              style={{ marginTop: 3 }}
-            />
-            <div style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
-              <div style={{ textDecoration: l.commandee ? "line-through" : "none", overflowWrap: "anywhere" }}>
-                {l.qte > 1 && <strong>{l.qte} × </strong>}{l.description}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-                {l.fournisseur && <span>{l.fournisseur}</span>}
-                {l.numero && <span style={{ fontFamily: "monospace", userSelect: "all" }}>N° {l.numero}</span>}
-                {l.prix != null && <span>{l.prix.toFixed(2)} $</span>}
-                {l.lien && <a href={l.lien} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>↗ Voir la pièce</a>}
-              </div>
-            </div>
-            {modifiable && (
-              <button onClick={() => { if (window.confirm(`Retirer « ${l.description} » des pièces à commander ?`)) modifier(l, null); }} style={boutonTexte} aria-label="Retirer">✕</button>
-            )}
-          </div>
-        ))}
-      </div>
-      {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreur}</p>}
+      <PiecesACommander bon={bon} lignes={bon.piecesACommander || []} inventaire={inventaire} fournisseurs={fournisseurs} modifiable={peutModifier} peutCommander={peutCommander} verrouille={factureExiste} />
     </div>
   );
 }
@@ -1283,8 +1231,11 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
                   ) : (
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <div>
-                        <div style={{ fontSize: 13 }}>{l.piece.nom}</div>
-                        <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{l.qte} × {l.prix.toFixed(2)} $</div>
+                        <div style={{ fontSize: 13 }}>
+                          {l.bo && <span title="Commandée, pas encore reçue" style={{ fontSize: 10, fontWeight: 700, color: "#D9822B", border: "1px solid #D9822B", borderRadius: 4, padding: "0 4px", marginRight: 6 }}>B/O</span>}
+                          {l.piece.nom}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{l.qte} × {l.prix.toFixed(2)} ${l.bo ? " · en commande, pas encore reçue" : ""}</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontSize: 12, fontWeight: 600 }}>{(l.qte * l.prix).toFixed(2)} $</span>
