@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
+import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
@@ -64,6 +65,7 @@ export default async function DetailBonPage(props) {
   // Bon interne sur un véhicule à vendre : facturé sans taxes
   const tpsTaux = bon.vehiculeVente ? 0 : Number(dict.tps_taux || 5);
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
+  const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutModifier = await aAccesSection(session, "operations");
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
 
@@ -80,6 +82,7 @@ export default async function DetailBonPage(props) {
         coutHoraireMecanicien={coutHoraireMecanicien}
         tpsTaux={tpsTaux}
         tvqTaux={tvqTaux}
+        sitesPieces={sitesPieces}
         peutModifier={peutModifier}
         peutPoinconner={peutPoinconner}
         estGerant={estGerantOuDev(session)}

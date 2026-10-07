@@ -8,6 +8,8 @@ import { calculerResumeRevenusDepenses } from "@/lib/rapportsComptables";
 import EnTete from "../../components/EnTete";
 import ParametresClient from "./ParametresClient";
 import TachesInternesSection from "./TachesInternesSection";
+import SitesPiecesSection from "./SitesPiecesSection";
+import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 
 export default async function Parametres() {
   const session = await obtenirSession();
@@ -73,6 +75,7 @@ export default async function Parametres() {
         urlFluxCalendrier={urlFlux}
       />
       <TachesInternesSection tachesInitiales={tachesInternes} />
+      <SitesPiecesSection sitesInitiaux={lireSites(dict[CLE_SITES_PIECES])} />
     </div>
   );
 }
