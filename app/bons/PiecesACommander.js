@@ -7,12 +7,11 @@ import { CLIENT } from "@/lib/client";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 
 // Pièces trouvées chez un fournisseur et notées à commander pour ce bon
-// (collées dans « 🔎 Rechercher des pièces »). « 🛒 Commander » enregistre la
-// commande passée chez le fournisseur (commande fournisseur déjà envoyée) et
-// met la pièce sur une tâche du bon en B/O (comptée dans le total, pas encore
-// sortie du stock) ; la suite suit le circuit des commandes : recevoir avec
-// la facture (stock + dépense à payer, la pièce B/O sort alors du stock),
-// payer.
+// (collées dans « 🔎 Rechercher des pièces »). « 🛒 Commander » les met dans
+// une commande fournisseur et sur une tâche du bon en B/O (comptée dans le
+// total, pas encore sortie du stock) ; la suite suit le circuit des
+// commandes : envoyer, recevoir avec la facture (stock + dépense à payer,
+// la pièce B/O sort alors du stock), payer.
 export default function PiecesACommander({ bon, lignes, inventaire, fournisseurs, modifiable, peutCommander, verrouille }) {
   const router = useRouter();
   const [erreur, setErreur] = useState("");
@@ -190,12 +189,11 @@ function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs,
       </Champ>
       <p style={{ gridColumn: "1 / -1", fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
         {!existante && <>Nouvelle pièce : une fiche d'inventaire sera créée (« {ligne.description} », n° {numero || "…"}, quantité 0). </>}
-        Passe la commande chez le fournisseur (en ligne, au comptoir ou au téléphone), puis enregistre-la ici : elle est marquée envoyée.
         La pièce s'ajoute au bon en <strong style={{ color: "#D9822B" }}>B/O</strong> à son prix de vente (comptée dans le total) ; elle sort du stock à la réception de la commande.
       </p>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
-          {enCours ? "Enregistrement…" : "🛒 Commande passée — enregistrer"}
+          {enCours ? "Ajout…" : "🛒 Ajouter à la commande du fournisseur"}
         </button>
         <button type="button" onClick={onFermer} style={{ ...boutonTexte, fontSize: 12 }}>Annuler</button>
       </div>
