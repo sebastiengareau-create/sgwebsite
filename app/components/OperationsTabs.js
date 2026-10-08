@@ -8,7 +8,6 @@ const ONGLETS = [
   { href: "/secretaire/operations/soumissions", label: "Soumissions", icone: "📝" },
   { href: "/secretaire", label: "Bons de commande", icone: "🔧" },
   { href: "/secretaire/factures", label: "Factures", icone: "🧾" },
-  { href: "/secretaire/operations/envois", label: "Envoi aux employés", icone: "📲" },
 ];
 
 const RAPPORT_VENTES = "/secretaire/factures/rapport-ventes";

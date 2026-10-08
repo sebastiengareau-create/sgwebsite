@@ -6,6 +6,7 @@ import EnTete from "../components/EnTete";
 import TachePoincon from "./TachePoincon";
 import SectionTachesInternes from "./SectionTachesInternes";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
+import { jobsDeplacementActif } from "@/lib/envois";
 import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
 
 function dureeHeures(debutISO, finISO) {
@@ -60,7 +61,7 @@ export default async function EspaceMecanicien() {
     t.entreesTemps.filter((e) => !e.fin).map((e) => ({ ...e, tacheInterne: t }))
   );
 
-  const nbMesTaches = await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } });
+  const nbMesTaches = !(await jobsDeplacementActif()) ? 0 : await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } });
 
   return (
     <div>

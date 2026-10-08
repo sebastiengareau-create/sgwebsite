@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { peutGererJobsDeplacement } from "@/lib/envois";
 import { obtenirSession, estGerantOuDev, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
@@ -75,6 +76,7 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutModifier = await aAccesSection(session, "operations");
+  const peutEnvoyer = await peutGererJobsDeplacement(session);
   // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
   const peutCommander = await aAccesSection(session, "inventaire");
   const fournisseurs = peutCommander
@@ -99,6 +101,7 @@ export default async function DetailBonPage(props) {
         fournisseurs={fournisseurs}
         peutCommander={peutCommander}
         peutModifier={peutModifier}
+        peutEnvoyer={peutEnvoyer}
         peutPoinconner={peutPoinconner}
         estGerant={estGerantOuDev(session)}
         moi={session.id}

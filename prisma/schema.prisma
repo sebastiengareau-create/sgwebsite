@@ -57,7 +57,7 @@ model User {
   entreesTempsInternes EntreeTempsInterne[]
   photosAjoutees       Photo[]
   paies                Paie[]
-  envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (onglet « Envoi aux employés »)
+  envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (section « Jobs en déplacement »)
   positionsGps         PositionGps[]
 }
 
@@ -822,9 +822,10 @@ model EntreeTemps {
 
 // ---------- ENVOI DE BONS AUX EMPLOYÉS (et suivi GPS) ----------
 
-// Un bon envoyé à un employé précis (Bons de commande → Envoi aux
-// employés) : il reçoit un SMS (voir lib/sms.js) et voit la tâche dans
-// « Mes tâches », où il indique où il en est. Un envoi par employé — un bon
+// Un bon envoyé à un employé précis (section « Jobs en déplacement », un
+// module à activer dans Administrateur) : il reçoit un SMS (voir
+// lib/sms.js) et voit la tâche dans « Mes tâches », où il indique où il en
+// est. Un envoi par employé — un bon
 // envoyé à trois personnes donne trois envois.
 model EnvoiBon {
   id        String        @id @default(cuid())

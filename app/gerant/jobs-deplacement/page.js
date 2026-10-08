@@ -1,18 +1,21 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, aAccesSection, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { smsConfigure } from "@/lib/sms";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
-import EnTete from "../../../components/EnTete";
-import OperationsTabs from "../../../components/OperationsTabs";
+import { peutGererJobsDeplacement } from "@/lib/envois";
+import EnTete from "../../components/EnTete";
+import BandeauSection from "../../components/BandeauSection";
 import EnvoisClient from "./EnvoisClient";
 import CarteSuivi from "./CarteSuivi";
 
-export default async function PageEnvois(props) {
+export default async function JobsEnDeplacement(props) {
   const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!session) redirect("/login");
-  if (!(await aAccesSection(session, "operations"))) redirect(`/${session.role.toLowerCase()}`);
+  // Section « Jobs en déplacement » : module actif (Administrateur → Modules)
+  // et section accordée au rôle (Administrateur → Rôles et accès)
+  if (!(await peutGererJobsDeplacement(session))) redirect(`/${session.role.toLowerCase()}`);
 
   const [bons, employes, envois] = await Promise.all([
     prisma.bonTravail.findMany({
@@ -47,12 +50,12 @@ export default async function PageEnvois(props) {
     }),
   ]);
 
-  const estGerant = estGerantOuDev(session);
-
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <OperationsTabs />
+      <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "12px 16px 0" }}>
+        <BandeauSection icone="🚐" titre="Jobs en déplacement" sousTitre="Envoie un bon à des employés précis, avertis-les par SMS et suis leurs déplacements." />
+      </div>
       <EnvoisClient
         bons={bons}
         employes={employes}
@@ -60,7 +63,7 @@ export default async function PageEnvois(props) {
         smsActif={smsConfigure()}
         bonInitial={searchParams?.bon || ""}
       />
-      {estGerant && <CarteSuivi employes={employes.map(({ id, nom }) => ({ id, nom }))} />}
+      <CarteSuivi employes={employes.map(({ id, nom }) => ({ id, nom }))} />
     </div>
   );
 }

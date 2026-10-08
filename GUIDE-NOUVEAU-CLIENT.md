@@ -54,7 +54,8 @@ Chaque client a son **propre projet Railway complet** :
 6. Pour Assistant SG, génère une clé Gemini gratuite sur aistudio.google.com
    (une par client) et ajoute `GEMINI_API_KEY` + `GEMINI_MODEL` (voir le
    `.env` local pour la valeur recommandée du modèle)
-7. Pour les SMS envoyés aux employés (onglet « Envoi aux employés »), ajoute
+7. Pour la section « Jobs en déplacement » (à activer dans Administrateur →
+   Modules), ajoute pour les SMS
    `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` et `TWILIO_NUMERO` (numéro
    Twilio qui envoie, ex. `+15145550123`), ainsi que `APP_URL` (adresse
    publique de l'app, pour le lien dans le SMS). Sans elles, les tâches

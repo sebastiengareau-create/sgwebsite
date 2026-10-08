@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
+import { jobsDeplacementActif } from "@/lib/envois";
 import { limitesJourQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../components/EnTete";
 import MesTachesClient from "./MesTachesClient";
@@ -11,6 +12,7 @@ import MesTachesClient from "./MesTachesClient";
 export default async function MesTaches() {
   const session = await obtenirSession();
   if (!session) redirect("/login");
+  if (!(await jobsDeplacementActif())) redirect(`/${session.role.toLowerCase()}`);
 
   // Ouvrir la page compte comme « vu »
   await prisma.envoiBon.updateMany({

@@ -15,6 +15,7 @@ const SECTIONS = [
   { cle: "employes", label: "👥 Employés" },
   { cle: "vue-ensemble", label: "📊 Vue d'ensemble" },
   { cle: "jobs-temps-reel", label: "📈 Productivité par employés" },
+  { cle: "jobs-deplacement", label: "🚐 Jobs en déplacement" },
   { cle: "horodateur", label: "⏱️ Horodateur" },
   { cle: "parametres", label: "⚙️ Paramètres" },
 ];
