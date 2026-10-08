@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession } from "@/lib/auth";
+import { jobsDeplacementActif, peutGererJobsDeplacement } from "@/lib/envois";
 import { STATUTS_EMPLOYE } from "@/lib/statutsEnvoi";
 
 // Change l'étape d'un envoi. L'employé à qui il est adressé avance ses
 // propres envois (Vu → En route → Sur place → Terminé) ; le bureau
-// (section Opérations) peut aussi l'annuler.
+// (section Jobs en déplacement) peut aussi l'annuler.
 export async function PATCH(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
   if (!session) return NextResponse.json({ erreur: "Non connecté." }, { status: 401 });
+  if (!(await jobsDeplacementActif())) return NextResponse.json({ erreur: "Le module Jobs en déplacement est désactivé." }, { status: 403 });
 
   const { statut } = await request.json().catch(() => ({}));
   const envoi = await prisma.envoiBon.findUnique({ where: { id: params.id } });
@@ -19,7 +21,7 @@ export async function PATCH(request, props) {
   }
 
   if (statut === "ANNULE") {
-    if (!(await aAccesSection(session, "operations"))) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+    if (!(await peutGererJobsDeplacement(session))) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   } else if (STATUTS_EMPLOYE.includes(statut)) {
     if (envoi.employeId !== session.id) return NextResponse.json({ erreur: "Cette tâche ne t'est pas adressée." }, { status: 403 });
   } else {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { envoyerSmsEnvoi } from "@/lib/envois";
+import { obtenirSession } from "@/lib/auth";
+import { envoyerSmsEnvoi, peutGererJobsDeplacement } from "@/lib/envois";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
 // Renvoie le SMS d'un envoi encore actif (ex. après avoir corrigé le
@@ -9,7 +9,7 @@ import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 export async function POST(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "operations"))) {
+  if (!(await peutGererJobsDeplacement(session))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
   const envoi = await prisma.envoiBon.findUnique({ where: { id: params.id }, select: { statut: true } });

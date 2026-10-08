@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { obtenirSession } from "@/lib/auth";
+import { jobsDeplacementActif, peutGererJobsDeplacement } from "@/lib/envois";
 import { limitesJourQuebec } from "@/lib/temps";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
@@ -17,6 +18,7 @@ function nombre(v) {
 export async function POST(request) {
   const session = await obtenirSession();
   if (!session) return NextResponse.json({ erreur: "Non connecté." }, { status: 401 });
+  if (!(await jobsDeplacementActif())) return NextResponse.json({ erreur: "Le module Jobs en déplacement est désactivé." }, { status: 403 });
   const employe = await prisma.user.findUnique({ where: { id: session.id }, select: { id: true } });
   if (!employe) return NextResponse.json({ erreur: "Seul un compte employé peut partager sa position." }, { status: 403 });
 
@@ -45,12 +47,12 @@ export async function POST(request) {
   return NextResponse.json({ ok: true, enregistres: donnees.length });
 }
 
-// Gérant seulement.
+// Section « Jobs en déplacement » seulement.
 //   ?employeId=…&date=AAAA-MM-JJ → trajet de l'employé cette journée-là
 //   (sans paramètre)             → dernière position de chacun (24 h)
 export async function GET(request) {
   const session = await obtenirSession();
-  if (!estGerantOuDev(session)) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  if (!(await peutGererJobsDeplacement(session))) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const employeId = searchParams.get("employeId");

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { envoyerSmsEnvoi } from "@/lib/envois";
+import { obtenirSession } from "@/lib/auth";
+import { envoyerSmsEnvoi, peutGererJobsDeplacement } from "@/lib/envois";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
 // Envoie un bon à un ou plusieurs employés : un envoi chacun, et un SMS
@@ -9,7 +9,7 @@ import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 // renvoyé en double (on renvoie seulement son SMS).
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "operations"))) {
+  if (!(await peutGererJobsDeplacement(session))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 

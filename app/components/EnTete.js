@@ -16,6 +16,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "👥" },
   { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Productivité par employés", icone: "📈" },
   { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "⏱️" },
+  { cle: "jobs-deplacement", href: "/gerant/jobs-deplacement", label: "Jobs en déplacement", icone: "🚐", moduleParam: "module_jobs_deplacement", moduleActifSeulementSi: "actif" },
   { cle: "calendrier", href: "/secretaire/calendrier", label: "Calendrier", icone: "📅", moduleParam: "module_calendrier" },
   { cle: "operations", href: "/secretaire", label: "Bons de commande / Factures", icone: "🔧" },
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "🧑‍🤝‍🧑" },
@@ -32,7 +33,7 @@ export default async function EnTete({ nom, role }) {
   const session = await obtenirSession();
 
   const parametres = await prisma.parametre.findMany({
-    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie"] } },
+    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement"] } },
   });
   const dictModules = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
@@ -50,9 +51,9 @@ export default async function EnTete({ nom, role }) {
 
   const liens = [];
 
-  // Bons envoyés à cet employé (onglet « Envoi aux employés ») — le lien
+  // Bons envoyés à cet employé (section « Jobs en déplacement ») — le lien
   // n'apparaît que s'il en a en cours, peu importe ses sections
-  const nbMesTaches = session?.id
+  const nbMesTaches = session?.id && dictModules.module_jobs_deplacement === "actif"
     ? await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } })
     : 0;
   if (nbMesTaches > 0) liens.push({ href: "/mes-taches", label: `Mes tâches (${nbMesTaches})`, icone: "📲", accent: true });

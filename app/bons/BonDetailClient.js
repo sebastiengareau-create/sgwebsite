@@ -72,7 +72,7 @@ function compresserImage(file, maxLargeur = 1280, qualite = 0.72) {
   });
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi }) {
   const router = useRouter();
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
@@ -341,12 +341,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           >
             🖨️ {bon.facture ? "Facture" : "Bon de commande"}
           </Link>
-          {peutModifier && !factureExiste && (
+          {peutEnvoyer && !factureExiste && (
             <Link
-              href={`/secretaire/operations/envois?bon=${bon.id}`}
+              href={`/gerant/jobs-deplacement?bon=${bon.id}`}
               style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}
             >
-              📲 Envoyer à un employé
+              🚐 Envoyer en déplacement
             </Link>
           )}
           {peutModifier && !factureExiste && (
