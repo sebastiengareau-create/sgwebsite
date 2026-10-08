@@ -175,6 +175,14 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
         🏢 Informations de l'entreprise
       </Link>
 
+      <Link
+        href="/gerant/administrateur/sms"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", marginTop: 10, padding: 14, borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700 }}
+      >
+        📱 SMS (Twilio)
+      </Link>
+
       <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--danger)", borderRadius: 10, padding: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--danger)", fontWeight: 700, marginBottom: 6 }}>
           Zone sensible

@@ -58,7 +58,7 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
         <div className="titre-section">📲 Envoyer un bon à des employés</div>
         {!smsActif && (
           <p style={{ fontSize: 12, color: "#C9A227", margin: "0 0 10px" }}>
-            ⚠️ Les SMS ne sont pas configurés (variables TWILIO_… sur Railway) : la tâche apparaîtra dans « Mes tâches » de l'employé, mais il ne sera pas averti par texto.
+            ⚠️ Les SMS ne sont pas configurés (Administrateur → SMS (Twilio)) : la tâche apparaîtra dans « Mes tâches » de l'employé, mais il ne sera pas averti par texto.
           </p>
         )}
 

@@ -60,7 +60,7 @@ export default async function JobsEnDeplacement(props) {
         bons={bons}
         employes={employes}
         envois={envois}
-        smsActif={smsConfigure()}
+        smsActif={await smsConfigure()}
         bonInitial={searchParams?.bon || ""}
       />
       <CarteSuivi employes={employes.map(({ id, nom }) => ({ id, nom }))} />
