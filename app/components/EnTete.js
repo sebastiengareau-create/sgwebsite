@@ -6,6 +6,7 @@ import MenuHamburger from "./MenuHamburger";
 import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
 import { image } from "@/lib/client";
+import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
 // Chaque section "empruntable" (configurable dans Administrateur → Rôles et
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
@@ -48,6 +49,13 @@ export default async function EnTete({ nom, role }) {
   }
 
   const liens = [];
+
+  // Bons envoyés à cet employé (onglet « Envoi aux employés ») — le lien
+  // n'apparaît que s'il en a en cours, peu importe ses sections
+  const nbMesTaches = session?.id
+    ? await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } })
+    : 0;
+  if (nbMesTaches > 0) liens.push({ href: "/mes-taches", label: `Mes tâches (${nbMesTaches})`, icone: "📲", accent: true });
 
   // Sections empruntables — vérifiées une par une via le même système que
   // les pages elles-mêmes utilisent, pour que le menu corresponde toujours

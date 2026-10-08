@@ -8,7 +8,7 @@ import { verifierJeton, COOKIE_NAME } from "./lib/auth";
 // il ne fait plus ce choix — il ne fait que garder les visiteurs non
 // connectés en dehors de tout, ce que chaque page vérifie de toute façon en
 // double, par sécurité.
-const SECTIONS_PROTEGEES = ["/gerant", "/secretaire", "/mecanicien", "/bons"];
+const SECTIONS_PROTEGEES = ["/gerant", "/secretaire", "/mecanicien", "/bons", "/mes-taches"];
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
@@ -25,5 +25,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/gerant/:path*", "/secretaire/:path*", "/mecanicien/:path*", "/bons/:path*"],
+  matcher: ["/gerant/:path*", "/secretaire/:path*", "/mecanicien/:path*", "/bons/:path*", "/mes-taches/:path*"],
 };

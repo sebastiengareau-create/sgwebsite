@@ -342,6 +342,14 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             🖨️ {bon.facture ? "Facture" : "Bon de commande"}
           </Link>
           {peutModifier && !factureExiste && (
+            <Link
+              href={`/secretaire/operations/envois?bon=${bon.id}`}
+              style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}
+            >
+              📲 Envoyer à un employé
+            </Link>
+          )}
+          {peutModifier && !factureExiste && (
             <button
               onClick={supprimerBon}
               disabled={enCours}

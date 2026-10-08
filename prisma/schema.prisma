@@ -57,6 +57,8 @@ model User {
   entreesTempsInternes EntreeTempsInterne[]
   photosAjoutees       Photo[]
   paies                Paie[]
+  envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (onglet « Envoi aux employés »)
+  positionsGps         PositionGps[]
 }
 
 // ---------- CLIENTS ----------
@@ -124,6 +126,7 @@ model BonTravail {
   vehiculeVenteId     String?
   vehiculeVente       VehiculeVente? @relation(fields: [vehiculeVenteId], references: [id])
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
+  envois              EnvoiBon[] // envois du bon à des employés précis, avec SMS
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
@@ -815,4 +818,51 @@ model EntreeTemps {
   probleme   Probleme  @relation(fields: [problemeId], references: [id], onDelete: Cascade)
   debut      DateTime
   fin        DateTime? // null = poinçon actif (en cours)
+}
+
+// ---------- ENVOI DE BONS AUX EMPLOYÉS (et suivi GPS) ----------
+
+// Un bon envoyé à un employé précis (Bons de commande → Envoi aux
+// employés) : il reçoit un SMS (voir lib/sms.js) et voit la tâche dans
+// « Mes tâches », où il indique où il en est. Un envoi par employé — un bon
+// envoyé à trois personnes donne trois envois.
+model EnvoiBon {
+  id        String        @id @default(cuid())
+  bonId     String
+  bon       BonTravail    @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  employeId String
+  employe   User          @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  message   String? // note ajoutée à l'envoi, reprise dans le SMS
+  statut    String        @default("ENVOYE") // "ENVOYE" | "VU" | "EN_ROUTE" | "SUR_PLACE" | "TERMINE" | "ANNULE"
+  smsStatut String // "ENVOYE" | "ECHEC" | "SANS_TELEPHONE" | "NON_CONFIGURE"
+  smsErreur String?
+  envoyePar String?
+  envoyeLe  DateTime      @default(now())
+  vuLe      DateTime?
+  termineLe DateTime?
+  positions PositionGps[]
+
+  @@index([employeId, statut])
+  @@index([bonId])
+}
+
+// Position GPS envoyée par le téléphone d'un employé pendant qu'il partage
+// sa position (« Mes tâches »), rattachée à l'envoi en cours s'il y en a un.
+// Volumineux : hors des sauvegardes JSON, et effacé après 90 jours (voir
+// app/api/positions/route.js).
+model PositionGps {
+  id           String    @id @default(cuid())
+  employeId    String
+  employe      User      @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  envoiId      String?
+  envoi        EnvoiBon? @relation(fields: [envoiId], references: [id], onDelete: SetNull)
+  latitude     Float
+  longitude    Float
+  precision    Float? // rayon d'incertitude, en mètres
+  vitesse      Float? // m/s, si l'appareil la fournit
+  enregistreLe DateTime // moment de la mesure sur le téléphone
+  recuLe       DateTime  @default(now())
+
+  @@index([employeId, enregistreLe])
+  @@index([envoiId])
 }
