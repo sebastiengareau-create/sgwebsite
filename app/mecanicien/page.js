@@ -5,6 +5,7 @@ import Link from "next/link";
 import EnTete from "../components/EnTete";
 import TachePoincon from "./TachePoincon";
 import SectionTachesInternes from "./SectionTachesInternes";
+import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
 
 function dureeHeures(debutISO, finISO) {
@@ -59,10 +60,18 @@ export default async function EspaceMecanicien() {
     t.entreesTemps.filter((e) => !e.fin).map((e) => ({ ...e, tacheInterne: t }))
   );
 
+  const nbMesTaches = await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } });
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <div className="conteneur-page">
+        {nbMesTaches > 0 && (
+          <Link href="/mes-taches" className="carte carte-m" style={{ display: "block", marginBottom: 16, textDecoration: "none", color: "var(--text)", borderLeft: "3px solid var(--accent)" }}>
+            <strong>📲 {nbMesTaches} tâche{nbMesTaches > 1 ? "s" : ""} t'{nbMesTaches > 1 ? "ont" : "a"} été envoyée{nbMesTaches > 1 ? "s" : ""}</strong>
+            <span style={{ fontSize: 12, color: "var(--accent)", marginLeft: 8 }}>Voir mes tâches →</span>
+          </Link>
+        )}
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>{estGerant ? "Horodateur — vue d'ensemble" : "Horodateur"}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
           {estGerant
