@@ -31,7 +31,7 @@ export default async function ImprimerBon(props) {
       include: {
         client: true,
         vehicule: true,
-        problemes: { orderBy: { id: "asc" }, include: { photos: true, pieces: { include: { piece: true } }, entreesTemps: { include: { employe: true } } } },
+        problemes: { orderBy: { id: "asc" }, include: { photos: true, pieces: { include: { piece: true } }, entreesTemps: true } },
         facture: true,
       },
     }),
@@ -42,12 +42,10 @@ export default async function ImprimerBon(props) {
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
   const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
+  // Temps total seulement : le nom des employés qui ont poinçonné n'apparaît
+  // pas sur la facture du client
   const toutesEntreesTemps = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
-  const parEmploye = {};
-  for (const t of toutesEntreesTemps) {
-    if (!parEmploye[t.employeId]) parEmploye[t.employeId] = { employe: t.employe, heures: 0 };
-    if (t.fin) parEmploye[t.employeId].heures += dureeHeures(t.debut, t.fin);
-  }
+  const heuresPoinconnees = toutesEntreesTemps.filter((t) => t.fin).reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
 
   // Si une facture officielle existe, on utilise ses montants FIGÉS (le vrai
   // document légal). Sinon, on calcule un aperçu en direct, clairement marqué
@@ -57,7 +55,7 @@ export default async function ImprimerBon(props) {
     ? bon.facture.totalPieces
     : bon.problemes.reduce((s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0), 0);
   const tauxHoraireClient = estFacturee ? bon.facture.tauxHoraireUtilise : (bon.tauxHoraireOverride ?? Number(dict.taux_horaire_client || 195));
-  const totalHeures = estFacturee ? bon.facture.heuresFacturees : Object.values(parEmploye).reduce((s, l) => s + l.heures, 0);
+  const totalHeures = estFacturee ? bon.facture.heuresFacturees : heuresPoinconnees;
   const totalMainOeuvre = estFacturee ? bon.facture.totalMainOeuvre : totalHeures * tauxHoraireClient;
   const totalAutresRevenus = estFacturee
     ? (bon.facture.totalAutresRevenus || 0)
@@ -203,13 +201,11 @@ export default async function ImprimerBon(props) {
         })}
 
         <div style={{ borderTop: "1px solid #ddd", marginTop: 20, paddingTop: 16 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Résumé du temps par employé (taux : {tauxHoraireClient.toFixed(2)} $/h)</div>
-          {Object.values(parEmploye).length === 0 ? (
-            <div style={{ fontSize: 13, color: "#888" }}>Aucun temps enregistré</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Temps de main-d'œuvre (taux : {tauxHoraireClient.toFixed(2)} $/h)</div>
+          {totalHeures > 0.005 ? (
+            <div style={{ fontSize: 13 }}>{fmtHeures(totalHeures)}</div>
           ) : (
-            Object.values(parEmploye).map((l) => (
-              <div key={l.employe.id} style={{ fontSize: 13 }}>{l.employe.nom} — {fmtHeures(l.heures)}</div>
-            ))
+            <div style={{ fontSize: 13, color: "#888" }}>Aucun temps enregistré</div>
           )}
         </div>
 
