@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { STATUTS_ENVOI, STATUTS_ACTIFS, LIBELLES_SMS } from "@/lib/statutsEnvoi";
+import { STATUTS_ENVOI, STATUTS_ACTIFS, resumeAvis } from "@/lib/statutsEnvoi";
 import { dateCourteQuebec, heureQuebec } from "@/lib/regroupementDates";
 
 function texteVehicule(v) {
@@ -56,11 +56,9 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
     <div className="conteneur-page-large" style={{ margin: "0 auto", padding: 16, display: "grid", gap: 16 }}>
       <div className="carte">
         <div className="titre-section">📲 Envoyer un bon à des employés</div>
-        {!smsActif && (
-          <p style={{ fontSize: 12, color: "#C9A227", margin: "0 0 10px" }}>
-            ⚠️ Les SMS ne sont pas configurés (Administrateur → SMS (Twilio)) : la tâche apparaîtra dans « Mes tâches » de l'employé, mais il ne sera pas averti par texto.
-          </p>
-        )}
+        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>
+          L'employé est averti par une notification sur son téléphone (gratuit — il l'active une fois dans « Mes tâches »){smsActif ? ", et par SMS" : ""}. Sans notification{smsActif ? " ni SMS" : ""}, il reçoit un courriel.
+        </p>
 
         <label style={{ fontSize: 12, color: "var(--text-muted)" }}>1. Bon</label>
         <input
@@ -105,8 +103,9 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
                 <input type="checkbox" checked={coche} onChange={() => basculer(e.id)} style={{ marginTop: 2 }} />
                 <span>
                   <span style={{ fontSize: 13, fontWeight: 600, display: "block" }}>{e.nom}</span>
-                  <span style={{ fontSize: 11, color: e.telephone ? "var(--text-muted)" : "#C9A227" }}>
-                    {e.telephone ? `📱 ${e.telephone}` : "⚠️ Aucun cellulaire au dossier"}
+                  <span style={{ fontSize: 11, color: e._count.abonnementsPush > 0 ? "var(--text-muted)" : "#C9A227" }}>
+                    {e._count.abonnementsPush > 0 ? "🔔 Notifications activées" : "🔕 Notifications pas activées"}
+                    {smsActif && (e.telephone ? ` · 📱 ${e.telephone}` : " · aucun cellulaire")}
                     {e.assignation ? ` · ${e.assignation}` : ""}
                   </span>
                 </span>
@@ -115,7 +114,7 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
           })}
         </div>
 
-        <label style={{ fontSize: 12, color: "var(--text-muted)" }}>3. Note (facultative, incluse dans le SMS)</label>
+        <label style={{ fontSize: 12, color: "var(--text-muted)" }}>3. Note (facultative, incluse dans l'avis)</label>
         <textarea
           className="champ champ-espace"
           rows={2}
@@ -138,8 +137,8 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
         {resultats && (
           <ul style={{ fontSize: 12, marginTop: 10, paddingLeft: 18 }}>
             {resultats.map((r, i) => (
-              <li key={i} style={{ color: r.smsStatut === "ENVOYE" ? "var(--text)" : "#C9A227" }}>
-                {r.employe} : {r.dejaEnvoye ? "avait déjà ce bon — " : "envoyé — "}{LIBELLES_SMS[r.smsStatut]}{r.smsErreur ? ` (${r.smsErreur})` : ""}
+              <li key={i} style={{ color: resumeAvis(r).ok ? "var(--text)" : "#C9A227" }}>
+                {r.employe} : {r.dejaEnvoye ? "avait déjà ce bon — " : "envoyé — "}{resumeAvis(r).texte}
               </li>
             ))}
           </ul>
@@ -183,7 +182,7 @@ function LigneEnvoi({ envoi }) {
       setInfo(data.erreur || `Erreur (code ${res.status}).`);
       return;
     }
-    if (data.smsStatut) setInfo(LIBELLES_SMS[data.smsStatut] + (data.smsErreur ? ` (${data.smsErreur})` : ""));
+    if (data.avisPar) setInfo(resumeAvis(data).texte);
     router.refresh();
   }
 
@@ -200,7 +199,7 @@ function LigneEnvoi({ envoi }) {
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
           Envoyé le {dateCourteQuebec(envoi.envoyeLe)} à {heureQuebec(envoi.envoyeLe)}{envoi.envoyePar ? ` par ${envoi.envoyePar}` : ""}
           {" · "}
-          <span style={{ color: envoi.smsStatut === "ENVOYE" ? "var(--text-muted)" : "#C9A227" }} title={envoi.smsErreur || ""}>{LIBELLES_SMS[envoi.smsStatut]}</span>
+          <span style={{ color: resumeAvis(envoi).ok ? "var(--text-muted)" : "#C9A227" }}>{resumeAvis(envoi).texte}</span>
           {envoi.termineLe && ` · fermé à ${heureQuebec(envoi.termineLe)}`}
         </div>
         {envoi.message && <div style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic" }}>« {envoi.message} »</div>}
@@ -211,10 +210,10 @@ function LigneEnvoi({ envoi }) {
           <button
             className="bouton-3d-sombre"
             disabled={occupe}
-            onClick={() => action(`/api/envois/${envoi.id}/sms`, { method: "POST" })}
+            onClick={() => action(`/api/envois/${envoi.id}/avis`, { method: "POST" })}
             style={{ fontSize: 11, padding: "6px 10px", borderRadius: 8 }}
           >
-            🔁 Renvoyer le SMS
+            🔁 Aviser de nouveau
           </button>
           <button
             className="bouton-3d-sombre"

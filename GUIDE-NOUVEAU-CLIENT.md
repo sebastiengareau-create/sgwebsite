@@ -54,11 +54,11 @@ Chaque client a son **propre projet Railway complet** :
 6. Pour Assistant SG, génère une clé Gemini gratuite sur aistudio.google.com
    (une par client) et ajoute `GEMINI_API_KEY` + `GEMINI_MODEL` (voir le
    `.env` local pour la valeur recommandée du modèle)
-7. Pour la section « Jobs en déplacement » (à activer dans Administrateur →
-   Modules), entre le compte Twilio du client dans Administrateur → 📱 SMS
-   (Twilio) : Account SID, Auth Token, numéro Twilio et adresse publique de
-   l'app (pour le lien du SMS), puis envoie un SMS test. Sans ça, les
-   tâches s'envoient quand même, sans texto. Voir `lib/sms.js`.
+7. Section « Jobs en déplacement » : à activer dans Administrateur →
+   Modules. Les employés sont avertis gratuitement par notification sur
+   leur téléphone (rien à configurer — voir `lib/notifications.js`), sinon
+   par courriel. Les SMS sont en option et payants : compte Twilio du
+   client dans Administrateur → 📱 SMS (Twilio), voir `lib/sms.js`.
 
 ### 3. Initialiser la base de données de ce client
 Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`

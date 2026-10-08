@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
-import { envoyerSmsEnvoi, peutGererJobsDeplacement } from "@/lib/envois";
+import { envoyerAvisEnvoi, peutGererJobsDeplacement } from "@/lib/envois";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
-// Envoie un bon à un ou plusieurs employés : un envoi chacun, et un SMS
-// pour l'avertir. Un employé qui a déjà ce bon en cours n'est pas
-// renvoyé en double (on renvoie seulement son SMS).
+// Envoie un bon à un ou plusieurs employés : un envoi chacun, et un avis
+// (notification, SMS ou courriel — voir lib/envois.js). Un employé qui a
+// déjà ce bon en cours n'est pas renvoyé en double (seulement ré-avisé).
 export async function POST(request) {
   const session = await obtenirSession();
   if (!(await peutGererJobsDeplacement(session))) {
@@ -32,8 +32,8 @@ export async function POST(request) {
     const envoi = existant
       ? await prisma.envoiBon.update({ where: { id: existant.id }, data: { message: note ?? existant.message } })
       : await prisma.envoiBon.create({ data: { bonId, employeId: employe.id, message: note, smsStatut: "NON_CONFIGURE", envoyePar: session.nom } });
-    const apresSms = await envoyerSmsEnvoi(envoi.id);
-    resultats.push({ employe: employe.nom, dejaEnvoye: !!existant, smsStatut: apresSms.smsStatut, smsErreur: apresSms.smsErreur });
+    const apres = await envoyerAvisEnvoi(envoi.id);
+    resultats.push({ employe: employe.nom, dejaEnvoye: !!existant, avisPar: apres.avisPar, smsStatut: apres.smsStatut, smsErreur: apres.smsErreur });
   }
 
   return NextResponse.json({ ok: true, resultats });

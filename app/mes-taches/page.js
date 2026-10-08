@@ -3,6 +3,7 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { jobsDeplacementActif } from "@/lib/envois";
+import { clePubliqueVapid } from "@/lib/notifications";
 import { limitesJourQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../components/EnTete";
 import MesTachesClient from "./MesTachesClient";
@@ -42,7 +43,7 @@ export default async function MesTaches() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <MesTachesClient envois={envois} />
+      <MesTachesClient envois={envois} clePublique={await clePubliqueVapid()} />
     </div>
   );
 }

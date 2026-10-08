@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { STATUTS_ENVOI } from "@/lib/statutsEnvoi";
 import { dateCourteQuebec, heureQuebec } from "@/lib/regroupementDates";
+import Notifications from "./Notifications";
 
 // Prochaine étape proposée à l'employé selon où en est l'envoi
 const PROCHAINE = {
@@ -125,7 +126,7 @@ function usePartagePosition(envoiId) {
   return { actif, etat, demarrer: () => changer(true), arreter: () => changer(false) };
 }
 
-export default function MesTachesClient({ envois }) {
+export default function MesTachesClient({ envois, clePublique }) {
   const router = useRouter();
   const [occupe, setOccupe] = useState(null);
   const [erreur, setErreur] = useState("");
@@ -159,6 +160,8 @@ export default function MesTachesClient({ envois }) {
     <div className="conteneur-page">
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>📲 Mes tâches</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>Les bons qui t'ont été envoyés. Indique où tu en es à chaque étape.</p>
+
+      <Notifications clePublique={clePublique} />
 
       <div className="carte carte-m" style={{ marginBottom: 16, borderLeft: `3px solid ${partage.actif ? "#6FA96B" : "var(--border)"}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>

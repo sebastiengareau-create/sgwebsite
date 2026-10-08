@@ -61,7 +61,13 @@ export default async function EspaceMecanicien() {
     t.entreesTemps.filter((e) => !e.fin).map((e) => ({ ...e, tacheInterne: t }))
   );
 
-  const nbMesTaches = !(await jobsDeplacementActif()) ? 0 : await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } });
+  const moduleDeplacement = await jobsDeplacementActif();
+  const [nbMesTaches, nbAbonnements] = moduleDeplacement
+    ? await Promise.all([
+        prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } }),
+        prisma.abonnementPush.count({ where: { employeId: session.id } }),
+      ])
+    : [0, 0];
 
   return (
     <div>
@@ -71,6 +77,12 @@ export default async function EspaceMecanicien() {
           <Link href="/mes-taches" className="carte carte-m" style={{ display: "block", marginBottom: 16, textDecoration: "none", color: "var(--text)", borderLeft: "3px solid var(--accent)" }}>
             <strong>📲 {nbMesTaches} tâche{nbMesTaches > 1 ? "s" : ""} t'{nbMesTaches > 1 ? "ont" : "a"} été envoyée{nbMesTaches > 1 ? "s" : ""}</strong>
             <span style={{ fontSize: 12, color: "var(--accent)", marginLeft: 8 }}>Voir mes tâches →</span>
+          </Link>
+        )}
+        {moduleDeplacement && nbAbonnements === 0 && (
+          <Link href="/mes-taches" className="carte carte-s" style={{ display: "block", marginBottom: 16, textDecoration: "none", color: "var(--text)", fontSize: 13 }}>
+            🔔 Active les notifications pour être averti quand un bon t'est envoyé
+            <span style={{ fontSize: 12, color: "var(--accent)", marginLeft: 8 }}>Activer →</span>
           </Link>
         )}
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>{estGerant ? "Horodateur — vue d'ensemble" : "Horodateur"}</h1>

@@ -62,7 +62,7 @@ export default function SmsClient({ init }) {
       <Link href="/gerant/administrateur" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Administrateur</Link>
       <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>📱 SMS (Twilio)</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Sert à avertir les employés par texto quand un bon leur est envoyé (Jobs en déplacement). Les identifiants se trouvent dans la console Twilio, section « Account Info ».
+        Facultatif et payant : les employés sont déjà avertis gratuitement par une notification sur leur téléphone. Les SMS s'ajoutent à ces notifications une fois Twilio configuré ici. Les identifiants se trouvent dans la console Twilio, section « Account Info ».
       </p>
 
       <form onSubmit={sauvegarder} className="carte" style={{ marginBottom: 16 }}>
