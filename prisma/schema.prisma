@@ -59,6 +59,7 @@ model User {
   paies                Paie[]
   envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (section « Jobs en déplacement »)
   positionsGps         PositionGps[]
+  abonnementsPush      AbonnementPush[] // téléphones où il reçoit les notifications
 }
 
 // ---------- CLIENTS ----------
@@ -835,6 +836,7 @@ model EnvoiBon {
   employe   User          @relation(fields: [employeId], references: [id], onDelete: Cascade)
   message   String? // note ajoutée à l'envoi, reprise dans le SMS
   statut    String        @default("ENVOYE") // "ENVOYE" | "VU" | "EN_ROUTE" | "SUR_PLACE" | "TERMINE" | "ANNULE"
+  avisPar   String[]      @default([]) // canaux par lesquels l'employé a bien été avisé : "PUSH" | "COURRIEL" | "SMS"
   smsStatut String // "ENVOYE" | "ECHEC" | "SANS_TELEPHONE" | "NON_CONFIGURE"
   smsErreur String?
   envoyePar String?
@@ -866,4 +868,21 @@ model PositionGps {
 
   @@index([employeId, enregistreLe])
   @@index([envoiId])
+}
+
+// Téléphone (ou navigateur) d'un employé abonné aux notifications de
+// l'app, activées depuis « Mes tâches » — c'est l'avis gratuit d'un
+// nouvel envoi de bon (voir lib/notifications.js). Un employé peut en
+// avoir plusieurs (cellulaire, tablette…).
+model AbonnementPush {
+  id        String   @id @default(cuid())
+  employeId String
+  employe   User     @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique // adresse du service de notifications du navigateur
+  p256dh    String
+  auth      String
+  appareil  String? // navigateur/appareil, pour s'y retrouver
+  creeLe    DateTime @default(now())
+
+  @@index([employeId])
 }

@@ -30,7 +30,7 @@ export default async function JobsEnDeplacement(props) {
     }),
     prisma.user.findMany({
       where: { actif: true },
-      select: { id: true, nom: true, telephone: true, assignation: true },
+      select: { id: true, nom: true, telephone: true, assignation: true, _count: { select: { abonnementsPush: true } } },
       orderBy: { nom: "asc" },
     }),
     // Envois en cours, et ceux fermés dans les 7 derniers jours

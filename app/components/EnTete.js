@@ -51,12 +51,13 @@ export default async function EnTete({ nom, role }) {
 
   const liens = [];
 
-  // Bons envoyés à cet employé (section « Jobs en déplacement ») — le lien
-  // n'apparaît que s'il en a en cours, peu importe ses sections
-  const nbMesTaches = session?.id && dictModules.module_jobs_deplacement === "actif"
-    ? await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } })
-    : 0;
-  if (nbMesTaches > 0) liens.push({ href: "/mes-taches", label: `Mes tâches (${nbMesTaches})`, icone: "📲", accent: true });
+  // Bons envoyés à cet employé (section « Jobs en déplacement ») — lien
+  // offert à tous quand le module est actif, peu importe les sections :
+  // c'est là aussi qu'on active les notifications, avant le premier envoi
+  if (session?.id && session.role !== "DEVELOPPEUR" && dictModules.module_jobs_deplacement === "actif") {
+    const nbMesTaches = await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } });
+    liens.push({ href: "/mes-taches", label: nbMesTaches > 0 ? `Mes tâches (${nbMesTaches})` : "Mes tâches", icone: "📲", accent: nbMesTaches > 0 });
+  }
 
   // Sections empruntables — vérifiées une par une via le même système que
   // les pages elles-mêmes utilisent, pour que le menu corresponde toujours
