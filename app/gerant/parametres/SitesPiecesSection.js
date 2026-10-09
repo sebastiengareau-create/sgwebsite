@@ -44,8 +44,8 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
           Fournisseurs offerts dans « 🔎 Rechercher des pièces » d'un bon. Mets l'adresse de recherche du site, avec
           entre accolades ce qu'il faut y mettre : {"{piece}"} (la pièce), {"{q}"} (la pièce et le véhicule),
           {" "}{"{annee}"}, {"{marque}"}, {"{modele}"} ou {"{niv}"} — ex. https://www.napacanada.com/fr/search?text={"{piece}"}.
-          Pour la trouver : cherche « test » sur le site, copie l'adresse de la page de résultats et remplace « test »
-          par {"{piece}"}. Ou mets seulement le domaine (ex. exemple.ca) : la recherche passera par Google, limitée à ce site.
+          Pour la trouver : cherche « test » sur le site et colle ici l'adresse de la page de résultats — « test »
+          y sera remplacé par {"{piece}"}. Ou mets seulement le domaine (ex. exemple.ca) : la recherche passera par Google, limitée à ce site.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
