@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
-import { jobsDeplacementActif } from "@/lib/envois";
 
 async function employeConnecte() {
   const session = await obtenirSession();
   if (!session) return { erreur: NextResponse.json({ erreur: "Non connecté." }, { status: 401 }) };
-  if (!(await jobsDeplacementActif())) return { erreur: NextResponse.json({ erreur: "Le module Jobs en déplacement est désactivé." }, { status: 403 }) };
   const employe = await prisma.user.findUnique({ where: { id: session.id }, select: { id: true } });
   if (!employe) return { erreur: NextResponse.json({ erreur: "Seul un compte employé peut recevoir des notifications." }, { status: 403 }) };
   return { employe };

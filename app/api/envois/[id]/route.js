@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import { jobsDeplacementActif, peutGererJobsDeplacement } from "@/lib/envois";
 import { STATUTS_EMPLOYE } from "@/lib/statutsEnvoi";
+import { notifier } from "@/lib/notifications";
 
 // Change l'étape d'un envoi. L'employé à qui il est adressé avance ses
 // propres envois (Vu → En route → Sur place → Terminé) ; le bureau
@@ -37,5 +38,17 @@ export async function PATCH(request, props) {
       termineLe: statut === "TERMINE" || statut === "ANNULE" ? maintenant : null,
     },
   });
+  if (statut === "TERMINE") {
+    after(async () => {
+      const bon = await prisma.bonTravail.findUnique({ where: { id: envoi.bonId }, select: { id: true, numero: true, client: { select: { nom: true } } } });
+      await notifier("BON_TERMINE", {
+        sauf: [session.id],
+        titre: `✅ Job terminée — bon #${bon.numero}`,
+        corps: `${session.nom} a terminé · ${bon.client.nom}`,
+        url: `/bons/${bon.id}`,
+        tag: `termine-${bon.id}`,
+      });
+    });
+  }
   return NextResponse.json(maj);
 }

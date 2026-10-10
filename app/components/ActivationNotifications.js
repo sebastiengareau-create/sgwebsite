@@ -24,9 +24,9 @@ async function enregistrer(abonnement) {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).erreur || `Erreur (code ${res.status}).`);
 }
 
-// Activation des notifications sur ce téléphone — l'avis gratuit d'un bon
-// envoyé (voir lib/notifications.js)
-export default function Notifications({ clePublique }) {
+// Activation des notifications sur ce téléphone (voir lib/notifications.js)
+// — page Notifications et « Mes tâches »
+export default function ActivationNotifications({ clePublique }) {
   // "…" | "non-supporte" | "ios-installer" | "refuse" | "inactif" | "actif"
   const [etat, setEtat] = useState("…");
   const [info, setInfo] = useState("");
@@ -103,8 +103,8 @@ export default function Notifications({ clePublique }) {
         <div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>{actif ? "🔔 Notifications activées" : "🔕 Notifications désactivées"}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-            {etat === "actif" && "Tu seras averti sur ce téléphone quand un bon t'est envoyé."}
-            {etat === "inactif" && "Active-les pour être averti dès qu'un bon t'est envoyé."}
+            {etat === "actif" && "Tes notifications arrivent sur ce téléphone, même l'app fermée."}
+            {etat === "inactif" && "Active-les pour être averti sur ce téléphone, même l'app fermée."}
             {etat === "refuse" && "Bloquées pour ce site : autorise les notifications dans les réglages du navigateur, puis reviens ici."}
             {etat === "ios-installer" && "Sur iPhone : touche Partager (□↑) puis « Sur l'écran d'accueil », ouvre l'app depuis l'icône, et reviens ici."}
             {etat === "non-supporte" && "Ce navigateur ne permet pas les notifications — utilise Chrome (Android) ou Safari (iPhone)."}

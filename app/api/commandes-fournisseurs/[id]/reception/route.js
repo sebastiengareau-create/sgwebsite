@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { verifierPeriodeModifiable, assurerCategorieInventairePieces } from "@/lib/comptabilite";
 import { jourCivil, creerDepenseDansTransaction, comptabiliserDepenseRecue } from "@/lib/depenses";
 import { resteARecevoir } from "@/lib/commandesFournisseurs";
 import { sortirPiecesBoRecues } from "@/lib/brouillonsCommande";
+import { notifier, employesDuBon } from "@/lib/notifications";
 
 const arrondi = (n) => Math.round(n * 100) / 100;
 
@@ -90,5 +91,30 @@ export async function POST(request, props) {
   });
 
   await comptabiliserDepenseRecue(depense, session.nom);
+  after(() => aviserPiecesRecues(commande, recues.map((r) => r.ligne.pieceId), session.id));
   return NextResponse.json({ depenseId: depense.id, montant: depense.montant });
+}
+
+// Bons qui attendaient des pièces de cette réception : leurs employés
+// sont avisés, un avis par bon
+async function aviserPiecesRecues(commande, pieceIds, auteurId) {
+  const enAttente = await prisma.pieceACommander.findMany({
+    where: { commandeId: commande.id, pieceId: { in: pieceIds } },
+    include: { bon: { select: { id: true, numero: true, client: { select: { nom: true } } } } },
+  });
+  const parBon = new Map();
+  for (const a of enAttente) {
+    if (!parBon.has(a.bonId)) parBon.set(a.bonId, { bon: a.bon, pieces: [] });
+    parBon.get(a.bonId).pieces.push(a.description);
+  }
+  for (const { bon, pieces } of parBon.values()) {
+    await notifier("PIECES_RECUES", {
+      employeIds: await employesDuBon(bon.id),
+      sauf: [auteurId],
+      titre: `📦 Pièces reçues — bon #${bon.numero}`,
+      corps: `${bon.client.nom} · ${pieces.join(", ")}`,
+      url: `/bons/${bon.id}`,
+      tag: `pieces-${bon.id}`,
+    });
+  }
 }

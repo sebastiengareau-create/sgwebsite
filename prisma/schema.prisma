@@ -60,6 +60,8 @@ model User {
   envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (section « Jobs en déplacement »)
   positionsGps         PositionGps[]
   abonnementsPush      AbonnementPush[] // téléphones où il reçoit les notifications
+  notifications        Notification[] // avis reçus (cloche 🔔), voir lib/notifications.js
+  notificationsCoupees String[]       @default([]) // types d'avis qu'il a choisi de ne plus recevoir (voir lib/typesNotifications.js)
 }
 
 // ---------- CLIENTS ----------
@@ -885,4 +887,21 @@ model AbonnementPush {
   creeLe    DateTime @default(now())
 
   @@index([employeId])
+}
+
+// Avis reçu par un employé (cloche 🔔 et page Notifications) — aussi
+// poussé sur ses téléphones abonnés (AbonnementPush). Type : voir
+// lib/typesNotifications.js. Effacé après 60 jours.
+model Notification {
+  id        String   @id @default(cuid())
+  employeId String
+  employe   User     @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  type      String
+  titre     String
+  corps     String?
+  url       String?
+  lue       Boolean  @default(false)
+  creeLe    DateTime @default(now())
+
+  @@index([employeId, creeLe])
 }
