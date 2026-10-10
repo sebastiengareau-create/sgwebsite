@@ -109,7 +109,7 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
 
   return (
     <div className="conteneur-page">
-      <Link href="/secretaire/inventaire/commandes" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Commandes fournisseurs</Link>
+      <Link href="/secretaire/inventaire/commandes" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Commandes de pièces</Link>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
