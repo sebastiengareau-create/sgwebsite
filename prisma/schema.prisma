@@ -129,7 +129,7 @@ model BonTravail {
   vehiculeVenteId     String?
   vehiculeVente       VehiculeVente? @relation(fields: [vehiculeVenteId], references: [id])
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
-  envois              EnvoiBon[] // envois du bon à des employés précis, avec SMS
+  envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
@@ -826,8 +826,8 @@ model EntreeTemps {
 // ---------- ENVOI DE BONS AUX EMPLOYÉS (et suivi GPS) ----------
 
 // Un bon envoyé à un employé précis (section « Jobs en déplacement », un
-// module à activer dans Administrateur) : il reçoit un SMS (voir
-// lib/sms.js) et voit la tâche dans « Mes tâches », où il indique où il en
+// module à activer dans Administrateur) : il reçoit une notification (voir
+// lib/envois.js) et voit la tâche dans « Mes tâches », où il indique où il en
 // est. Un envoi par employé — un bon
 // envoyé à trois personnes donne trois envois.
 model EnvoiBon {
@@ -836,9 +836,10 @@ model EnvoiBon {
   bon       BonTravail    @relation(fields: [bonId], references: [id], onDelete: Cascade)
   employeId String
   employe   User          @relation(fields: [employeId], references: [id], onDelete: Cascade)
-  message   String? // note ajoutée à l'envoi, reprise dans le SMS
+  message   String? // note ajoutée à l'envoi, reprise dans l'avis
   statut    String        @default("ENVOYE") // "ENVOYE" | "VU" | "EN_ROUTE" | "SUR_PLACE" | "TERMINE" | "ANNULE"
   avisPar   String[]      @default([]) // canaux par lesquels l'employé a bien été avisé : "PUSH" | "COURRIEL" | "SMS"
+  // SMS retirés : plus remplis (NON_CONFIGURE), gardés pour l'historique
   smsStatut String // "ENVOYE" | "ECHEC" | "SANS_TELEPHONE" | "NON_CONFIGURE"
   smsErreur String?
   envoyePar String?

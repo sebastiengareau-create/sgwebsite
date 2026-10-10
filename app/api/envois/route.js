@@ -5,7 +5,7 @@ import { envoyerAvisEnvoi, peutGererJobsDeplacement } from "@/lib/envois";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
 // Envoie un bon à un ou plusieurs employés : un envoi chacun, et un avis
-// (notification, SMS ou courriel — voir lib/envois.js). Un employé qui a
+// (notification ou courriel — voir lib/envois.js). Un employé qui a
 // déjà ce bon en cours n'est pas renvoyé en double (seulement ré-avisé).
 export async function POST(request) {
   const session = await obtenirSession();
@@ -33,7 +33,7 @@ export async function POST(request) {
       ? await prisma.envoiBon.update({ where: { id: existant.id }, data: { message: note ?? existant.message } })
       : await prisma.envoiBon.create({ data: { bonId, employeId: employe.id, message: note, smsStatut: "NON_CONFIGURE", envoyePar: session.nom } });
     const apres = await envoyerAvisEnvoi(envoi.id);
-    resultats.push({ employe: employe.nom, dejaEnvoye: !!existant, avisPar: apres.avisPar, smsStatut: apres.smsStatut, smsErreur: apres.smsErreur });
+    resultats.push({ employe: employe.nom, dejaEnvoye: !!existant, avisPar: apres.avisPar });
   }
 
   return NextResponse.json({ ok: true, resultats });

@@ -57,8 +57,8 @@ Chaque client a son **propre projet Railway complet** :
 7. Section « Jobs en déplacement » : à activer dans Administrateur →
    Modules. Les employés sont avertis gratuitement par notification sur
    leur téléphone (rien à configurer — voir `lib/notifications.js`), sinon
-   par courriel. Les SMS sont en option et payants : compte Twilio du
-   client dans Administrateur → 📱 SMS (Twilio), voir `lib/sms.js`.
+   par courriel. Le lien du courriel vers « Mes tâches » utilise
+   `APP_URL` (adresse publique de l'installation).
 
 ### 3. Initialiser la base de données de ce client
 Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { smsConfigure } from "@/lib/sms";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { peutGererJobsDeplacement } from "@/lib/envois";
 import EnTete from "../../components/EnTete";
@@ -54,13 +53,12 @@ export default async function JobsEnDeplacement(props) {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "12px 16px 0" }}>
-        <BandeauSection icone="🚐" titre="Jobs en déplacement" sousTitre="Envoie un bon à des employés précis, avertis-les par SMS et suis leurs déplacements." />
+        <BandeauSection icone="🚐" titre="Jobs en déplacement" sousTitre="Envoie un bon à des employés précis, avertis-les par notification et suis leurs déplacements." />
       </div>
       <EnvoisClient
         bons={bons}
         employes={employes}
         envois={envois}
-        smsActif={await smsConfigure()}
         bonInitial={searchParams?.bon || ""}
       />
       <CarteSuivi employes={employes.map(({ id, nom }) => ({ id, nom }))} />
