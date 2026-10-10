@@ -134,7 +134,7 @@ export async function DELETE(request, props) {
   const commandee = await prisma.ligneCommandeFournisseur.count({ where: { pieceId: params.id } });
   if (commandee > 0) {
     return NextResponse.json(
-      { erreur: "Cette pièce figure sur une ou des commandes fournisseurs — elle ne peut pas être supprimée. Tu peux la désactiver à la place." },
+      { erreur: "Cette pièce figure sur une ou des commandes de pièces — elle ne peut pas être supprimée. Tu peux la désactiver à la place." },
       { status: 409 }
     );
   }

@@ -113,7 +113,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
         className="bouton-3d-sombre"
         style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
       >
-        🛒 Commandes fournisseurs
+        🛒 Commandes de pièces
       </Link>
       {CLIENT.vehiculesAVendre && (
         <Link

@@ -43,7 +43,7 @@ export default function CommandesClient({ commandes, fournisseurs, suggestions, 
     <div className="conteneur-page">
       <Link href="/secretaire/inventaire" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à l'inventaire</Link>
       <div style={{ marginTop: 10 }}>
-        <BandeauSection icone="🛒" titre="Commandes fournisseurs" sousTitre="Commande des pièces, puis reçois la marchandise : chaque réception entre le stock au prix de la facture et crée la dépense à payer." />
+        <BandeauSection icone="🛒" titre="Commandes de pièces" sousTitre="Commande des pièces, puis reçois la marchandise : chaque réception entre le stock au prix de la facture et crée la dépense à payer." />
       </div>
 
       <div className="carte carte-m" style={{ marginBottom: 12 }}>
