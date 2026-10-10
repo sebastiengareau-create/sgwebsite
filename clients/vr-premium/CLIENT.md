@@ -2,7 +2,9 @@
 
 Garage d'entretien et de réparation de **véhicules récréatifs** (motorisés
 et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
-`NEXT_PUBLIC_CLIENT=vr-premium`.
+`NEXT_PUBLIC_CLIENT=vr-premium`, et son projet déploie la branche
+`client/vr-premium` (voir « Appliquer une modification à un client » dans
+`clients/README.md`).
 
 ## Ce que son profil change
 

@@ -1,0 +1,62 @@
+# Applique la version de main (ou une version plus ancienne de main) à un
+# ou plusieurs clients : avance leur branche client/<id>, que leur projet
+# Railway déploie. Lancé à la main seulement — Actions → « Appliquer aux
+# clients » → Run workflow. Voir clients/README.md.
+name: Appliquer aux clients
+
+on:
+  workflow_dispatch:
+    inputs:
+      clients:
+        description: "Clients à mettre à jour (ex. vr-premium, ou vr-premium template, ou tous)"
+        required: true
+        default: "vr-premium"
+      version:
+        description: "Version de main à appliquer : vide = la plus récente, sinon un numéro de commit"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  appliquer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Avancer les branches des clients
+        env:
+          CLIENTS: ${{ inputs.clients }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # Liste des clients — à tenir à jour avec clients/README.md
+          TOUS="template vr-premium"
+
+          cible=$(git rev-parse --verify "${VERSION:-origin/main}^{commit}") || { echo "::error::Version introuvable : $VERSION"; exit 1; }
+          if ! git merge-base --is-ancestor "$cible" origin/main; then
+            echo "::error::Cette version ne fait pas partie de main."; exit 1
+          fi
+
+          liste=$(echo "$CLIENTS" | tr ',' ' ')
+          [ "$(echo $liste)" = "tous" ] && liste="$TOUS"
+
+          for c in $liste; do
+            if ! echo " $TOUS " | grep -q " $c "; then
+              echo "::error::Client inconnu : $c (connus : $TOUS)"; exit 1
+            fi
+            if git rev-parse -q --verify "origin/client/$c" >/dev/null; then
+              # Jamais de retour en arrière ni de changement propre à un client :
+              # la branche ne fait qu'avancer le long de main
+              if ! git merge-base --is-ancestor "origin/client/$c" "$cible"; then
+                echo "::error::client/$c est déjà plus loin que cette version (ou contient un changement absent de main)."; exit 1
+              fi
+              echo "### $c" >> "$GITHUB_STEP_SUMMARY"
+              git log --format='- %s' "origin/client/$c..$cible" --no-merges >> "$GITHUB_STEP_SUMMARY" || true
+            fi
+            git push origin "$cible:refs/heads/client/$c"
+            echo "✅ client/$c → $(git log -1 --format='%h %s' "$cible")"
+          done
