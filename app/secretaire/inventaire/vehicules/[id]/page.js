@@ -6,6 +6,8 @@ import { coutantTotal, obtenirClientInterne } from "@/lib/vehiculesAVendre";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import EnTete from "../../../../components/EnTete";
 import VehiculeVenteDetailClient from "./VehiculeVenteDetailClient";
+import { voisinsFiche } from "@/lib/navigationFiches";
+import NavigationFiches from "../../../../components/NavigationFiches";
 
 export default async function DetailVehiculeVente(props) {
   const params = await props.params;
@@ -26,6 +28,8 @@ export default async function DetailVehiculeVente(props) {
   });
   if (!vv) notFound();
 
+  // Ordre par défaut de la liste : même statut (en stock / vendus), plus récents d'abord
+  const ordre = await prisma.vehiculeVente.findMany({ where: { statut: vv.statut }, select: { id: true }, orderBy: { creeLe: "desc" } });
   const interne = await obtenirClientInterne();
   await assurerComptesTresorerie();
   const [clients, comptesTresorerie, parametres] = await Promise.all([
@@ -52,6 +56,7 @@ export default async function DetailVehiculeVente(props) {
         peutCreerBon={await aAccesSection(session, "operations")}
         estGerant={estGerantOuDev(session)}
       />
+      <NavigationFiches cle="vehicules-vente" idCourant={vv.id} base="/secretaire/inventaire/vehicules" voisinsParDefaut={voisinsFiche(ordre.map((v) => v.id), vv.id)} />
     </div>
   );
 }

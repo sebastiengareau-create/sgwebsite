@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import SelectProvince from "../../components/SelectProvince";
+import { useOrdreFiches } from "../../components/NavigationFiches";
 import { adresseComplete, PROVINCE_DEFAUT } from "@/lib/adresse";
 
 export default function FournisseursClient({ fournisseurs, peutImporter }) {
@@ -19,6 +20,7 @@ export default function FournisseursClient({ fournisseurs, peutImporter }) {
     const champs = [f.nom, f.telephone, f.courriel, f.adresse, f.ville, f.province, f.codePostal];
     return champs.some((champ) => champ && champ.toLowerCase().includes(q));
   });
+  useOrdreFiches("fournisseurs", fournisseursFiltres.map((f) => f.id));
 
   return (
     <div className="conteneur-page">

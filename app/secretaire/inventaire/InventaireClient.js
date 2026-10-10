@@ -7,6 +7,7 @@ import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
+import { useOrdreFiches } from "../../components/NavigationFiches";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroContient } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
@@ -35,6 +36,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)))
       || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q));
   });
+  useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
 
   // Un scan ouvre la fiche de la pièce ; un code inconnu (boîte d'un
   // fabricant jamais scannée) propose de l'associer à une pièce.

@@ -4,6 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import { dateAujourdhuiQuebec, limitesJourQuebec, jourSemaineQuebec } from "@/lib/temps";
 import EnTete from "../../../components/EnTete";
 import EmployeDetailClient from "./EmployeDetailClient";
+import { voisinsFiche } from "@/lib/navigationFiches";
+import NavigationFiches from "../../../components/NavigationFiches";
 
 export default async function DetailEmploye(props) {
   const params = await props.params;
@@ -61,6 +63,8 @@ export default async function DetailEmploye(props) {
   // désactiver, supprimer) la fiche de quelqu'un dont le niveau actuel
   // dépasse déjà le sien — seul le niveau 4/développeur passe toujours.
   const rolesAssignables = estNiveauMaxOuDev(session) ? ROLES_VALIDES : ROLES_VALIDES.filter((r) => niveauRole(r) <= niveauRole(session.role));
+  // Ordre par défaut de la liste : actifs puis inactifs, par nom
+  const ordre = await prisma.user.findMany({ where: employe.actif ? { actif: true } : undefined, select: { id: true }, orderBy: [{ actif: "desc" }, { nom: "asc" }] });
   const peutGererEmploye = estNiveauMaxOuDev(session) || niveauRole(employe.role) <= niveauRole(session.role);
 
   return (
@@ -71,6 +75,7 @@ export default async function DetailEmploye(props) {
         soldeVacances={soldeVacances} heures={heures} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
         rolesAssignables={rolesAssignables} peutGererEmploye={peutGererEmploye}
       />
+      <NavigationFiches cle="employes" idCourant={employe.id} base="/gerant/employes" voisinsParDefaut={voisinsFiche(ordre.map((e) => e.id), employe.id)} />
     </div>
   );
 }

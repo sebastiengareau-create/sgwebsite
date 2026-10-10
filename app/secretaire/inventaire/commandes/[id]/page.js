@@ -4,6 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import { quantitesEnCommande } from "@/lib/commandesFournisseurs";
 import EnTete from "../../../../components/EnTete";
 import CommandeDetailClient from "./CommandeDetailClient";
+import { voisinsFiche } from "@/lib/navigationFiches";
+import NavigationFiches from "../../../../components/NavigationFiches";
 
 export default async function DetailCommande(props) {
   const params = await props.params;
@@ -31,6 +33,10 @@ export default async function DetailCommande(props) {
     quantitesEnCommande(prisma, undefined, { avecBrouillons: true }),
     aAccesSection(session, "fournisseurs"),
   ]);
+  // Ordre par défaut de la liste : même groupe de statuts, plus récentes d'abord
+  const groupes = [["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"], ["RECUE"], ["ANNULEE"]];
+  const groupe = groupes.find((g) => g.includes(commande.statut));
+  const ordre = await prisma.commandeFournisseur.findMany({ where: groupe ? { statut: { in: groupe } } : undefined, select: { id: true }, orderBy: { creeLe: "desc" }, take: 300 });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
   return (
@@ -45,6 +51,7 @@ export default async function DetailCommande(props) {
         tvqTaux={Number(dict.tvq_taux || 9.975)}
         peutVoirDepenses={peutVoirDepenses}
       />
+      <NavigationFiches cle="commandes" idCourant={commande.id} base="/secretaire/inventaire/commandes" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), commande.id)} />
     </div>
   );
 }
