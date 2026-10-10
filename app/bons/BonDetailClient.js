@@ -9,6 +9,7 @@ import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
+import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
@@ -384,7 +385,16 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </button>
       )}
       {rechercheWeb !== null && (
-        <RecherchePieces bonId={bon.id} vehicule={bon.vehicule} sites={sitesPieces} pieceInitiale={rechercheWeb} peutAjouter={peutModifier} onFermer={() => setRechercheWeb(null)} />
+        <RecherchePieces
+          vehicule={bon.vehicule}
+          sites={sitesPieces}
+          pieceInitiale={rechercheWeb}
+          resultat={peutModifier ? {
+            explication: "elle s'ajoute aux pièces à commander du bon.",
+            rendre: (r) => <ResultatPourBon bonId={bon.id} sites={sitesPieces} {...r} />,
+          } : null}
+          onFermer={() => setRechercheWeb(null)}
+        />
       )}
       {bon.vehiculeVente && (
         <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid #C9A227", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>

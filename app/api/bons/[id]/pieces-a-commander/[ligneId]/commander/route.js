@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { ajouterACommande } from "@/lib/brouillonsCommande";
+import { ajouterACommande, pieceDepuisRecherche } from "@/lib/brouillonsCommande";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 // « 🛒 Commander » une pièce à commander d'un bon : trouve sa fiche
 // d'inventaire (par le numéro, chez ce fournisseur ou ailleurs) ou la crée
-// (quantité 0), l'ajoute au brouillon de commande de ce fournisseur, et
-// l'ajoute tout de suite à une tâche du bon en B/O : elle compte dans le
+// (quantité 0) — pieceDepuisRecherche, lib/brouillonsCommande.js —,
+// l'ajoute au brouillon de commande de ce fournisseur, et l'ajoute tout de suite à une tâche du bon en B/O : elle compte dans le
 // total du bon, et sort du stock à la réception de la commande. La suite est
 // le circuit habituel des commandes : envoyer, recevoir avec la facture
 // (stock + dépense à payer), payer dans les comptes à payer.
@@ -41,40 +41,9 @@ export async function POST(request, props) {
   const fournisseur = corps.fournisseurId ? await prisma.fournisseur.findUnique({ where: { id: corps.fournisseurId } }) : null;
   if (!fournisseur || !fournisseur.actif) return NextResponse.json({ erreur: "Choisis un fournisseur." }, { status: 400 });
 
-  // Fiche d'inventaire : le numéro chez ce fournisseur, puis le numéro de la
-  // pièce ou un de ses autres numéros, puis le numéro chez un autre fournisseur
-  const egal = { equals: numero, mode: "insensitive" };
-  const piece =
-    (await prisma.pieceFournisseur.findFirst({ where: { fournisseurId: fournisseur.id, numeroFournisseur: egal }, include: { piece: true } }))?.piece ||
-    (await prisma.piece.findFirst({ where: { OR: [{ numero: egal }, { autresNumeros: { has: numero } }] } })) ||
-    (await prisma.pieceFournisseur.findFirst({ where: { numeroFournisseur: egal }, include: { piece: true } }))?.piece ||
-    null;
-  if (piece && !piece.actif) {
-    return NextResponse.json({ erreur: `Le numéro ${numero} est celui de « ${piece.nom} » (${piece.numero}), désactivée dans l'inventaire — réactive-la d'abord.` }, { status: 409 });
-  }
-
-  let pieceCommandee = piece;
-  if (!pieceCommandee) {
-    const prixVente = Number(String(corps.prixVente ?? "").replace(",", "."));
-    if (!(prixVente > 0)) return NextResponse.json({ erreur: "Indique le prix de vente au client de cette nouvelle pièce." }, { status: 400 });
-    pieceCommandee = await prisma.piece.create({
-      data: { nom: ligne.description, numero, prix: Math.round(prixVente * 100) / 100, coutant: 0, qte: 0, fournisseurId: fournisseur.id },
-    });
-  }
-
-  // Lien avec ce fournisseur : numéro (s'il n'est pas déjà pris) et prix
-  const lien = await prisma.pieceFournisseur.findUnique({ where: { pieceId_fournisseurId: { pieceId: pieceCommandee.id, fournisseurId: fournisseur.id } } });
-  const numeroPris = await prisma.pieceFournisseur.findFirst({ where: { fournisseurId: fournisseur.id, numeroFournisseur: egal, NOT: { pieceId: pieceCommandee.id } } });
-  if (lien) {
-    await prisma.pieceFournisseur.update({
-      where: { id: lien.id },
-      data: { ...(!lien.numeroFournisseur && !numeroPris && { numeroFournisseur: numero }), ...(cout !== null && { coutant: cout }) },
-    });
-  } else {
-    await prisma.pieceFournisseur.create({
-      data: { pieceId: pieceCommandee.id, fournisseurId: fournisseur.id, numeroFournisseur: numeroPris ? null : numero, coutant: cout },
-    });
-  }
+  const trouvee = await pieceDepuisRecherche({ fournisseurId: fournisseur.id, numero, nom: ligne.description, cout, prixVente: corps.prixVente });
+  if (trouvee.erreur) return NextResponse.json({ erreur: trouvee.erreur }, { status: trouvee.status });
+  const pieceCommandee = trouvee.piece;
 
   const commande = await ajouterACommande({
     fournisseurId: fournisseur.id,
@@ -101,5 +70,5 @@ export async function POST(request, props) {
       numero, fournisseur: fournisseur.nom, qte, ...(cout !== null && { prix: cout }),
     },
   });
-  return NextResponse.json({ ...commande, pieceCreee: !piece, piece: { id: pieceCommandee.id, numero: pieceCommandee.numero, nom: pieceCommandee.nom } });
+  return NextResponse.json({ ...commande, pieceCreee: trouvee.creee, piece: { id: pieceCommandee.id, numero: pieceCommandee.numero, nom: pieceCommandee.nom } });
 }

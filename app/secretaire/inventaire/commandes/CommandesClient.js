@@ -6,6 +6,8 @@ import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import { useOrdreFiches } from "../../../components/NavigationFiches";
+import RecherchePieces from "../../../components/RecherchePieces";
+import { ResultatPourCommande } from "../../../components/ResultatsRecherchePieces";
 
 const FILTRES = [
   { code: "encours", label: "En cours", statuts: ["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"] },
@@ -16,12 +18,13 @@ const FILTRES = [
 
 const dateFr = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
-export default function CommandesClient({ commandes, fournisseurs, suggestions, fournisseurInitial }) {
+export default function CommandesClient({ commandes, fournisseurs, suggestions, inventaire, sitesPieces, fournisseurInitial }) {
   const router = useRouter();
   const [fournisseurId, setFournisseurId] = useState(fournisseurInitial || "");
   const [filtre, setFiltre] = useState("encours");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
 
   const statutsFiltre = FILTRES.find((f) => f.code === filtre).statuts;
   const affichees = commandes.filter((c) => !statutsFiltre || statutsFiltre.includes(c.statut));
@@ -64,6 +67,24 @@ export default function CommandesClient({ commandes, fournisseurs, suggestions, 
         )}
         {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "8px 0 0" }}>{erreur}</p>}
       </div>
+
+      <button
+        onClick={() => setRechercheOuverte(true)}
+        className="bouton-3d-sombre"
+        style={{ display: "block", width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 12 }}
+      >
+        🔎 Rechercher chez nos fournisseurs
+      </button>
+      {rechercheOuverte && (
+        <RecherchePieces
+          sites={sitesPieces}
+          resultat={{
+            explication: "elle s'ajoute à la commande du fournisseur choisi (fiche d'inventaire créée au besoin).",
+            rendre: (r) => <ResultatPourCommande {...r} inventaire={inventaire} fournisseurs={fournisseurs} onAjoutee={() => router.refresh()} />,
+          }}
+          onFermer={() => setRechercheOuverte(false)}
+        />
+      )}
 
       {suggestions.length > 0 && (
         <Reapprovisionnement suggestions={suggestions} fournisseurs={fournisseurs} enCours={enCours} onCommander={creer} />

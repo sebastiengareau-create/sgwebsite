@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { NB_MAX_SITES } from "@/lib/recherchePieces";
 
-// Sites des fournisseurs offerts dans « 🔎 Rechercher des pièces » d'un bon
+// Sites des fournisseurs offerts dans « 🔎 Rechercher des pièces » (bons, inventaire, commandes de pièces)
 export default function SitesPiecesSection({ sitesInitiaux }) {
   const [sites, setSites] = useState(sitesInitiaux);
   const [enCours, setEnCours] = useState(false);
@@ -41,7 +41,7 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Sites de pièces</div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-          Fournisseurs offerts dans « 🔎 Rechercher des pièces » d'un bon. Mets l'adresse de recherche du site, avec
+          Fournisseurs offerts dans « 🔎 Rechercher des pièces » des bons, de l'inventaire et des commandes de pièces. Mets l'adresse de recherche du site, avec
           entre accolades ce qu'il faut y mettre : {"{piece}"} (la pièce), {"{q}"} (la pièce et le véhicule),
           {" "}{"{annee}"}, {"{marque}"}, {"{modele}"} ou {"{niv}"} — ex. https://www.napacanada.com/fr/search?text={"{piece}"}.
           Pour la trouver : cherche « test » sur le site et colle ici l'adresse de la page de résultats — « test »
