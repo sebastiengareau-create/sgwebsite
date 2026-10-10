@@ -10,7 +10,7 @@ function texteVehicule(v) {
   return v ? [v.annee, v.marque, v.modele].filter(Boolean).join(" ") : "";
 }
 
-export default function EnvoisClient({ bons, employes, envois, smsActif, bonInitial }) {
+export default function EnvoisClient({ bons, employes, envois, bonInitial }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [bonId, setBonId] = useState(bons.some((b) => b.id === bonInitial) ? bonInitial : "");
@@ -57,7 +57,7 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
       <div className="carte">
         <div className="titre-section">📲 Envoyer un bon à des employés</div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>
-          L'employé est averti par une notification sur son téléphone (gratuit — il l'active une fois dans « Mes tâches »){smsActif ? ", et par SMS" : ""}. Sans notification{smsActif ? " ni SMS" : ""}, il reçoit un courriel.
+          L'employé est averti par une notification sur son téléphone (gratuit — il l'active une fois dans « Mes tâches »). Sans notification, il reçoit un courriel.
         </p>
 
         <label style={{ fontSize: 12, color: "var(--text-muted)" }}>1. Bon</label>
@@ -105,7 +105,6 @@ export default function EnvoisClient({ bons, employes, envois, smsActif, bonInit
                   <span style={{ fontSize: 13, fontWeight: 600, display: "block" }}>{e.nom}</span>
                   <span style={{ fontSize: 11, color: e._count.abonnementsPush > 0 ? "var(--text-muted)" : "#C9A227" }}>
                     {e._count.abonnementsPush > 0 ? "🔔 Notifications activées" : "🔕 Notifications pas activées"}
-                    {smsActif && (e.telephone ? ` · 📱 ${e.telephone}` : " · aucun cellulaire")}
                     {e.assignation ? ` · ${e.assignation}` : ""}
                   </span>
                 </span>

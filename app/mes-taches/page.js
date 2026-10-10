@@ -8,7 +8,7 @@ import { limitesJourQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../components/EnTete";
 import MesTachesClient from "./MesTachesClient";
 
-// Bons envoyés à l'employé connecté (lien du SMS). Ouvert à tout employé,
+// Bons envoyés à l'employé connecté (lien de la notification ou du courriel). Ouvert à tout employé,
 // peu importe ses sections : il n'y voit que ce qui lui est adressé.
 export default async function MesTaches() {
   const session = await obtenirSession();
