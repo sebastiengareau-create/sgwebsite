@@ -18,7 +18,7 @@ const SECTIONS = [
   { cle: "jobs-deplacement", label: "🚐 Jobs en déplacement" },
   { cle: "horodateur", label: "⏱️ Horodateur" },
   { cle: "parametres", label: "⚙️ Paramètres" },
-  { cle: "notifications", label: "🔔 Notifications — messages et qui reçoit quoi" },
+  { cle: "notifications", label: "🔔 Notifications — envoyer des messages" },
 ];
 // NIVEAU4 (accès total, toujours) reste seul non configurable — GERANT est
 // maintenant configurable comme les autres, mais part avec tout activé par

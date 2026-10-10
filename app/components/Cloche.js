@@ -121,7 +121,7 @@ export default function Cloche({ nonLuesInitial }) {
           ))}
 
           <Link href="/notifications" onClick={() => setOuvert(false)} style={{ display: "block", textAlign: "center", padding: 10, fontSize: 12, color: "var(--accent)", textDecoration: "none" }}>
-            Tout voir et régler mes notifications →
+            Tout voir →
           </Link>
         </div>
       )}
