@@ -5,6 +5,7 @@ import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
 import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
+import Cloche from "./Cloche";
 import { image } from "@/lib/client";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 
@@ -69,6 +70,12 @@ export default async function EnTete({ nom, role }) {
     }
   }
 
+  // Notifications (cloche 🔔) : tout employé — le développeur n'a pas de
+  // fiche employé, donc rien à recevoir
+  const estEmploye = session?.id && session.role !== "DEVELOPPEUR";
+  const nbNonLues = estEmploye ? await prisma.notification.count({ where: { employeId: session.id, lue: false } }) : 0;
+  if (estEmploye || estSuperAdmin) liens.push({ href: "/notifications", label: "Notifications", icone: "🔔" });
+
   if (estSuperAdmin) liens.push({ href: "/gerant/administrateur", label: "Administrateur", icone: "🛡️", accent: true });
 
   return (
@@ -86,6 +93,7 @@ export default async function EnTete({ nom, role }) {
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{labelRole}</div>
           </div>
         </div>
+        {estEmploye && <Cloche nonLuesInitial={nbNonLues} />}
       </div>
     </div>
   );

@@ -9,19 +9,19 @@ self.addEventListener("push", (event) => {
   let donnees = {};
   try { donnees = event.data ? event.data.json() : {}; } catch { donnees = { corps: event.data && event.data.text() }; }
   event.waitUntil(
-    self.registration.showNotification(donnees.titre || "Nouvelle tâche", {
+    self.registration.showNotification(donnees.titre || "Notification", {
       body: donnees.corps || "",
       icon: donnees.icone || "/icon-192.png",
       tag: donnees.tag,
       renotify: !!donnees.tag,
-      data: { url: donnees.url || "/mes-taches" },
+      data: { url: donnees.url || "/notifications" },
     })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || "/mes-taches", self.location.origin).href;
+  const url = new URL(event.notification.data?.url || "/notifications", self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((fenetres) => {
       const ouverte = fenetres.find((f) => f.url.startsWith(self.location.origin));

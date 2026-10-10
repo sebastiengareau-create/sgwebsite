@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
+import { notifier, employesDuBon } from "@/lib/notifications";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -20,6 +21,16 @@ export async function POST(request, props) {
 
   const probleme = await prisma.probleme.create({
     data: { description: description.trim(), bonId: params.id },
+  });
+  after(async () => {
+    const bon = await prisma.bonTravail.findUnique({ where: { id: params.id }, select: { numero: true, client: { select: { nom: true } } } });
+    await notifier("BON_MODIFIE", {
+      employeIds: await employesDuBon(params.id),
+      sauf: [session.id],
+      titre: `🔧 Tâche ajoutée — bon #${bon.numero}`,
+      corps: `${bon.client.nom} · ${probleme.description}`,
+      url: `/bons/${params.id}`,
+    });
   });
   return NextResponse.json(probleme);
 }

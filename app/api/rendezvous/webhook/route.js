@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { dateHeureQuebecVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
 import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
 import { cleMarque, nomMarque, modeleCanonique } from "@/lib/catalogueVehicules";
 import { resumeSymptomes } from "@/lib/symptomesWeb";
+import { notifier } from "@/lib/notifications";
+import { FUSEAU } from "@/lib/temps";
 
 export async function POST(request) {
   // Authentification par clé secrète partagée — ce n'est pas un utilisateur
@@ -29,6 +31,14 @@ export async function POST(request) {
     const rdv = await prisma.rendezVous.findUnique({ where: { referenceExterne: reference } });
     if (!rdv) return NextResponse.json({ erreur: "Rendez-vous introuvable." }, { status: 404 });
     await prisma.rendezVous.update({ where: { id: rdv.id }, data: { statut: "ANNULE" } });
+    if (rdv.statut !== "ANNULE") {
+      after(() => notifier("RENDEZVOUS_WEB", {
+        titre: "📅 Rendez-vous annulé en ligne",
+        corps: `${rdv.clientNom} · ${dateRendezVous(rdv.date)} · ${rdv.motif}`,
+        url: "/secretaire/calendrier",
+        tag: `rdv-${rdv.id}`,
+      }));
+    }
     return NextResponse.json({ ok: true });
   }
 
@@ -107,7 +117,18 @@ export async function POST(request) {
     },
   });
 
+  after(() => notifier("RENDEZVOUS_WEB", {
+    titre: "📅 Nouveau rendez-vous en ligne",
+    corps: [rdv.clientNom, dateRendezVous(rdv.date), rdv.motif, rdv.vehiculeInfo].filter(Boolean).join(" · "),
+    url: "/secretaire/calendrier",
+    tag: `rdv-${rdv.id}`,
+  }));
   return NextResponse.json({ ok: true, id: rdv.id });
+}
+
+// « jeudi 15 oct., 9 h 30 », à l'heure du Québec
+function dateRendezVous(date) {
+  return new Intl.DateTimeFormat("fr-CA", { timeZone: FUSEAU, weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
 function texteOuNull(valeur) {
