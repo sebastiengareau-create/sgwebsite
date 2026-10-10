@@ -7,12 +7,15 @@ import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
+import RecherchePieces from "../../components/RecherchePieces";
+import { ResultatPourInventaire } from "../../components/ResultatsRecherchePieces";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroContient } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
+import { prixVentePropose } from "@/lib/recherchePieces";
 
-export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial }) {
+export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, sitesPieces, alignement, peutGererCategories, peutImporter, scanInitial }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -22,6 +25,9 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
   const [codeInconnu, setCodeInconnu] = useState(null);
   const [messageScan, setMessageScan] = useState("");
   const [codeBarreNouvelle, setCodeBarreNouvelle] = useState("");
+  // Pièce trouvée chez un fournisseur (🔎) : pré-remplit « Nouvelle pièce »
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  const [trouveeWeb, setTrouveeWeb] = useState(null);
   const [modeEtiquettes, setModeEtiquettes] = useState(false);
   const [selection, setSelection] = useState(() => new Set());
   const nombreDesactivees = pieces.filter((p) => !p.actif).length;
@@ -87,7 +93,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
           code={codeInconnu}
           pieces={pieces.filter((p) => p.actif)}
           onAssociee={(id) => router.push(`/secretaire/inventaire/${id}`)}
-          onNouvelle={() => { setCodeBarreNouvelle(codeInconnu); setCodeInconnu(null); setAfficherFormulaire(true); }}
+          onNouvelle={() => { setCodeBarreNouvelle(codeInconnu); setTrouveeWeb(null); setCodeInconnu(null); setAfficherFormulaire(true); }}
           onFermer={() => setCodeInconnu(null)}
         />
       )}
@@ -102,13 +108,39 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
         </button>
         {peutImporter && <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />}
         <button
-          onClick={() => { setAfficherFormulaire((v) => !v); setCodeBarreNouvelle(""); }}
+          onClick={() => { setAfficherFormulaire((v) => !v); setCodeBarreNouvelle(""); setTrouveeWeb(null); }}
           className="bouton-3d"
           style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
         >
           {afficherFormulaire ? "Annuler" : "+ Nouvelle pièce"}
         </button>
       </div>
+
+      <button
+        onClick={() => setRechercheOuverte(true)}
+        className="bouton-3d-sombre"
+        style={{ display: "block", width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 8 }}
+      >
+        🔎 Rechercher chez nos fournisseurs
+      </button>
+      {rechercheOuverte && (
+        <RecherchePieces
+          sites={sitesPieces}
+          pieceInitiale={recherche}
+          resultat={{
+            explication: "si elle est déjà dans l'inventaire, sa fiche s'affiche ; sinon une nouvelle fiche se crée, pré-remplie.",
+            rendre: (r) => (
+              <ResultatPourInventaire
+                {...r}
+                inventaire={pieces}
+                fournisseurs={fournisseurs}
+                onCreerFiche={(fiche) => { setTrouveeWeb(fiche); setCodeBarreNouvelle(""); setAfficherFormulaire(true); setRechercheOuverte(false); }}
+              />
+            ),
+          }}
+          onFermer={() => setRechercheOuverte(false)}
+        />
+      )}
 
       <Link
         href="/secretaire/inventaire/commandes"
@@ -186,7 +218,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       )}
 
       {afficherFormulaire && (
-        <FormulaireCreation key={codeBarreNouvelle} codeBarreInitial={codeBarreNouvelle} categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
+        <FormulaireCreation key={`${codeBarreNouvelle}|${trouveeWeb?.numero ?? ""}|${trouveeWeb?.nom ?? ""}`} codeBarreInitial={codeBarreNouvelle} initial={trouveeWeb} categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); setTrouveeWeb(null); router.refresh(); }} />
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
@@ -365,23 +397,25 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   );
 }
 
-function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial = "" }) {
-  const [nom, setNom] = useState("");
-  const [numero, setNumero] = useState("");
+// initial : pièce trouvée chez un fournisseur ({ nom, numero, coutant,
+// fournisseurId }), qui pré-remplit le formulaire
+function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial = "", initial = null }) {
+  const marge = CLIENT.margePrixVente;
+  const [nom, setNom] = useState(initial?.nom || "");
+  const [numero, setNumero] = useState(initial?.numero || "");
   const [codeBarre, setCodeBarre] = useState(codeBarreInitial);
   const [scannerOuvert, setScannerOuvert] = useState(false);
   const [qte, setQte] = useState("0");
   const [qteMin, setQteMin] = useState("0");
   const [qteMax, setQteMax] = useState("");
   const [emplacement, setEmplacement] = useState("");
-  const [fournisseurId, setFournisseurId] = useState("");
-  const [prix, setPrix] = useState("");
-  const [coutant, setCoutant] = useState("");
+  const [fournisseurId, setFournisseurId] = useState(initial?.fournisseurId || "");
+  const [prix, setPrix] = useState(() => prixVentePropose(initial?.coutant, marge));
+  const [coutant, setCoutant] = useState(initial?.coutant || "");
   // Prix de vente saisi à la main : la proposition calculée du coûtant ne
   // l'écrase plus (vider le champ la rétablit)
   const [prixManuel, setPrixManuel] = useState(false);
   const [categorie, setCategorie] = useState(categories[0]?.code || "PIECE");
-  const marge = CLIENT.margePrixVente;
 
   function changerCoutant(valeur) {
     setCoutant(valeur);

@@ -2,6 +2,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import { quantitesEnCommande } from "@/lib/commandesFournisseurs";
+import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import EnTete from "../../../../components/EnTete";
 import CommandeDetailClient from "./CommandeDetailClient";
 import { voisinsFiche } from "@/lib/navigationFiches";
@@ -29,7 +30,7 @@ export default async function DetailCommande(props) {
       orderBy: { nom: "asc" },
     }),
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
-    prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux"] } } }),
+    prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux", CLE_SITES_PIECES] } } }),
     quantitesEnCommande(prisma, undefined, { avecBrouillons: true }),
     aAccesSection(session, "fournisseurs"),
   ]);
@@ -50,6 +51,7 @@ export default async function DetailCommande(props) {
         tpsTaux={Number(dict.tps_taux || 5)}
         tvqTaux={Number(dict.tvq_taux || 9.975)}
         peutVoirDepenses={peutVoirDepenses}
+        sitesPieces={lireSites(dict[CLE_SITES_PIECES])}
       />
       <NavigationFiches cle="commandes" idCourant={commande.id} base="/secretaire/inventaire/commandes" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), commande.id)} />
     </div>

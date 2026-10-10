@@ -4,15 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ScannerCodeBarres from "../../../../components/ScannerCodeBarres";
+import RecherchePieces from "../../../../components/RecherchePieces";
+import { ResultatPourCommande } from "../../../../components/ResultatsRecherchePieces";
 import { STATUTS_COMMANDE, resteARecevoir, quantiteSuggeree } from "@/lib/commandesFournisseurs";
 import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
+import { fournisseurPropose } from "@/lib/recherchePieces";
 
 const dateFr = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 const aujourdhui = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 const arrondi = (n) => Math.round(n * 100) / 100;
 const fmt = (n) => `${n.toFixed(2)} $`;
 
-export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses }) {
+export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces }) {
   const router = useRouter();
   const statut = STATUTS_COMMANDE[commande.statut] || { label: commande.statut, couleur: "var(--text)" };
   const dejaRecue = commande.lignes.some((l) => l.qteRecue > 0);
@@ -26,8 +29,11 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const [modeReception, setModeReception] = useState(false);
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
+  // Fiches créées par la recherche de pièces, avant le rafraîchissement
+  const [piecesAjoutees, setPiecesAjoutees] = useState([]);
 
-  const pieceParId = new Map(pieces.map((p) => [p.id, p]));
+  const pieceParId = new Map([...pieces, ...piecesAjoutees].map((p) => [p.id, p]));
   commande.lignes.forEach((l) => { if (!pieceParId.has(l.pieceId)) pieceParId.set(l.pieceId, { ...l.piece, fournisseurs: [] }); });
   const listeFournisseurs = fournisseurs.some((f) => f.id === commande.fournisseurId) ? fournisseurs : [commande.fournisseur, ...fournisseurs];
   const total = lignes.reduce((s, l) => s + (parseInt(l.qteCommandee) || 0) * (Number(l.coutUnitaire) || 0), 0);
@@ -102,6 +108,23 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
     router.push("/secretaire/inventaire/commandes");
   }
 
+  // La recherche ajoute la pièce sur le serveur : les changements en cours
+  // s'enregistrent d'abord.
+  async function ouvrirRecherche() {
+    if (modifie && !(await enregistrer())) return;
+    setRechercheOuverte(true);
+  }
+
+  // Ligne ajoutée par la recherche (déjà enregistrée) : reportée ici sans
+  // marquer la commande modifiée
+  function ligneAjoutee({ piece, ligne }) {
+    if (!pieces.some((p) => p.id === piece.id)) setPiecesAjoutees((ps) => [...ps.filter((p) => p.id !== piece.id), piece]);
+    setLignes((ls) => ls.some((l) => l.pieceId === ligne.pieceId)
+      ? ls.map((l) => (l.pieceId === ligne.pieceId ? versLigneLocale(ligne) : l))
+      : [...ls, versLigneLocale(ligne)]);
+    router.refresh();
+  }
+
   async function ouvrirPdf() {
     if (modifie && !(await enregistrer())) return;
     window.open(`/api/commandes-fournisseurs/${commande.id}/pdf`, "_blank");
@@ -166,6 +189,24 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
             {modifiable && (
               <>
                 <AjoutPiece pieces={pieces} onAjouter={(p) => ajouterPiece(p)} />
+                <button
+                  onClick={ouvrirRecherche}
+                  disabled={enCours}
+                  className="bouton-3d-sombre"
+                  style={{ width: "100%", marginTop: 8, padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+                >
+                  🔎 Rechercher chez nos fournisseurs
+                </button>
+                {rechercheOuverte && (
+                  <RecherchePieces
+                    sites={triesParFournisseur(sitesPieces, commande.fournisseur.nom)}
+                    resultat={{
+                      explication: `elle s'ajoute à cette commande chez ${commande.fournisseur.nom} (fiche d'inventaire créée au besoin).`,
+                      rendre: (r) => <ResultatPourCommande {...r} inventaire={[...pieces, ...piecesAjoutees]} fournisseurs={fournisseurs} commande={commande} onAjoutee={ligneAjoutee} />,
+                    }}
+                    onFermer={() => setRechercheOuverte(false)}
+                  />
+                )}
                 {aReapprovisionner.length > 0 && (
                   <button
                     onClick={() => aReapprovisionner.forEach((s) => ajouterPiece(s.piece, s.qte))}
@@ -250,6 +291,12 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
       )}
     </div>
   );
+}
+
+// Le site du fournisseur de la commande en premier (même nom, à peu près)
+function triesParFournisseur(sites, nom) {
+  const proche = (s) => fournisseurPropose(s.nom, [{ id: 1, nom }]) ? 0 : 1;
+  return [...sites].sort((a, b) => proche(a) - proche(b));
 }
 
 // Une ligne : pièce, numéro chez le fournisseur, quantité, prix — et les

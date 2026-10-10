@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
+import { pieceExistante, fournisseurPropose, prixVentePropose } from "@/lib/recherchePieces";
 
 // Pièces trouvées chez un fournisseur et notées à commander pour ce bon
 // (collées dans « 🔎 Rechercher des pièces »). « 🛒 Commander » les met dans
@@ -96,24 +97,6 @@ export default function PiecesACommander({ bon, lignes, inventaire, fournisseurs
   );
 }
 
-// Fournisseur proposé : celui dont le nom ressemble au fournisseur noté
-// (« NAPA Canada » → « NAPA Pièces d'auto »), sinon aucun
-function fournisseurPropose(nom, fournisseurs) {
-  const mots = String(nom || "").toLowerCase().split(/[^a-z0-9àâçéèêëîïôûùüÿ]+/).filter((m) => m.length >= 3);
-  return fournisseurs.find((f) => mots.some((m) => f.nom.toLowerCase().includes(m)))?.id || "";
-}
-
-// Fiche d'inventaire qui porte déjà ce numéro (même logique que le serveur,
-// sur les pièces actives) — sinon une nouvelle fiche sera créée
-function pieceExistante(numero, fournisseurId, inventaire) {
-  const n = String(numero || "").trim().toLowerCase();
-  if (!n) return null;
-  return inventaire.find((p) => p.fournisseurs?.some((f) => f.fournisseurId === fournisseurId && f.numeroFournisseur?.toLowerCase() === n))
-    || inventaire.find((p) => p.numero.toLowerCase() === n || p.autresNumeros?.includes(numero.trim()))
-    || inventaire.find((p) => p.fournisseurs?.some((f) => f.numeroFournisseur?.toLowerCase() === n))
-    || null;
-}
-
 function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs, onFermer }) {
   const router = useRouter();
   const marge = CLIENT.margePrixVente;
@@ -122,9 +105,7 @@ function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs,
   const [qte, setQte] = useState(String(ligne.qte || 1));
   const [problemeId, setProblemeId] = useState(problemes[0]?.id || "");
   const [cout, setCout] = useState(ligne.prix != null ? ligne.prix.toFixed(2) : "");
-  const [prixVente, setPrixVente] = useState(
-    marge != null && ligne.prix != null ? (ligne.prix / (1 - marge / 100)).toFixed(2) : ""
-  );
+  const [prixVente, setPrixVente] = useState(prixVentePropose(ligne.prix, marge));
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const existante = pieceExistante(numero, fournisseurId, inventaire);
