@@ -24,13 +24,13 @@ export default function NotificationsClient({ estEmploye, notificationsInitiales
         <>
           <ActivationNotifications clePublique={clePublique} />
           <Historique notificationsInitiales={notificationsInitiales} />
-          {gestion && <Preferences coupeesInitiales={coupeesInitiales} />}
+          {gestion?.peutRegler && <Preferences coupeesInitiales={coupeesInitiales} />}
         </>
       )}
       {gestion && (
         <>
-          <EnvoiMessage gestion={gestion} />
-          <QuiRecoitQuoi gestion={gestion} />
+          {gestion.peutEnvoyer && <EnvoiMessage gestion={gestion} />}
+          {gestion.peutRegler && <QuiRecoitQuoi gestion={gestion} />}
         </>
       )}
     </div>
@@ -125,7 +125,7 @@ function Preferences({ coupeesInitiales }) {
         ))}
       </div>
       <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "10px 0 0" }}>
-        Tu reçois un type seulement s'il te concerne ou si ton rôle est choisi par le gérant.
+        Tu reçois un type seulement s'il te concerne ou si ton rôle est coché dans « Qui reçoit quoi ».
       </p>
       {erreur && <p style={{ fontSize: 12, color: "var(--danger)", margin: "8px 0 0" }}>{erreur}</p>}
     </div>
@@ -235,7 +235,7 @@ function QuiRecoitQuoi({ gestion }) {
     <div className="carte" style={{ marginBottom: 12 }}>
       <div className="titre-section">⚙️ Qui reçoit quoi</div>
       <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Coche les rôles qui reçoivent chaque type d'avis. Chaque employé peut ensuite couper ceux qu'il ne veut pas.
+        Coche les rôles qui reçoivent chaque type d'avis. Les employés n'ont aucun choix : ils reçoivent ce qui est coché pour leur rôle, plus ce qui les concerne.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {TYPES.map(([type, t]) => (
