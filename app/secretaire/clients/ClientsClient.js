@@ -7,6 +7,7 @@ import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import SelectProvince from "../../components/SelectProvince";
+import { useOrdreFiches } from "../../components/NavigationFiches";
 import { libelleVehicule } from "@/lib/vehicules";
 import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
 
@@ -29,6 +30,7 @@ export default function ClientsClient({ clients, peutImporter }) {
     ];
     return champs.some((champ) => champ && champ.toLowerCase().includes(q));
   });
+  useOrdreFiches("clients", clientsFiltres.map((c) => c.id));
 
   return (
     <div className="conteneur-page">

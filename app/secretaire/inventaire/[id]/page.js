@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import PieceDetailClient from "./PieceDetailClient";
+import { voisinsFiche } from "@/lib/navigationFiches";
+import NavigationFiches from "../../../components/NavigationFiches";
 
 export default async function DetailPiece(props) {
   const params = await props.params;
@@ -36,10 +38,15 @@ export default async function DetailPiece(props) {
     orderBy: { nom: "asc" },
   });
 
+  // Ordre par défaut de la liste : par nom, les désactivées cachées
+  // (sauf si on est sur l'une d'elles)
+  const ordre = [piece, ...autresPieces].filter((p) => p.actif || !piece.actif).sort((a, b) => a.nom.localeCompare(b.nom)).map((p) => p.id);
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <PieceDetailClient piece={piece} categories={categories} fournisseurs={fournisseurs} autresPieces={autresPieces} />
+      <NavigationFiches cle="pieces" idCourant={piece.id} base="/secretaire/inventaire" voisinsParDefaut={voisinsFiche(ordre, piece.id)} />
     </div>
   );
 }

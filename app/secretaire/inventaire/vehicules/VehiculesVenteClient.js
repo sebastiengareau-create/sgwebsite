@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
 import { libelleVehicule } from "@/lib/vehicules";
+import { useOrdreFiches } from "../../../components/NavigationFiches";
 
 const FILTRES = [
   { code: "EN_STOCK", label: "En stock" },
@@ -27,6 +28,7 @@ export default function VehiculesVenteClient({ vehicules }) {
     if (!q) return true;
     return [v.numero, libelleVehicule(v.vehicule), v.vehicule.niv, v.vente?.client?.nom].some((t) => t?.toLowerCase().includes(q));
   });
+  useOrdreFiches("vehicules-vente", affiches.map((v) => v.id));
   const enStock = vehicules.filter((v) => v.statut === "EN_STOCK");
   const valeurStock = enStock.reduce((s, v) => s + v.coutant, 0);
 

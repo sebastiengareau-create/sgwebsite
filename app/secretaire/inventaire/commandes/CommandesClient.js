@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
+import { useOrdreFiches } from "../../../components/NavigationFiches";
 
 const FILTRES = [
   { code: "encours", label: "En cours", statuts: ["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"] },
@@ -24,6 +25,7 @@ export default function CommandesClient({ commandes, fournisseurs, suggestions, 
 
   const statutsFiltre = FILTRES.find((f) => f.code === filtre).statuts;
   const affichees = commandes.filter((c) => !statutsFiltre || statutsFiltre.includes(c.statut));
+  useOrdreFiches("commandes", affichees.map((c) => c.id));
 
   async function creer(fournisseur, lignes = []) {
     setErreur("");

@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import SelectProvince from "../../components/SelectProvince";
+import { useOrdreFiches } from "../../components/NavigationFiches";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 
 export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
@@ -20,6 +21,7 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
     .some((champ) => champ && champ.toLowerCase().includes(terme)));
   const actifs = filtres.filter((e) => e.actif);
   const inactifs = filtres.filter((e) => !e.actif);
+  useOrdreFiches("employes", [...actifs, ...(voirInactifs ? inactifs : [])].map((e) => e.id));
 
   return (
     <div className="conteneur-page">
