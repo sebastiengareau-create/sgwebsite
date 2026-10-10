@@ -34,7 +34,7 @@ export default async function EnTete({ nom, role }) {
   const session = await obtenirSession();
 
   const parametres = await prisma.parametre.findMany({
-    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement"] } },
+    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications"] } },
   });
   const dictModules = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
@@ -70,11 +70,12 @@ export default async function EnTete({ nom, role }) {
     }
   }
 
-  // Notifications (cloche 🔔) : tout employé — le développeur n'a pas de
-  // fiche employé, donc rien à recevoir
-  const estEmploye = session?.id && session.role !== "DEVELOPPEUR";
+  // Notifications (cloche 🔔) : tout employé, si le module est actif — le
+  // développeur n'a pas de fiche employé, donc rien à recevoir
+  const notificationsActives = dictModules.module_notifications !== "inactif";
+  const estEmploye = notificationsActives && session?.id && session.role !== "DEVELOPPEUR";
   const nbNonLues = estEmploye ? await prisma.notification.count({ where: { employeId: session.id, lue: false } }) : 0;
-  if (estEmploye || estSuperAdmin) liens.push({ href: "/notifications", label: "Notifications", icone: "🔔" });
+  if (estEmploye || (notificationsActives && await aAccesSection(session, "notifications"))) liens.push({ href: "/notifications", label: "Notifications", icone: "🔔" });
 
   if (estSuperAdmin) liens.push({ href: "/gerant/administrateur", label: "Administrateur", icone: "🛡️", accent: true });
 

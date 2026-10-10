@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
-import { notifier } from "@/lib/notifications";
+import { obtenirSession, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
+import { notifier, notificationsActives } from "@/lib/notifications";
 
-// Message envoyé à la main par un gérant : à toute l'équipe, à des rôles ou
+// Message envoyé à la main (section « Notifications », gérant par défaut) : à toute l'équipe, à des rôles ou
 // à des employés précis — { message, tous, roles: [...], employeIds: [...] }
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!estGerantOuDev(session)) return NextResponse.json({ erreur: "Réservé au gérant." }, { status: 403 });
+  if (!(await aAccesSection(session, "notifications"))) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  if (!(await notificationsActives())) return NextResponse.json({ erreur: "Le module Notifications est désactivé." }, { status: 403 });
 
   const { message, tous, roles = [], employeIds = [] } = await request.json().catch(() => ({}));
   const texte = String(message || "").trim().slice(0, 500);
