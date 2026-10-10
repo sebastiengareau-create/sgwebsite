@@ -19,12 +19,12 @@ async function envoyer(url, methode, corps) {
 export default function NotificationsClient({ estEmploye, notificationsInitiales, coupeesInitiales, clePublique, gestion }) {
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🔔" titre="Notifications" sousTitre="Tes avis récents, ce que tu veux recevoir, et sur ton téléphone même l'app fermée." />
+      <BandeauSection icone="🔔" titre="Notifications" sousTitre="Tes avis récents, aussi sur ton téléphone même l'app fermée." />
       {estEmploye && (
         <>
           <ActivationNotifications clePublique={clePublique} />
           <Historique notificationsInitiales={notificationsInitiales} />
-          <Preferences coupeesInitiales={coupeesInitiales} />
+          {gestion && <Preferences coupeesInitiales={coupeesInitiales} />}
         </>
       )}
       {gestion && (

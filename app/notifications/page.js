@@ -5,10 +5,10 @@ import { clePubliqueVapid, tousLesRolesParType, notificationsActives } from "@/l
 import EnTete from "../components/EnTete";
 import NotificationsClient from "./NotificationsClient";
 
-// Notifications : historique, activation sur le téléphone et préférences de
-// l'employé connecté ; avec la section « Notifications » (Administrateur →
-// Rôles et accès, gérant par défaut), aussi l'envoi d'un message et le choix
-// de qui reçoit quoi (voir lib/typesNotifications.js)
+// Notifications : historique et activation sur le téléphone de l'employé
+// connecté ; avec la section « Notifications » (Administrateur → Rôles et
+// accès, gérant par défaut), aussi ses préférences, l'envoi d'un message et
+// le choix de qui reçoit quoi (voir lib/typesNotifications.js)
 export default async function Notifications() {
   const session = await obtenirSession();
   if (!session) redirect("/login");
