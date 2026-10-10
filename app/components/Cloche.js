@@ -13,8 +13,17 @@ export function depuis(date) {
   return new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short" }).format(new Date(date));
 }
 
+// Pastille sur l'icône de l'app installée (si le navigateur le permet)
+function majPastille(nombre) {
+  try {
+    if (!("setAppBadge" in navigator)) return;
+    (nombre > 0 ? navigator.setAppBadge(nombre) : navigator.clearAppBadge()).catch(() => {});
+  } catch {}
+}
+
 // Cloche 🔔 de l'en-tête : nombre de notifications non lues et les
-// dernières reçues (voir lib/notifications.js). Revérifiée chaque minute.
+// dernières reçues (voir lib/notifications.js). Revérifiée chaque minute,
+// au retour dans l'app, et dès qu'une notification arrive.
 export default function Cloche({ nonLuesInitial }) {
   const [nonLues, setNonLues] = useState(nonLuesInitial);
   const [notifications, setNotifications] = useState(null);
@@ -30,9 +39,28 @@ export default function Cloche({ nonLuesInitial }) {
     setNonLues(data.nonLues);
   }, []);
 
+  // Le serveur renvoie un nouveau nombre à chaque affichage de page
+  useEffect(() => { setNonLues(nonLuesInitial); }, [nonLuesInitial]);
+
+  useEffect(() => { majPastille(nonLues); }, [nonLues]);
+
   useEffect(() => {
     const minuterie = setInterval(() => { if (!document.hidden) charger(); }, 60000);
-    return () => clearInterval(minuterie);
+    const auRetour = () => { if (!document.hidden) charger(); };
+    const aLArrivee = (e) => {
+      if (e.data?.type !== "notification") return;
+      if (typeof e.data.nonLues === "number") setNonLues(e.data.nonLues);
+      charger();
+    };
+    document.addEventListener("visibilitychange", auRetour);
+    window.addEventListener("focus", auRetour);
+    navigator.serviceWorker?.addEventListener("message", aLArrivee);
+    return () => {
+      clearInterval(minuterie);
+      document.removeEventListener("visibilitychange", auRetour);
+      window.removeEventListener("focus", auRetour);
+      navigator.serviceWorker?.removeEventListener("message", aLArrivee);
+    };
   }, [charger]);
 
   useEffect(() => {
