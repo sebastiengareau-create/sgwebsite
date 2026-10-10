@@ -55,7 +55,10 @@ export default function useBulleDeplacable({ cle, defaut, basMin = () => 20, onD
   const aDroite = position.cote === "droite";
   const placement = glissement
     ? { left: glissement.x - 28, top: glissement.y - 28 }
-    : { bottom: position.bas, [aDroite ? "right" : "left"]: 16 };
+    // À gauche, la marge tient compte de la barre latérale (ordinateur,
+    // tablette à l'horizontale) : la bulle ne la recouvre jamais, sinon un
+    // toucher à côté tombe sur « Déconnexion » (voir globals.css)
+    : { bottom: position.bas, ...(aDroite ? { right: 16 } : { left: "var(--marge-bulle-gauche, 16px)" }) };
 
   return {
     position,

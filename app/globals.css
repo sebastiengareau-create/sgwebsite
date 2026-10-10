@@ -208,7 +208,7 @@ a { color: inherit; }
     overflow-y: auto;
     z-index: 30;
   }
-  body:has(.barre-laterale) { padding-left: 232px; }
+  body:has(.barre-laterale) { padding-left: 232px; --marge-bulle-gauche: 248px; }
   .cacher-sur-bureau { display: none !important; }
 }
 
