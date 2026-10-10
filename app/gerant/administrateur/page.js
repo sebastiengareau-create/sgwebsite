@@ -16,7 +16,7 @@ export default async function Administrateur() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
+  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
   return (
@@ -27,6 +27,7 @@ export default async function Administrateur() {
           { id: "calendrier", label: "Calendrier", description: "Rendez-vous, réservations en ligne", actif: dict.module_calendrier !== "inactif" },
           { id: "comptabilite", label: "Comptabilité", description: "Plan comptable, écritures automatiques, journal général", actif: dict.module_comptabilite !== "inactif" },
           { id: "paie", label: "Paie", description: "Estimation de paie — RRQ, RQAP, AE, impôts (à valider avec WebRAS)", actif: dict.module_paie === "actif" },
+          { id: "notifications", label: "Notifications", description: "Cloche 🔔, avis automatiques (rendez-vous, pièces reçues, stock bas…) et messages aux employés", actif: dict.module_notifications !== "inactif" },
           { id: "jobs_deplacement", label: "Jobs en déplacement", description: "Envoi de bons à des employés précis, avis par notification, suivi GPS des déplacements", actif: dict.module_jobs_deplacement === "actif" },
         ]}
         verrouilleInit={dict.compte_verrouille === "actif"}

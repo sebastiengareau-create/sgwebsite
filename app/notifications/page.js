@@ -1,18 +1,20 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, estGerantOuDev, nomAffichageRole, ROLES_VALIDES } from "@/lib/auth";
+import { obtenirSession, aAccesSection, nomAffichageRole, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { clePubliqueVapid, tousLesRolesParType } from "@/lib/notifications";
+import { clePubliqueVapid, tousLesRolesParType, notificationsActives } from "@/lib/notifications";
 import EnTete from "../components/EnTete";
 import NotificationsClient from "./NotificationsClient";
 
 // Notifications : historique, activation sur le téléphone et préférences de
-// l'employé connecté ; pour un gérant, aussi l'envoi d'un message et le
-// choix de qui reçoit quoi (voir lib/typesNotifications.js)
+// l'employé connecté ; avec la section « Notifications » (Administrateur →
+// Rôles et accès, gérant par défaut), aussi l'envoi d'un message et le choix
+// de qui reçoit quoi (voir lib/typesNotifications.js)
 export default async function Notifications() {
   const session = await obtenirSession();
   if (!session) redirect("/login");
+  if (!(await notificationsActives())) redirect("/");
   const estEmploye = session.role !== "DEVELOPPEUR";
-  const gerant = estGerantOuDev(session);
+  const gerant = await aAccesSection(session, "notifications");
 
   const [notifications, moi] = estEmploye
     ? await Promise.all([
