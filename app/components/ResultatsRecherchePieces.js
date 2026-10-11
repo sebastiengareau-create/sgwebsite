@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { CLIENT } from "@/lib/client";
-import { pieceExistante, fournisseurPropose, prixVentePropose } from "@/lib/recherchePieces";
+import { pieceExistante, prixVentePropose } from "@/lib/recherchePieces";
 
 // Ce qu'on fait d'un résultat collé dans « 🔎 Rechercher des pièces »
-// (RecherchePieces.js), selon l'endroit. Chacun reçoit lu ({ description,
+// (RecherchePieces.js), selon l'endroit : bon de travail ou commande de
+// pièces en brouillon. Chacun reçoit lu ({ description,
 // numero, prix, lien }, à corriger au besoin), site (nom du dernier
 // fournisseur ouvert) et terminer(message — texte ou éléments).
 
@@ -68,50 +68,21 @@ export function ResultatPourBon({ bonId, sites, lu, site, terminer }) {
   );
 }
 
-// Inventaire : une pièce qui y est déjà (même numéro) s'ouvre ; sinon le
-// formulaire « Nouvelle pièce » s'ouvre, pré-rempli.
-export function ResultatPourInventaire({ lu, site, inventaire, fournisseurs, onCreerFiche }) {
-  const existante = pieceExistante(lu.numero, fournisseurPropose(site, fournisseurs), inventaire);
-  if (existante) {
-    return (
-      <div style={{ fontSize: 12.5, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-        Déjà dans l'inventaire : <strong>{existante.nom}</strong> <span style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>({existante.numero})</span> — {existante.qte} en stock.{" "}
-        <Link href={`/secretaire/inventaire/${existante.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>Ouvrir la fiche →</Link>
-      </div>
-    );
-  }
-  return (
-    <div style={{ fontSize: 12.5 }}>
-      <Apercu lu={lu} site={site} />
-      <button
-        type="button"
-        onClick={() => onCreerFiche({ nom: lu.description, numero: lu.numero, coutant: lu.prix != null ? lu.prix.toFixed(2) : "", fournisseurId: fournisseurPropose(site, fournisseurs) })}
-        className="bouton-3d"
-        style={{ marginTop: 8, padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}
-      >
-        + Créer la fiche d'inventaire
-      </button>
-    </div>
-  );
-}
-
-// Commandes de pièces : la pièce s'ajoute à une commande — même logique que
-// « 🛒 Commander » d'un bon (fiche trouvée par le numéro, sinon créée).
-// commande : la commande ouverte (fournisseur fixé) ; sinon le fournisseur
-// se choisit et la pièce va dans son brouillon (ou une nouvelle commande).
-export function ResultatPourCommande({ lu, site, inventaire, fournisseurs, commande = null, onAjoutee, terminer }) {
+// Commande de pièces en brouillon : la pièce s'ajoute à cette commande —
+// même logique que « 🛒 Commander » d'un bon (fiche trouvée par le numéro,
+// sinon créée).
+export function ResultatPourCommande({ lu, inventaire, commande, onAjoutee, terminer }) {
   const marge = CLIENT.margePrixVente;
   const cout = lu.prix != null ? lu.prix.toFixed(2) : "";
   const [ligne, setLigne] = useState({
     description: lu.description, numero: lu.numero, qte: "1", coutUnitaire: cout,
     prixVente: prixVentePropose(cout, marge),
-    fournisseurId: commande ? commande.fournisseurId : fournisseurPropose(site, fournisseurs),
   });
   const [prixVenteManuel, setPrixVenteManuel] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const maj = (champ) => (e) => setLigne({ ...ligne, [champ]: e.target.value });
-  const existante = pieceExistante(ligne.numero, ligne.fournisseurId, inventaire);
+  const existante = pieceExistante(ligne.numero, commande.fournisseurId, inventaire);
 
   function changerCout(e) {
     const valeur = e.target.value;
@@ -126,22 +97,13 @@ export function ResultatPourCommande({ lu, site, inventaire, fournisseurs, comma
     const res = await fetch("/api/commandes-fournisseurs/recherche", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...ligne, qte: Number(ligne.qte), prixVente: existante ? undefined : ligne.prixVente, commandeId: commande?.id }),
+      body: JSON.stringify({ ...ligne, qte: Number(ligne.qte), prixVente: existante ? undefined : ligne.prixVente, commandeId: commande.id }),
     }).catch(() => null);
     const data = (await res?.json().catch(() => ({}))) || {};
     setEnCours(false);
     if (!res?.ok) return setErreur(data.erreur || "Erreur de connexion.");
-    const texte = `« ${data.piece.nom} » ajoutée à la commande ${data.numero}${data.pieceCreee ? " (nouvelle fiche d'inventaire)" : ""} ✓`;
-    terminer(commande ? texte : <>{texte} <Link href={`/secretaire/inventaire/commandes/${data.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>Ouvrir la commande →</Link></>);
+    terminer(`« ${data.piece.nom} » ajoutée à la commande ${data.numero}${data.pieceCreee ? " (nouvelle fiche d'inventaire)" : ""} ✓`);
     onAjoutee(data);
-  }
-
-  if (!commande && fournisseurs.length === 0) {
-    return (
-      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-        Aucun fournisseur au dossier — ajoute-le d'abord dans <Link href="/gerant/fournisseurs" style={{ color: "var(--accent)" }}>Fournisseurs</Link>.
-      </p>
-    );
   }
 
   return (
@@ -149,14 +111,6 @@ export function ResultatPourCommande({ lu, site, inventaire, fournisseurs, comma
       <Champ libelle="Description" plein>
         <input value={ligne.description} onChange={maj("description")} maxLength={150} className="champ" required />
       </Champ>
-      {!commande && (
-        <Champ libelle="Fournisseur" plein>
-          <select value={ligne.fournisseurId} onChange={maj("fournisseurId")} required className="champ">
-            <option value="">— Choisir —</option>
-            {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-          </select>
-        </Champ>
-      )}
       <Champ libelle="N° de pièce chez le fournisseur">
         <input value={ligne.numero} onChange={maj("numero")} maxLength={60} required className="champ" />
       </Champ>
@@ -177,26 +131,11 @@ export function ResultatPourCommande({ lu, site, inventaire, fournisseurs, comma
       )}
       <p style={{ gridColumn: "1 / -1", fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
         {!existante && <>Nouvelle pièce : une fiche d'inventaire sera créée (« {ligne.description || "…"} », n° {ligne.numero || "…"}, quantité 0). </>}
-        {commande
-          ? <>Elle s'ajoute à cette commande ; le stock entre à la réception.</>
-          : <>Elle s'ajoute au brouillon de commande de ce fournisseur (ou à une nouvelle commande) ; le stock entre à la réception.</>}
+        Elle s'ajoute à cette commande ; le stock entre à la réception.
       </p>
-      <Bouton enCours={enCours} libelle={commande ? "🛒 Ajouter à cette commande" : "🛒 Ajouter à la commande du fournisseur"} />
+      <Bouton enCours={enCours} libelle="🛒 Ajouter à cette commande" />
       {erreur && <Erreur texte={erreur} />}
     </form>
-  );
-}
-
-function Apercu({ lu, site }) {
-  return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-      <div style={{ fontWeight: 600 }}>{lu.description || "(description non trouvée)"}</div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-        {site && <span>{site}</span>}
-        <span style={{ fontFamily: "monospace" }}>N° {lu.numero || "non trouvé"}</span>
-        {lu.prix != null && <span>{lu.prix.toFixed(2)} $</span>}
-      </div>
-    </div>
   );
 }
 

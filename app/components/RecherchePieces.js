@@ -9,8 +9,8 @@ import { lienRecherche, lienRechercheTous, texteVehicule, lireResultatColle } fr
 // fournisseur qui ouvre son site sur la pièce ou le véhicule, et une
 // recherche Google chez tous à la fois. Le résultat voulu, copié sur le site,
 // se colle ici ; ce qu'on en fait dépend de l'endroit (resultat.rendre, voir
-// ResultatsRecherchePieces.js) : pièce à commander d'un bon, nouvelle fiche
-// d'inventaire, ligne de commande. Voir lib/recherchePieces.js.
+// ResultatsRecherchePieces.js) : pièce à commander d'un bon, ligne d'une
+// commande de pièces en brouillon. Voir lib/recherchePieces.js.
 //
 // resultat : { explication, rendre({ lu, site, terminer }) } — lu : ce qui a
 // été lu du texte collé ({ description, numero, prix, lien }) ; site : nom
