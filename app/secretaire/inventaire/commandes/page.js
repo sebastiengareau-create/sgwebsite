@@ -2,7 +2,6 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { quantitesEnCommande, quantiteSuggeree } from "@/lib/commandesFournisseurs";
-import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import EnTete from "../../../components/EnTete";
 import CommandesClient from "./CommandesClient";
 
@@ -11,7 +10,7 @@ export default async function CommandesFournisseurs(props) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "inventaire"))) redirect("/mecanicien");
 
-  const [commandes, fournisseurs, pieces, enCommande, sitesPieces] = await Promise.all([
+  const [commandes, fournisseurs, pieces, enCommande] = await Promise.all([
     prisma.commandeFournisseur.findMany({
       include: { fournisseur: true, lignes: { select: { qteCommandee: true, qteRecue: true, coutUnitaire: true } } },
       orderBy: { creeLe: "desc" },
@@ -22,7 +21,6 @@ export default async function CommandesFournisseurs(props) {
     // Les brouillons comptent aussi : une pièce déjà mise dans une commande
     // pas encore envoyée n'est plus à proposer.
     quantitesEnCommande(prisma, undefined, { avecBrouillons: true }),
-    prisma.parametre.findUnique({ where: { cle: CLE_SITES_PIECES } }),
   ]);
 
   // Pièces à réapprovisionner (stock + déjà commandé ≤ seuil minimum),
@@ -46,8 +44,6 @@ export default async function CommandesFournisseurs(props) {
         commandes={commandes}
         fournisseurs={fournisseurs}
         suggestions={suggestions}
-        inventaire={pieces}
-        sitesPieces={lireSites(sitesPieces?.valeur)}
         fournisseurInitial={typeof searchParams?.fournisseur === "string" ? searchParams.fournisseur : ""}
       />
     </div>

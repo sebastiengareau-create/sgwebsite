@@ -189,20 +189,20 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
             {modifiable && (
               <>
                 <AjoutPiece pieces={pieces} onAjouter={(p) => ajouterPiece(p)} />
-                <button
+                {commande.statut === "BROUILLON" && <button
                   onClick={ouvrirRecherche}
                   disabled={enCours}
                   className="bouton-3d-sombre"
                   style={{ width: "100%", marginTop: 8, padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}
                 >
                   🔎 Rechercher chez nos fournisseurs
-                </button>
+                </button>}
                 {rechercheOuverte && (
                   <RecherchePieces
                     sites={triesParFournisseur(sitesPieces, commande.fournisseur.nom)}
                     resultat={{
                       explication: `elle s'ajoute à cette commande chez ${commande.fournisseur.nom} (fiche d'inventaire créée au besoin).`,
-                      rendre: (r) => <ResultatPourCommande {...r} inventaire={[...pieces, ...piecesAjoutees]} fournisseurs={fournisseurs} commande={commande} onAjoutee={ligneAjoutee} />,
+                      rendre: (r) => <ResultatPourCommande {...r} inventaire={[...pieces, ...piecesAjoutees]} commande={commande} onAjoutee={ligneAjoutee} />,
                     }}
                     onFermer={() => setRechercheOuverte(false)}
                   />

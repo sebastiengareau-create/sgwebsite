@@ -4,10 +4,9 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { ajouterACommande, pieceDepuisRecherche } from "@/lib/brouillonsCommande";
 
 // Pièce trouvée chez un fournisseur avec « 🔎 Rechercher chez nos
-// fournisseurs » des commandes de pièces : même logique que « 🛒 Commander »
-// d'un bon (fiche d'inventaire trouvée par le numéro, sinon créée), sans bon.
-// commandeId : dans cette commande (fiche d'une commande) ; sinon dans le
-// brouillon ouvert chez le fournisseur, ou une nouvelle commande.
+// fournisseurs » d'une commande de pièces en brouillon : même logique que
+// « 🛒 Commander » d'un bon (fiche d'inventaire trouvée par le numéro, sinon
+// créée), ajoutée à cette commande.
 // → { id, numero, ajouteeAuBrouillon, pieceCreee, piece, ligne }
 export async function POST(request) {
   const session = await obtenirSession();
@@ -25,35 +24,31 @@ export async function POST(request) {
   if (!Number.isInteger(qte) || qte < 1 || qte > 999) return NextResponse.json({ erreur: "Quantité invalide." }, { status: 400 });
   if (cout !== null && !(cout >= 0)) return NextResponse.json({ erreur: "Coût unitaire invalide." }, { status: 400 });
 
-  let fournisseurId = corps.fournisseurId;
-  if (corps.commandeId) {
-    const commande = await prisma.commandeFournisseur.findUnique({ where: { id: corps.commandeId }, include: { lignes: { select: { qteRecue: true } } } });
-    if (!commande) return NextResponse.json({ erreur: "Commande introuvable." }, { status: 404 });
-    if (!["BROUILLON", "ENVOYEE"].includes(commande.statut) || commande.lignes.some((l) => l.qteRecue > 0)) {
-      return NextResponse.json({ erreur: "Cette commande a déjà été reçue (en tout ou en partie) — ses lignes ne se modifient plus." }, { status: 409 });
-    }
-    fournisseurId = commande.fournisseurId;
+  const commande = corps.commandeId
+    ? await prisma.commandeFournisseur.findUnique({ where: { id: corps.commandeId }, include: { lignes: { select: { qteRecue: true } }, fournisseur: true } })
+    : null;
+  if (!commande) return NextResponse.json({ erreur: "Commande introuvable." }, { status: 404 });
+  if (commande.statut !== "BROUILLON" || commande.lignes.some((l) => l.qteRecue > 0)) {
+    return NextResponse.json({ erreur: "La recherche de pièces ajoute seulement à une commande en brouillon." }, { status: 409 });
   }
-  const fournisseur = fournisseurId ? await prisma.fournisseur.findUnique({ where: { id: fournisseurId } }) : null;
-  if (!fournisseur || (!corps.commandeId && !fournisseur.actif)) return NextResponse.json({ erreur: "Choisis un fournisseur." }, { status: 400 });
+  const fournisseur = commande.fournisseur;
 
   const trouvee = await pieceDepuisRecherche({ fournisseurId: fournisseur.id, numero, nom: description, cout, prixVente: corps.prixVente });
   if (trouvee.erreur) return NextResponse.json({ erreur: trouvee.erreur }, { status: trouvee.status });
 
-  const commande = await ajouterACommande({
+  const resultat = await ajouterACommande({
     fournisseurId: fournisseur.id,
     lignes: [{ pieceId: trouvee.piece.id, qte, coutUnitaire: cout ?? undefined, numeroFournisseur: numero }],
-    ajouterAuBrouillon: true,
-    commandeId: corps.commandeId || undefined,
+    commandeId: commande.id,
     creePar: session.nom,
   });
   const ligne = await prisma.ligneCommandeFournisseur.findFirst({
-    where: { commandeId: commande.id, pieceId: trouvee.piece.id },
+    where: { commandeId: resultat.id, pieceId: trouvee.piece.id },
     select: { pieceId: true, numeroFournisseur: true, qteCommandee: true, coutUnitaire: true },
   });
   const piece = await prisma.piece.findUnique({
     where: { id: trouvee.piece.id },
     include: { fournisseurs: { include: { fournisseur: { select: { nom: true } } } } },
   });
-  return NextResponse.json({ ...commande, pieceCreee: trouvee.creee, piece, ligne });
+  return NextResponse.json({ ...resultat, pieceCreee: trouvee.creee, piece, ligne });
 }
