@@ -25,7 +25,8 @@ async function enregistrer(abonnement) {
 }
 
 // Activation des notifications sur ce téléphone (voir lib/notifications.js)
-// — page Notifications et « Mes tâches »
+// — page Notifications et « Mes tâches ». Obligatoires : une fois activées,
+// pas de bouton pour les désactiver
 export default function ActivationNotifications({ clePublique }) {
   // "…" | "non-supporte" | "ios-installer" | "refuse" | "inactif" | "actif"
   const [etat, setEtat] = useState("…");
@@ -74,19 +75,6 @@ export default function ActivationNotifications({ clePublique }) {
     }
   }
 
-  async function desactiver() {
-    setOccupe(true);
-    setInfo("");
-    const reg = await navigator.serviceWorker.ready;
-    const abonnement = await reg.pushManager.getSubscription();
-    if (abonnement) {
-      await fetch("/api/push", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: abonnement.endpoint }) });
-      await abonnement.unsubscribe().catch(() => {});
-    }
-    setEtat("inactif");
-    setOccupe(false);
-  }
-
   async function tester() {
     setInfo("");
     const res = await fetch("/api/push/test", { method: "POST" });
@@ -116,10 +104,7 @@ export default function ActivationNotifications({ clePublique }) {
           </button>
         )}
         {actif && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <button className="bouton-3d-sombre" disabled={occupe} onClick={tester} style={{ fontSize: 11, padding: "6px 10px", borderRadius: 8 }}>Tester</button>
-            <button className="bouton-3d-sombre" disabled={occupe} onClick={desactiver} style={{ fontSize: 11, padding: "6px 10px", borderRadius: 8 }}>Désactiver</button>
-          </div>
+          <button className="bouton-3d-sombre" disabled={occupe} onClick={tester} style={{ fontSize: 11, padding: "6px 10px", borderRadius: 8 }}>Tester</button>
         )}
       </div>
       {info && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>{info}</p>}
