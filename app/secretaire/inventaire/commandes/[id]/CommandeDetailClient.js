@@ -6,6 +6,7 @@ import Link from "next/link";
 import ScannerCodeBarres from "../../../../components/ScannerCodeBarres";
 import RecherchePieces from "../../../../components/RecherchePieces";
 import { ResultatPourCommande } from "../../../../components/ResultatsRecherchePieces";
+import { BoutonPartsTech, PanierPartsTech, AttentePanierPartsTech } from "./PartsTech";
 import { STATUTS_COMMANDE, resteARecevoir, quantiteSuggeree } from "@/lib/commandesFournisseurs";
 import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
 import { fournisseurPropose } from "@/lib/recherchePieces";
@@ -15,7 +16,7 @@ const aujourdhui = () => new Date().toLocaleDateString("en-CA", { timeZone: "Ame
 const arrondi = (n) => Math.round(n * 100) / 100;
 const fmt = (n) => `${n.toFixed(2)} $`;
 
-export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces }) {
+export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces, partstechActif = false, paniersPartsTech = [], attentePanierPartsTech = false }) {
   const router = useRouter();
   const statut = STATUTS_COMMANDE[commande.statut] || { label: commande.statut, couleur: "var(--text)" };
   const dejaRecue = commande.lignes.some((l) => l.qteRecue > 0);
@@ -160,6 +161,17 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10, whiteSpace: "pre-line" }}>{erreur}</p>}
 
+      {/* Un panier reçu reste affiché si la commande a été passée entre-temps :
+          ses pièces iront alors au brouillon de leur fournisseur */}
+      {!modeReception && (
+        <>
+          {attentePanierPartsTech && paniersPartsTech.length === 0 && commande.statut === "BROUILLON" && <AttentePanierPartsTech />}
+          {paniersPartsTech.map((p) => (
+            <PanierPartsTech key={p.id} commande={commande} panier={p} fournisseurs={listeFournisseurs} inventaire={[...pieces, ...piecesAjoutees]} />
+          ))}
+        </>
+      )}
+
       {modeReception ? (
         <FormulaireReception commande={commande} tpsTaux={tpsTaux} tvqTaux={tvqTaux} peutVoirDepenses={peutVoirDepenses} onAnnuler={() => setModeReception(false)} />
       ) : (
@@ -197,6 +209,9 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
                 >
                   🔎 Rechercher chez nos fournisseurs
                 </button>}
+                {commande.statut === "BROUILLON" && partstechActif && (
+                  <BoutonPartsTech commande={commande} desactive={enCours} avantOuverture={async () => !modifie || (await enregistrer())} />
+                )}
                 {rechercheOuverte && (
                   <RecherchePieces
                     sites={triesParFournisseur(sitesPieces, commande.fournisseur.nom)}
