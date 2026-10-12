@@ -333,8 +333,28 @@ model CommandeFournisseur {
   lignes        LigneCommandeFournisseur[]
   depenses      Depense[] // une par réception
   piecesACommander PieceACommander[] // pièces à commander de bons mises dans cette commande
+  sessionsPartsTech SessionPartsTech[]
   creePar       String?
   creeLe        DateTime                   @default(now())
+}
+
+// Recherche ouverte dans PartsTech depuis une commande en brouillon (voir
+// lib/partstech.js). PartsTech renvoie le panier à une adresse qui porte le
+// jeton secret ; le panier est seulement stocké ici, puis un employé connecté
+// l'ajoute aux commandes (ou l'ignore).
+model SessionPartsTech {
+  id         String              @id @default(cuid())
+  jeton      String              @unique
+  commandeId String
+  commande   CommandeFournisseur @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  sessionId  String? // identifiant de la session chez PartsTech
+  panier     Json? // panier reçu, déjà normalisé (lirePanier)
+  recuLe     DateTime?
+  importeLe  DateTime?
+  creePar    String?
+  creeLe     DateTime            @default(now())
+
+  @@index([commandeId])
 }
 
 model LigneCommandeFournisseur {
@@ -688,6 +708,7 @@ model Fournisseur {
   province     String? // code à deux lettres (ex. « QC ») — voir lib/adresse.js
   codePostal   String?
   actif        Boolean   @default(true)
+  partstechId  Int?      @unique // fournisseur correspondant dans PartsTech (lib/partstech.js)
   depenses     Depense[]
   piecesDefaut Piece[] // articles d'inventaire dont c'est le fournisseur habituel
   pieces       PieceFournisseur[]

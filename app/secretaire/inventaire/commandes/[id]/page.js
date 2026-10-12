@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
 import { quantitesEnCommande } from "@/lib/commandesFournisseurs";
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
+import { lireConfig as lireConfigPartsTech } from "@/lib/partstech";
 import EnTete from "../../../../components/EnTete";
 import CommandeDetailClient from "./CommandeDetailClient";
 import { voisinsFiche } from "@/lib/navigationFiches";
@@ -10,6 +11,7 @@ import NavigationFiches from "../../../../components/NavigationFiches";
 
 export default async function DetailCommande(props) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "inventaire"))) redirect("/mecanicien");
 
@@ -23,7 +25,7 @@ export default async function DetailCommande(props) {
   });
   if (!commande) notFound();
 
-  const [pieces, fournisseurs, parametres, enCommande, peutVoirDepenses] = await Promise.all([
+  const [pieces, fournisseurs, parametres, enCommande, peutVoirDepenses, configPartsTech, sessionsPartsTech] = await Promise.all([
     prisma.piece.findMany({
       where: { actif: true },
       include: { fournisseurs: { include: { fournisseur: { select: { nom: true } } } } },
@@ -33,7 +35,13 @@ export default async function DetailCommande(props) {
     prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux", CLE_SITES_PIECES] } } }),
     quantitesEnCommande(prisma, undefined, { avecBrouillons: true }),
     aAccesSection(session, "fournisseurs"),
+    lireConfigPartsTech(),
+    // Paniers PartsTech reçus pas encore ajoutés, et la session d'où l'on
+    // revient (?partstech=<id>) si son panier n'est pas encore arrivé
+    prisma.sessionPartsTech.findMany({ where: { commandeId: commande.id, importeLe: null }, orderBy: { creeLe: "asc" } }),
   ]);
+  const paniersPartsTech = sessionsPartsTech.filter((s) => s.recuLe && s.panier).map((s) => ({ id: s.id, panier: s.panier, recuLe: s.recuLe }));
+  const attentePanierPartsTech = sessionsPartsTech.some((s) => s.id === searchParams?.partstech && !s.recuLe);
   // Ordre par défaut de la liste : même groupe de statuts, plus récentes d'abord
   const groupes = [["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"], ["RECUE"], ["ANNULEE"]];
   const groupe = groupes.find((g) => g.includes(commande.statut));
@@ -52,6 +60,9 @@ export default async function DetailCommande(props) {
         tvqTaux={Number(dict.tvq_taux || 9.975)}
         peutVoirDepenses={peutVoirDepenses}
         sitesPieces={lireSites(dict[CLE_SITES_PIECES])}
+        partstechActif={configPartsTech.actif}
+        paniersPartsTech={paniersPartsTech}
+        attentePanierPartsTech={attentePanierPartsTech}
       />
       <NavigationFiches cle="commandes" idCourant={commande.id} base="/secretaire/inventaire/commandes" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), commande.id)} />
     </div>

@@ -59,6 +59,13 @@ Chaque client a son **propre projet Railway complet** :
    leur téléphone (rien à configurer — voir `lib/notifications.js`), sinon
    par courriel. Le lien du courriel vers « Mes tâches » utilise
    `APP_URL` (adresse publique de l'installation).
+8. PartsTech (facultatif — « 🔌 Chercher dans PartsTech » des commandes de
+   pièces en brouillon) : ajoute `PARTSTECH_PARTNER_ID` et
+   `PARTSTECH_PARTNER_KEY` (identifiants partenaire, entente avec
+   PartsTech ; `PARTSTECH_API_URL=https://api.beta.partstech.com` pour les
+   essais). `APP_URL` doit être l'adresse publique : PartsTech y renvoie le
+   panier. Le compte PartsTech du garage s'entre ensuite dans l'appli
+   (Administrateur → Paramètres → PartsTech). Voir `lib/partstech.js`.
 
 ### 3. Initialiser la base de données de ce client
 Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`
