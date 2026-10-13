@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { lienRecherche, lienRechercheTous, texteVehicule, lireResultatColle } from "@/lib/recherchePieces";
+import { lienRecherche, lienRechercheTous, estLienDirect, texteVehicule, lireResultatColle } from "@/lib/recherchePieces";
 
 // Fenêtre « Rechercher des pièces » : le véhicule et son NIV (à copier dans
 // le catalogue d'un fournisseur) quand on vient d'un bon, un bouton par
@@ -116,7 +116,11 @@ export default function RecherchePieces({ vehicule = null, sites, pieceInitiale 
               href={lienRecherche(s, piece, vehicule)}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => setDernierSite(s.nom)}
+              onClick={() => {
+                setDernierSite(s.nom);
+                // Lien direct (page de connexion…) : la pièce copiée, à coller sur le site
+                if (estLienDirect(s.url) && piece.trim()) navigator.clipboard?.writeText(piece.trim()).catch(() => {});
+              }}
               className="bouton-3d"
               style={{ fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 8, textDecoration: "none" }}
             >

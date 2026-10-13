@@ -45,7 +45,8 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
           entre accolades ce qu'il faut y mettre : {"{piece}"} (la pièce), {"{q}"} (la pièce et le véhicule),
           {" "}{"{annee}"}, {"{marque}"}, {"{modele}"} ou {"{niv}"} — ex. https://www.napacanada.com/fr/search?text={"{piece}"}.
           Pour la trouver : cherche « test » sur le site et colle ici l'adresse de la page de résultats — « test »
-          y sera remplacé par {"{piece}"}. Ou mets seulement le domaine (ex. exemple.ca) : la recherche passera par Google, limitée à ce site.
+          y sera remplacé par {"{piece}"}. Une adresse complète sans accolades (ex. la page de connexion de NAPA ProLink) s'ouvre telle quelle, et la
+          pièce est copiée pour la coller sur le site. Ou mets seulement le domaine (ex. exemple.ca) : la recherche passera par Google, limitée à ce site.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
