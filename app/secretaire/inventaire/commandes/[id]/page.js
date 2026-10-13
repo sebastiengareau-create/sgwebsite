@@ -61,7 +61,7 @@ export default async function DetailCommande(props) {
         tvqTaux={Number(dict.tvq_taux || 9.975)}
         peutVoirDepenses={peutVoirDepenses}
         sitesPieces={lireSites(dict[CLE_SITES_PIECES])}
-        partstechActif={CLIENT.partstech && configPartsTech.actif}
+        partstech={CLIENT.partstech ? configPartsTech : null}
         paniersPartsTech={paniersPartsTech}
         attentePanierPartsTech={attentePanierPartsTech}
       />

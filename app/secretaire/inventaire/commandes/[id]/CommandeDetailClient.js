@@ -16,7 +16,7 @@ const aujourdhui = () => new Date().toLocaleDateString("en-CA", { timeZone: "Ame
 const arrondi = (n) => Math.round(n * 100) / 100;
 const fmt = (n) => `${n.toFixed(2)} $`;
 
-export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces, partstechActif = false, paniersPartsTech = [], attentePanierPartsTech = false }) {
+export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces, partstech = null, paniersPartsTech = [], attentePanierPartsTech = false }) {
   const router = useRouter();
   const statut = STATUTS_COMMANDE[commande.statut] || { label: commande.statut, couleur: "var(--text)" };
   const dejaRecue = commande.lignes.some((l) => l.qteRecue > 0);
@@ -209,8 +209,15 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
                 >
                   🔎 Rechercher chez nos fournisseurs
                 </button>}
-                {commande.statut === "BROUILLON" && partstechActif && (
+                {commande.statut === "BROUILLON" && partstech?.actif && (
                   <BoutonPartsTech commande={commande} desactive={enCours} avantOuverture={async () => !modifie || (await enregistrer())} />
+                )}
+                {commande.statut === "BROUILLON" && partstech && !partstech.actif && (
+                  <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "6px 0 0" }}>
+                    🔌 PartsTech pas encore configuré : {!partstech.partenaire
+                      ? "identifiants partenaire manquants (variables PARTSTECH_PARTNER_ID et PARTSTECH_PARTNER_KEY sur Railway)"
+                      : "entre l'utilisateur et la clé API du garage dans Paramètres → PartsTech"}.
+                  </p>
                 )}
                 {rechercheOuverte && (
                   <RecherchePieces
