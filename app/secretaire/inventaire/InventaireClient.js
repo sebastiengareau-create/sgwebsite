@@ -9,24 +9,10 @@ import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroContient } from "@/lib/codesBarres";
-import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
+import { libelleNumerosFournisseurs, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 
-// Ordre de la liste : par numéro de référence par défaut. « 10 » vient après
-// « 9 » (comparaison numérique). Par fournisseur : le fournisseur habituel ;
-// les pièces sans fournisseur vont à la fin.
 const CLE_TRI = "inventaire_tri";
-const comparerTexte = (a, b) => a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
-const TRIS = {
-  numero: { libelle: "Numéro de référence", comparer: (a, b) => comparerTexte(a.numero, b.numero) },
-  description: { libelle: "Description", comparer: (a, b) => comparerTexte(a.nom, b.nom) || comparerTexte(a.numero, b.numero) },
-  fournisseur: {
-    libelle: "Fournisseur",
-    comparer: (a, b) => (!a.fournisseur - !b.fournisseur)
-      || comparerTexte(a.fournisseur?.nom || "", b.fournisseur?.nom || "")
-      || comparerTexte(a.numero, b.numero),
-  },
-};
 
 export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial }) {
   const router = useRouter();
@@ -157,7 +143,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <Link
-          href="/gerant/comptabilite/rapports/inventaire"
+          href={`/gerant/comptabilite/rapports/inventaire?tri=${tri}`}
           target="_blank"
           className="bouton-3d-sombre"
           style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}

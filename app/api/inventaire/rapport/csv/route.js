@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { FILTRE_PIECES_RAPPORT, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
+import { FILTRE_PIECES_RAPPORT, INCLUDE_PIECES_RAPPORT, trierPieces, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 
 function echapperCsv(valeur) {
   const texte = String(valeur ?? "");
@@ -10,13 +10,14 @@ function echapperCsv(valeur) {
   return texte;
 }
 
-export async function GET() {
+export async function GET(request) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite")) && !(await aAccesSection(session, "inventaire"))) {
     return new Response(JSON.stringify({ erreur: "Accès refusé." }), { status: 403 });
   }
 
-  const pieces = await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, include: { fournisseurs: { include: { fournisseur: true } } }, orderBy: { nom: "asc" } });
+  const tri = new URL(request.url).searchParams.get("tri");
+  const pieces = trierPieces(await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, include: INCLUDE_PIECES_RAPPORT }), tri);
 
   const lignesCsv = [
     ["No pièce", "Description", "Numéros fournisseurs", "Qté", "Coûtant", "Vendant", "Marge", "Marge %"].join(";"),

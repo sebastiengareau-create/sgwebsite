@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
-import { FILTRE_PIECES_RAPPORT, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
+import { FILTRE_PIECES_RAPPORT, INCLUDE_PIECES_RAPPORT, TRIS_PIECES, cleTri, trierPieces, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import BoutonsExportInventaire from "./BoutonsExportInventaire";
 
-export default async function RapportInventaire() {
+export default async function RapportInventaire(props) {
+  const tri = cleTri((await props.searchParams)?.tri);
   const session = await obtenirSession();
   const { nomEntreprise, adresseLigne1, adresseLigne2 } = await obtenirInfosEntreprise();
   // Accessible via Comptabilité → Rapports OU Inventaire — quiconque gère le
@@ -14,7 +15,7 @@ export default async function RapportInventaire() {
     redirect("/gerant");
   }
 
-  const pieces = await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, include: { fournisseurs: { include: { fournisseur: true } } }, orderBy: { nom: "asc" } });
+  const pieces = trierPieces(await prisma.piece.findMany({ where: FILTRE_PIECES_RAPPORT, include: INCLUDE_PIECES_RAPPORT }), tri);
 
   const totalQte = pieces.reduce((s, p) => s + p.qte, 0);
   const totalValeurCoutant = pieces.reduce((s, p) => s + p.qte * p.coutant, 0);
@@ -29,7 +30,7 @@ export default async function RapportInventaire() {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
-        <BoutonsExportInventaire />
+        <BoutonsExportInventaire tri={tri} tris={Object.fromEntries(Object.entries(TRIS_PIECES).map(([cle, t]) => [cle, t.libelle]))} />
       </div>
       <div style={{ maxWidth: 760, margin: "0 auto 40px", background: "white", color: "#17150f", padding: "36px 40px", fontFamily: "Arial, sans-serif" }}>
         <div style={{ borderBottom: "2px solid #17150f", paddingBottom: 16, marginBottom: 24 }}>
@@ -37,7 +38,7 @@ export default async function RapportInventaire() {
           <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0" }}>{adresseLigne1}, {adresseLigne2}</p>
           <p style={{ fontSize: 16, fontWeight: 700, marginTop: 12, marginBottom: 0 }}>Rapport d'inventaire</p>
           <p style={{ fontSize: 11.5, color: "#666", margin: "2px 0 0" }}>
-            Au {new Date().toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {pieces.length} pièce{pieces.length !== 1 ? "s" : ""}
+            Au {new Date().toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {pieces.length} pièce{pieces.length !== 1 ? "s" : ""} — par {TRIS_PIECES[tri].libelle.toLowerCase()}
           </p>
         </div>
 
