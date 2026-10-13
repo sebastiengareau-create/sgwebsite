@@ -15,6 +15,7 @@ import { CLIENT } from "@/lib/client";
 // Ordre de la liste : par numéro de référence par défaut. « 10 » vient après
 // « 9 » (comparaison numérique). Par fournisseur : le fournisseur habituel ;
 // les pièces sans fournisseur vont à la fin.
+const CLE_TRI = "inventaire_tri";
 const comparerTexte = (a, b) => a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
 const TRIS = {
   numero: { libelle: "Numéro de référence", comparer: (a, b) => comparerTexte(a.numero, b.numero) },
@@ -53,6 +54,18 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q));
   }).sort(TRIS[tri].comparer);
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
+
+  // Le tri choisi est retenu sur cet appareil
+  useEffect(() => {
+    try {
+      const memorise = localStorage.getItem(CLE_TRI);
+      if (Object.hasOwn(TRIS, memorise ?? "")) setTri(memorise);
+    } catch {}
+  }, []);
+  function choisirTri(valeur) {
+    setTri(valeur);
+    try { localStorage.setItem(CLE_TRI, valeur); } catch {}
+  }
 
   // Un scan ouvre la fiche de la pièce ; un code inconnu (boîte d'un
   // fabricant jamais scannée) propose de l'associer à une pièce.
@@ -181,7 +194,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       />
       <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: nombreDesactivees > 0 ? 6 : 16 }}>
         Trier par
-        <select value={tri} onChange={(e) => setTri(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "4px 8px", fontSize: 12 }}>
+        <select value={tri} onChange={(e) => choisirTri(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "4px 8px", fontSize: 12 }}>
           {Object.entries(TRIS).map(([cle, t]) => <option key={cle} value={cle}>{t.libelle}</option>)}
         </select>
       </label>
@@ -587,7 +600,6 @@ function AlignementInventaire({ alignement }) {
 // créer la pièce avec ce code.
 function CodeInconnu({ code, pieces, onAssociee, onNouvelle, onFermer }) {
   const [recherche, setRecherche] = useState("");
-  const [tri, setTri] = useState("numero");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
 
