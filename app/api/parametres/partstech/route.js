@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { CLE_UTILISATEUR, CLE_CLE, lireConfig } from "@/lib/partstech";
+import { CLIENT } from "@/lib/client";
 
 // Compte PartsTech du garage (Paramètres → PartsTech). La clé n'est jamais
 // renvoyée au navigateur ; une clé vide garde celle déjà enregistrée.
 export async function PUT(request) {
+  if (!CLIENT.partstech) return NextResponse.json({ erreur: "PartsTech n'est pas offert dans cette installation." }, { status: 404 });
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "parametres"))) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

@@ -3,11 +3,13 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { ouvrirSession } from "@/lib/partstech";
+import { CLIENT } from "@/lib/client";
 
 // « 🔌 Chercher dans PartsTech » d'une commande en brouillon : ouvre une
 // session PartsTech et renvoie l'adresse où envoyer l'employé. Le panier
 // reviendra à /api/partstech/panier/<jeton> (voir lib/partstech.js).
 export async function POST(request, props) {
+  if (!CLIENT.partstech) return NextResponse.json({ erreur: "PartsTech n'est pas offert dans cette installation." }, { status: 404 });
   const params = await props.params;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "inventaire"))) {

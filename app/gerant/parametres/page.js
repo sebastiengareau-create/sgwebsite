@@ -12,6 +12,7 @@ import SitesPiecesSection from "./SitesPiecesSection";
 import PartsTechSection from "./PartsTechSection";
 import { lireConfig as lireConfigPartsTech } from "@/lib/partstech";
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
+import { CLIENT } from "@/lib/client";
 
 export default async function Parametres() {
   const session = await obtenirSession();
@@ -78,7 +79,7 @@ export default async function Parametres() {
       />
       <TachesInternesSection tachesInitiales={tachesInternes} />
       <SitesPiecesSection sitesInitiaux={lireSites(dict[CLE_SITES_PIECES])} />
-      <PartsTechSection configInitiale={await lireConfigPartsTech()} />
+      {CLIENT.partstech && <PartsTechSection configInitiale={await lireConfigPartsTech()} />}
     </div>
   );
 }

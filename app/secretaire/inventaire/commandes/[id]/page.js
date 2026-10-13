@@ -8,6 +8,7 @@ import EnTete from "../../../../components/EnTete";
 import CommandeDetailClient from "./CommandeDetailClient";
 import { voisinsFiche } from "@/lib/navigationFiches";
 import NavigationFiches from "../../../../components/NavigationFiches";
+import { CLIENT } from "@/lib/client";
 
 export default async function DetailCommande(props) {
   const params = await props.params;
@@ -60,7 +61,7 @@ export default async function DetailCommande(props) {
         tvqTaux={Number(dict.tvq_taux || 9.975)}
         peutVoirDepenses={peutVoirDepenses}
         sitesPieces={lireSites(dict[CLE_SITES_PIECES])}
-        partstechActif={configPartsTech.actif}
+        partstechActif={CLIENT.partstech && configPartsTech.actif}
         paniersPartsTech={paniersPartsTech}
         attentePanierPartsTech={attentePanierPartsTech}
       />
