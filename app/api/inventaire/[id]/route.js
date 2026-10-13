@@ -33,7 +33,7 @@ export async function PATCH(request, props) {
   // Champs suivis dans l'onglet Historique de la fiche (valeur avant/après) —
   // la quantité n'en fait pas partie, elle a son propre journal (Mouvements).
   const CHAMPS_SUIVIS = {
-    nom: "Nom", numero: "Numéro", codeBarre: "Code-barres fabricant", prix: "Prix de vente", coutant: "Coût moyen",
+    nom: "Description", numero: "Numéro", codeBarre: "Code-barres fabricant", prix: "Prix de vente", coutant: "Coût moyen",
     qteMin: "Seuil minimum", qteMax: "Seuil maximum", emplacement: "Emplacement",
     fournisseurId: "Fournisseur habituel", categorie: "Catégorie", actif: "Statut",
   };

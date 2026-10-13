@@ -19,8 +19,8 @@ export default async function GestionInventaire(props) {
 
   const [pieces, categories, comptesRevenu, fournisseurs, enCommande] = await Promise.all([
     prisma.piece.findMany({
-      include: { fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true, fournisseur: { select: { nom: true } } } } },
-      orderBy: { nom: "asc" },
+      include: { fournisseur: { select: { nom: true } }, fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true, fournisseur: { select: { nom: true } } } } },
+      orderBy: { numero: "asc" },
     }),
     prisma.categorieInventaire.findMany({ orderBy: [{ actif: "desc" }, { nom: "asc" }] }),
     prisma.compte.findMany({ where: { type: "REVENU", actif: true }, orderBy: { numero: "asc" } }),

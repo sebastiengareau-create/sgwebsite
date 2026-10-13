@@ -130,7 +130,7 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
 
       {modeEdition ? (
         <div className="carte">
-          <label className="etiquette">Nom</label>
+          <label className="etiquette">Description</label>
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Numéro de référence</label>
           <input value={numero} onChange={(e) => setNumero(e.target.value)} className="champ" />

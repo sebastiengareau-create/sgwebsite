@@ -12,11 +12,27 @@ import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroCo
 import { libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 
+// Ordre de la liste : par numéro de référence par défaut. « 10 » vient après
+// « 9 » (comparaison numérique). Par fournisseur : le fournisseur habituel ;
+// les pièces sans fournisseur vont à la fin.
+const comparerTexte = (a, b) => a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" });
+const TRIS = {
+  numero: { libelle: "Numéro de référence", comparer: (a, b) => comparerTexte(a.numero, b.numero) },
+  description: { libelle: "Description", comparer: (a, b) => comparerTexte(a.nom, b.nom) || comparerTexte(a.numero, b.numero) },
+  fournisseur: {
+    libelle: "Fournisseur",
+    comparer: (a, b) => (!a.fournisseur - !b.fournisseur)
+      || comparerTexte(a.fournisseur?.nom || "", b.fournisseur?.nom || "")
+      || comparerTexte(a.numero, b.numero),
+  },
+};
+
 export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
   const [recherche, setRecherche] = useState("");
+  const [tri, setTri] = useState("numero");
   const [voirDesactivees, setVoirDesactivees] = useState(false);
   const [scannerOuvert, setScannerOuvert] = useState(false);
   const [codeInconnu, setCodeInconnu] = useState(null);
@@ -35,7 +51,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
     return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q) || autreNumeroContient(p, q)
       || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)))
       || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q));
-  });
+  }).sort(TRIS[tri].comparer);
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
 
   // Un scan ouvre la fiche de la pièce ; un code inconnu (boîte d'un
@@ -160,9 +176,15 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par nom, numéro ou no fournisseur…"
-        style={{ ...champStyle, marginBottom: nombreDesactivees > 0 ? 6 : 16 }}
+        placeholder="🔍 Rechercher par description, numéro ou no fournisseur…"
+        style={{ ...champStyle, marginBottom: 6 }}
       />
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: nombreDesactivees > 0 ? 6 : 16 }}>
+        Trier par
+        <select value={tri} onChange={(e) => setTri(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "4px 8px", fontSize: 12 }}>
+          {Object.entries(TRIS).map(([cle, t]) => <option key={cle} value={cle}>{t.libelle}</option>)}
+        </select>
+      </label>
       {nombreDesactivees > 0 && (
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16, cursor: "pointer" }}>
           <input type="checkbox" checked={voirDesactivees} onChange={(e) => setVoirDesactivees(e.target.checked)} />
@@ -421,7 +443,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
 
   return (
     <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 4 }}>
-      <input required placeholder="Nom de la pièce (ex : Filtre à huile)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
+      <input required placeholder="Description (ex : Filtre à huile)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input required placeholder="Numéro de référence (ex : FO-2201)" value={numero} onChange={(e) => setNumero(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Code-barres du fabricant (UPC/EAN) — optionnel</label>
       <div style={{ display: "flex", gap: 6 }}>
@@ -565,6 +587,7 @@ function AlignementInventaire({ alignement }) {
 // créer la pièce avec ce code.
 function CodeInconnu({ code, pieces, onAssociee, onNouvelle, onFermer }) {
   const [recherche, setRecherche] = useState("");
+  const [tri, setTri] = useState("numero");
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
 
@@ -603,7 +626,7 @@ function CodeInconnu({ code, pieces, onAssociee, onNouvelle, onFermer }) {
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Chercher la pièce par nom ou numéro…"
+        placeholder="🔍 Chercher la pièce par description ou numéro…"
         autoFocus
         style={{ ...champStyle, marginTop: 10 }}
       />
