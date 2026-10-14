@@ -25,7 +25,7 @@ function infosEtape(cle) {
 const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "TERMINE"];
 
 // Bons facturés : ceux facturés ce mois-ci restent affichés un par un ; les
-// plus anciens vont dans un dossier repliable, par mois de facturation.
+// plus anciens vont dans un dossier repliable par mois de facturation.
 function dateFacturation(b) {
   return b.facture?.dateEmission || dateBon(b);
 }
@@ -209,35 +209,22 @@ function PastilleDate({ date, couleur, heure }) {
   );
 }
 
-// Dossier repliable des bons facturés avant ce mois-ci, puis un sous-dossier
-// par mois. Une recherche en cours ouvre tout pour montrer les résultats.
+// Bons facturés avant ce mois-ci : un dossier repliable par mois de
+// facturation, du plus récent au plus ancien. Une recherche en cours les
+// ouvre pour montrer les résultats.
 function DossierFactures({ bons, ouvert, compact, carte }) {
-  if (bons.length === 0) return null;
-  const titre = { cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 6, userSelect: "none" };
-  return (
-    <details key={ouvert ? "ouvert" : "ferme"} open={ouvert} className="dossier-factures" style={{ marginTop: compact ? 4 : 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: compact ? "6px 8px" : "8px 10px" }}>
-      <summary style={{ ...titre, fontSize: compact ? 12 : 13, fontWeight: 700 }}>
+  return regrouperParMois(bons, dateFacturation).map((m) => (
+    <details key={`${m.cle}-${ouvert}`} open={ouvert} className="dossier-factures" style={{ marginTop: compact ? 2 : 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: compact ? "6px 8px" : "8px 10px" }}>
+      <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 6, userSelect: "none", fontSize: compact ? 12 : 13, fontWeight: 700 }}>
         <span className="chevron-dossier" style={{ color: "var(--text-muted)", fontSize: 10 }}>▶</span>
-        📁 Facturés les mois précédents
-        <span style={{ marginLeft: "auto", fontSize: 11, color: STATUTS.TERMINE.color, background: `${STATUTS.TERMINE.color}22`, borderRadius: 999, padding: "1px 8px" }}>{bons.length}</span>
+        📁 {m.libelle}
+        <span style={{ marginLeft: "auto", fontSize: 11, color: STATUTS.TERMINE.color, background: `${STATUTS.TERMINE.color}22`, borderRadius: 999, padding: "1px 8px" }}>{m.elements.length}</span>
       </summary>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
-        {regrouperParMois(bons, dateFacturation).map((m) => (
-          <details key={`${m.cle}-${ouvert}`} open={ouvert} className="dossier-factures">
-            <summary style={{ ...titre, fontSize: compact ? 11 : 12, fontWeight: 700, color: "var(--text-muted)", padding: "4px 2px" }}>
-              <span className="chevron-dossier" style={{ fontSize: 9 }}>▶</span>
-              {m.libelle}
-              <span style={{ fontSize: 10.5, fontWeight: 400 }}>({m.elements.length})</span>
-              <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
-            </summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: compact ? 6 : 8, marginTop: 4 }}>
-              {m.elements.map(carte)}
-            </div>
-          </details>
-        ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: compact ? 6 : 8, marginTop: 8 }}>
+        {m.elements.map(carte)}
       </div>
     </details>
-  );
+  ));
 }
 
 // Titre d'une journée — les jours à venir sont marqués pour distinguer les
