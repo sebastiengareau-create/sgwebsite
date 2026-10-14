@@ -243,3 +243,8 @@ a { color: inherit; }
   margin-top: 8px;
   margin-bottom: 4px;
 }
+
+/* Dossier repliable des bons facturés les mois précédents (ListeBonsClient) */
+.dossier-factures > summary::-webkit-details-marker { display: none; }
+.dossier-factures > summary .chevron-dossier { display: inline-block; transition: transform 0.15s; }
+.dossier-factures[open] > summary .chevron-dossier { transform: rotate(90deg); }

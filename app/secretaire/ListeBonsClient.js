@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import BanderoleBo from "../components/BanderoleBo";
-import { dateBon, bonEstAVenir, regrouperParJour, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
+import { dateBon, bonEstAVenir, regrouperParJour, regrouperParMois, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -24,6 +24,17 @@ function infosEtape(cle) {
 
 const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "TERMINE"];
 
+// Bons facturés : ceux facturés ce mois-ci restent affichés un par un ; les
+// plus anciens vont dans un dossier repliable, par mois de facturation.
+function dateFacturation(b) {
+  return b.facture?.dateEmission || dateBon(b);
+}
+function separerFactures(bons) {
+  const moisCourant = cleMoisQuebec(new Date());
+  const anciens = bons.filter((b) => b.statut === "TERMINE" && cleMoisQuebec(dateFacturation(b)) < moisCourant);
+  return { recents: bons.filter((b) => !anciens.includes(b)), anciens };
+}
+
 export default function ListeBonsClient({ bons, filtreActuel }) {
   const [recherche, setRecherche] = useState("");
   const [vue, setVue] = useState("tableau"); // "liste" | "tableau"
@@ -37,6 +48,7 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
   });
   const compte = (cle) => bonsRecherches.filter((b) => etape(b) === cle).length;
   const bonsFiltres = filtre === "TOUS" ? bonsRecherches : bonsRecherches.filter((b) => etape(b) === filtre);
+  const { recents, anciens } = separerFactures(bonsFiltres);
 
   return (
     <div style={{ padding: 16, maxWidth: vue === "tableau" ? 1200 : 560, margin: "0 auto", width: "100%" }}>
@@ -72,12 +84,13 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
         <EtatVide />
       ) : vue === "liste" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {regrouperParJour(bonsFiltres, dateBon).map((g) => (
+          {regrouperParJour(recents, dateBon).map((g) => (
             <section key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <EnTeteGroupe groupe={g} />
               {g.elements.map((b) => <CarteBon key={b.id} b={b} />)}
             </section>
           ))}
+          <DossierFactures bons={anciens} ouvert={!!recherche.trim()} carte={(b) => <CarteBon key={b.id} b={b} />} />
           {bonsFiltres.length === 0 && (
             <p style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>
               Aucun bon {recherche ? `ne correspond à "${recherche}"` : "dans cette catégorie"}.
@@ -85,18 +98,19 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
           )}
         </div>
       ) : (
-        <TableauBons bons={bonsRecherches} />
+        <TableauBons bons={bonsRecherches} ouvert={!!recherche.trim()} />
       )}
     </div>
   );
 }
 
-function TableauBons({ bons }) {
+function TableauBons({ bons, ouvert }) {
   return (
     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, alignItems: "flex-start" }}>
       {ETAPES.map((cle) => {
         const infos = infosEtape(cle);
         const bonsColonne = bons.filter((b) => etape(b) === cle);
+        const { recents, anciens } = separerFactures(bonsColonne);
         return (
           <div key={cle} style={{ flex: "1 1 240px", minWidth: 220, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 4px 8px", borderBottom: `2px solid ${infos.color}`, marginBottom: 8 }}>
@@ -107,12 +121,13 @@ function TableauBons({ bons }) {
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {regrouperParJour(bonsColonne, dateBon).map((g) => (
+              {regrouperParJour(recents, dateBon).map((g) => (
                 <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <EnTeteGroupe groupe={g} compact />
                   {g.elements.map((b) => <CarteBonCompacte key={b.id} b={b} />)}
                 </div>
               ))}
+              <DossierFactures bons={anciens} ouvert={ouvert} compact carte={(b) => <CarteBonCompacte key={b.id} b={b} />} />
               {bonsColonne.length === 0 && (
                 <p style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", textAlign: "center", padding: "10px 0" }}>
                   {cle === "PLANIFIE" ? "Aucun bon à venir" : "Vide"}
@@ -191,6 +206,37 @@ function PastilleDate({ date, couleur, heure }) {
       <span style={{ fontSize: 9.5, textTransform: "uppercase", color: "var(--text-muted)" }}>{partie({ month: "short" })}</span>
       {heure && <span style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 1 }}>{heure}</span>}
     </div>
+  );
+}
+
+// Dossier repliable des bons facturés avant ce mois-ci, puis un sous-dossier
+// par mois. Une recherche en cours ouvre tout pour montrer les résultats.
+function DossierFactures({ bons, ouvert, compact, carte }) {
+  if (bons.length === 0) return null;
+  const titre = { cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 6, userSelect: "none" };
+  return (
+    <details key={ouvert ? "ouvert" : "ferme"} open={ouvert} className="dossier-factures" style={{ marginTop: compact ? 4 : 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: compact ? "6px 8px" : "8px 10px" }}>
+      <summary style={{ ...titre, fontSize: compact ? 12 : 13, fontWeight: 700 }}>
+        <span className="chevron-dossier" style={{ color: "var(--text-muted)", fontSize: 10 }}>▶</span>
+        📁 Facturés les mois précédents
+        <span style={{ marginLeft: "auto", fontSize: 11, color: STATUTS.TERMINE.color, background: `${STATUTS.TERMINE.color}22`, borderRadius: 999, padding: "1px 8px" }}>{bons.length}</span>
+      </summary>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+        {regrouperParMois(bons, dateFacturation).map((m) => (
+          <details key={`${m.cle}-${ouvert}`} open={ouvert} className="dossier-factures">
+            <summary style={{ ...titre, fontSize: compact ? 11 : 12, fontWeight: 700, color: "var(--text-muted)", padding: "4px 2px" }}>
+              <span className="chevron-dossier" style={{ fontSize: 9 }}>▶</span>
+              {m.libelle}
+              <span style={{ fontSize: 10.5, fontWeight: 400 }}>({m.elements.length})</span>
+              <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            </summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: compact ? 6 : 8, marginTop: 4 }}>
+              {m.elements.map(carte)}
+            </div>
+          </details>
+        ))}
+      </div>
+    </details>
   );
 }
 
