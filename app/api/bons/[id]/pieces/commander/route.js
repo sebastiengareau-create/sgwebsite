@@ -9,7 +9,8 @@ import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, sortirDuStockPourBon } from "
 // brouillon de commande du fournisseur choisi — et mis sur la tâche en B/O. La
 // ligne B/O compte dans le total du bon et sort du stock à la réception de la
 // commande (sortirPiecesBoRecues, lib/brouillonsCommande.js) ; le bon ne se
-// facture pas avant. Le lien est une pièce à commander du bon déjà commandée,
+// facture pas avant. On peut commander plus que le manque (qteCommande) :
+// le surplus entre simplement en stock à la réception. Le lien est une pièce à commander du bon déjà commandée,
 // comme « 🛒 Commander » : elle apparaît avec le suivi de sa commande.
 export async function POST(request, props) {
   const params = await props.params;
@@ -44,10 +45,17 @@ export async function POST(request, props) {
   if (aCommander === 0) {
     return NextResponse.json({ erreur: "Cette pièce est en stock — ajoute-la normalement." }, { status: 409 });
   }
+  const qteCommande = corps.qteCommande === undefined || corps.qteCommande === "" ? aCommander : Number(corps.qteCommande);
+  if (!Number.isInteger(qteCommande) || qteCommande > 999) {
+    return NextResponse.json({ erreur: "Quantité à commander invalide." }, { status: 400 });
+  }
+  if (qteCommande < aCommander) {
+    return NextResponse.json({ erreur: `Commande au moins ${aCommander} : c'est ce qui manque pour ce bon.` }, { status: 400 });
+  }
 
   const commande = await ajouterACommande({
     fournisseurId: fournisseur.id,
-    lignes: [{ pieceId: piece.id, qte: aCommander }],
+    lignes: [{ pieceId: piece.id, qte: qteCommande }],
     ajouterAuBrouillon: true,
     note: `Pour le bon #${probleme.bon.numero}`,
     creePar: session.nom,
@@ -66,7 +74,7 @@ export async function POST(request, props) {
       await tx.pieceACommander.create({
         data: {
           bonId: probleme.bonId, description: piece.nom, numero: lien?.numeroFournisseur || piece.numero,
-          fournisseur: fournisseur.nom, prix: (lien?.coutant ?? piece.coutant) || null, qte: aCommander, commandee: true,
+          fournisseur: fournisseur.nom, prix: (lien?.coutant ?? piece.coutant) || null, qte: qteCommande, commandee: true,
           pieceId: piece.id, commandeId: commande.id, pieceUtiliseeId: surBon.id, creePar: session.nom,
         },
       });
@@ -77,5 +85,5 @@ export async function POST(request, props) {
     }
     throw e;
   }
-  return NextResponse.json({ ...commande, enStock, aCommander });
+  return NextResponse.json({ ...commande, enStock, aCommander, qteCommande });
 }

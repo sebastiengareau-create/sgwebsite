@@ -767,7 +767,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
   // Qui peut commander voit aussi les pièces sans stock : elles s'ajoutent en
   // B/O avec une commande au fournisseur (commanderEnBo)
   const piecesDisponibles = peutCommander ? inventaire : inventaire.filter((p) => p.qte > 0);
-  const [commandeBo, setCommandeBo] = useState(null); // { fournisseurId } : confirmation de commande en B/O ouverte
+  const [commandeBo, setCommandeBo] = useState(null); // { fournisseurId, qteCommande } : confirmation de commande en B/O ouverte
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
   const suggestionsPieces = qPiece
@@ -956,7 +956,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     if (peutCommander && pieceSelectionnee && Math.max(1, parseInt(qtePiece) || 1) > pieceSelectionnee.qte) {
       const habituel = [pieceSelectionnee.fournisseurId, ...(pieceSelectionnee.fournisseurs || []).map((f) => f.fournisseurId)]
         .find((id) => id && fournisseurs.some((f) => f.id === id));
-      setCommandeBo({ fournisseurId: habituel || "" });
+      const manque = Math.max(1, parseInt(qtePiece) || 1) - Math.max(0, pieceSelectionnee.qte);
+      setCommandeBo({ fournisseurId: habituel || "", qteCommande: String(manque) });
       return;
     }
     setEnCours(true);
@@ -989,7 +990,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     const res = await fetch(`/api/bons/${bonId}/pieces/commander`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1), fournisseurId: commandeBo.fournisseurId }),
+      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1), qteCommande: parseInt(commandeBo.qteCommande) || undefined, fournisseurId: commandeBo.fournisseurId }),
     });
     setEnCours(false);
     const data = await res.json().catch(() => ({}));
@@ -1001,7 +1002,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     setPieceChoisie("");
     setRecherchePiece("");
     setQtePiece("1");
-    setConfirmationPiece(`${data.enStock > 0 ? `${data.enStock} sortie(s) du stock, ` : ""}${data.aCommander} en B/O — ajoutée(s) à la commande ${data.numero} ✓`);
+    setConfirmationPiece(`${data.enStock > 0 ? `${data.enStock} sortie(s) du stock, ` : ""}${data.aCommander} en B/O — ${data.qteCommande} ajoutée(s) à la commande ${data.numero} ✓`);
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 4000);
   }
@@ -1374,11 +1375,14 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
           {!verrouille && commandeBo && pieceSelectionnee && (() => {
             const qteVoulue = Math.max(1, parseInt(qtePiece) || 1);
             const enStock = Math.max(0, Math.min(pieceSelectionnee.qte, qteVoulue));
+            const manque = qteVoulue - enStock;
+            const qteCommande = parseInt(commandeBo.qteCommande) || 0;
+            const tropPeu = qteCommande < manque;
             return (
               <div style={{ marginTop: 8, padding: "10px 12px", border: "1px solid #D9822B", borderRadius: 8, fontSize: 12 }}>
                 <div style={{ marginBottom: 8 }}>
                   <strong>{pieceSelectionnee.nom}</strong> : {pieceSelectionnee.qte <= 0 ? "aucune en stock" : `seulement ${pieceSelectionnee.qte} en stock`}.
-                  {" "}Passer une commande de <strong>{qteVoulue - enStock}</strong> et l'ajouter au bon en <strong>B/O</strong> jusqu'à réception ?
+                  {" "}Il en manque <strong>{manque}</strong> : passer une commande et l'ajouter au bon en <strong>B/O</strong> jusqu'à réception ?
                   {enStock > 0 && <> {enStock === 1 ? "Celle en stock sort" : `Les ${enStock} en stock sortent`} tout de suite.</>}
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
                     Elle compte dans le total du bon ; le bon se facture une fois la commande reçue.
@@ -1389,20 +1393,38 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
                     Aucun fournisseur au dossier — ajoute-le d'abord dans <Link href="/gerant/fournisseurs" style={{ color: "var(--accent)" }}>Fournisseurs</Link>.
                   </div>
                 ) : (
+                  <>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+                    <label htmlFor={`qte-commande-${probleme.id}`}>Quantité à commander</label>
+                    <input
+                      id={`qte-commande-${probleme.id}`}
+                      type="number" min={manque} max={999} value={commandeBo.qteCommande}
+                      onChange={(e) => setCommandeBo({ ...commandeBo, qteCommande: e.target.value })}
+                      style={{ ...champStyle, width: 64, textAlign: "center", fontSize: 12, padding: "6px 4px" }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 11, marginBottom: 8, color: tropPeu ? "var(--danger)" : "var(--text-muted)" }}>
+                    {tropPeu
+                      ? `Au moins ${manque} — c'est ce qui manque pour ce bon.`
+                      : qteCommande > manque
+                        ? `${manque} pour ce bon (B/O), ${qteCommande - manque} de plus entre(nt) en stock à la réception.`
+                        : "Tout pour ce bon (B/O)."}
+                  </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                     <select
                       value={commandeBo.fournisseurId}
-                      onChange={(e) => setCommandeBo({ fournisseurId: e.target.value })}
+                      onChange={(e) => setCommandeBo({ ...commandeBo, fournisseurId: e.target.value })}
                       style={{ ...champStyle, fontSize: 12, padding: "6px 8px", flex: 1, minWidth: 140 }}
                     >
                       <option value="">Fournisseur…</option>
                       {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
                     </select>
-                    <button onClick={commanderEnBo} disabled={enCours || !commandeBo.fournisseurId} className="bouton-3d" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+                    <button onClick={commanderEnBo} disabled={enCours || !commandeBo.fournisseurId || tropPeu || qteCommande > 999} className="bouton-3d" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
                       🛒 Commander en B/O
                     </button>
                     <button onClick={() => setCommandeBo(null)} style={boutonTexte}>Annuler</button>
                   </div>
+                  </>
                 )}
               </div>
             );
