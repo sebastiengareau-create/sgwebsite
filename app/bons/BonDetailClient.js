@@ -1367,7 +1367,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
                 type="number" min={1} value={qtePiece}
                 onChange={(e) => { setQtePiece(e.target.value); setCommandeBo(null); }}
                 onBlur={() => setQtePiece(String(Math.max(1, parseInt(qtePiece) || 1)))}
-                style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
+                style={{ ...champStyle, flex: "none", width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
               />
               <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
             </div>
@@ -1400,7 +1400,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
                       id={`qte-commande-${probleme.id}`}
                       type="number" min={manque} max={999} value={commandeBo.qteCommande}
                       onChange={(e) => setCommandeBo({ ...commandeBo, qteCommande: e.target.value })}
-                      style={{ ...champStyle, width: 64, textAlign: "center", fontSize: 12, padding: "6px 4px" }}
+                      style={{ ...champStyle, flex: "none", width: 64, textAlign: "center", fontSize: 12, padding: "6px 4px" }}
                     />
                   </div>
                   <div style={{ fontSize: 11, marginBottom: 8, color: tropPeu ? "var(--danger)" : "var(--text-muted)" }}>
