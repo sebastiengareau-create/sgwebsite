@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import BanderoleBo from "../components/BanderoleBo";
-import { dateBon, bonEstAVenir, regrouperParJour, regrouperParMois, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
+import DossiersParMois from "../components/DossiersParMois";
+import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -90,7 +91,7 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
               {g.elements.map((b) => <CarteBon key={b.id} b={b} />)}
             </section>
           ))}
-          <DossierFactures bons={anciens} ouvert={!!recherche.trim()} carte={(b) => <CarteBon key={b.id} b={b} />} />
+          <DossiersParMois elements={anciens} obtenirDate={dateFacturation} ouvert={!!recherche.trim()} carte={(b) => <CarteBon key={b.id} b={b} />} />
           {bonsFiltres.length === 0 && (
             <p style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>
               Aucun bon {recherche ? `ne correspond à "${recherche}"` : "dans cette catégorie"}.
@@ -127,7 +128,7 @@ function TableauBons({ bons, ouvert }) {
                   {g.elements.map((b) => <CarteBonCompacte key={b.id} b={b} />)}
                 </div>
               ))}
-              <DossierFactures bons={anciens} ouvert={ouvert} compact carte={(b) => <CarteBonCompacte key={b.id} b={b} />} />
+              <DossiersParMois elements={anciens} obtenirDate={dateFacturation} ouvert={ouvert} compact carte={(b) => <CarteBonCompacte key={b.id} b={b} />} />
               {bonsColonne.length === 0 && (
                 <p style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", textAlign: "center", padding: "10px 0" }}>
                   {cle === "PLANIFIE" ? "Aucun bon à venir" : "Vide"}
@@ -207,24 +208,6 @@ function PastilleDate({ date, couleur, heure }) {
       {heure && <span style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 1 }}>{heure}</span>}
     </div>
   );
-}
-
-// Bons facturés avant ce mois-ci : un dossier repliable par mois de
-// facturation, du plus récent au plus ancien. Une recherche en cours les
-// ouvre pour montrer les résultats.
-function DossierFactures({ bons, ouvert, compact, carte }) {
-  return regrouperParMois(bons, dateFacturation).map((m) => (
-    <details key={`${m.cle}-${ouvert}`} open={ouvert} className="dossier-factures" style={{ marginTop: compact ? 2 : 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: compact ? "6px 8px" : "8px 10px" }}>
-      <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: 6, userSelect: "none", fontSize: compact ? 12 : 13, fontWeight: 700 }}>
-        <span className="chevron-dossier" style={{ color: "var(--text-muted)", fontSize: 10 }}>▶</span>
-        📁 {m.libelle}
-        <span style={{ marginLeft: "auto", fontSize: 11, color: STATUTS.TERMINE.color, background: `${STATUTS.TERMINE.color}22`, borderRadius: 999, padding: "1px 8px" }}>{m.elements.length}</span>
-      </summary>
-      <div style={{ display: "flex", flexDirection: "column", gap: compact ? 6 : 8, marginTop: 8 }}>
-        {m.elements.map(carte)}
-      </div>
-    </details>
-  ));
 }
 
 // Titre d'une journée — les jours à venir sont marqués pour distinguer les

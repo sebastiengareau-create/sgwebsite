@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
-import { regrouperParJour } from "@/lib/regroupementDates";
+import { regrouperParJour, cleMoisQuebec } from "@/lib/regroupementDates";
+import DossiersParMois from "../../components/DossiersParMois";
 
 const STATUTS = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
@@ -24,6 +25,65 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
     if (!q) return true;
     return f.numero.toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q);
   });
+
+  // « Toutes » : les factures du mois en cours restent affichées une par une,
+  // les plus anciennes vont dans un dossier repliable par mois d'émission
+  const moisCourant = cleMoisQuebec(new Date());
+  const anciennes = filtre === "TOUTES" ? facturesFiltrees.filter((f) => cleMoisQuebec(f.dateEmission) < moisCourant) : [];
+  const recentes = facturesFiltrees.filter((f) => !anciennes.includes(f));
+  const totalSansAnnulees = (liste) => liste.filter((f) => f.statut !== "ANNULEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
+
+  function carteFacture(f) {
+    const joursEcoules = Math.floor((Date.now() - new Date(f.dateEmission).getTime()) / 86400000);
+    const enRetard = f.statut === "IMPAYEE" && joursEcoules > 30;
+    return (
+      <div
+        key={f.id}
+        onClick={() => router.push(`/bons/${f.bon.id}`)}
+        style={{ cursor: "pointer", background: "var(--surface)", border: enRetard ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${STATUTS[f.statut].color}` }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace" }}>
+            #{f.numero}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {enRetard && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#17150f", background: "var(--danger)", padding: "2px 7px", borderRadius: 999 }}>
+                ⚠ {joursEcoules}j
+              </span>
+            )}
+            <span style={{ fontSize: 11, fontWeight: 700, color: STATUTS[f.statut].color }}>{STATUTS[f.statut].label}</span>
+          </div>
+        </div>
+        <div style={{ fontWeight: 600, marginTop: 2 }}>{f.bon.client.nom}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
+        {f.statut === "PAYEE" && f.referenceVersement && (
+          <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {f.referenceVersement}</div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalAvecTaxes.toFixed(2)} $</span>
+          {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setFactureAPayer(f.id); }}
+              className="bouton-3d"
+              style={{ fontSize: 11, fontWeight: 700, padding: "7px 12px", borderRadius: 8 }}
+            >
+              Marquer payée
+            </button>
+          )}
+        </div>
+        {factureAPayer === f.id && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <FormulaireEncaissement
+              comptesTresorerie={comptesTresorerie}
+              onConfirmer={(compteTresorerieId, modePaiement, reference) => marquerPayee(f.id, compteTresorerieId, modePaiement, reference)}
+              onAnnuler={() => setFactureAPayer(null)}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
   const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
@@ -92,68 +152,22 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {regrouperParJour(facturesFiltrees, (f) => f.dateEmission).map((g) => (
+        {regrouperParJour(recentes, (f) => f.dateEmission).map((g) => (
           <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "0 2px" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>{g.libelle}</span>
               <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                ({g.elements.length}) · {g.elements.filter((f) => f.statut !== "ANNULEE").reduce((s, f) => s + f.totalAvecTaxes, 0).toFixed(2)} $
+                ({g.elements.length}) · {totalSansAnnulees(g.elements).toFixed(2)} $
               </span>
               <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
-        {g.elements.map((f) => {
-          const joursEcoules = Math.floor((Date.now() - new Date(f.dateEmission).getTime()) / 86400000);
-          const enRetard = f.statut === "IMPAYEE" && joursEcoules > 30;
-          return (
-          <div
-            key={f.id}
-            onClick={() => router.push(`/bons/${f.bon.id}`)}
-            style={{ cursor: "pointer", background: "var(--surface)", border: enRetard ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${STATUTS[f.statut].color}` }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace" }}>
-                #{f.numero}
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {enRetard && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#17150f", background: "var(--danger)", padding: "2px 7px", borderRadius: 999 }}>
-                    ⚠ {joursEcoules}j
-                  </span>
-                )}
-                <span style={{ fontSize: 11, fontWeight: 700, color: STATUTS[f.statut].color }}>{STATUTS[f.statut].label}</span>
-              </div>
-            </div>
-            <div style={{ fontWeight: 600, marginTop: 2 }}>{f.bon.client.nom}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
-            {f.statut === "PAYEE" && f.referenceVersement && (
-              <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {f.referenceVersement}</div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-              <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalAvecTaxes.toFixed(2)} $</span>
-              {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setFactureAPayer(f.id); }}
-                  className="bouton-3d"
-                  style={{ fontSize: 11, fontWeight: 700, padding: "7px 12px", borderRadius: 8 }}
-                >
-                  Marquer payée
-                </button>
-              )}
-            </div>
-            {factureAPayer === f.id && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <FormulaireEncaissement
-                  comptesTresorerie={comptesTresorerie}
-                  onConfirmer={(compteTresorerieId, modePaiement, reference) => marquerPayee(f.id, compteTresorerieId, modePaiement, reference)}
-                  onAnnuler={() => setFactureAPayer(null)}
-                />
-              </div>
-            )}
-          </div>
-          );
-        })}
+        {g.elements.map(carteFacture)}
           </div>
         ))}
+        <DossiersParMois
+          elements={anciennes} obtenirDate={(f) => f.dateEmission} carte={carteFacture}
+          ouvert={!!recherche.trim()} resume={(liste) => `${totalSansAnnulees(liste).toFixed(2)} $`}
+        />
         {facturesFiltrees.length === 0 && (
           <div style={{ textAlign: "center", padding: "30px 16px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 12 }}>
             <div style={{ fontSize: 30, marginBottom: 8 }}>🧾</div>
