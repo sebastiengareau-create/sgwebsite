@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { CLIENT } from "@/lib/client";
 
 function fmt(montant) {
   return `${montant.toFixed(2)} $`;
@@ -130,7 +131,11 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
           <BoutonAction icone="🔧" label="Nouveau bon de travail" href="/secretaire/nouveau" />
           <BoutonAction icone="🧑‍🤝‍🧑" label="Nouveau client" href="/secretaire/clients" />
           <BoutonAction icone="🛒" label="Dépense" href="/gerant/comptabilite/comptes-a-payer" />
-          <BoutonAction icone="👥" label="Employé / Paie" href="/gerant/paie" />
+          {CLIENT.actionRapideInventaire ? (
+            <BoutonAction icone="📦" label="Inventaire" href="/secretaire/inventaire" />
+          ) : (
+            <BoutonAction icone="👥" label="Employé / Paie" href="/gerant/paie" />
+          )}
           <BoutonAction icone="📊" label="Rapports" href="/gerant/rapports" />
         </div>
       </div>
