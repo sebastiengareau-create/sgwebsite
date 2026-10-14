@@ -696,6 +696,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             index={idx}
             bonId={bon.id}
             inventaire={inventaire}
+            fournisseurs={fournisseurs}
+            peutCommander={peutCommander}
             employes={employes}
             postesRevenu={postesRevenu}
             peutModifier={peutModifier}
@@ -728,7 +730,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
   const [pieceChoisie, setPieceChoisie] = useState("");
   const [recherchePiece, setRecherchePiece] = useState("");
   const [afficherSuggestionsPiece, setAfficherSuggestionsPiece] = useState(false);
@@ -762,7 +764,10 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
   const [nomEnEdition, setNomEnEdition] = useState(probleme.description);
   const [erreurNom, setErreurNom] = useState("");
 
-  const piecesDisponibles = inventaire.filter((p) => p.qte > 0);
+  // Qui peut commander voit aussi les pièces sans stock : elles s'ajoutent en
+  // B/O avec une commande au fournisseur (commanderEnBo)
+  const piecesDisponibles = peutCommander ? inventaire : inventaire.filter((p) => p.qte > 0);
+  const [commandeBo, setCommandeBo] = useState(null); // { fournisseurId } : confirmation de commande en B/O ouverte
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
   const suggestionsPieces = qPiece
@@ -784,6 +789,7 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
 
   function choisirPiece(p) {
     setPieceChoisie(p.id);
+    setCommandeBo(null);
     setRecherchePiece("");
     setAfficherSuggestionsPiece(false);
   }
@@ -799,7 +805,7 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
         : `Code « ${code} » inconnu — associe-le à une pièce dans Inventaire (📷 Scanner une pièce).`);
       return;
     }
-    if (piece.qte <= 0) {
+    if (piece.qte <= 0 && !peutCommander) {
       setErreurPiece(`${piece.nom} : rupture de stock (0 en stock).`);
       return;
     }
@@ -946,6 +952,13 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
     setErreurPiece("");
     setConfirmationPiece("");
     if (!pieceChoisie) return;
+    // Pas assez en stock : proposer de commander le reste et le mettre en B/O
+    if (peutCommander && pieceSelectionnee && Math.max(1, parseInt(qtePiece) || 1) > pieceSelectionnee.qte) {
+      const habituel = [pieceSelectionnee.fournisseurId, ...(pieceSelectionnee.fournisseurs || []).map((f) => f.fournisseurId)]
+        .find((id) => id && fournisseurs.some((f) => f.id === id));
+      setCommandeBo({ fournisseurId: habituel || "" });
+      return;
+    }
     setEnCours(true);
     const res = await fetch(`/api/bons/${bonId}/pieces`, {
       method: "POST",
@@ -964,6 +977,33 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
     setConfirmationPiece("Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 2500);
+  }
+
+  async function commanderEnBo() {
+    setErreurPiece("");
+    if (!commandeBo?.fournisseurId) {
+      setErreurPiece("Choisis le fournisseur chez qui commander.");
+      return;
+    }
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bonId}/pieces/commander`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problemeId: probleme.id, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1), fournisseurId: commandeBo.fournisseurId }),
+    });
+    setEnCours(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setErreurPiece(data.erreur || "Erreur lors de la commande.");
+      return;
+    }
+    setCommandeBo(null);
+    setPieceChoisie("");
+    setRecherchePiece("");
+    setQtePiece("1");
+    setConfirmationPiece(`${data.enStock > 0 ? `${data.enStock} sortie(s) du stock, ` : ""}${data.aCommander} en B/O — ajoutée(s) à la commande ${data.numero} ✓`);
+    onRafraichir();
+    setTimeout(() => setConfirmationPiece(""), 4000);
   }
 
   async function retirerPiece(pieceUtiliseeId) {
@@ -1306,7 +1346,7 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
                     </div>
                     <div style={{ maxHeight: 260, overflowY: "auto" }}>
                       {suggestionsPieces.length === 0 ? (
-                        <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>Aucune pièce en stock trouvée</div>
+                        <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>{peutCommander ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
                       ) : suggestionsPieces.map((p) => (
                         <button
                           key={p.id}
@@ -1314,7 +1354,7 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
                           onClick={() => choisirPiece(p)}
                           style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
                         >
-                          {p.nom} — {p.qte} en stock
+                          {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? "0 en stock · à commander" : `${p.qte} en stock`}</span>
                           {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
                         </button>
                       ))}
@@ -1324,13 +1364,49 @@ function LigneTache({ probleme, index, bonId, inventaire, employes, postesRevenu
               </div>
               <input
                 type="number" min={1} value={qtePiece}
-                onChange={(e) => setQtePiece(e.target.value)}
+                onChange={(e) => { setQtePiece(e.target.value); setCommandeBo(null); }}
                 onBlur={() => setQtePiece(String(Math.max(1, parseInt(qtePiece) || 1)))}
                 style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
               />
               <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
             </div>
           )}
+          {!verrouille && commandeBo && pieceSelectionnee && (() => {
+            const qteVoulue = Math.max(1, parseInt(qtePiece) || 1);
+            const enStock = Math.max(0, Math.min(pieceSelectionnee.qte, qteVoulue));
+            return (
+              <div style={{ marginTop: 8, padding: "10px 12px", border: "1px solid #D9822B", borderRadius: 8, fontSize: 12 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <strong>{pieceSelectionnee.nom}</strong> : {pieceSelectionnee.qte <= 0 ? "aucune en stock" : `seulement ${pieceSelectionnee.qte} en stock`}.
+                  {" "}Passer une commande de <strong>{qteVoulue - enStock}</strong> et l'ajouter au bon en <strong>B/O</strong> jusqu'à réception ?
+                  {enStock > 0 && <> {enStock === 1 ? "Celle en stock sort" : `Les ${enStock} en stock sortent`} tout de suite.</>}
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                    Elle compte dans le total du bon ; le bon se facture une fois la commande reçue.
+                  </div>
+                </div>
+                {fournisseurs.length === 0 ? (
+                  <div style={{ color: "var(--text-muted)" }}>
+                    Aucun fournisseur au dossier — ajoute-le d'abord dans <Link href="/gerant/fournisseurs" style={{ color: "var(--accent)" }}>Fournisseurs</Link>.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    <select
+                      value={commandeBo.fournisseurId}
+                      onChange={(e) => setCommandeBo({ fournisseurId: e.target.value })}
+                      style={{ ...champStyle, fontSize: 12, padding: "6px 8px", flex: 1, minWidth: 140 }}
+                    >
+                      <option value="">Fournisseur…</option>
+                      {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+                    </select>
+                    <button onClick={commanderEnBo} disabled={enCours || !commandeBo.fournisseurId} className="bouton-3d" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+                      🛒 Commander en B/O
+                    </button>
+                    <button onClick={() => setCommandeBo(null)} style={boutonTexte}>Annuler</button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {erreurPiece && <p style={{ color: "var(--danger)", fontSize: 11, marginTop: 6 }}>{erreurPiece}</p>}
           {confirmationPiece && <p style={{ color: "var(--success)", fontSize: 11, marginTop: 6 }}>{confirmationPiece}</p>}
         </div>

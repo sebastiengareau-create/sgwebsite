@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, sortirDuStockPourBon } from "@/lib/bons";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -30,35 +30,7 @@ export async function POST(request, props) {
       const piece = await tx.piece.findUnique({ where: { id: pieceId } });
       if (!piece) throw new Error("INTROUVABLE");
       if (!piece.actif) throw new Error("DESACTIVEE");
-      if (piece.qte < quantite) throw new Error("STOCK_INSUFFISANT");
-
-      const nouvelleQte = piece.qte - quantite;
-      await tx.piece.update({
-        where: { id: pieceId },
-        data: {
-          qte: nouvelleQte,
-          mouvements: {
-            create: {
-              type: "VENTE", qte: -quantite, solde: nouvelleQte,
-              note: `Bon #${probleme.bon.numero} — ${probleme.bon.client.nom}`, creePar: session.nom,
-            },
-          },
-        },
-      });
-
-      // Le coût unitaire est figé à la sortie du stock : c'est lui que la
-      // facture passera en coût des pièces vendues, même si le coût moyen de
-      // la pièce change d'ici là (sinon inventaire et grand livre divergent).
-      // (une ligne B/O de la même pièce reste à part : elle n'est pas sortie du stock)
-      const existante = await tx.pieceUtilisee.findFirst({ where: { problemeId, pieceId, bo: false } });
-      if (existante) {
-        const qteTotale = existante.qte + quantite;
-        const coutant = (existante.qte * (existante.coutant ?? piece.coutant) + quantite * piece.coutant) / qteTotale;
-        return tx.pieceUtilisee.update({ where: { id: existante.id }, data: { qte: qteTotale, coutant } });
-      }
-      return tx.pieceUtilisee.create({
-        data: { problemeId, pieceId, qte: quantite, prix: piece.prix, coutant: piece.coutant },
-      });
+      return sortirDuStockPourBon(tx, { probleme, piece, quantite, creePar: session.nom });
     });
     return NextResponse.json(resultat);
   } catch (e) {
