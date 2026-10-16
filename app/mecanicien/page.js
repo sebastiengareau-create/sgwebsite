@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import EnTete from "../components/EnTete";
 import TachePoincon from "./TachePoincon";
+import TachePhoto from "./TachePhoto";
 import SectionTachesInternes from "./SectionTachesInternes";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { jobsDeplacementActif } from "@/lib/envois";
@@ -35,7 +36,7 @@ export default async function EspaceMecanicien() {
     where: { statut: { not: "TERMINE" } },
     include: {
       client: true,
-      problemes: { orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } } } },
+      problemes: { orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } }, _count: { select: { photos: true } } } },
     },
     orderBy: { creeLe: "desc" },
   });
@@ -206,11 +207,14 @@ function TachesBon({ b, monId }) {
         return (
           <div key={pr.id} style={{ background: "var(--bg)", border: monEntree ? "1px solid var(--accent)" : "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
             <div style={{ fontSize: 13 }}><strong style={{ color: "var(--text-muted)" }}>{idxTache + 1}.</strong> {pr.description}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                 {totalFini > 0 ? `Ton temps : ${fmtHeures(totalFini)}` : "Non commencé"}
               </span>
-              <TachePoincon problemeId={pr.id} actif={!!monEntree} debut={monEntree?.debut} />
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginLeft: "auto" }}>
+                <TachePhoto bonId={b.id} problemeId={pr.id} nbPhotos={pr._count.photos} />
+                <TachePoincon problemeId={pr.id} actif={!!monEntree} debut={monEntree?.debut} />
+              </div>
             </div>
           </div>
         );
