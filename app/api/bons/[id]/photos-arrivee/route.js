@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 import { estPositionArrivee } from "@/lib/photosArrivee";
+import { CLIENT } from "@/lib/client";
 
 // Photo du véhicule à l'arrivée (voir lib/photosArrivee.js) : une par
 // position, remplacée si elle existe déjà.
@@ -10,6 +11,7 @@ export async function POST(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
   if (!session) return NextResponse.json({ erreur: "Non connecté." }, { status: 401 });
+  if (!CLIENT.photosArrivee) return NextResponse.json({ erreur: "Photos à l'arrivée non activées." }, { status: 403 });
   if (await bonEstVerrouille(params.id)) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
+import { CLIENT } from "@/lib/client";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -20,7 +21,7 @@ export default async function DetailBonPage(props) {
       vehicule: true,
       vehiculeVente: { select: { id: true, numero: true } },
       // Positions seulement : les images se chargent sur demande
-      photosArrivee: { select: { id: true, position: true, ajouteeLe: true } },
+      photosArrivee: CLIENT.photosArrivee ? { select: { id: true, position: true, ajouteeLe: true } } : false,
       problemes: {
         orderBy: { id: "asc" },
         include: {

@@ -50,6 +50,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   ouvre la recherche sur les sites des fournisseurs (ceux de Paramètres →
   « Rechercher des pièces ») sans passer par une commande en brouillon. On n'y
   colle pas de résultat : pour l'ajouter, passer par une commande.
+- `photosArrivee: true` — à la création d'un bon, **5 photos du véhicule à
+  l'arrivée** (Coin 1 à 4, Dash), compressées fort (800 px, JPEG 0,5) pour
+  prendre le moins d'espace possible. Gardées en haut du bon, repliées et
+  cliquables sur demande ; jamais imprimées. Facultatives.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

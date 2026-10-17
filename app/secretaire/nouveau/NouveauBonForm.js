@@ -288,9 +288,13 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       )}
       {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Photos du véhicule à l'arrivée</div>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 6px" }}>Gardées en référence en haut du bon, jamais imprimées.</p>
-      <PrisePhotosArrivee valeurs={photosArrivee} onChange={setPhotosArrivee} />
+      {CLIENT.photosArrivee && (
+        <>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Photos du véhicule à l'arrivée</div>
+          <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 6px" }}>Gardées en référence en haut du bon, jamais imprimées.</p>
+          <PrisePhotosArrivee valeurs={photosArrivee} onChange={setPhotosArrivee} />
+        </>
+      )}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Problèmes signalés</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
