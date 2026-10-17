@@ -117,7 +117,9 @@ export async function POST(request) {
           }
         : undefined,
     },
+    // Ids des tâches dans l'ordre des lignes, pour y joindre les photos prises à la création
+    include: { problemes: { select: { id: true }, orderBy: { id: "asc" } } },
   }));
 
-  return NextResponse.json({ id: bon.id, numero: bon.numero });
+  return NextResponse.json({ id: bon.id, numero: bon.numero, problemeIds: bon.problemes.map((p) => p.id) });
 }

@@ -7,6 +7,7 @@ import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import OptionVehicule from "../../components/OptionVehicule";
 import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
+import { compresserImage } from "@/lib/images";
 import { libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 
@@ -46,6 +47,10 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   // Photos du véhicule à l'arrivée : { position: dataUrl }, envoyées une fois le bon créé
   const [photosArrivee, setPhotosArrivee] = useState({});
   const [problemes, setProblemes] = useState([""]);
+  // Photos de chaque ligne de problème (profil photosTachesCreation) : une
+  // liste de dataUrl par ligne, jointes à sa tâche une fois le bon créé
+  const [photosProblemes, setPhotosProblemes] = useState([[]]);
+  const [erreurPhotoProbleme, setErreurPhotoProbleme] = useState("");
   const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
   // Module Calendrier désactivé : le bon ne s'y inscrit pas (case cachée)
   const [ajouterAuCalendrier, setAjouterAuCalendrier] = useState(calendrierActif);
@@ -121,9 +126,23 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   }
   function ajouterLigneProbleme() {
     setProblemes((prev) => [...prev, ""]);
+    setPhotosProblemes((prev) => [...prev, []]);
   }
   function supprimerLigneProbleme(index) {
     setProblemes((prev) => prev.filter((_, i) => i !== index));
+    setPhotosProblemes((prev) => prev.filter((_, i) => i !== index));
+  }
+  async function ajouterPhotosProbleme(index, fichiers) {
+    setErreurPhotoProbleme("");
+    try {
+      const images = await Promise.all([...fichiers].map((f) => compresserImage(f, 800, 0.5)));
+      setPhotosProblemes((prev) => prev.map((l, i) => (i === index ? [...l, ...images] : l)));
+    } catch (e) {
+      setErreurPhotoProbleme("Impossible de traiter cette photo : " + e.message);
+    }
+  }
+  function retirerPhotoProbleme(index, k) {
+    setPhotosProblemes((prev) => prev.map((l, i) => (i === index ? l.filter((_, j) => j !== k) : l)));
   }
 
   async function creer(e, forcer = false, confirmerDoublon = false) {
@@ -170,7 +189,12 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       setHorsDisponibilite(!!data.horsDisponibilite);
       return;
     }
-    const { id } = await res.json();
+    const { id, problemeIds = [] } = await res.json();
+    // Les lignes vides ne deviennent pas des tâches : les photos suivent les lignes remplies
+    const photosParTache = problemes
+      .map((p, i) => ({ rempli: !!p.trim(), photos: photosProblemes[i] || [] }))
+      .filter((l) => l.rempli)
+      .map((l, k) => ({ problemeId: problemeIds[k], photos: l.photos }));
     // Une photo refusée n'empêche pas d'ouvrir le bon : elle s'y reprend
     setEnCours(true);
     for (const [position, dataUrl] of Object.entries(photosArrivee)) {
@@ -179,6 +203,16 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ position, dataUrl }),
       }).catch(() => null);
+    }
+    for (const { problemeId, photos } of photosParTache) {
+      if (!problemeId) continue;
+      for (const dataUrl of photos) {
+        await fetch(`/api/bons/${id}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ problemeId, dataUrl }),
+        }).catch(() => null);
+      }
     }
     router.push(`/bons/${id}`);
   }
@@ -299,7 +333,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Problèmes signalés</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
         {problemes.map((valeur, i) => (
-          <div key={i} style={{ display: "flex", gap: 6 }}>
+          <div key={i}>
+          <div style={{ display: "flex", gap: 6 }}>
             <span style={{ fontSize: 12, color: "var(--text-muted)", alignSelf: "center", width: 14 }}>{i + 1}.</span>
             <input
               required={i === 0}
@@ -308,11 +343,31 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
               placeholder={i === 0 ? "Ex : Bruit de freinage à l'avant" : "Ajouter un autre problème…"}
               style={{ ...champInput, marginBottom: 0, flex: 1 }}
             />
+            {CLIENT.photosTachesCreation && (
+              <label title="Photo du problème" style={{ ...boutonTexte, alignSelf: "center", fontSize: 17, padding: "0 2px" }}>
+                📷
+                <input type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }}
+                  onChange={(e) => { if (e.target.files?.length) ajouterPhotosProbleme(i, e.target.files); e.target.value = ""; }} />
+              </label>
+            )}
             {problemes.length > 1 && (
               <button type="button" onClick={() => supprimerLigneProbleme(i)} style={boutonTexte}>✕</button>
             )}
           </div>
+          {(photosProblemes[i] || []).length > 0 && (
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "4px 0 0 20px" }}>
+              {photosProblemes[i].map((src, k) => (
+                <div key={k} style={{ position: "relative" }}>
+                  <img src={src} alt={`Photo ${k + 1}`} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)", display: "block" }} />
+                  <button type="button" onClick={() => retirerPhotoProbleme(i, k)} aria-label="Retirer la photo"
+                    style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: 999, border: "none", background: "var(--danger)", color: "#fff", fontSize: 10, lineHeight: "18px", padding: 0, cursor: "pointer" }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          </div>
         ))}
+        {erreurPhotoProbleme && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{erreurPhotoProbleme}</p>}
       </div>
       <button type="button" onClick={ajouterLigneProbleme} style={boutonAjoutLigne}>
         + Ajouter une autre ligne de problème

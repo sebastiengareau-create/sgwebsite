@@ -64,6 +64,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   Taxable, ajoutée au sous-total avant l'escompte, figée sur la facture
   (`totalMaterielAtelier`) et créditée au compte 4060 Autres revenus ; dans
   le rapport des ventes, comptée avec les autres revenus.
+- `photosTachesCreation: true` — à la création d'un bon, un bouton 📷 sur
+  chaque ligne de problème (plusieurs photos possibles, compressées comme
+  les photos à l'arrivée) ; elles deviennent les photos de la tâche, comme
+  celles prises ensuite sur le bon ou dans l'horodateur.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
