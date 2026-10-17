@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
 import { libelleVehicule } from "@/lib/vehicules";
-import { image } from "@/lib/client";
+import { image, CLIENT } from "@/lib/client";
 import { adresseComplete } from "@/lib/adresse";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -185,9 +185,7 @@ export default async function ImprimerBon(props) {
             {!estMainOeuvre && montantManuel > 0.005 && (
               <LigneTravail description={pr.factureDescription || "Service"} qte={pr.factureQte || 1} prix={pr.facturePrixUnitaire || 0} total={montantManuel} />
             )}
-            {pr.pieces.map((l) => (
-              <LigneTravail key={l.id} description={l.bo ? `${l.piece.nom} (B/O — en commande)` : l.piece.nom} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />
-            ))}
+            {!CLIENT.piecesEnHautDuBon && pr.pieces.map((l) => <LignePiece key={l.id} l={l} />)}
 
             {pr.photos.length > 0 && (
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -199,6 +197,14 @@ export default async function ImprimerBon(props) {
           </div>
           );
         })}
+
+        {/* Profil piecesEnHautDuBon : toutes les pièces du bon dans une section à part */}
+        {CLIENT.piecesEnHautDuBon && bon.problemes.some((pr) => pr.pieces.length > 0) && (
+          <div style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>Pièces</div>
+            {bon.problemes.flatMap((pr) => pr.pieces).map((l) => <LignePiece key={l.id} l={l} />)}
+          </div>
+        )}
 
         <div style={{ borderTop: "1px solid #ddd", marginTop: 20, paddingTop: 16 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Temps de main-d'œuvre (taux : {tauxHoraireClient.toFixed(2)} $/h)</div>
@@ -234,6 +240,10 @@ export default async function ImprimerBon(props) {
       </div>
     </div>
   );
+}
+
+function LignePiece({ l }) {
+  return <LigneTravail description={l.bo ? `${l.piece.nom} (B/O — en commande)` : l.piece.nom} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />;
 }
 
 function LigneTravail({ description, hrs, qte, prix, total }) {
