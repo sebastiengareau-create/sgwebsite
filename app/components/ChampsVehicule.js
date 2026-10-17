@@ -92,7 +92,6 @@ export default function ChampsVehicule({ valeur, onChange }) {
       message: trouve.length
         ? `NIV décodé${d.source === "local" ? " (hors ligne — année et marque seulement)" : ""} : ${trouve.join(" ")}`
         : "Ce NIV n'a rien donné — choisis le véhicule dans les listes.",
-      note: d.note || "",
     });
   }
 
@@ -175,7 +174,6 @@ export default function ChampsVehicule({ valeur, onChange }) {
       {v.niv && verifNiv.erreur && <p style={messageErreur}>{verifNiv.erreur}</p>}
       {v.niv && verifNiv.avertissement && <p style={messageAvertissement}>⚠️ {verifNiv.avertissement}</p>}
       {decodage.message && <p style={messageInfo}>{decodage.message}</p>}
-      {decodage.note && <p style={messageAvertissement}>⚠️ {decodage.note}</p>}
 
       <label className="etiquette">Plaque d'immatriculation</label>
       <input
