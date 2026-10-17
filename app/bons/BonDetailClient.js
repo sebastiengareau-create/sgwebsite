@@ -11,6 +11,7 @@ import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
 import { PhotosArriveeBon } from "../components/PhotosArrivee";
 import { CLIENT } from "@/lib/client";
+import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
@@ -261,7 +262,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   const totalAutresRevenus = bon.problemes
     .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
     .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
-  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus;
+  const totalMaterielAtelier = montantMaterielAtelier(totalHeuresTerminees);
+  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   const [escompteInput, setEscompteInput] = useState(String(bon.escompteMontant || 0));
   const [escompteRaisonInput, setEscompteRaisonInput] = useState(bon.escompteRaison || "");
   const escompteApplique = Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
@@ -419,10 +421,16 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 <span style={{ fontWeight: 600 }}>{bon.facture.totalAutresRevenus.toFixed(2)} $</span>
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: bon.facture.totalMaterielAtelier > 0 ? 4 : 8 }}>
               <span style={{ color: "var(--text-muted)" }}>Pièces</span>
               <span style={{ fontWeight: 600 }}>{bon.facture.totalPieces.toFixed(2)} $</span>
             </div>
+            {bon.facture.totalMaterielAtelier > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
+                <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER} ({fmtHeures(bon.facture.heuresFacturees)})</span>
+                <span style={{ fontWeight: 600 }}>{bon.facture.totalMaterielAtelier.toFixed(2)} $</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>Sous-total</span>
               <span style={{ fontWeight: 600 }}>{(bon.facture.totalFacture + (bon.facture.escompteApplique || 0)).toFixed(2)} $</span>
@@ -594,10 +602,16 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 <span style={{ fontWeight: 600 }}>{totalAutresRevenus.toFixed(2)} $</span>
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: TAUX_MATERIEL_ATELIER ? 4 : 8 }}>
               <span style={{ color: "var(--text-muted)" }}>Pièces</span>
               <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
             </div>
+            {TAUX_MATERIEL_ATELIER > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
+                <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER} ({fmtHeures(totalHeuresTerminees)} × {TAUX_MATERIEL_ATELIER.toFixed(2)} $/h)</span>
+                <span style={{ fontWeight: 600 }}>{totalMaterielAtelier.toFixed(2)} $</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>Sous-total</span>
               <span style={{ fontWeight: 600 }}>{sousTotalAvantEscompte.toFixed(2)} $</span>

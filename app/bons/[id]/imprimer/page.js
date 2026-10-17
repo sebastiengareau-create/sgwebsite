@@ -6,6 +6,7 @@ import BoutonImprimer from "./BoutonImprimer";
 import { libelleVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
 import { adresseComplete } from "@/lib/adresse";
+import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -60,9 +61,10 @@ export default async function ImprimerBon(props) {
   const totalAutresRevenus = estFacturee
     ? (bon.facture.totalAutresRevenus || 0)
     : bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE").reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
+  const totalMaterielAtelier = estFacturee ? (bon.facture.totalMaterielAtelier || 0) : montantMaterielAtelier(totalHeures);
   const sousTotalAvantEscompte = estFacturee
     ? bon.facture.totalFacture + (bon.facture.escompteApplique || 0)
-    : totalPieces + totalMainOeuvre + totalAutresRevenus;
+    : totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   const escompteApplique = estFacturee
     ? (bon.facture.escompteApplique || 0)
     : Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
@@ -206,6 +208,13 @@ export default async function ImprimerBon(props) {
           </div>
         )}
 
+        {/* Au bas des travaux : heures facturées × taux (lib/materielAtelier.js) */}
+        {totalMaterielAtelier > 0.005 && (
+          <div style={{ marginBottom: 14 }}>
+            <LigneTravail description={LIBELLE_MATERIEL_ATELIER} hrs={fmtHeures(totalHeures)} prix={estFacturee && totalHeures > 0 ? totalMaterielAtelier / totalHeures : TAUX_MATERIEL_ATELIER} total={totalMaterielAtelier} />
+          </div>
+        )}
+
         <div style={{ borderTop: "1px solid #ddd", marginTop: 20, paddingTop: 16 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Temps de main-d'œuvre (taux : {tauxHoraireClient.toFixed(2)} $/h)</div>
           {totalHeures > 0.005 ? (
@@ -219,6 +228,7 @@ export default async function ImprimerBon(props) {
           <LigneTotal label="Main-d'œuvre" valeur={totalMainOeuvre} />
           {totalAutresRevenus > 0 && <LigneTotal label="Autres services" valeur={totalAutresRevenus} />}
           <LigneTotal label="Pièces" valeur={totalPieces} />
+          {totalMaterielAtelier > 0 && <LigneTotal label={LIBELLE_MATERIEL_ATELIER} valeur={totalMaterielAtelier} />}
           <LigneTotal label="Sous-total" valeur={sousTotalAvantEscompte} gras={escompteApplique === 0} bordureHaut />
           {escompteApplique > 0 && (
             <>

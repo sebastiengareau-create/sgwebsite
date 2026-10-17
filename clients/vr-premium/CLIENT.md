@@ -59,6 +59,11 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   section par tâche. Les pièces ajoutées sont rattachées à la première tâche
   du bon ; sur la facture (page imprimée et PDF), elles sont dans une
   section « Pièces » à part, après les tâches.
+- `materielAtelierParHeure: 1.5` — au bas de la facture, une ligne
+  **« Matériel d'atelier »** : heures de main-d'œuvre facturées × 1,50 $.
+  Taxable, ajoutée au sous-total avant l'escompte, figée sur la facture
+  (`totalMaterielAtelier`) et créditée au compte 4060 Autres revenus ; dans
+  le rapport des ventes, comptée avec les autres revenus.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

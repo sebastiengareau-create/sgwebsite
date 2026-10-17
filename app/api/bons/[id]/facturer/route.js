@@ -4,6 +4,7 @@ import { prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { posterFactureEmise } from "@/lib/comptabilite";
 import { MODE_PAIEMENT_COUTANT, posterCapitalisationBon } from "@/lib/vehiculesAVendre";
+import { montantMaterielAtelier } from "@/lib/materielAtelier";
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -67,7 +68,8 @@ export async function POST(request, props) {
   const totalAutresRevenus = bon.problemes
     .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
     .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
-  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus;
+  const totalMaterielAtelier = montantMaterielAtelier(heuresFacturees);
+  const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   const escompte = Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte); // jamais négatif
   const totalFacture = sousTotalAvantEscompte - escompte;
 
@@ -85,6 +87,7 @@ export async function POST(request, props) {
         totalPieces,
         totalMainOeuvre,
         totalAutresRevenus,
+        totalMaterielAtelier,
         escompteApplique: escompte,
         totalFacture,
         tauxHoraireUtilise: tauxHoraireClient,
