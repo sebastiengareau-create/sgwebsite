@@ -7,6 +7,7 @@ import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
+import RecherchePieces from "../../components/RecherchePieces";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroContient } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
@@ -14,7 +15,7 @@ import { CLIENT } from "@/lib/client";
 
 const CLE_TRI = "inventaire_tri";
 
-export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial }) {
+export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, sitesPieces = null }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherCategories, setAfficherCategories] = useState(false);
@@ -22,6 +23,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
   const [tri, setTri] = useState("numero");
   const [voirDesactivees, setVoirDesactivees] = useState(false);
   const [scannerOuvert, setScannerOuvert] = useState(false);
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
   const [codeInconnu, setCodeInconnu] = useState(null);
   const [messageScan, setMessageScan] = useState("");
   const [codeBarreNouvelle, setCodeBarreNouvelle] = useState("");
@@ -95,6 +97,16 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
       >
         📷 Scanner une pièce
       </button>
+      {sitesPieces && (
+        <button
+          onClick={() => setRechercheOuverte(true)}
+          className="bouton-3d-sombre"
+          style={{ display: "block", width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 12 }}
+        >
+          🔎 Rechercher chez nos fournisseurs
+        </button>
+      )}
+      {rechercheOuverte && <RecherchePieces sites={sitesPieces} onFermer={() => setRechercheOuverte(false)} />}
       {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
       {messageScan && <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 12px" }}>{messageScan}</p>}
       {codeInconnu && (
