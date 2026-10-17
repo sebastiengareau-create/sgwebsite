@@ -6,7 +6,7 @@ import BoutonImprimer from "./BoutonImprimer";
 import { libelleVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
 import { adresseComplete } from "@/lib/adresse";
-import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
+import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -211,8 +211,11 @@ export default async function ImprimerBon(props) {
         {/* Au bas des travaux : heures facturées × taux (lib/materielAtelier.js) */}
         {totalMaterielAtelier > 0.005 && (
           <div style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{LIBELLE_MATERIEL_ATELIER}</div>
-            <LigneTravail description="Heures de main-d'œuvre" hrs={fmtHeures(totalHeures)} prix={estFacturee && totalHeures > 0 ? totalMaterielAtelier / totalHeures : TAUX_MATERIEL_ATELIER} total={totalMaterielAtelier} />
+            {/* Même caractère que le titre « Pièces » ; le montant seul, sans les heures ni le taux */}
+            <div style={{ display: "grid", gridTemplateColumns: COLONNES_TRAVAUX, alignItems: "baseline" }}>
+              <span style={{ gridColumn: "1 / 5", fontSize: 14, fontWeight: 600 }}>{LIBELLE_MATERIEL_ATELIER}</span>
+              <span style={{ fontSize: 12, textAlign: "right", fontWeight: 600 }}>{totalMaterielAtelier.toFixed(2)} $</span>
+            </div>
           </div>
         )}
 
