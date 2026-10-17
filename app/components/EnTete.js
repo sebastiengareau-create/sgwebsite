@@ -3,6 +3,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
+import { versionEnLigne } from "@/lib/version";
 import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
 import Cloche from "./Cloche";
@@ -82,11 +83,11 @@ export default async function EnTete({ nom, role }) {
   return (
     <div style={{ borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 20, background: "var(--bg)" }}>
       <MinuteurInactivite />
-      <BarreLaterale liens={liens} nomEntreprise={nomEntreprise} />
+      <BarreLaterale liens={liens} nomEntreprise={nomEntreprise} version={versionEnLigne()} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div className="cacher-sur-bureau">
-            <MenuHamburger liens={liens} />
+            <MenuHamburger liens={liens} version={versionEnLigne()} />
           </div>
           <Image src={image("logo.png")} alt={nomEntreprise} width={72} height={48} style={{ objectFit: "contain" }} />
           <div>
