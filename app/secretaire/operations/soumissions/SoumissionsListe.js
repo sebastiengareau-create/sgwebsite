@@ -51,6 +51,10 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
     <div className="conteneur-page">
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>Estimés à donner avant de commencer les travaux.</p>
 
+      <Link href="/secretaire/operations/soumissions/nouvelle" className="bouton-3d" style={{ display: "block", textAlign: "center", padding: 13, borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 16 }}>
+        + Nouvelle soumission
+      </Link>
+
       <input
         value={recherche}
         onChange={(e) => setRecherche(e.target.value)}
