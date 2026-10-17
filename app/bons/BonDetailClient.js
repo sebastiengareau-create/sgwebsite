@@ -13,7 +13,7 @@ import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
-import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
+import { trouverPieceParScan, pieceCorrespond } from "@/lib/codesBarres";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
@@ -748,9 +748,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
   const suggestionsPieces = qPiece
-    ? piecesDisponibles.filter((p) => p.nom.toLowerCase().includes(qPiece) || p.numero?.toLowerCase().includes(qPiece) || autreNumeroContient(p, qPiece)
-      || (p.codeBarre && normaliserCode(p.codeBarre) === normaliserCode(qPiece))
-      || p.fournisseurs?.some((f) => f.numeroFournisseur?.toLowerCase().includes(qPiece)))
+    ? piecesDisponibles.filter((p) => pieceCorrespond(p, qPiece))
     : piecesDisponibles;
   const pieceSelectionnee = piecesDisponibles.find((p) => p.id === pieceChoisie);
 

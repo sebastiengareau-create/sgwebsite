@@ -9,7 +9,7 @@ import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import RecherchePieces from "../../components/RecherchePieces";
 import { useOrdreFiches } from "../../components/NavigationFiches";
-import { trouverPieceParScan, normaliserCode, extraireIdEtiquette, autreNumeroContient } from "@/lib/codesBarres";
+import { trouverPieceParScan, extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 
@@ -35,11 +35,7 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
 
   const piecesFiltrees = pieces.filter((p) => {
     if (!p.actif && !voirDesactivees) return false;
-    const q = recherche.trim().toLowerCase();
-    if (!q) return true;
-    return p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q) || autreNumeroContient(p, q)
-      || (p.codeBarre && normaliserCode(p.codeBarre).includes(normaliserCode(q)))
-      || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q));
+    return pieceCorrespond(p, recherche);
   }).sort(TRIS[tri].comparer);
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
 
