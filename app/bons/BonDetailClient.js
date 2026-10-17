@@ -357,7 +357,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
       <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
       {CLIENT.photosArrivee && <PhotosArriveeBon bonId={bon.id} photos={bon.photosArrivee || []} modifiable={!factureExiste} />}
-      {vehiculeRecherchable && (
+      {vehiculeRecherchable && CLIENT.rechercheSousVehicule && (
         <button
           type="button"
           onClick={() => setRechercheWeb("")}
