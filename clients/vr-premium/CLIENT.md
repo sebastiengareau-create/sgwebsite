@@ -43,6 +43,11 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 - `actionRapideInventaire: true` — dans la Vue d'ensemble du gérant, les
   **actions rapides** offrent « Inventaire » au lieu de « Employé / Paie »
   (la paie reste accessible par le menu).
+- `rechercheFournisseursInventaire: true` — sur la page **Inventaire**, un
+  bouton « 🔎 Rechercher chez nos fournisseurs » sous « Scanner une pièce »
+  ouvre la recherche sur les sites des fournisseurs (ceux de Paramètres →
+  « Rechercher des pièces ») sans passer par une commande en brouillon. On n'y
+  colle pas de résultat : pour l'ajouter, passer par une commande.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
