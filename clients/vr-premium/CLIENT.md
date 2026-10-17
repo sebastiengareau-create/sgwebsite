@@ -54,6 +54,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   l'arrivée** (Coin 1 à 4, Dash), compressées fort (800 px, JPEG 0,5) pour
   prendre le moins d'espace possible. Gardées en haut du bon, repliées et
   cliquables sur demande ; jamais imprimées. Facultatives.
+- `piecesEnHautDuBon: true` — sur le bon, une seule section **« Pièces du
+  bon »** en haut des tâches (plusieurs pièces possibles) au lieu d'une
+  section par tâche. Les pièces ajoutées sont rattachées à la première tâche
+  du bon (la facture les montre sous cette tâche).
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
