@@ -60,7 +60,7 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   du bon ; sur la facture (page imprimée et PDF), elles sont dans une
   section « Pièces » à part, après les tâches.
 - `materielAtelierParHeure: 1.5` — au bas de la facture, une ligne (le montant seul, sans les heures ni le taux)
-  **« Matériel d'atelier »** : heures de main-d'œuvre facturées × 1,50 $.
+  **« Fournitures d'atelier »** : heures de main-d'œuvre facturées × 1,50 $.
   Taxable, ajoutée au sous-total avant l'escompte, figée sur la facture
   (`totalMaterielAtelier`) et créditée au compte 4060 Autres revenus ; dans
   le rapport des ventes, comptée avec les autres revenus.
@@ -68,6 +68,9 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   chaque ligne de problème (plusieurs photos possibles, compressées comme
   les photos à l'arrivée) ; elles deviennent les photos de la tâche, comme
   celles prises ensuite sur le bon ou dans l'horodateur.
+- `rechercheSousVehicule: false` — pas de bouton « 🔎 Rechercher des
+  pièces » sous le véhicule du bon ; la recherche reste dans « Pièces du
+  bon » (bouton 🔎).
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
