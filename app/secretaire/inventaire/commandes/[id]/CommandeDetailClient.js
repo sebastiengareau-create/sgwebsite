@@ -8,7 +8,7 @@ import RecherchePieces from "../../../../components/RecherchePieces";
 import { ResultatPourCommande } from "../../../../components/ResultatsRecherchePieces";
 import { BoutonPartsTech, PanierPartsTech, AttentePanierPartsTech } from "./PartsTech";
 import { STATUTS_COMMANDE, resteARecevoir, quantiteSuggeree } from "@/lib/commandesFournisseurs";
-import { trouverPieceParScan, normaliserCode, autreNumeroContient } from "@/lib/codesBarres";
+import { trouverPieceParScan, pieceCorrespond } from "@/lib/codesBarres";
 import { fournisseurPropose } from "@/lib/recherchePieces";
 
 const dateFr = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
@@ -386,9 +386,7 @@ function AjoutPiece({ pieces, onAjouter }) {
 
   const q = recherche.trim().toLowerCase();
   const suggestions = q
-    ? pieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q) || autreNumeroContient(p, q)
-        || (p.codeBarre && normaliserCode(p.codeBarre) === normaliserCode(q))
-        || p.fournisseurs.some((f) => f.numeroFournisseur?.toLowerCase().includes(q))).slice(0, 8)
+    ? pieces.filter((p) => pieceCorrespond(p, q))
     : [];
 
   function choisir(p) {
@@ -417,7 +415,7 @@ function AjoutPiece({ pieces, onAjouter }) {
         />
       )}
       {suggestions.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6, maxHeight: 320, overflowY: "auto" }}>
           {suggestions.map((p) => (
             <button key={p.id} onClick={() => choisir(p)} style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12.5, cursor: "pointer" }}>
               {p.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>— {p.numero} · stock {p.qte}</span>
