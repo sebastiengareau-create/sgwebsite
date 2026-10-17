@@ -6,6 +6,7 @@ import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
 import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import OptionVehicule from "../../components/OptionVehicule";
+import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 
@@ -42,6 +43,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   const [erreurVehicule, setErreurVehicule] = useState("");
   const [enregistrementVehicule, setEnregistrementVehicule] = useState(false);
 
+  // Photos du véhicule à l'arrivée : { position: dataUrl }, envoyées une fois le bon créé
+  const [photosArrivee, setPhotosArrivee] = useState({});
   const [problemes, setProblemes] = useState([""]);
   const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
   // Module Calendrier désactivé : le bon ne s'y inscrit pas (case cachée)
@@ -168,6 +171,15 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       return;
     }
     const { id } = await res.json();
+    // Une photo refusée n'empêche pas d'ouvrir le bon : elle s'y reprend
+    setEnCours(true);
+    for (const [position, dataUrl] of Object.entries(photosArrivee)) {
+      await fetch(`/api/bons/${id}/photos-arrivee`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ position, dataUrl }),
+      }).catch(() => null);
+    }
     router.push(`/bons/${id}`);
   }
 
@@ -275,6 +287,10 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         </div>
       )}
       {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
+
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Photos du véhicule à l'arrivée</div>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 6px" }}>Gardées en référence en haut du bon, jamais imprimées.</p>
+      <PrisePhotosArrivee valeurs={photosArrivee} onChange={setPhotosArrivee} />
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Problèmes signalés</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
