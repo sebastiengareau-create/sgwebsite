@@ -427,7 +427,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             </div>
             {bon.facture.totalMaterielAtelier > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-                <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER} ({fmtHeures(bon.facture.heuresFacturees)})</span>
+                <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER}</span>
                 <span style={{ fontWeight: 600 }}>{bon.facture.totalMaterielAtelier.toFixed(2)} $</span>
               </div>
             )}
@@ -608,7 +608,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             </div>
             {TAUX_MATERIEL_ATELIER > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-                <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER} ({fmtHeures(totalHeuresTerminees)} × {TAUX_MATERIEL_ATELIER.toFixed(2)} $/h)</span>
+                <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER}</span>
                 <span style={{ fontWeight: 600 }}>{totalMaterielAtelier.toFixed(2)} $</span>
               </div>
             )}
