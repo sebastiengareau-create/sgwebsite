@@ -19,6 +19,8 @@ export default async function DetailBonPage(props) {
       client: { include: { vehicules: { orderBy: { creeLe: "desc" } } } },
       vehicule: true,
       vehiculeVente: { select: { id: true, numero: true } },
+      // Positions seulement : les images se chargent sur demande
+      photosArrivee: { select: { id: true, position: true, ajouteeLe: true } },
       problemes: {
         orderBy: { id: "asc" },
         include: {

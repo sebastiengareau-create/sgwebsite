@@ -9,6 +9,7 @@ import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec
 import { libelleVehicule } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
+import { PhotosArriveeBon } from "../components/PhotosArrivee";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
@@ -352,6 +353,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       )}
       {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
       <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
+      <PhotosArriveeBon bonId={bon.id} photos={bon.photosArrivee || []} modifiable={!factureExiste} />
       {vehiculeRecherchable && (
         <button
           type="button"

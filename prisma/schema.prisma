@@ -130,6 +130,7 @@ model BonTravail {
   vehiculeVente       VehiculeVente? @relation(fields: [vehiculeVenteId], references: [id])
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
   envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
+  photosArrivee       PhotoArrivee[] // photos du véhicule à son arrivée (4 coins + tableau de bord), hors impression
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
@@ -270,6 +271,21 @@ model Photo {
   employeId  String?
   employe    User?    @relation(fields: [employeId], references: [id])
   ajouteeLe  DateTime @default(now())
+}
+
+// Photos du véhicule à son arrivée, prises à la création du bon : une par
+// position (lib/photosArrivee.js). Gardées en référence sur le bon, jamais
+// imprimées. url : image compressée (dataUrl), comme Photo.
+model PhotoArrivee {
+  id        String     @id @default(cuid())
+  bonId     String
+  bon       BonTravail @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  position  String // "COIN_1" | "COIN_2" | "COIN_3" | "COIN_4" | "TABLEAU_BORD"
+  url       String
+  employeId String?
+  ajouteeLe DateTime   @default(now())
+
+  @@unique([bonId, position])
 }
 
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------
