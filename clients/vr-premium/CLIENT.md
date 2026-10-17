@@ -13,6 +13,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   année → marque de VR → modèle → type (Classe A, B, C, roulotte,
   sellette…). Les modèles ne sont pas filtrés par année. La 4e liste
   s'appelle « Type / version », et Assistant SG parle de VR.
+  Le **décodage du NIV** ne remplit la marque et le modèle que si le NIV
+  est celui du VR (roulottes, sellettes, certains Classe A) et que la
+  marque est au catalogue. Pour un NIV de châssis (Ford F-53, Freightliner,
+  Sprinter…), il ne garde que l'année et l'affiche en avertissement.
 - `vehiculeObligatoire: true` — chaque bon porte sur un véhicule (marque et
   modèle exigés, pas d'option « Non précisé », premier véhicule du client
   présélectionné).
