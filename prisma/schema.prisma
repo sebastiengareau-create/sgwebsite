@@ -230,6 +230,7 @@ model Facture {
   totalPieces        Float
   totalMainOeuvre    Float
   totalAutresRevenus Float             @default(0) // remorquage, alignement, entreposage, autre — lignes de facturation manuelle
+  totalMaterielAtelier Float           @default(0) // heures facturées × taux du profil (lib/materielAtelier.js), 0 si non activé
   escompteApplique   Float             @default(0)
   totalFacture       Float
   tauxHoraireUtilise Float
