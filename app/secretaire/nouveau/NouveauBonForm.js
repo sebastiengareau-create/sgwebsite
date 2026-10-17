@@ -133,8 +133,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       setErreur("Ajoute au moins une ligne de problème.");
       return;
     }
-    if (CLIENT.vehiculeObligatoire && choixVehicule === "nouveau" && (!vehicule.marque.trim() || !vehicule.modele.trim())) {
-      setErreur("Indique la marque et le modèle du véhicule, ou choisis-en un du dossier du client.");
+    if (CLIENT.vehiculeObligatoire && choixVehicule === "nouveau" && !Object.values(vehicule).some((v) => String(v || "").trim())) {
+      setErreur("Indique au moins une information sur le véhicule (marque, année, NIV, plaque…), ou choisis-en un du dossier du client.");
       return;
     }
     if (!clientSelectionne && !clientNom.trim()) {

@@ -13,9 +13,11 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   année → marque de VR → modèle → type (Classe A, B, C, roulotte, trailer,
   sellette…). Les modèles ne sont pas filtrés par année. La 4e liste
   s'appelle « Type / version », et Assistant SG parle de VR.
-- `vehiculeObligatoire: true` — chaque bon porte sur un véhicule (marque et
-  modèle exigés, pas d'option « Non précisé », premier véhicule du client
-  présélectionné).
+- `vehiculeObligatoire: true` — chaque bon porte sur un véhicule (pas
+  d'option « Non précisé », premier véhicule du client présélectionné). Un
+  nouveau véhicule peut être incomplet : une seule information suffit
+  (marque, année, NIV, plaque…), le reste se complète plus tard (bouton
+  « Modifier » du nouveau bon, ou fiche du client).
 - `margePrixVente: 40` — à la création d'une pièce d'inventaire, le
   prix de vente est proposé pour une **marge de 40 %** sur la vente :
   coûtant ÷ 0,60 (ex. 10,00 $ → 16,67 $).

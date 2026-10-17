@@ -34,9 +34,9 @@ export async function POST(request) {
   const nouveauVehicule = vehiculeId ? { vide: true } : normaliserVehicule(vehicule);
   if (nouveauVehicule.erreur) return NextResponse.json({ erreur: nouveauVehicule.erreur }, { status: 400 });
   // Profil vehiculeObligatoire : chaque bon porte sur un véhicule — au moins
-  // la marque et le modèle
-  if (CLIENT.vehiculeObligatoire && !vehiculeId && (!nouveauVehicule.data?.marque || !nouveauVehicule.data?.modele)) {
-    return NextResponse.json({ erreur: "Indique la marque et le modèle du véhicule, ou choisis-en un du dossier du client." }, { status: 400 });
+  // une information, le reste peut se compléter plus tard
+  if (CLIENT.vehiculeObligatoire && !vehiculeId && nouveauVehicule.vide) {
+    return NextResponse.json({ erreur: "Indique au moins une information sur le véhicule (marque, année, NIV, plaque…), ou choisis-en un du dossier du client." }, { status: 400 });
   }
 
   // Le bon s'inscrit aussi au calendrier (rendez-vous « BON ») à sa date
