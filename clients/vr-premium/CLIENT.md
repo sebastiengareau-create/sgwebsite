@@ -57,7 +57,8 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 - `piecesEnHautDuBon: true` — sur le bon, une seule section **« Pièces du
   bon »** en haut des tâches (plusieurs pièces possibles) au lieu d'une
   section par tâche. Les pièces ajoutées sont rattachées à la première tâche
-  du bon (la facture les montre sous cette tâche).
+  du bon ; sur la facture (page imprimée et PDF), elles sont dans une
+  section « Pièces » à part, après les tâches.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
