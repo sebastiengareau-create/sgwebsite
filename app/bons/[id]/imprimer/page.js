@@ -210,8 +210,9 @@ export default async function ImprimerBon(props) {
 
         {/* Au bas des travaux : heures facturées × taux (lib/materielAtelier.js) */}
         {totalMaterielAtelier > 0.005 && (
-          <div style={{ marginBottom: 14 }}>
-            <LigneTravail description={LIBELLE_MATERIEL_ATELIER} hrs={fmtHeures(totalHeures)} prix={estFacturee && totalHeures > 0 ? totalMaterielAtelier / totalHeures : TAUX_MATERIEL_ATELIER} total={totalMaterielAtelier} />
+          <div style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{LIBELLE_MATERIEL_ATELIER}</div>
+            <LigneTravail description="Heures de main-d'œuvre" hrs={fmtHeures(totalHeures)} prix={estFacturee && totalHeures > 0 ? totalMaterielAtelier / totalHeures : TAUX_MATERIEL_ATELIER} total={totalMaterielAtelier} />
           </div>
         )}
 
