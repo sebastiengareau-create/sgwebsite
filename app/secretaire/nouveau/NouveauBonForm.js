@@ -36,6 +36,11 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   // (formulaire ci-dessous, ajouté au dossier) ou "" (non précisé)
   const [choixVehicule, setChoixVehicule] = useState("nouveau");
   const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
+  // Véhicule du dossier en cours de modification (plaque, NIV…) : son id
+  const [vehiculeEdite, setVehiculeEdite] = useState(null);
+  const [valeurEditee, setValeurEditee] = useState(VEHICULE_VIDE);
+  const [erreurVehicule, setErreurVehicule] = useState("");
+  const [enregistrementVehicule, setEnregistrementVehicule] = useState(false);
 
   const [problemes, setProblemes] = useState([""]);
   const [datePrevue, setDatePrevue] = useState(() => valeurDateHeureLocale(new Date()));
@@ -46,14 +51,16 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
+  // Tous les clients qui correspondent (tous, champ vide), dans une liste
+  // déroulante
   const suggestions = useMemo(() => {
     const q = rechercheClient.trim().toLowerCase();
-    if (!q) return [];
+    if (!q) return clientsExistants;
     // Retrouve aussi un client par la plaque ou le NIV d'un de ses véhicules
     const qCompact = q.replace(/[\s-]/g, "");
     const parVehicule = (c) => qCompact.length >= 3 && c.vehicules.some((v) =>
       [v.plaque, v.niv].some((x) => x && x.toLowerCase().replace(/[\s-]/g, "").includes(qCompact)));
-    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q) || parVehicule(c)).slice(0, 6);
+    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q) || parVehicule(c));
   }, [rechercheClient, clientsExistants]);
 
   function choisirClient(c) {
@@ -64,6 +71,33 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     const parDefaut = c.vehicules.length === 1 || (CLIENT.vehiculeObligatoire && c.vehicules.length) ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau";
     setChoixVehicule(parDefaut);
     setVehicule(VEHICULE_VIDE);
+    setVehiculeEdite(null);
+  }
+
+  function modifierVehicule(v) {
+    setErreurVehicule("");
+    setVehiculeEdite(v.id);
+    setValeurEditee({ annee: v.annee ? String(v.annee) : "", marque: v.marque || "", modele: v.modele || "", version: v.version || "", niv: v.niv || "", plaque: v.plaque || "" });
+  }
+
+  // Enregistré tout de suite au dossier du client, puis choisi pour le bon
+  async function enregistrerVehicule() {
+    setErreurVehicule("");
+    setEnregistrementVehicule(true);
+    const res = await fetch(`/api/vehicules/${vehiculeEdite}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(valeurEditee),
+    });
+    setEnregistrementVehicule(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setErreurVehicule(data.erreur || "Erreur.");
+      return;
+    }
+    setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }));
+    setChoixVehicule(data.id);
+    setVehiculeEdite(null);
   }
 
   function changerClientPourNouveau() {
@@ -76,6 +110,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setClientCodePostal("");
     setChoixVehicule("nouveau");
     setVehicule(VEHICULE_VIDE);
+    setVehiculeEdite(null);
   }
 
   function changerProbleme(index, valeur) {
@@ -167,7 +202,10 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
             style={champInput}
           />
           {afficherSuggestions && suggestions.length > 0 && (
-            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: -4, overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: -4, maxHeight: 320, overflowY: "auto" }}>
+              <div style={{ padding: "6px 10px", fontSize: 11, color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
+                {suggestions.length} client{suggestions.length > 1 ? "s" : ""}{rechercheClient.trim() ? "" : " — tape un nom pour filtrer"}
+              </div>
               {suggestions.map((c) => (
                 <button
                   key={c.id}
@@ -200,11 +238,35 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
       {clientSelectionne && clientSelectionne.vehicules.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
-          {clientSelectionne.vehicules.map((v) => (
-            <OptionVehicule key={v.id} actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
-              titre={libelleVehicule(v) || "Véhicule sans description"}
-              detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
-            />
+          {clientSelectionne.vehicules.map((v) => vehiculeEdite === v.id ? (
+            // Pas de <form> imbriqué : Entrée enregistre le véhicule au lieu de créer le bon
+            <div key={v.id} onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); enregistrerVehicule(); } }}
+              style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: "4px 10px 10px" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>Modifier le véhicule (enregistré au dossier du client)</div>
+              <ChampsVehicule valeur={valeurEditee} onChange={setValeurEditee} />
+              {erreurVehicule && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 6 }}>{erreurVehicule}</p>}
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <button type="button" onClick={enregistrerVehicule} disabled={enregistrementVehicule} className="bouton-3d" style={{ flex: 1, padding: 9, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+                  {enregistrementVehicule ? "…" : "Enregistrer"}
+                </button>
+                <button type="button" onClick={() => setVehiculeEdite(null)} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 13 }}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div key={v.id} style={{ display: "flex", gap: 6 }}>
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                <OptionVehicule actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
+                  titre={libelleVehicule(v) || "Véhicule sans description"}
+                  detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
+                />
+              </div>
+              <button type="button" onClick={() => modifierVehicule(v)} disabled={vehiculeEdite !== null} className="bouton-3d-sombre"
+                style={{ padding: "0 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+                ✏️ Modifier
+              </button>
+            </div>
           ))}
           <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule (ajouté au dossier du client)" />
           {!CLIENT.vehiculeObligatoire && (
