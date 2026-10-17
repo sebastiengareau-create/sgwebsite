@@ -10,7 +10,7 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 
 - `typeVehicules: "vr"` — **catalogue de VR** (`lib/catalogueVr.js`,
   `lib/catalogueVehiculesVr.json`) au lieu du catalogue automobile :
-  année → marque de VR → modèle → type (Classe A, B, C, roulotte,
+  année → marque de VR → modèle → type (Classe A, B, C, roulotte, trailer,
   sellette…). Les modèles ne sont pas filtrés par année. La 4e liste
   s'appelle « Type / version », et Assistant SG parle de VR.
   Le **décodage du NIV** ne remplit la marque et le modèle que si le NIV
