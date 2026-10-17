@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
-export default function MenuHamburger({ liens }) {
+export default function MenuHamburger({ liens, version }) {
   const [ouvert, setOuvert] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -81,6 +81,7 @@ export default function MenuHamburger({ liens }) {
             >
               🚪 Déconnexion
             </button>
+            {version && <div style={{ fontSize: 10.5, color: "var(--text-muted)", textAlign: "center", marginTop: 10, fontFamily: "monospace" }}>{version}</div>}
           </div>
         </div>
       )}

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 // Menu permanent à gauche sur ordinateur (masqué sous 1100 px par le CSS —
 // voir .barre-laterale dans globals.css). Mêmes liens que le menu hamburger.
-export default function BarreLaterale({ liens, nomEntreprise }) {
+export default function BarreLaterale({ liens, nomEntreprise, version }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -43,6 +43,7 @@ export default function BarreLaterale({ liens, nomEntreprise }) {
         <span style={{ fontSize: 16 }}>🚪</span>
         Déconnexion
       </button>
+      {version && <div style={{ fontSize: 10.5, color: "var(--text-muted)", padding: "8px 12px 0", fontFamily: "monospace" }}>{version}</div>}
     </nav>
   );
 }
