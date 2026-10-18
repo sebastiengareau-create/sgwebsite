@@ -28,7 +28,6 @@ const COMPTE_MAIN_OEUVRE = "4000";
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
   EN_COURS: { label: "En cours", color: "#4F82C0" },
-  PRET: { label: "Prêt", color: "#2FA39A" },
   TERMINE: { label: "Facturé", color: "#6FA96B" },
 };
 
@@ -397,9 +396,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       )}
 
       <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-muted)" }}>
-        Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise. « Prêt » se met à la main, quand le client peut venir chercher son véhicule.
+        Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise.
       </div>
-      {peutModifier && <VehiculePret bon={bon} />}
 
       <div style={{ marginTop: 16, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
         <Label>{bon.facture ? "💰 Facture" : "💰 Résumé de facturation (estimé)"}</Label>
@@ -509,6 +507,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 {messageCourriel && (
                   <p style={{ fontSize: 12, marginTop: 8, color: messageCourriel.type === "succes" ? "var(--success)" : "var(--danger)" }}>{messageCourriel.texte}</p>
                 )}
+                <AvisVehiculePret bon={bon} />
               </div>
             )}
             {payeeParCoutant && (
@@ -1670,95 +1669,63 @@ function DatePrevueBon({ bon, modifiable }) {
   );
 }
 
-// « 🚗 Véhicule prêt » : le bon passe « Prêt » et le client est avisé par
-// courriel (POST /api/bons/[id]/pret). Sur un bon prêt ou facturé, l'avis
-// peut être renvoyé.
-function VehiculePret({ bon }) {
+// « 🚗 Aviser le client » (bon facturé) : courriel au client, au choix, pour
+// lui dire que son véhicule est prêt (POST /api/bons/[id]/avis-pret).
+function AvisVehiculePret({ bon }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
-  const [aviser, setAviser] = useState(!!bon.client.courriel);
   const [courriel, setCourriel] = useState(bon.client.courriel || "");
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null); // { texte, erreur }
-  const dejaPret = bon.statut === "PRET" || bon.statut === "TERMINE";
 
-  async function confirmer() {
+  async function envoyer() {
     setEnCours(true);
     setMessage(null);
-    const res = await fetch(`/api/bons/${bon.id}/pret`, {
+    const res = await fetch(`/api/bons/${bon.id}/avis-pret`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ aviser: dejaPret || aviser, courriel }),
+      body: JSON.stringify({ courriel }),
     });
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
     if (!res.ok) {
-      setMessage({ texte: data.erreur || "Erreur.", erreur: true });
+      setMessage({ texte: data.erreur || "Erreur lors de l'envoi.", erreur: true });
       return;
     }
-    if (data.avisErreur) setMessage({ texte: data.avisErreur, erreur: true });
-    else if (data.avise) setMessage({ texte: `✉️ Avis envoyé à ${data.avise}.` });
-    if (!data.avisErreur) setOuvert(false);
+    setMessage({ texte: `Client avisé à ${data.destinataire} ✓` });
+    setOuvert(false);
     router.refresh();
   }
 
-  async function retirer() {
-    setEnCours(true);
-    setMessage(null);
-    await fetch(`/api/bons/${bon.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ statut: "EN_COURS" }) });
-    setEnCours(false);
-    router.refresh();
-  }
-
-  const bouton = { fontSize: 12, fontWeight: 600, background: "var(--surface)", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8, cursor: "pointer" };
   return (
     <div style={{ marginTop: 8 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-        {!dejaPret && (
-          <button type="button" onClick={() => setOuvert(!ouvert)} disabled={enCours} style={{ ...bouton, color: "#2FA39A", borderColor: "#2FA39A" }}>
-            🚗 Véhicule prêt
+      <button
+        onClick={() => { setMessage(null); setOuvert(!ouvert); }}
+        disabled={enCours}
+        className="bouton-3d-sombre"
+        style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+      >
+        {enCours ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau le client (véhicule prêt)" : "🚗 Aviser le client — véhicule prêt"}
+      </button>
+      {ouvert && (
+        <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+          <input
+            type="email" placeholder="courriel@client.com" value={courriel}
+            onChange={(e) => setCourriel(e.target.value)} autoFocus
+            style={{ flex: 1, padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}
+          />
+          <button onClick={envoyer} disabled={!courriel.trim() || enCours} className="bouton-3d" style={{ padding: "0 14px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+            Envoyer
           </button>
-        )}
-        {dejaPret && (
-          <button type="button" onClick={() => setOuvert(!ouvert)} disabled={enCours} style={{ ...bouton, color: "var(--accent)" }}>
-            ✉️ {bon.avisPretLe ? "Renvoyer l'avis au client" : "Aviser le client"}
-          </button>
-        )}
-        {bon.statut === "PRET" && (
-          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, color: "var(--text-muted)" }}>
-            Retirer « Prêt »
-          </button>
-        )}
-      </div>
-      {bon.avisPretLe && (
-        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-          Client avisé le {dateCourteQuebec(bon.avisPretLe)} à {heureQuebec(bon.avisPretLe)}{bon.avisPretA ? ` (${bon.avisPretA})` : ""}.
         </div>
       )}
-      {ouvert && (
-        <div style={{ marginTop: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, fontSize: 13 }}>
-          {!dejaPret && (
-            <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <input type="checkbox" checked={aviser} onChange={(e) => setAviser(e.target.checked)} />
-              Aviser le client par courriel
-            </label>
-          )}
-          {(dejaPret || aviser) && (
-            <input
-              type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Courriel du client"
-              style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box", marginBottom: 8 }}
-            />
-          )}
-          <button
-            type="button" onClick={confirmer} disabled={enCours || ((dejaPret || aviser) && !courriel.trim())}
-            style={{ ...bouton, color: "#fff", background: "#2FA39A", borderColor: "#2FA39A" }}
-          >
-            {enCours ? "…" : dejaPret ? "Envoyer l'avis" : aviser ? "Marquer prêt et aviser" : "Marquer prêt"}
-          </button>
-        </div>
+      {bon.avisPretLe && !message && (
+        <p style={{ fontSize: 11, marginTop: 6, color: "var(--text-muted)" }}>
+          Avisé le {dateCourteQuebec(bon.avisPretLe)} à {heureQuebec(bon.avisPretLe)}{bon.avisPretA ? ` (${bon.avisPretA})` : ""}.
+        </p>
       )}
       {message && (
-        <div style={{ fontSize: 12, marginTop: 6, color: message.erreur ? "var(--danger)" : "var(--text-muted)" }}>{message.texte}</div>
+        <p style={{ fontSize: 12, marginTop: 8, color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>
       )}
     </div>
   );
