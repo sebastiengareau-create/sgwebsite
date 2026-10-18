@@ -16,7 +16,7 @@ function fmtHeures(h) {
   return `${heures}h${String(min).padStart(2, "0")}`;
 }
 
-const STATUTS = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
+const STATUTS = { EN_ATTENTE: "En attente", EN_COURS: "En cours", PRET: "Prêt", TERMINE: "Facturé" };
 const STATUTS_FACTURE = { IMPAYEE: "Impayée", PAYEE: "Payée", ANNULEE: "Annulée" };
 const COLONNES_TRAVAUX = "1fr 55px 45px 65px 75px"; // description | hrs | qté | prix | total
 

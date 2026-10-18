@@ -13,7 +13,7 @@ export async function PATCH(request, props) {
   const body = await request.json();
   const data = {};
   if (body.statut !== undefined) {
-    if (!["EN_ATTENTE", "EN_COURS", "TERMINE"].includes(body.statut)) {
+    if (!["EN_ATTENTE", "EN_COURS", "PRET", "TERMINE"].includes(body.statut)) {
       return NextResponse.json({ erreur: "Statut invalide." }, { status: 400 });
     }
     data.statut = body.statut;

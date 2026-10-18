@@ -112,7 +112,7 @@ model Vehicule {
 model BonTravail {
   id                  String         @id @default(cuid())
   numero              String         @unique
-  statut              String         @default("EN_ATTENTE") // "EN_ATTENTE" | "EN_COURS" | "TERMINE"
+  statut              String         @default("EN_ATTENTE") // "EN_ATTENTE" | "EN_COURS" | "PRET" | "TERMINE"
   clientId            String
   client              Client         @relation(fields: [clientId], references: [id])
   vehiculeId          String? // véhicule du dossier client sur lequel porte le bon, si précisé
@@ -131,6 +131,9 @@ model BonTravail {
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
   envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
   photosArrivee       PhotoArrivee[] // photos du véhicule à son arrivée (4 coins + tableau de bord), hors impression
+  // Dernier avis « véhicule prêt » envoyé au client (voir lib/avisClient.js)
+  avisPretLe          DateTime?
+  avisPretA           String? // courriel à qui l'avis a été envoyé
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
