@@ -9,7 +9,7 @@ import { ligneVille } from "@/lib/adresse";
 import DossierVehicules from "./DossierVehicules";
 import { libelleVehicule } from "@/lib/vehicules";
 
-const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
+const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", PRET: "Prêt", TERMINE: "Facturé" };
 const STATUTS_SOUMISSION = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée" };
 const JOUR_MS = 86400000;
 

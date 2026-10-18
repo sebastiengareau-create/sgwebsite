@@ -9,6 +9,7 @@ import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, da
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
   EN_COURS: { label: "En cours", color: "#4F82C0" },
+  PRET: { label: "Prêt", color: "#2FA39A" },
   TERMINE: { label: "Facturé", color: "#6FA96B" },
 };
 const PLANIFIE = { label: "Planifié", color: "#9A7FC7" };
@@ -23,7 +24,7 @@ function infosEtape(cle) {
   return cle === "PLANIFIE" ? PLANIFIE : STATUTS[cle];
 }
 
-const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "TERMINE"];
+const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "PRET", "TERMINE"];
 
 // Bons facturés : ceux facturés ce mois-ci restent affichés un par un ; les
 // plus anciens vont dans un dossier repliable par mois de facturation.
