@@ -16,12 +16,14 @@ export default function ClientsClient({ clients, peutImporter }) {
   const [recherche, setRecherche] = useState("");
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [seulementSolde, setSeulementSolde] = useState(false);
+  const [filtre, setFiltre] = useState("TOUS");
 
   const avecSolde = clients.filter((c) => c.soldeDu > 0.005);
   const totalARecevoir = avecSolde.reduce((s, c) => s + c.soldeDu, 0);
 
   const clientsFiltres = clients.filter((c) => {
     if (seulementSolde && !(c.soldeDu > 0.005)) return false;
+    if (!FILTRES[filtre].garde(c)) return false;
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
     const champs = [
@@ -87,9 +89,15 @@ export default function ClientsClient({ clients, peutImporter }) {
         placeholder="🔍 Rechercher par nom, ville, téléphone, courriel, plaque, NIV, véhicule…"
         style={{
           width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-          background: "var(--surface)", color: "var(--text)", fontSize: 13, marginTop: 12, marginBottom: 16, boxSizing: "border-box",
+          background: "var(--surface)", color: "var(--text)", fontSize: 13, marginTop: 12, marginBottom: 10, boxSizing: "border-box",
         }}
       />
+
+      <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>
+        {Object.entries(FILTRES).map(([cle, f]) => (
+          <FiltrePill key={cle} actif={filtre === cle} onClick={() => setFiltre(cle)} label={f.label} nombre={clients.filter(f.garde).length} />
+        ))}
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
         {clientsFiltres.map((c) => (
@@ -132,6 +140,33 @@ export default function ClientsClient({ clients, peutImporter }) {
         )}
       </div>
     </div>
+  );
+}
+
+// Filtres de la liste : clients qui ont déjà eu des bons, qui ont un
+// véhicule au dossier, ou les deux
+const FILTRES = {
+  TOUS: { label: "Tous", garde: () => true },
+  BONS: { label: "📋 Avec bons", garde: (c) => c._count.bons > 0 },
+  VEHICULE: { label: "🚗 Avec véhicule", garde: (c) => c.vehicules.length > 0 },
+  LES_DEUX: { label: "📋 + 🚗 Les deux", garde: (c) => c._count.bons > 0 && c.vehicules.length > 0 },
+};
+
+function FiltrePill({ actif, onClick, label, nombre }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 6,
+        fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, whiteSpace: "nowrap", cursor: "pointer",
+        background: actif ? "var(--accent)" : "var(--surface)",
+        color: actif ? "#17150f" : "var(--text-muted)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      {label}
+      <span style={{ fontSize: 10.5, opacity: 0.75 }}>{nombre}</span>
+    </button>
   );
 }
 
