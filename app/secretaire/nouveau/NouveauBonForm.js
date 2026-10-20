@@ -72,12 +72,17 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q) || parVehicule(c));
   }, [rechercheClient, clientsExistants]);
 
-  function choisirClient(c) {
-    // Profil avertirBonNonFacture : le client a déjà un bon pas encore
-    // facturé — continuer seulement si on le confirme
-    if (CLIENT.avertirBonNonFacture && c.bons?.length) {
-      if (!window.confirm(`${messageBonsNonFactures(c.nom, c.bons)}\n\n${QUESTION_BON_NON_FACTURE}`)) return;
+  async function choisirClient(c) {
+    setAfficherSuggestions(false);
+    // Profil avertirBonNonFacture : le client (ou un dossier semblable) a
+    // déjà un bon pas encore facturé — continuer seulement si on le confirme
+    let bons = [];
+    if (CLIENT.avertirBonNonFacture) {
+      const res = await fetch(`/api/clients/${c.id}/bons-non-factures`).catch(() => null);
+      bons = res?.ok ? await res.json() : [];
+      if (bons.length && !window.confirm(`${messageBonsNonFactures(c.nom, bons, c.id)}\n\n${QUESTION_BON_NON_FACTURE}`)) return;
     }
+    c = { ...c, bons };
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);

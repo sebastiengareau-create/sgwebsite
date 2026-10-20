@@ -86,9 +86,9 @@ export async function POST(request) {
     // Profil avertirBonNonFacture : le client a déjà un bon pas encore
     // facturé — créer seulement si l'utilisateur le confirme
     if (CLIENT.avertirBonNonFacture && !confirmerBonNonFacture) {
-      const bons = await trouverBonsNonFactures(idClientFinal);
+      const bons = await trouverBonsNonFactures({ clientId: idClientFinal });
       if (bons.length) {
-        return NextResponse.json({ erreur: messageBonsNonFactures(existe.nom, bons), bonNonFacture: true }, { status: 409 });
+        return NextResponse.json({ erreur: messageBonsNonFactures(existe.nom, bons, idClientFinal), bonNonFacture: true }, { status: 409 });
       }
     }
   }

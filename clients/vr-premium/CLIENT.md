@@ -85,8 +85,11 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   bon ? ». Vérifié par le serveur pour chaque façon de créer un bon :
   nouveau bon (dès le choix du client, puis à la création), rendez-vous du
   calendrier transformé en bon, soumission acceptée (`lib/bonsNonFactures.js`,
-  `trouverBonsNonFactures` dans `lib/bons.js`). Au nouveau bon, continuer
-  garde un rappel ⚠️ avec lien vers ces bons.
+  `trouverBonsNonFactures` dans `lib/bons.js`). Cherche aussi dans les
+  **dossiers semblables** (même nom, téléphone ou courriel) : un rendez-vous
+  transformé en bon sans client du dossier crée un nouveau dossier, et le bon
+  y reste — le message dit alors « au dossier C-… ». Au nouveau bon,
+  continuer garde un rappel ⚠️ avec lien vers ces bons.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

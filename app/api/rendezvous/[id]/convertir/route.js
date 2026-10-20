@@ -21,11 +21,10 @@ export async function POST(request, props) {
   // Profil avertirBonNonFacture : le client a déjà un bon pas encore
   // facturé — créer seulement si l'utilisateur le confirme
   const { confirmerBonNonFacture } = await request.json().catch(() => ({}));
-  if (CLIENT.avertirBonNonFacture && rdv.clientId && !confirmerBonNonFacture) {
-    const bons = await trouverBonsNonFactures(rdv.clientId);
+  if (CLIENT.avertirBonNonFacture && !confirmerBonNonFacture) {
+    const bons = await trouverBonsNonFactures({ clientId: rdv.clientId, nom: rdv.clientNom, telephone: rdv.clientTelephone, courriel: rdv.clientCourriel });
     if (bons.length) {
-      const client = await prisma.client.findUnique({ where: { id: rdv.clientId }, select: { nom: true } });
-      return NextResponse.json({ erreur: messageBonsNonFactures(client?.nom || rdv.clientNom, bons), bonNonFacture: true }, { status: 409 });
+      return NextResponse.json({ erreur: messageBonsNonFactures(rdv.clientNom, bons, rdv.clientId), bonNonFacture: true }, { status: 409 });
     }
   }
 
