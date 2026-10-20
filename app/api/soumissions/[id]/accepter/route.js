@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
+import { CLIENT } from "@/lib/client";
+import { trouverBonsNonFactures } from "@/lib/bons";
+import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -17,6 +20,17 @@ export async function POST(request, props) {
   if (!soumission) return NextResponse.json({ erreur: "Soumission introuvable." }, { status: 404 });
   if (soumission.bonId) {
     return NextResponse.json({ erreur: "Cette soumission a déjà été transformée en bon." }, { status: 409 });
+  }
+
+  // Profil avertirBonNonFacture : le client a déjà un bon pas encore
+  // facturé — créer seulement si l'utilisateur le confirme
+  const { confirmerBonNonFacture } = await request.json().catch(() => ({}));
+  if (CLIENT.avertirBonNonFacture && soumission.clientId && !confirmerBonNonFacture) {
+    const bons = await trouverBonsNonFactures(soumission.clientId);
+    if (bons.length) {
+      const client = await prisma.client.findUnique({ where: { id: soumission.clientId }, select: { nom: true } });
+      return NextResponse.json({ erreur: messageBonsNonFactures(client?.nom || soumission.clientNom, bons), bonNonFacture: true }, { status: 409 });
+    }
   }
 
   // Client : réutilise celui déjà lié, sinon en crée un nouveau

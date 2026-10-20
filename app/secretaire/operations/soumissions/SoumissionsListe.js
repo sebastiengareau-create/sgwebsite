@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -24,14 +25,23 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
     return s.clientNom.toLowerCase().includes(q) || s.numero.toLowerCase().includes(q);
   });
 
-  async function accepter(s) {
-    if (!window.confirm(`Accepter la soumission #${s.numero} ? Ça va créer un vrai bon de commande avec ces tâches.`)) return;
+  async function accepter(s, confirmerBonNonFacture = false) {
+    if (!confirmerBonNonFacture && !window.confirm(`Accepter la soumission #${s.numero} ? Ça va créer un vrai bon de commande avec ces tâches.`)) return;
     setErreurId(null);
     setEnCoursId(s.id);
-    const res = await fetch(`/api/soumissions/${s.id}/accepter`, { method: "POST" });
+    const res = await fetch(`/api/soumissions/${s.id}/accepter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmerBonNonFacture }),
+    });
     setEnCoursId(null);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      // Le client a déjà un bon non facturé : continuer ou non
+      if (data.bonNonFacture) {
+        if (window.confirm(`${data.erreur}\n\n${QUESTION_BON_NON_FACTURE}`)) return accepter(s, true);
+        return;
+      }
       setErreurId({ id: s.id, message: data.erreur || "Erreur." });
       return;
     }
