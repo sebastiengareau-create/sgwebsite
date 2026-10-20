@@ -79,10 +79,14 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   moitié) envoie par courriel au client les photos des tâches, en pièces
   jointes (`POST /api/bons/[id]/envoyer-photos`). Courriel du dossier
   proposé, modifiable.
-- `avertirBonNonFacture: true` — au **nouveau bon**, choisir un client qui a
-  déjà un bon non facturé affiche un avertissement (numéros des bons) :
-  « Créer quand même un nouveau bon ? ». Annuler laisse le client non
-  choisi ; continuer garde un rappel ⚠️ avec lien vers ces bons.
+- `avertirBonNonFacture: true` — créer un bon pour un client qui a déjà un
+  bon non facturé (en attente, planifié ou en cours) affiche un
+  avertissement avec les numéros des bons : « Créer quand même un nouveau
+  bon ? ». Vérifié par le serveur pour chaque façon de créer un bon :
+  nouveau bon (dès le choix du client, puis à la création), rendez-vous du
+  calendrier transformé en bon, soumission acceptée (`lib/bonsNonFactures.js`,
+  `trouverBonsNonFactures` dans `lib/bons.js`). Au nouveau bon, continuer
+  garde un rappel ⚠️ avec lien vers ces bons.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

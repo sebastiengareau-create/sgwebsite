@@ -7,6 +7,8 @@ import { verifierCreneau } from "@/lib/disponibilites";
 import { trouverDoublonsClient, messageDoublons } from "@/lib/clients";
 import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
+import { trouverBonsNonFactures } from "@/lib/bons";
+import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -17,7 +19,7 @@ export async function POST(request) {
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
     problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
-    vehiculeId, vehicule,
+    vehiculeId, vehicule, confirmerBonNonFacture,
   } = await request.json();
 
   const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
@@ -81,6 +83,14 @@ export async function POST(request) {
   } else {
     const existe = await prisma.client.findUnique({ where: { id: idClientFinal } });
     if (!existe) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
+    // Profil avertirBonNonFacture : le client a déjà un bon pas encore
+    // facturé — créer seulement si l'utilisateur le confirme
+    if (CLIENT.avertirBonNonFacture && !confirmerBonNonFacture) {
+      const bons = await trouverBonsNonFactures(idClientFinal);
+      if (bons.length) {
+        return NextResponse.json({ erreur: messageBonsNonFactures(existe.nom, bons), bonNonFacture: true }, { status: 409 });
+      }
+    }
   }
 
   let vehiculeDuBon = null;

@@ -14,7 +14,7 @@ export default async function NouveauBonPage() {
         vehicules: { orderBy: { creeLe: "desc" } },
         // Profil avertirBonNonFacture : bons du client pas encore facturés
         ...(CLIENT.avertirBonNonFacture && {
-          bons: { where: { facture: null }, orderBy: { creeLe: "asc" }, select: { id: true, numero: true, statut: true } },
+          bons: { where: { facture: null }, orderBy: { creeLe: "asc" }, select: { id: true, numero: true, statut: true, datePrevue: true } },
         }),
       },
       orderBy: { nom: "asc" },

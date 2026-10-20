@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { normaliserVehicule } from "@/lib/vehicules";
+import { CLIENT } from "@/lib/client";
+import { trouverBonsNonFactures } from "@/lib/bons";
+import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -14,6 +17,17 @@ export async function POST(request, props) {
   const rdv = await prisma.rendezVous.findUnique({ where: { id: params.id } });
   if (!rdv) return NextResponse.json({ erreur: "Rendez-vous introuvable." }, { status: 404 });
   if (rdv.bonId) return NextResponse.json({ erreur: "Déjà transformé en bon." }, { status: 409 });
+
+  // Profil avertirBonNonFacture : le client a déjà un bon pas encore
+  // facturé — créer seulement si l'utilisateur le confirme
+  const { confirmerBonNonFacture } = await request.json().catch(() => ({}));
+  if (CLIENT.avertirBonNonFacture && rdv.clientId && !confirmerBonNonFacture) {
+    const bons = await trouverBonsNonFactures(rdv.clientId);
+    if (bons.length) {
+      const client = await prisma.client.findUnique({ where: { id: rdv.clientId }, select: { nom: true } });
+      return NextResponse.json({ erreur: messageBonsNonFactures(client?.nom || rdv.clientNom, bons), bonNonFacture: true }, { status: 409 });
+    }
+  }
 
   let clientId = rdv.clientId;
   if (!clientId) {

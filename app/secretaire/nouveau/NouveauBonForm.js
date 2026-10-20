@@ -10,8 +10,7 @@ import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { compresserImage } from "@/lib/images";
 import { libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
-
-const STATUTS_BON = { EN_ATTENTE: "en attente", EN_COURS: "en cours" };
+import { messageBonsNonFactures, QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 
 export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
   const router = useRouter();
@@ -77,11 +76,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     // Profil avertirBonNonFacture : le client a déjà un bon pas encore
     // facturé — continuer seulement si on le confirme
     if (CLIENT.avertirBonNonFacture && c.bons?.length) {
-      const liste = c.bons.map((b) => `#${b.numero} (${STATUTS_BON[b.statut] || b.statut})`).join(", ");
-      const message = c.bons.length > 1
-        ? `⚠️ ${c.nom} a déjà ${c.bons.length} bons non facturés en cours : ${liste}.`
-        : `⚠️ ${c.nom} a déjà un bon non facturé en cours : ${liste}.`;
-      if (!window.confirm(`${message}\n\nCréer quand même un nouveau bon ?`)) return;
+      if (!window.confirm(`${messageBonsNonFactures(c.nom, c.bons)}\n\n${QUESTION_BON_NON_FACTURE}`)) return;
     }
     setClientSelectionne(c);
     setRechercheClient(c.nom);
@@ -156,7 +151,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setPhotosProblemes((prev) => prev.map((l, i) => (i === index ? l.filter((_, j) => j !== k) : l)));
   }
 
-  async function creer(e, forcer = false, confirmerDoublon = false) {
+  async function creer(e, forcer = false, confirmerDoublon = false, confirmerBonNonFacture = false) {
     e?.preventDefault();
     setErreur("");
     setHorsDisponibilite(false);
@@ -186,6 +181,9 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
         vehicule: choixVehicule === "nouveau" ? vehicule : null,
+        // Déjà averti en choisissant le client : le serveur ne redemande que
+        // pour un bon apparu depuis
+        confirmerBonNonFacture: confirmerBonNonFacture || !!clientSelectionne?.bons?.length,
       }),
     });
     setEnCours(false);
@@ -194,7 +192,13 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       // Client semblable déjà au dossier : créer quand même si c'est bien
       // une autre personne (homonyme)
       if (data.doublonPossible && window.confirm(`${data.erreur}\n\nCréer quand même un nouveau client ?`)) {
-        return creer(e, forcer, true);
+        return creer(e, forcer, true, confirmerBonNonFacture);
+      }
+      // Le client a déjà un bon non facturé : continuer ou non
+      if (data.bonNonFacture) {
+        if (window.confirm(`${data.erreur}\n\n${QUESTION_BON_NON_FACTURE}`)) return creer(e, forcer, confirmerDoublon, true);
+        setErreur("Création annulée — ce client a déjà un bon non facturé.");
+        return;
       }
       setErreur(data.erreur || "Erreur lors de la création.");
       setHorsDisponibilite(!!data.horsDisponibilite);

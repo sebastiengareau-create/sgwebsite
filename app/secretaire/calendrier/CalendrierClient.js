@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import FichiersRendezVous from "../../components/FichiersRendezVous";
+import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 
 const JOURS_LABEL = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const DEBUT_GRILLE = 7; // 7h — élargie au besoin selon les heures d'ouverture
@@ -471,14 +472,23 @@ function CarteRendezVous({ rdv, onChange, compact }) {
     onChange();
   }
 
-  async function convertir() {
-    if (!window.confirm(`Créer un bon de travail pour ce rendez-vous ?`)) return;
+  async function convertir(confirmerBonNonFacture = false) {
+    if (!confirmerBonNonFacture && !window.confirm(`Créer un bon de travail pour ce rendez-vous ?`)) return;
     setErreur("");
     setEnCours(true);
-    const res = await fetch(`/api/rendezvous/${rdv.id}/convertir`, { method: "POST" });
+    const res = await fetch(`/api/rendezvous/${rdv.id}/convertir`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirmerBonNonFacture }),
+    });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      // Le client a déjà un bon non facturé : continuer ou non
+      if (data.bonNonFacture) {
+        if (window.confirm(`${data.erreur}\n\n${QUESTION_BON_NON_FACTURE}`)) return convertir(true);
+        return;
+      }
       setErreur(data.erreur || "Erreur.");
       return;
     }
@@ -536,7 +546,7 @@ function CarteRendezVous({ rdv, onChange, compact }) {
         <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>Annulé</div>
       ) : (
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <button onClick={convertir} disabled={enCours} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
+          <button onClick={() => convertir()} disabled={enCours} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
             → Créer le bon
           </button>
           <button onClick={annuler} disabled={enCours} className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 600, padding: "6px 10px", borderRadius: 8 }}>
