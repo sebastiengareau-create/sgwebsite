@@ -32,7 +32,7 @@ export default async function ImprimerBon(props) {
       include: {
         client: true,
         vehicule: true,
-        problemes: { orderBy: { id: "asc" }, include: { photos: true, pieces: { include: { piece: true } }, entreesTemps: true } },
+        problemes: { orderBy: { id: "asc" }, include: { photos: CLIENT.photosTachesImprimees, pieces: { include: { piece: true } }, entreesTemps: true } },
         facture: true,
       },
     }),
@@ -189,7 +189,7 @@ export default async function ImprimerBon(props) {
             )}
             {!CLIENT.piecesEnHautDuBon && pr.pieces.map((l) => <LignePiece key={l.id} l={l} />)}
 
-            {pr.photos.length > 0 && (
+            {CLIENT.photosTachesImprimees && pr.photos.length > 0 && (
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                 {pr.photos.map((p) => (
                   <img key={p.id} src={p.url} alt="" style={{ width: 90, height: 90, objectFit: "cover", border: "1px solid #ddd", borderRadius: 4 }} />
