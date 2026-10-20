@@ -11,6 +11,8 @@ import { compresserImage } from "@/lib/images";
 import { libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 
+const STATUTS_BON = { EN_ATTENTE: "en attente", EN_COURS: "en cours" };
+
 export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
   const router = useRouter();
   const [clientSelectionne, setClientSelectionne] = useState(null);
@@ -72,6 +74,15 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   }, [rechercheClient, clientsExistants]);
 
   function choisirClient(c) {
+    // Profil avertirBonNonFacture : le client a déjà un bon pas encore
+    // facturé — continuer seulement si on le confirme
+    if (CLIENT.avertirBonNonFacture && c.bons?.length) {
+      const liste = c.bons.map((b) => `#${b.numero} (${STATUTS_BON[b.statut] || b.statut})`).join(", ");
+      const message = c.bons.length > 1
+        ? `⚠️ ${c.nom} a déjà ${c.bons.length} bons non facturés en cours : ${liste}.`
+        : `⚠️ ${c.nom} a déjà un bon non facturé en cours : ${liste}.`;
+      if (!window.confirm(`${message}\n\nCréer quand même un nouveau bon ?`)) return;
+    }
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
@@ -231,6 +242,14 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
               {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
               {clientSelectionne.garantieProlongee && <> · 🛡️ Garantie #{clientSelectionne.garantieProlongee}</>}
             </div>
+            {CLIENT.avertirBonNonFacture && clientSelectionne.bons?.length > 0 && (
+              <div style={{ fontSize: 11, color: "#C9A227", marginTop: 3 }}>
+                ⚠️ Non facturé{clientSelectionne.bons.length > 1 ? "s" : ""} en cours :{" "}
+                {clientSelectionne.bons.map((b, i) => (
+                  <span key={b.id}>{i > 0 && ", "}<a href={`/bons/${b.id}`} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>#{b.numero}</a></span>
+                ))}
+              </div>
+            )}
           </div>
           <button type="button" onClick={changerClientPourNouveau} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
             Changer
