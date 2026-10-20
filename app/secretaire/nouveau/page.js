@@ -3,20 +3,13 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../components/EnTete";
 import NouveauBonForm from "./NouveauBonForm";
-import { CLIENT } from "@/lib/client";
 
 export default async function NouveauBonPage() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
   const [clients, moduleCalendrier] = await Promise.all([
     prisma.client.findMany({
-      include: {
-        vehicules: { orderBy: { creeLe: "desc" } },
-        // Profil avertirBonNonFacture : bons du client pas encore facturés
-        ...(CLIENT.avertirBonNonFacture && {
-          bons: { where: { facture: null }, orderBy: { creeLe: "asc" }, select: { id: true, numero: true, statut: true, datePrevue: true } },
-        }),
-      },
+      include: { vehicules: { orderBy: { creeLe: "desc" } } },
       orderBy: { nom: "asc" },
     }),
     prisma.parametre.findUnique({ where: { cle: "module_calendrier" } }),
