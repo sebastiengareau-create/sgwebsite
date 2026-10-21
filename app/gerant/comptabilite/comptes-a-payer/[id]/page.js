@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { CODE_CATEGORIE_INVENTAIRE } from "@/lib/comptabilite";
+import { assurerCategoriesDepense, CODE_CATEGORIE_INVENTAIRE } from "@/lib/comptabilite";
 import { obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import EnTete from "../../../../components/EnTete";
 import DepenseDetailClient from "./DepenseDetailClient";
@@ -23,6 +23,8 @@ export default async function FicheDepense(props) {
     },
   });
   if (!depense) notFound();
+
+  await assurerCategoriesDepense();
 
   const [fournisseurs, categoriesBrutes, parametres, comptesTresorerie, autresImpayees] = await Promise.all([
     prisma.fournisseur.findMany({ where: { OR: [{ actif: true }, { id: depense.fournisseurId }] }, orderBy: { nom: "asc" } }),

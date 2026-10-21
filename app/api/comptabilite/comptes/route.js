@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
+import { assurerCategoriesDepense } from "@/lib/comptabilite";
 
 const TYPES_VALIDES = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 
@@ -21,5 +22,7 @@ export async function POST(request) {
   }
 
   const compte = await prisma.compte.create({ data: { numero: numero.trim(), nom: nom.trim(), type } });
+  // Un compte de dépense devient aussi un poste offert dans les comptes à payer
+  if (type === "DEPENSE") await assurerCategoriesDepense();
   return NextResponse.json(compte);
 }
