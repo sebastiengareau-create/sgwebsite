@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import Link from "next/link";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 const TRANCHES = [
   { cle: "0-30", label: "0-30 jours", max: 30 },
@@ -52,6 +53,7 @@ export default async function RapportComptesClients() {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour="/secretaire/clients" />
         <BoutonImprimerRapport />
       </div>
       <div style={{ maxWidth: 760, margin: "0 auto 40px", background: "white", color: "#17150f", padding: "36px 40px", fontFamily: "Arial, sans-serif" }}>

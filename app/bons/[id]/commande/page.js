@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../imprimer/BoutonImprimer";
 import { libelleVehicule } from "@/lib/vehicules";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function BonDeCommande(props) {
   const params = await props.params;
@@ -28,6 +29,7 @@ export default async function BonDeCommande(props) {
       `}</style>
 
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour={`/bons/${params.id}`} />
         <BoutonImprimer />
       </div>
 

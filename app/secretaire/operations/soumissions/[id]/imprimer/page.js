@@ -3,8 +3,8 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
-import BoutonRetour from "./BoutonRetour";
 import { image } from "@/lib/client";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
@@ -46,7 +46,7 @@ export default async function ImprimerSoumission(props) {
       `}</style>
 
       <div className="cacher-impression" style={{ padding: 16, display: "flex", justifyContent: "center", gap: 10 }}>
-        <BoutonRetour />
+        <BoutonFermerPage retour="/secretaire/operations/soumissions" />
         <BoutonImprimer />
       </div>
 

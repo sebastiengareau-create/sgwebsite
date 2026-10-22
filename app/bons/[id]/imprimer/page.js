@@ -7,6 +7,7 @@ import { libelleVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
 import { adresseComplete } from "@/lib/adresse";
 import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
 }
@@ -88,6 +89,7 @@ export default async function ImprimerBon(props) {
       `}</style>
 
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour={`/bons/${params.id}`} />
         <BoutonImprimer />
       </div>
 

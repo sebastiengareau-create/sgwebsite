@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { FILTRE_PIECES_RAPPORT, INCLUDE_PIECES_RAPPORT, TRIS_PIECES, cleTri, trierPieces, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import BoutonsExportInventaire from "./BoutonsExportInventaire";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function RapportInventaire(props) {
   const tri = cleTri((await props.searchParams)?.tri);
@@ -30,6 +31,7 @@ export default async function RapportInventaire(props) {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour="/secretaire/inventaire" />
         <BoutonsExportInventaire tri={tri} tris={Object.fromEntries(Object.entries(TRIS_PIECES).map(([cle, t]) => [cle, t.libelle]))} />
       </div>
       <div style={{ maxWidth: 760, margin: "0 auto 40px", background: "white", color: "#17150f", padding: "36px 40px", fontFamily: "Arial, sans-serif" }}>
