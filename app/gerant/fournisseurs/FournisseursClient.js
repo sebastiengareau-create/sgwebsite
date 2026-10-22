@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import SelectProvince from "../../components/SelectProvince";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { adresseComplete, PROVINCE_DEFAUT } from "@/lib/adresse";
 
@@ -113,6 +114,7 @@ function FormulaireCreation({ onCree }) {
   const [ville, setVille] = useState("");
   const [province, setProvince] = useState(PROVINCE_DEFAUT);
   const [codePostal, setCodePostal] = useState("");
+  const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -139,11 +141,11 @@ function FormulaireCreation({ onCree }) {
       <input required placeholder="Nom du fournisseur" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-      <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
-      <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
+      <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
+      <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>
         <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1, marginBottom: 0 }} />
-        <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110, marginBottom: 0 }} />
+        <ChampCodePostal placeholder="Code postal" valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={{ ...champStyle, width: 110, marginBottom: 0 }} />
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 10, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>

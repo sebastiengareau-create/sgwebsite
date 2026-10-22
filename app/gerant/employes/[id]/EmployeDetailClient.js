@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
 import SelectProvince from "../../../components/SelectProvince";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
 
 export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
@@ -21,6 +22,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [ville, setVille] = useState(employe.ville || "");
   const [province, setProvince] = useState(employe.province || "");
   const [codePostal, setCodePostal] = useState(employe.codePostal || "");
+  const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
   const [assignation, setAssignation] = useState(employe.assignation || "");
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
@@ -137,9 +139,9 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <label className="etiquette">Téléphone</label>
           <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
+          <ChampAdresse valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} className="champ" />
           <label className="etiquette">Ville</label>
-          <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
+          <ChampVille valeur={ville} onChange={setVille} codePostal={codePostal} className="champ" />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
               <label className="etiquette">Province</label>
@@ -147,7 +149,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             </div>
             <div style={{ width: 110 }}>
               <label className="etiquette">Code postal</label>
-              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} className="champ" />
+              <ChampCodePostal valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} className="champ" />
             </div>
           </div>
           <label className="etiquette">Assignation (poste, spécialité, secteur…)</label>

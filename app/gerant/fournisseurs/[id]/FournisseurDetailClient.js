@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../components/ui";
 import SelectProvince from "../../../components/SelectProvince";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
 import { etatEcheance } from "@/lib/echeance";
 
@@ -21,6 +22,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
   const [ville, setVille] = useState(fournisseur.ville || "");
   const [province, setProvince] = useState(fournisseur.province || "");
   const [codePostal, setCodePostal] = useState(fournisseur.codePostal || "");
+  const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
 
   async function sauvegarder() {
     setErreur("");
@@ -101,9 +103,9 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
           <label className="etiquette">Courriel</label>
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>
-          <input value={adresse} onChange={(e) => setAdresse(e.target.value)} className="champ" />
+          <ChampAdresse valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} className="champ" />
           <label className="etiquette">Ville</label>
-          <input value={ville} onChange={(e) => setVille(e.target.value)} className="champ" />
+          <ChampVille valeur={ville} onChange={setVille} codePostal={codePostal} className="champ" />
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
               <label className="etiquette">Province</label>
@@ -111,7 +113,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
             </div>
             <div style={{ width: 110 }}>
               <label className="etiquette">Code postal</label>
-              <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} className="champ" style={{ marginBottom: 0 }} />
+              <ChampCodePostal valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} className="champ" style={{ marginBottom: 0 }} />
             </div>
           </div>
 

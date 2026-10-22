@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import SelectProvince from "../../components/SelectProvince";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 
@@ -128,6 +129,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   const [ville, setVille] = useState("");
   const [province, setProvince] = useState(PROVINCE_DEFAUT);
   const [codePostal, setCodePostal] = useState("");
+  const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
   const [assignation, setAssignation] = useState("");
   const [dateEmbauche, setDateEmbauche] = useState("");
   const [typeRemuneration, setTypeRemuneration] = useState("HORAIRE");
@@ -173,11 +175,11 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
       </select>
       <input placeholder="NIP (optionnel, 4 chiffres)" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
-      <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
-      <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
+      <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
+      <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>
         <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1 }} />
-        <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
+        <ChampCodePostal placeholder="Code postal" valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={{ ...champStyle, width: 110 }} />
       </div>
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Date d'embauche</label>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ChampAdresse } from "../../../components/ChampsAdresse";
 
 export default function InfosEntrepriseClient({ infosInit }) {
   const router = useRouter();
@@ -48,7 +49,17 @@ export default function InfosEntrepriseClient({ infosInit }) {
         <input required value={nomEntreprise} onChange={(e) => setNomEntreprise(e.target.value)} style={champStyle} />
 
         <label style={labelStyle}>Adresse — ligne 1</label>
-        <input value={adresseLigne1} onChange={(e) => setAdresseLigne1(e.target.value)} placeholder="Ex : 880 Rang Ste Philomène" style={champStyle} />
+        <ChampAdresse
+          valeur={adresseLigne1}
+          onChange={setAdresseLigne1}
+          onChoisir={(a) => {
+            if (a.adresse) setAdresseLigne1(a.adresse);
+            if (a.ville) setAdresseLigne2([a.ville, a.province].filter(Boolean).join(", "));
+            if (a.codePostal) setCodePostal(a.codePostal);
+          }}
+          placeholder="Ex : 880 Rang Ste Philomène"
+          style={champStyle}
+        />
 
         <label style={labelStyle}>Adresse — ligne 2</label>
         <input value={adresseLigne2} onChange={(e) => setAdresseLigne2(e.target.value)} placeholder="Ex : Sainte-Geneviève-de-Berthier, QC" style={champStyle} />
