@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TitreSection, LigneInfo } from "../../../../components/ui";
 import ChampsVehicule from "../../../../components/ChampsVehicule";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../../components/ChampsAdresse";
 import SelecteurCompteMode, { compteParDefaut } from "../../../../components/SelecteurCompteMode";
 import { ChampsFiche } from "../VehiculesVenteClient";
 import { libelleVehicule, descriptionVehicule } from "@/lib/vehicules";
@@ -207,6 +208,13 @@ function Vendre({ vv, clients, comptesTresorerie, tpsTaux, tvqTaux, bonsOuverts,
   const [rechercheClient, setRechercheClient] = useState("");
   const [clientId, setClientId] = useState("");
   const [nouveau, setNouveau] = useState({ clientNom: "", clientTelephone: "", clientCourriel: "", clientAdresse: "", clientVille: "", clientCodePostal: "" });
+  const champNouveau = (champ) => (v) => setNouveau((n) => ({ ...n, [champ]: v }));
+  const remplirAdresse = remplisseurAdresse({
+    ville: nouveau.clientVille,
+    setAdresse: champNouveau("clientAdresse"),
+    setVille: champNouveau("clientVille"),
+    setCodePostal: champNouveau("clientCodePostal"),
+  });
   const [prixVente, setPrixVente] = useState(versChamp(vv.prixDemande));
   const [note, setNote] = useState("");
   const [payee, setPayee] = useState(true);
@@ -281,10 +289,10 @@ function Vendre({ vv, clients, comptesTresorerie, tpsTaux, tvqTaux, bonsOuverts,
             <input value={nouveau.clientTelephone} onChange={(e) => setNouveau((n) => ({ ...n, clientTelephone: e.target.value }))} placeholder="Téléphone" style={champStyle} />
             <input value={nouveau.clientCourriel} onChange={(e) => setNouveau((n) => ({ ...n, clientCourriel: e.target.value }))} placeholder="Courriel" style={champStyle} />
           </div>
-          <input value={nouveau.clientAdresse} onChange={(e) => setNouveau((n) => ({ ...n, clientAdresse: e.target.value }))} placeholder="Adresse" style={champStyle} />
+          <ChampAdresse valeur={nouveau.clientAdresse} onChange={champNouveau("clientAdresse")} onChoisir={remplirAdresse.onChoisir} placeholder="Adresse" style={champStyle} />
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8 }}>
-            <input value={nouveau.clientVille} onChange={(e) => setNouveau((n) => ({ ...n, clientVille: e.target.value }))} placeholder="Ville" style={champStyle} />
-            <input value={nouveau.clientCodePostal} onChange={(e) => setNouveau((n) => ({ ...n, clientCodePostal: e.target.value }))} placeholder="Code postal" style={champStyle} />
+            <ChampVille valeur={nouveau.clientVille} onChange={champNouveau("clientVille")} codePostal={nouveau.clientCodePostal} placeholder="Ville" style={champStyle} />
+            <ChampCodePostal valeur={nouveau.clientCodePostal} onChange={champNouveau("clientCodePostal")} onSecteur={remplirAdresse.onSecteur} placeholder="Code postal" style={champStyle} />
           </div>
         </>
       )}

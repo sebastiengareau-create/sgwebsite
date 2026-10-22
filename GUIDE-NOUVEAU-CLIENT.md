@@ -66,6 +66,11 @@ Chaque client a son **propre projet Railway complet** :
    essais). `APP_URL` doit être l'adresse publique : PartsTech y renvoie le
    panier. Le compte PartsTech du garage s'entre ensuite dans l'appli
    (Administrateur → Paramètres → PartsTech). Voir `lib/partstech.js`.
+9. Suggestions d'adresses (facultatif) : une clé Google « Places API
+   (New) » s'entre dans l'appli (Paramètres → Google Places), ou dans la
+   variable `GOOGLE_PLACES_API_KEY`. Sans clé, les champs Ville et Code
+   postal font quand même leurs suggestions (données locales). Voir
+   `lib/googlePlaces.js`.
 
 ### 3. Initialiser la base de données de ce client
 Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`

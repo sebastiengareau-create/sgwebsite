@@ -7,6 +7,7 @@ import BandeauSection from "../../components/BandeauSection";
 import BoutonImporterFichier from "../../components/BoutonImporterFichier";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import SelectProvince from "../../components/SelectProvince";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { libelleVehicule } from "@/lib/vehicules";
 import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
@@ -182,6 +183,7 @@ function FormulaireCreation({ onCree }) {
   const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
+  const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
 
   async function creer(e, confirmerDoublon = false) {
     e?.preventDefault();
@@ -210,11 +212,11 @@ function FormulaireCreation({ onCree }) {
       <input required placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
       <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-      <input placeholder="Adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
-      <input placeholder="Ville" value={ville} onChange={(e) => setVille(e.target.value)} style={champStyle} />
+      <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
+      <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>
         <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1 }} />
-        <input placeholder="Code postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} maxLength={7} style={{ ...champStyle, width: 110 }} />
+        <ChampCodePostal placeholder="Code postal" valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={{ ...champStyle, width: 110 }} />
       </div>
       <input
         placeholder="Garantie prolongée — numéro de contrat (optionnel)"

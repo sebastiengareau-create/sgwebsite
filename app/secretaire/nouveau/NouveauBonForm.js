@@ -6,6 +6,7 @@ import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
 import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import OptionVehicule from "../../components/OptionVehicule";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { compresserImage } from "@/lib/images";
 import { libelleVehicule } from "@/lib/vehicules";
@@ -34,6 +35,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   const [clientAdresse, setClientAdresse] = useState("");
   const [clientVille, setClientVille] = useState("");
   const [clientCodePostal, setClientCodePostal] = useState("");
+  const remplirAdresse = remplisseurAdresse({ ville: clientVille, setAdresse: setClientAdresse, setVille: setClientVille, setCodePostal: setClientCodePostal });
 
   // Véhicule du bon : un véhicule du dossier du client (son id), "nouveau"
   // (formulaire ci-dessous, ajouté au dossier) ou "" (non précisé)
@@ -301,10 +303,17 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       {!clientSelectionne && (
         <>
           <Champ label="Téléphone" value={clientTelephone} onChange={setClientTelephone} />
-          <Champ label="Adresse" value={clientAdresse} onChange={setClientAdresse} />
+          <label style={labelStyle}>Adresse</label>
+          <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
           <div style={{ display: "flex", gap: 8 }}>
-            <Champ label="Ville" value={clientVille} onChange={setClientVille} style={{ flex: 1 }} />
-            <Champ label="Code postal" value={clientCodePostal} onChange={(v) => setClientCodePostal(v.toUpperCase())} style={{ width: 110 }} />
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Ville</label>
+              <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
+            </div>
+            <div style={{ width: 110 }}>
+              <label style={labelStyle}>Code postal</label>
+              <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={champInput} />
+            </div>
           </div>
         </>
       )}
