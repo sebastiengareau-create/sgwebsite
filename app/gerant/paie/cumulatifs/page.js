@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import BoutonImprimerRapport from "../../comptabilite/rapports/BoutonImprimerRapport";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function CumulatifsPaie(props) {
   const searchParams = await props.searchParams;
@@ -60,6 +61,7 @@ export default async function CumulatifsPaie(props) {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <BoutonFermerPage retour="/gerant/paie" />
         <form method="get" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
           <input type="date" name="debut" defaultValue={debutStr} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
           <span style={{ color: "var(--text-muted)" }}>à</span>

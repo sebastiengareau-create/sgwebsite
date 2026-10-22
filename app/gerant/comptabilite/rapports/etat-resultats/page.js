@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { assurerPlanComptable } from "@/lib/comptabilite";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function EtatResultatsImprimable() {
   const session = await obtenirSession();
@@ -37,6 +38,7 @@ export default async function EtatResultatsImprimable() {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour="/gerant/comptabilite/rapports" />
         <BoutonImprimerRapport />
       </div>
       <div style={{ maxWidth: 720, margin: "0 auto 40px", background: "white", color: "#17150f", padding: "36px 40px", fontFamily: "Arial, sans-serif" }}>

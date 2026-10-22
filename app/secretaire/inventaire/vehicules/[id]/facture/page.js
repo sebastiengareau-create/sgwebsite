@@ -6,6 +6,7 @@ import { libelleVehicule } from "@/lib/vehicules";
 import { image } from "@/lib/client";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
 import { adresseComplete } from "@/lib/adresse";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 // Facture de vente d'un véhicule à vendre, à imprimer — même présentation
 // que la facture d'un bon (app/bons/[id]/imprimer).
@@ -33,6 +34,7 @@ export default async function ImprimerFactureVente(props) {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour={`/secretaire/inventaire/vehicules/${params.id}`} />
         <BoutonImprimer />
       </div>
 

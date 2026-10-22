@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimerRapport from "../../../comptabilite/rapports/BoutonImprimerRapport";
 import TalonPaie from "../../TalonPaie";
+import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function TalonDePaie(props) {
   const params = await props.params;
@@ -47,6 +48,7 @@ export default async function TalonDePaie(props) {
         body { background: #f2f0ea; margin: 0; }
       `}</style>
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center" }}>
+        <BoutonFermerPage retour="/gerant/paie" />
         <BoutonImprimerRapport />
       </div>
 
