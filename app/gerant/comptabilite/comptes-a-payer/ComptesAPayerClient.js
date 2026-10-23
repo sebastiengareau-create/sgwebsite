@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../../../components/SelecteurCompteMode";
 import { CONDITIONS_PAIEMENT, ajouterJours, joursAvantEcheance, etatEcheance } from "@/lib/echeance";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
+import SelectProvince from "../../../components/SelectProvince";
+import { PROVINCE_DEFAUT, adresseComplete } from "@/lib/adresse";
 
 const STATUTS_DEPENSE = {
   IMPAYEE: { label: "Impayées", color: "#C9A227" },
@@ -577,7 +580,7 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
   const [nom, setNom] = useState("");
   const [telephone, setTelephone] = useState("");
   const [courriel, setCourriel] = useState("");
-  const [adresse, setAdresse] = useState("");
+  const [adresse, setAdresse] = useState(ADRESSE_VIDE);
   const [enCours, setEnCours] = useState(false);
   const [modificationId, setModificationId] = useState(null);
 
@@ -588,10 +591,10 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
     await fetch("/api/fournisseurs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse }),
+      body: JSON.stringify({ nom, telephone, courriel, ...adresse }),
     });
     setEnCours(false);
-    setNom(""); setTelephone(""); setCourriel(""); setAdresse("");
+    setNom(""); setTelephone(""); setCourriel(""); setAdresse(ADRESSE_VIDE);
     onModifie();
   }
 
@@ -617,7 +620,7 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
               <div>
                 <div>{f.nom}</div>
                 <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                  {[f.telephone, f.adresse].filter(Boolean).join(" · ") || "Aucune coordonnée"}
+                  {[f.telephone, adresseComplete(f)].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -633,7 +636,7 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
         <input placeholder="Nom du fournisseur" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
         <input placeholder="Téléphone (optionnel)" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
         <input placeholder="Courriel (optionnel)" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-        <input placeholder="Adresse (optionnel)" value={adresse} onChange={(e) => setAdresse(e.target.value)} style={champStyle} />
+        <ChampsAdresseFournisseur valeur={adresse} onChange={setAdresse} style={champStyle} />
         <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
           {enCours ? "…" : "+ Ajouter le fournisseur"}
         </button>
@@ -642,11 +645,36 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
   );
 }
 
+const ADRESSE_VIDE = { adresse: "", ville: "", province: PROVINCE_DEFAUT, codePostal: "" };
+
+// Adresse, ville, province et code postal d'un fournisseur — valeur : objet
+// { adresse, ville, province, codePostal }
+function ChampsAdresseFournisseur({ valeur, onChange, style }) {
+  const champ = (cle) => (v) => onChange((a) => ({ ...a, [cle]: v }));
+  const remplir = remplisseurAdresse({
+    ville: valeur.ville, setAdresse: champ("adresse"), setVille: champ("ville"),
+    setProvince: champ("province"), setCodePostal: champ("codePostal"),
+  });
+  return (
+    <>
+      <ChampAdresse placeholder="Adresse (optionnel)" valeur={valeur.adresse} onChange={champ("adresse")} onChoisir={remplir.onChoisir} style={style} />
+      <ChampVille placeholder="Ville" valeur={valeur.ville} onChange={champ("ville")} codePostal={valeur.codePostal} style={style} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <SelectProvince valeur={valeur.province} onChange={champ("province")} style={{ ...style, flex: 1 }} />
+        <ChampCodePostal placeholder="Code postal" valeur={valeur.codePostal} onChange={champ("codePostal")} onSecteur={remplir.onSecteur} style={{ ...style, width: 110 }} />
+      </div>
+    </>
+  );
+}
+
 function LigneEditionFournisseur({ fournisseur, onTermine, onAnnuler }) {
   const [nom, setNom] = useState(fournisseur.nom);
   const [telephone, setTelephone] = useState(fournisseur.telephone || "");
   const [courriel, setCourriel] = useState(fournisseur.courriel || "");
-  const [adresse, setAdresse] = useState(fournisseur.adresse || "");
+  const [adresse, setAdresse] = useState({
+    adresse: fournisseur.adresse || "", ville: fournisseur.ville || "",
+    province: fournisseur.province || PROVINCE_DEFAUT, codePostal: fournisseur.codePostal || "",
+  });
   const [enCours, setEnCours] = useState(false);
 
   async function sauvegarder() {
@@ -654,7 +682,7 @@ function LigneEditionFournisseur({ fournisseur, onTermine, onAnnuler }) {
     await fetch(`/api/fournisseurs/${fournisseur.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, telephone, courriel, adresse }),
+      body: JSON.stringify({ nom, telephone, courriel, ...adresse }),
     });
     setEnCours(false);
     onTermine();
@@ -665,7 +693,7 @@ function LigneEditionFournisseur({ fournisseur, onTermine, onAnnuler }) {
       <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom" style={{ ...champStyle, marginBottom: 0 }} />
       <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Téléphone" style={{ ...champStyle, marginBottom: 0 }} />
       <input value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Courriel" style={{ ...champStyle, marginBottom: 0 }} />
-      <input value={adresse} onChange={(e) => setAdresse(e.target.value)} placeholder="Adresse" style={{ ...champStyle, marginBottom: 0 }} />
+      <ChampsAdresseFournisseur valeur={adresse} onChange={setAdresse} style={{ ...champStyle, marginBottom: 0 }} />
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={sauvegarder} disabled={enCours} style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: 7, borderRadius: 6, cursor: "pointer" }}>
           ✓ Sauvegarder

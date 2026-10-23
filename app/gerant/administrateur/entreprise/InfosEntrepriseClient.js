@@ -3,18 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChampAdresse } from "../../../components/ChampsAdresse";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
+import SelectProvince from "../../../components/SelectProvince";
+import { PROVINCE_DEFAUT } from "@/lib/adresse";
 
 export default function InfosEntrepriseClient({ infosInit }) {
   const router = useRouter();
   const [nomEntreprise, setNomEntreprise] = useState(infosInit.nomEntreprise);
   const [adresseLigne1, setAdresseLigne1] = useState(infosInit.adresseLigne1);
-  const [adresseLigne2, setAdresseLigne2] = useState(infosInit.adresseLigne2);
+  const [ville, setVille] = useState(infosInit.ville);
+  const [province, setProvince] = useState(infosInit.province || PROVINCE_DEFAUT);
   const [codePostal, setCodePostal] = useState(infosInit.codePostal);
   const [telephone, setTelephone] = useState(infosInit.telephone);
   const [courriel, setCourriel] = useState(infosInit.courriel);
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null);
+  const remplir = remplisseurAdresse({ ville, setAdresse: setAdresseLigne1, setVille, setProvince, setCodePostal });
 
   async function sauvegarder(e) {
     e.preventDefault();
@@ -23,7 +27,11 @@ export default function InfosEntrepriseClient({ infosInit }) {
     const res = await fetch("/api/administrateur/entreprise", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nomEntreprise, adresseLigne1, adresseLigne2, codePostal, telephone, courriel }),
+      body: JSON.stringify({
+        nomEntreprise, adresseLigne1, ville, province, codePostal, telephone, courriel,
+        // Ligne affichée sur les documents (voir lib/config.js)
+        adresseLigne2: [ville.trim(), province].filter(Boolean).join(", "),
+      }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -48,24 +56,22 @@ export default function InfosEntrepriseClient({ infosInit }) {
         <label style={labelStyle}>Nom de l'entreprise</label>
         <input required value={nomEntreprise} onChange={(e) => setNomEntreprise(e.target.value)} style={champStyle} />
 
-        <label style={labelStyle}>Adresse — ligne 1</label>
-        <ChampAdresse
-          valeur={adresseLigne1}
-          onChange={setAdresseLigne1}
-          onChoisir={(a) => {
-            if (a.adresse) setAdresseLigne1(a.adresse);
-            if (a.ville) setAdresseLigne2([a.ville, a.province].filter(Boolean).join(", "));
-            if (a.codePostal) setCodePostal(a.codePostal);
-          }}
-          placeholder="Ex : 880 Rang Ste Philomène"
-          style={champStyle}
-        />
+        <label style={labelStyle}>Adresse</label>
+        <ChampAdresse valeur={adresseLigne1} onChange={setAdresseLigne1} onChoisir={remplir.onChoisir} placeholder="Ex : 880 Rang Ste Philomène" style={champStyle} />
 
-        <label style={labelStyle}>Adresse — ligne 2</label>
-        <input value={adresseLigne2} onChange={(e) => setAdresseLigne2(e.target.value)} placeholder="Ex : Sainte-Geneviève-de-Berthier, QC" style={champStyle} />
+        <label style={labelStyle}>Ville</label>
+        <ChampVille valeur={ville} onChange={setVille} codePostal={codePostal} placeholder="Ex : Sainte-Geneviève-de-Berthier" style={champStyle} />
 
-        <label style={labelStyle}>Code postal</label>
-        <input value={codePostal} onChange={(e) => setCodePostal(e.target.value.toUpperCase())} placeholder="Ex : J0K 0E8" style={champStyle} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Province</label>
+            <SelectProvince valeur={province} onChange={setProvince} style={champStyle} />
+          </div>
+          <div style={{ width: 120 }}>
+            <label style={labelStyle}>Code postal</label>
+            <ChampCodePostal valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} placeholder="J0K 0E8" style={champStyle} />
+          </div>
+        </div>
 
         <label style={labelStyle}>Téléphone</label>
         <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Ex : 438-526-8936" style={champStyle} />

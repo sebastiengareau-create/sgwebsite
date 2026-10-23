@@ -7,6 +7,8 @@ import { valeurDateHeureLocale } from "@/lib/regroupementDates";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
 import OptionVehicule from "../../components/OptionVehicule";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
+import SelectProvince from "../../components/SelectProvince";
+import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { compresserImage } from "@/lib/images";
 import { libelleVehicule } from "@/lib/vehicules";
@@ -34,8 +36,9 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   const [clientTelephone, setClientTelephone] = useState("");
   const [clientAdresse, setClientAdresse] = useState("");
   const [clientVille, setClientVille] = useState("");
+  const [clientProvince, setClientProvince] = useState(PROVINCE_DEFAUT);
   const [clientCodePostal, setClientCodePostal] = useState("");
-  const remplirAdresse = remplisseurAdresse({ ville: clientVille, setAdresse: setClientAdresse, setVille: setClientVille, setCodePostal: setClientCodePostal });
+  const remplirAdresse = remplisseurAdresse({ ville: clientVille, setAdresse: setClientAdresse, setVille: setClientVille, setProvince: setClientProvince, setCodePostal: setClientCodePostal });
 
   // Véhicule du bon : un véhicule du dossier du client (son id), "nouveau"
   // (formulaire ci-dessous, ajouté au dossier) ou "" (non précisé)
@@ -128,6 +131,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setClientTelephone("");
     setClientAdresse("");
     setClientVille("");
+    setClientProvince(PROVINCE_DEFAUT);
     setClientCodePostal("");
     setChoixVehicule("nouveau");
     setVehicule(VEHICULE_VIDE);
@@ -183,7 +187,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
-        clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
+        clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
         problemes: lignesValides,
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
@@ -305,10 +309,12 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
           <Champ label="Téléphone" value={clientTelephone} onChange={setClientTelephone} />
           <label style={labelStyle}>Adresse</label>
           <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
+          <label style={labelStyle}>Ville</label>
+          <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Ville</label>
-              <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
+              <label style={labelStyle}>Province</label>
+              <SelectProvince valeur={clientProvince} onChange={setClientProvince} style={champInput} />
             </div>
             <div style={{ width: 110 }}>
               <label style={labelStyle}>Code postal</label>
