@@ -12,6 +12,7 @@ import RecherchePieces from "../components/RecherchePieces";
 import { PhotosArriveeBon } from "../components/PhotosArrivee";
 import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
+import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
@@ -264,9 +265,14 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
     .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
   const totalMaterielAtelier = montantMaterielAtelier(totalHeuresTerminees);
   const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
-  const [escompteInput, setEscompteInput] = useState(String(bon.escompteMontant || 0));
+  // Ancien escompte en dollars : affiché en pourcentage équivalent
+  const [escompteInput, setEscompteInput] = useState(() => String(
+    bon.escomptePourcent || (bon.escompteMontant > 0 && sousTotalAvantEscompte > 0
+      ? Math.round((bon.escompteMontant / sousTotalAvantEscompte) * 10000) / 100
+      : 0)
+  ));
   const [escompteRaisonInput, setEscompteRaisonInput] = useState(bon.escompteRaison || "");
-  const escompteApplique = Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
+  const escompteApplique = montantEscompte(bon, sousTotalAvantEscompte);
   const totalFacture = sousTotalAvantEscompte - escompteApplique;
   const tpsEstime = totalFacture * (tpsTaux / 100);
   const tvqEstime = totalFacture * (tvqTaux / 100);
@@ -296,7 +302,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
     await fetch(`/api/bons/${bon.id}/escompte`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ montant: escompteInput, raison: escompteRaisonInput }),
+      body: JSON.stringify({ pourcent: escompteInput, raison: escompteRaisonInput }),
     });
     setEnCours(false);
     router.refresh();
@@ -620,9 +626,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
             {peutModifier && (
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Escompte $</span>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Escompte %</span>
                 <input
-                  type="number" min={0} step="0.01" value={escompteInput}
+                  type="number" min={0} max={100} step="0.01" inputMode="decimal" value={escompteInput}
                   onChange={(e) => setEscompteInput(e.target.value)}
                   style={{ width: 70, padding: "5px 7px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12 }}
                 />
@@ -636,7 +642,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             )}
             {escompteApplique > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--danger)", marginBottom: 8 }}>
-                <span>Escompte{bon.escompteRaison ? ` (${bon.escompteRaison})` : ""}</span>
+                <span>{libelleEscompte(bon)}</span>
                 <span>−{escompteApplique.toFixed(2)} $</span>
               </div>
             )}

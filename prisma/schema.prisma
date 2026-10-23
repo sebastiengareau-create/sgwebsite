@@ -120,7 +120,8 @@ model BonTravail {
   problemes           Probleme[]
   facture             Facture?
   rendezVous          RendezVous?
-  escompteMontant     Float          @default(0) // remise manuelle en dollars, appliquée avant taxes
+  escompteMontant     Float          @default(0) // ancienne remise en dollars — remplacée par escomptePourcent (voir lib/escompte.js)
+  escomptePourcent    Float          @default(0) // remise manuelle en % du sous-total, appliquée avant taxes
   escompteRaison      String?
   tauxHoraireOverride Float? // remplace le taux horaire par défaut des Paramètres pour ce bon précis, si fixé
   datePrevue          DateTime? // journée (et heure) où le travail est planifié — celle du rendez-vous si créé depuis le calendrier ; null = date de création
