@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
 import { image } from "@/lib/client";
-import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
+import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
+import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
@@ -76,6 +77,7 @@ export default async function ImprimerSoumission(props) {
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
           <div style={{ fontWeight: 600 }}>{soumission.clientNom}</div>
           {soumission.clientTelephone && <div style={{ fontSize: 13 }}>{soumission.clientTelephone}</div>}
+          {soumission.client && lignesAdresse(soumission.client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
           {garantie && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
               🛡️ Garantie prolongée — contrat #{garantie}
@@ -85,9 +87,9 @@ export default async function ImprimerSoumission(props) {
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(vehicule) || "—"}</div>
-              {identifiantsVehicule(vehicule) && (
-                <div style={{ fontSize: 12, fontFamily: "monospace" }}>{identifiantsVehicule(vehicule)}</div>
-              )}
+              {lignesIdentifiantsVehicule(vehicule).map((ligne) => (
+                <div key={ligne} style={{ fontSize: 12, fontFamily: "monospace" }}>{ligne}</div>
+              ))}
             </div>
           )}
           {!vehicule && soumission.vehiculeInfo && <div style={{ fontSize: 13, marginTop: 10 }}>🚗 {soumission.vehiculeInfo}</div>}
