@@ -5,6 +5,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { posterFactureEmise } from "@/lib/comptabilite";
 import { MODE_PAIEMENT_COUTANT, posterCapitalisationBon } from "@/lib/vehiculesAVendre";
 import { montantMaterielAtelier } from "@/lib/materielAtelier";
+import { montantEscompte } from "@/lib/escompte";
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -70,7 +71,7 @@ export async function POST(request, props) {
     .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
   const totalMaterielAtelier = montantMaterielAtelier(heuresFacturees);
   const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
-  const escompte = Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte); // jamais négatif
+  const escompte = montantEscompte(bon, sousTotalAvantEscompte);
   const totalFacture = sousTotalAvantEscompte - escompte;
 
   // TPS et TVQ se calculent toutes deux sur le même montant de base

@@ -13,15 +13,16 @@ export async function PATCH(request, props) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
-  const { montant, raison } = await request.json();
-  const escompteMontant = Number(montant);
-  if (isNaN(escompteMontant) || escompteMontant < 0) {
-    return NextResponse.json({ erreur: "Montant invalide." }, { status: 400 });
+  const { pourcent, raison } = await request.json();
+  const escomptePourcent = Number(pourcent || 0);
+  if (isNaN(escomptePourcent) || escomptePourcent < 0 || escomptePourcent > 100) {
+    return NextResponse.json({ erreur: "Pourcentage invalide (entre 0 et 100)." }, { status: 400 });
   }
 
+  // Le pourcentage remplace l'ancien escompte en dollars
   const bon = await prisma.bonTravail.update({
     where: { id: params.id },
-    data: { escompteMontant, escompteRaison: raison || null },
+    data: { escomptePourcent, escompteMontant: 0, escompteRaison: raison || null },
   });
   return NextResponse.json(bon);
 }

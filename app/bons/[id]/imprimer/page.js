@@ -7,6 +7,7 @@ import { libelleVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
 import { adresseComplete } from "@/lib/adresse";
 import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
+import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -68,7 +69,7 @@ export default async function ImprimerBon(props) {
     : totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   const escompteApplique = estFacturee
     ? (bon.facture.escompteApplique || 0)
-    : Math.min(bon.escompteMontant || 0, sousTotalAvantEscompte);
+    : montantEscompte(bon, sousTotalAvantEscompte);
   const totalFacture = estFacturee ? bon.facture.totalFacture : sousTotalAvantEscompte - escompteApplique;
 
   // Bon interne sur un véhicule à vendre : sans taxes
@@ -238,7 +239,7 @@ export default async function ImprimerBon(props) {
           <LigneTotal label="Sous-total" valeur={sousTotalAvantEscompte} gras={escompteApplique === 0} bordureHaut />
           {escompteApplique > 0 && (
             <>
-              <LigneTotal label={`Escompte${bon.escompteRaison ? ` (${bon.escompteRaison})` : ""}`} valeur={-escompteApplique} petit />
+              <LigneTotal label={libelleEscompte(bon)} valeur={-escompteApplique} petit />
               <LigneTotal label="Sous-total après escompte" valeur={totalFacture} gras />
             </>
           )}
