@@ -6,6 +6,7 @@ import { normaliserVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
+import { provinceDuCodePostal, normaliserCodePostal } from "@/lib/adresse";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -38,7 +39,9 @@ export async function POST(request, props) {
         courriel: rdv.clientCourriel || null,
         adresse: rdv.clientAdresse || null,
         ville: rdv.clientVille || null,
-        codePostal: rdv.clientCodePostal || null,
+        // La prise de rendez-vous en ligne ne demande pas la province
+        province: provinceDuCodePostal(rdv.clientCodePostal),
+        codePostal: normaliserCodePostal(rdv.clientCodePostal),
       },
     });
     clientId = client.id;

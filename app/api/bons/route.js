@@ -9,6 +9,7 @@ import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
+import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -17,7 +18,7 @@ export async function POST(request) {
   }
 
   const {
-    clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientCodePostal,
+    clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
     problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
     vehiculeId, vehicule, confirmerBonNonFacture,
   } = await request.json();
@@ -76,7 +77,8 @@ export async function POST(request) {
         telephone: clientTelephone || null,
         adresse: clientAdresse || null,
         ville: clientVille || null,
-        codePostal: clientCodePostal || null,
+        province: normaliserProvince(clientProvince),
+        codePostal: normaliserCodePostal(clientCodePostal),
       },
     });
     idClientFinal = client.id;

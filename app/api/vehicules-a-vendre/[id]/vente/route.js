@@ -5,6 +5,7 @@ import { creerAvecNumero, prochainNumeroClient } from "@/lib/numerotation";
 import { verifierPeriodeModifiable } from "@/lib/comptabilite";
 import { trouverDoublonsClient, messageDoublons } from "@/lib/clients";
 import { CLIENT } from "@/lib/client";
+import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
 import {
   coutantTotal, obtenirClientInterne, prochainNumeroFactureVente, posterVenteEmise, posterVentePayee,
 } from "@/lib/vehiculesAVendre";
@@ -78,7 +79,8 @@ export async function POST(request, props) {
         courriel: String(body.clientCourriel || "").trim() || null,
         adresse: String(body.clientAdresse || "").trim() || null,
         ville: String(body.clientVille || "").trim() || null,
-        codePostal: String(body.clientCodePostal || "").trim() || null,
+        province: normaliserProvince(body.clientProvince),
+        codePostal: normaliserCodePostal(body.clientCodePostal),
       },
     }));
     clientId = client.id;
