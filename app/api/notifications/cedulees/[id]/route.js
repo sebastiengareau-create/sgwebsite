@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { notificationsActives } from "@/lib/notifications";
-import { validerCedulee, dernierEnvoiDepart } from "@/lib/notificationsCedulees";
+import { validerCedulee, dernierEnvoiDepart, oublierProchaineCedulee } from "@/lib/notificationsCedulees";
 
 async function refus(session) {
   if (!(await aAccesSection(session, "notifications"))) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
@@ -30,6 +30,7 @@ export async function PUT(request, props) {
     data = { ...donnees, actif: true };
   }
   const cedulee = await prisma.notificationCedulee.update({ where: { id: existante.id }, data });
+  oublierProchaineCedulee();
   return NextResponse.json({ cedulee });
 }
 
@@ -39,5 +40,6 @@ export async function DELETE(request, props) {
   const r = await refus(session);
   if (r) return r;
   await prisma.notificationCedulee.deleteMany({ where: { id: params.id } });
+  oublierProchaineCedulee();
   return NextResponse.json({ ok: true });
 }
