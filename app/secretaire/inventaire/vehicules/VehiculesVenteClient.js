@@ -132,7 +132,7 @@ function NouveauVehicule({ onCree }) {
 
   return (
     <div className="carte carte-m" style={{ marginBottom: 14 }}>
-      <ChampsVehicule valeur={vehicule} onChange={setVehicule} />
+      <ChampsVehicule valeur={vehicule} onChange={setVehicule} sansKilometrage />
       <ChampsFiche fiche={fiche} maj={maj} />
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 8px" }}>{erreur}</p>}
       <button onClick={creer} disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}>

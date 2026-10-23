@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TitreSection } from "../../../components/ui";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
-import { libelleVehicule } from "@/lib/vehicules";
+import { libelleVehicule, identifiantsVehicule, valeursFormulaireVehicule } from "@/lib/vehicules";
 
 // Dossier véhicule sur la fiche client : tous les véhicules du client, avec
 // ajout, modification et suppression (bloquée si le véhicule figure sur un bon).
@@ -18,9 +18,7 @@ export default function DossierVehicules({ clientId, vehicules }) {
   function ouvrir(v) {
     setErreur("");
     setEdition(v ? v.id : "nouveau");
-    setValeur(v
-      ? { annee: v.annee ? String(v.annee) : "", marque: v.marque || "", modele: v.modele || "", version: v.version || "", niv: v.niv || "", plaque: v.plaque || "" }
-      : VEHICULE_VIDE);
+    setValeur(v ? valeursFormulaireVehicule(v) : VEHICULE_VIDE);
   }
 
   async function sauvegarder(e) {
@@ -71,7 +69,7 @@ export default function DossierVehicules({ clientId, vehicules }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700 }}>{libelleVehicule(v) || "Véhicule sans description"}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", overflowWrap: "anywhere" }}>
-                  {[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ") || "Aucune plaque ni NIV"}
+                  {identifiantsVehicule(v) || "Aucune plaque ni NIV"}
                   {v._count?.bons > 0 && <span style={{ fontFamily: "inherit" }}> · {v._count.bons} bon{v._count.bons > 1 ? "s" : ""}</span>}
                 </div>
               </div>
