@@ -134,6 +134,9 @@ model BonTravail {
   // Dernier avis « véhicule prêt » envoyé au client (voir lib/avisClient.js)
   avisPretLe          DateTime?
   avisPretA           String? // courriel à qui l'avis a été envoyé
+  // Note interne (profil noteInterneBon) : texte libre consulté à l'écran
+  // seulement, jamais imprimé ni sur la facture
+  noteInterne         String?
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
