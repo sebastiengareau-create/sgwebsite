@@ -90,6 +90,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   transformé en bon sans client du dossier crée un nouveau dossier, et le bon
   y reste — le message dit alors « au dossier C-… ». Au nouveau bon,
   continuer garde un rappel ⚠️ avec lien vers ces bons.
+- `noteInterneBon: true` — sur le bon, une section **« Note interne »**
+  entre « Pièces du bon » et les tâches : texte libre pour l'équipe
+  (`noteInterne` du bon, enregistré avec le bouton « Enregistrer »), consulté
+  à l'écran seulement — jamais imprimé, ni sur la facture ou son PDF.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

@@ -42,6 +42,10 @@ export async function PATCH(request, props) {
     }
     data.vehiculeId = body.vehiculeId || null;
   }
+  // Note interne (à l'écran seulement) — vide la retire
+  if (body.noteInterne !== undefined) {
+    data.noteInterne = String(body.noteInterne || "").trim() || null;
+  }
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ erreur: "Rien à modifier." }, { status: 400 });
   }

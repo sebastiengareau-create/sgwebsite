@@ -689,6 +689,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         />
       )}
 
+      {CLIENT.noteInterneBon && (
+        <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />
+      )}
+
       <div style={{ marginTop: 20 }}>
         <Label>Tâches ({bon.problemes.length})</Label>
       </div>
@@ -1759,6 +1763,63 @@ function StatusPill({ statut }) {
     <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: `${s.color}22`, color: s.color }}>
       {s.label}
     </span>
+  );
+}
+
+// Note interne du bon (profil noteInterneBon) : texte libre pour l'équipe,
+// consulté à l'écran seulement — jamais imprimé ni sur la facture
+function NoteInterne({ bonId, note, modifiable, onRafraichir }) {
+  const [texte, setTexte] = useState(note);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const modifie = texte.trim() !== note.trim();
+
+  async function enregistrer() {
+    setEnCours(true);
+    setErreur("");
+    const res = await fetch(`/api/bons/${bonId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ noteInterne: texte }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de l'enregistrement.");
+      return;
+    }
+    onRafraichir();
+  }
+
+  if (!modifiable && !note) return null;
+  return (
+    <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+      <Label>Note interne</Label>
+      {modifiable ? (
+        <>
+          <textarea
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            placeholder="Note pour l'équipe — à l'écran seulement, jamais imprimée"
+            rows={3}
+            style={{ ...champStyle, width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit" }}
+          />
+          {modifie && (
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button onClick={enregistrer} disabled={enCours} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+                Enregistrer
+              </button>
+              <button onClick={() => { setTexte(note); setErreur(""); }} disabled={enCours} style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", fontSize: 12.5, cursor: "pointer" }}>
+                Annuler
+              </button>
+            </div>
+          )}
+          {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreur}</p>}
+        </>
+      ) : (
+        <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: 0 }}>{note}</p>
+      )}
+    </div>
   );
 }
 
