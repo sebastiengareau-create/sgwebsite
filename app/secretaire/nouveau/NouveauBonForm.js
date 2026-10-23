@@ -4,14 +4,13 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SelecteurDatePrevue from "../../components/SelecteurDatePrevue";
 import { valeurDateHeureLocale } from "@/lib/regroupementDates";
-import ChampsVehicule, { VEHICULE_VIDE } from "../../components/ChampsVehicule";
-import OptionVehicule from "../../components/OptionVehicule";
+import { VEHICULE_VIDE } from "../../components/ChampsVehicule";
+import ChoixVehiculeClient from "../../components/ChoixVehiculeClient";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import SelectProvince from "../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { compresserImage } from "@/lib/images";
-import { libelleVehicule } from "@/lib/vehicules";
 import { CLIENT } from "@/lib/client";
 import { messageBonsNonFactures, QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 
@@ -44,11 +43,6 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   // (formulaire ci-dessous, ajouté au dossier) ou "" (non précisé)
   const [choixVehicule, setChoixVehicule] = useState("nouveau");
   const [vehicule, setVehicule] = useState(VEHICULE_VIDE);
-  // Véhicule du dossier en cours de modification (plaque, NIV…) : son id
-  const [vehiculeEdite, setVehiculeEdite] = useState(null);
-  const [valeurEditee, setValeurEditee] = useState(VEHICULE_VIDE);
-  const [erreurVehicule, setErreurVehicule] = useState("");
-  const [enregistrementVehicule, setEnregistrementVehicule] = useState(false);
 
   // Photos du véhicule à l'arrivée : { position: dataUrl }, envoyées une fois le bon créé
   const [photosArrivee, setPhotosArrivee] = useState({});
@@ -95,33 +89,6 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     const parDefaut = c.vehicules.length === 1 || (CLIENT.vehiculeObligatoire && c.vehicules.length) ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau";
     setChoixVehicule(parDefaut);
     setVehicule(VEHICULE_VIDE);
-    setVehiculeEdite(null);
-  }
-
-  function modifierVehicule(v) {
-    setErreurVehicule("");
-    setVehiculeEdite(v.id);
-    setValeurEditee({ annee: v.annee ? String(v.annee) : "", marque: v.marque || "", modele: v.modele || "", version: v.version || "", niv: v.niv || "", plaque: v.plaque || "" });
-  }
-
-  // Enregistré tout de suite au dossier du client, puis choisi pour le bon
-  async function enregistrerVehicule() {
-    setErreurVehicule("");
-    setEnregistrementVehicule(true);
-    const res = await fetch(`/api/vehicules/${vehiculeEdite}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(valeurEditee),
-    });
-    setEnregistrementVehicule(false);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setErreurVehicule(data.erreur || "Erreur.");
-      return;
-    }
-    setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }));
-    setChoixVehicule(data.id);
-    setVehiculeEdite(null);
   }
 
   function changerClientPourNouveau() {
@@ -135,7 +102,6 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setClientCodePostal("");
     setChoixVehicule("nouveau");
     setVehicule(VEHICULE_VIDE);
-    setVehiculeEdite(null);
   }
 
   function changerProbleme(index, valeur) {
@@ -325,45 +291,14 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       )}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
-      {clientSelectionne && clientSelectionne.vehicules.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
-          {clientSelectionne.vehicules.map((v) => vehiculeEdite === v.id ? (
-            // Pas de <form> imbriqué : Entrée enregistre le véhicule au lieu de créer le bon
-            <div key={v.id} onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); enregistrerVehicule(); } }}
-              style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: "4px 10px 10px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>Modifier le véhicule (enregistré au dossier du client)</div>
-              <ChampsVehicule valeur={valeurEditee} onChange={setValeurEditee} />
-              {erreurVehicule && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 6 }}>{erreurVehicule}</p>}
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button type="button" onClick={enregistrerVehicule} disabled={enregistrementVehicule} className="bouton-3d" style={{ flex: 1, padding: 9, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
-                  {enregistrementVehicule ? "…" : "Enregistrer"}
-                </button>
-                <button type="button" onClick={() => setVehiculeEdite(null)} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 13 }}>
-                  Annuler
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div key={v.id} style={{ display: "flex", gap: 6 }}>
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                <OptionVehicule actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
-                  titre={libelleVehicule(v) || "Véhicule sans description"}
-                  detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
-                />
-              </div>
-              <button type="button" onClick={() => modifierVehicule(v)} disabled={vehiculeEdite !== null} className="bouton-3d-sombre"
-                style={{ padding: "0 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-                ✏️ Modifier
-              </button>
-            </div>
-          ))}
-          <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule (ajouté au dossier du client)" />
-          {!CLIENT.vehiculeObligatoire && (
-            <OptionVehicule actif={choixVehicule === ""} onClick={() => setChoixVehicule("")} titre="Non précisé" />
-          )}
-        </div>
-      )}
-      {choixVehicule === "nouveau" && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
+      <ChoixVehiculeClient
+        key={clientSelectionne?.id || "nouveau-client"}
+        vehicules={clientSelectionne?.vehicules || []}
+        choix={choixVehicule} onChoix={setChoixVehicule}
+        vehicule={vehicule} onVehicule={setVehicule}
+        onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
+        permettreNonPrecise={!CLIENT.vehiculeObligatoire}
+      />
 
       {CLIENT.photosArrivee && (
         <>

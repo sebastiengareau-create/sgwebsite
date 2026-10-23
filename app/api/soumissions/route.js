@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { lireVehiculeSoumission } from "@/lib/soumissions";
 import { prochainNumeroSoumission, creerAvecNumero } from "@/lib/numerotation";
 
 export async function POST(request) {
@@ -9,11 +10,14 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { clientId, clientNom, clientTelephone, vehiculeInfo, taches } = await request.json();
+  const { clientId, clientNom, clientTelephone, vehiculeId, vehicule, taches } = await request.json();
 
   if (!clientNom || !taches || taches.length === 0) {
     return NextResponse.json({ erreur: "Nom du client et au moins une tâche requis." }, { status: 400 });
   }
+
+  const vehiculeSoumission = await lireVehiculeSoumission({ clientId, vehiculeId, vehicule });
+  if (vehiculeSoumission.erreur) return NextResponse.json({ erreur: vehiculeSoumission.erreur }, { status: 400 });
 
   const soumission = await creerAvecNumero(prochainNumeroSoumission, (numero) => prisma.soumission.create({
     data: {
@@ -21,7 +25,7 @@ export async function POST(request) {
       clientId: clientId || null,
       clientNom,
       clientTelephone: clientTelephone || null,
-      vehiculeInfo: vehiculeInfo || null,
+      ...vehiculeSoumission.data,
       statut: "EN_ATTENTE",
       taches: {
         create: taches.map((t) => ({

@@ -3,7 +3,7 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
-import { libelleVehicule } from "@/lib/vehicules";
+import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
 import { adresseComplete } from "@/lib/adresse";
 import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
@@ -155,10 +155,8 @@ export default async function ImprimerBon(props) {
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(bon.vehicule) || "—"}</div>
-              {(bon.vehicule.plaque || bon.vehicule.niv) && (
-                <div style={{ fontSize: 12, fontFamily: "monospace" }}>
-                  {[bon.vehicule.plaque && `Plaque ${bon.vehicule.plaque}`, bon.vehicule.niv && `NIV ${bon.vehicule.niv}`].filter(Boolean).join(" · ")}
-                </div>
+              {identifiantsVehicule(bon.vehicule) && (
+                <div style={{ fontSize: 12, fontFamily: "monospace" }}>{identifiantsVehicule(bon.vehicule)}</div>
               )}
             </div>
           )}

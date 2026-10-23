@@ -8,12 +8,13 @@ import { estVr, LIBELLE_VERSION } from "@/lib/client";
 // client, nouveau bon). Quatre listes en cascade — année → marque → modèle →
 // version — alimentées par /api/vehicules/catalogue, chacune avec « Autre… »
 // pour entrer une valeur absente du catalogue ; puis le NIV (exactement 17
-// caractères, décodable) et la plaque.
+// caractères, décodable), la plaque et le kilométrage.
 //
-// valeur : { annee, marque, modele, version, niv, plaque } — onChange reçoit
-// l'objet complet mis à jour.
+// valeur : { annee, marque, modele, version, niv, plaque, kilometrage } —
+// onChange reçoit l'objet complet mis à jour. sansKilometrage : les
+// véhicules à vendre ont leur kilométrage sur leur fiche d'inventaire.
 
-export const VEHICULE_VIDE = { annee: "", marque: "", modele: "", version: "", niv: "", plaque: "" };
+export const VEHICULE_VIDE = { annee: "", marque: "", modele: "", version: "", niv: "", plaque: "", kilometrage: "" };
 
 const AUTRE = "__autre__";
 
@@ -23,7 +24,7 @@ async function chargerListe(params) {
   return res.json();
 }
 
-export default function ChampsVehicule({ valeur, onChange }) {
+export default function ChampsVehicule({ valeur, onChange, sansKilometrage = false }) {
   const v = { ...VEHICULE_VIDE, ...valeur };
   const annee = v.annee ? String(v.annee) : "";
 
@@ -175,18 +176,34 @@ export default function ChampsVehicule({ valeur, onChange }) {
       {v.niv && verifNiv.avertissement && <p style={messageAvertissement}>⚠️ {verifNiv.avertissement}</p>}
       {decodage.message && <p style={messageInfo}>{decodage.message}</p>}
 
-      <label className="etiquette">Plaque d'immatriculation</label>
-      <input
-        value={v.plaque}
-        onChange={(e) => maj({ plaque: e.target.value.toUpperCase().replace(/[^A-Z0-9 -]/g, "") })}
-        onBlur={() => maj({ plaque: nettoyerPlaque(v.plaque) })}
-        maxLength={LONGUEUR_MAX_PLAQUE + 1}
-        placeholder="ex : ABC 123"
-        className="champ"
-        style={{ fontFamily: "monospace", letterSpacing: 1, maxWidth: 180 }}
-        autoCapitalize="characters"
-        spellCheck={false}
-      />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ flex: "0 1 180px", minWidth: 0 }}>
+          <label className="etiquette">Plaque d'immatriculation</label>
+          <input
+            value={v.plaque}
+            onChange={(e) => maj({ plaque: e.target.value.toUpperCase().replace(/[^A-Z0-9 -]/g, "") })}
+            onBlur={() => maj({ plaque: nettoyerPlaque(v.plaque) })}
+            maxLength={LONGUEUR_MAX_PLAQUE + 1}
+            placeholder="ex : ABC 123"
+            className="champ"
+            style={{ fontFamily: "monospace", letterSpacing: 1 }}
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+        </div>
+        {!sansKilometrage && (
+          <div style={{ flex: "0 1 180px", minWidth: 0 }}>
+            <label className="etiquette">Kilométrage</label>
+            <input
+              value={v.kilometrage}
+              onChange={(e) => maj({ kilometrage: e.target.value.replace(/[^\d ]/g, "") })}
+              inputMode="numeric"
+              placeholder="ex : 85 000"
+              className="champ"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

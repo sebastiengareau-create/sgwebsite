@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
-import { libelleVehicule } from "@/lib/vehicules";
+import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
 import OptionVehicule from "../../../components/OptionVehicule";
 
@@ -152,7 +152,7 @@ export default function RendezVousForm({ clientsExistants }) {
           {clientSelectionne.vehicules.map((v) => (
             <OptionVehicule key={v.id} actif={choixVehicule === v.id} onClick={() => setChoixVehicule(v.id)}
               titre={libelleVehicule(v) || "Véhicule sans description"}
-              detail={[v.plaque && `Plaque ${v.plaque}`, v.niv && `NIV ${v.niv}`].filter(Boolean).join(" · ")}
+              detail={identifiantsVehicule(v)}
             />
           ))}
           <OptionVehicule actif={choixVehicule === "nouveau"} onClick={() => setChoixVehicule("nouveau")} titre="+ Autre véhicule" />

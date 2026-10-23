@@ -98,7 +98,9 @@ model Vehicule {
   version       String? // niveau de finition (ex. « EX-L », « XLT ») ou autre précision
   niv           String? // numéro d'identification du véhicule — exactement 17 caractères
   plaque        String?
+  kilometrage   Int? // dernier kilométrage connu (au dernier bon ou à la dernière mise à jour)
   bons          BonTravail[]
+  soumissions   Soumission[]
   vehiculeVente VehiculeVente? // si c'est un véhicule à vendre de l'entreprise
   creeLe        DateTime       @default(now())
 
@@ -453,7 +455,10 @@ model Soumission {
   client          Client?           @relation(fields: [clientId], references: [id])
   clientNom       String
   clientTelephone String?
-  vehiculeInfo    String? // texte libre : "Honda Civic 2019" — pas encore un vrai véhicule en base
+  vehiculeInfo    String? // libellé affiché : "2019 Honda Civic" (texte libre sur les anciennes soumissions)
+  vehiculeId      String? // véhicule choisi dans le dossier du client
+  vehicule        Vehicule?         @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
+  vehiculeDetails Json? // { annee, marque, modele, version, niv, plaque, kilometrage } d'un nouveau véhicule — versé au dossier du client quand la soumission devient un bon
   statut          String            @default("EN_ATTENTE") // "EN_ATTENTE" | "ACCEPTEE"
   bonId           String?           @unique // rempli une fois transformée en vrai bon de commande
   taches          TacheSoumission[]

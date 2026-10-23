@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
-import { normaliserVehicule } from "@/lib/vehicules";
+import { verserVehiculeAuDossier } from "@/lib/clients";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
@@ -48,21 +48,8 @@ export async function POST(request, props) {
   }
 
   // Véhicule du rendez-vous (site de réservation ou calendrier) → versé au
-  // dossier du client, sans doublon si ce véhicule y est déjà : même NIV ou
-  // même plaque, ou — sans l'un ni l'autre — même année, marque, modèle et
-  // version.
-  let vehiculeId = null;
-  const { data: vehicule, vide } = normaliserVehicule(rdv.vehiculeDetails);
-  if (vehicule && !vide) {
-    const identifiants = [vehicule.niv && { niv: vehicule.niv }, vehicule.plaque && { plaque: vehicule.plaque }].filter(Boolean);
-    if (!identifiants.length) {
-      identifiants.push({ annee: vehicule.annee, marque: vehicule.marque, modele: vehicule.modele, version: vehicule.version, niv: null, plaque: null });
-    }
-    const existant = identifiants.length
-      ? await prisma.vehicule.findFirst({ where: { clientId, OR: identifiants } })
-      : null;
-    vehiculeId = existant?.id || (await prisma.vehicule.create({ data: { ...vehicule, clientId } })).id;
-  }
+  // dossier du client, sans doublon si ce véhicule y est déjà
+  const vehiculeId = await verserVehiculeAuDossier(clientId, rdv.vehiculeDetails);
 
   // Le bon reste « En attente » jusqu'au premier poinçon, planifié à la date
   // du rendez-vous — un rendez-vous à venir apparaît sous sa journée prévue.

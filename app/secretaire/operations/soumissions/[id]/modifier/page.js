@@ -13,9 +13,9 @@ export default async function ModifierSoumissionPage(props) {
   const [soumissionExistante, clients, parametres] = await Promise.all([
     prisma.soumission.findUnique({
       where: { id: params.id },
-      include: { taches: { include: { pieces: true } }, client: true },
+      include: { taches: { include: { pieces: true } }, client: { include: { vehicules: { orderBy: { creeLe: "desc" } } } } },
     }),
-    prisma.client.findMany({ orderBy: { nom: "asc" } }),
+    prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: { orderBy: { creeLe: "desc" } } } }),
     prisma.parametre.findMany(),
   ]);
   if (!soumissionExistante) notFound();

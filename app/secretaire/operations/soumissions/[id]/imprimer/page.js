@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
 import { image } from "@/lib/client";
+import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
@@ -17,7 +18,7 @@ export default async function ImprimerSoumission(props) {
   const [soumission, parametres] = await Promise.all([
     prisma.soumission.findUnique({
       where: { id: params.id },
-      include: { taches: { include: { pieces: true } }, client: true },
+      include: { taches: { include: { pieces: true } }, client: true, vehicule: true },
     }),
     prisma.parametre.findMany(),
   ]);
@@ -34,6 +35,8 @@ export default async function ImprimerSoumission(props) {
   );
   const totalEstime = totalMainOeuvre + totalPieces;
   const garantie = soumission.client?.garantieProlongee;
+  // Véhicule du dossier choisi, ou le nouveau gardé avec la soumission
+  const vehicule = soumission.vehicule || soumission.vehiculeDetails;
 
   return (
     <div>
@@ -78,6 +81,16 @@ export default async function ImprimerSoumission(props) {
               🛡️ Garantie prolongée — contrat #{garantie}
             </div>
           )}
+          {vehicule && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(vehicule) || "—"}</div>
+              {identifiantsVehicule(vehicule) && (
+                <div style={{ fontSize: 12, fontFamily: "monospace" }}>{identifiantsVehicule(vehicule)}</div>
+              )}
+            </div>
+          )}
+          {!vehicule && soumission.vehiculeInfo && <div style={{ fontSize: 13, marginTop: 10 }}>🚗 {soumission.vehiculeInfo}</div>}
         </div>
 
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 8 }}>Travaux estimés</div>

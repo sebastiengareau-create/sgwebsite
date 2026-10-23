@@ -193,7 +193,7 @@ function EditionFiche({ vv, vendu, onFermer }) {
   return (
     <div className="carte carte-m" style={{ marginBottom: 14 }}>
       <TitreSection>✏️ Modifier la fiche</TitreSection>
-      {!vendu && <ChampsVehicule valeur={vehicule} onChange={setVehicule} />}
+      {!vendu && <ChampsVehicule valeur={vehicule} onChange={setVehicule} sansKilometrage />}
       <ChampsFiche fiche={fiche} maj={maj} coutantModifiable={!vendu} />
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 8px" }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 8 }}>

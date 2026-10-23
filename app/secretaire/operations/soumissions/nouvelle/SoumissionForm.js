@@ -2,6 +2,9 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { VEHICULE_VIDE } from "../../../../components/ChampsVehicule";
+import ChoixVehiculeClient from "../../../../components/ChoixVehiculeClient";
+import { valeursFormulaireVehicule } from "@/lib/vehicules";
 
 function nouvelleTache() {
   return { id: Math.random().toString(36).slice(2), description: "", tempsEstime: "", pieces: [] };
@@ -23,6 +26,16 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
 
   const [clientNom, setClientNom] = useState(soumissionExistante?.clientNom || "");
   const [clientTelephone, setClientTelephone] = useState(soumissionExistante?.clientTelephone || "");
+  // Véhicule, comme sur un bon : un véhicule du dossier du client (son id),
+  // "nouveau" (formulaire, versé au dossier si la soumission devient un bon)
+  // ou "" (non précisé)
+  const [choixVehicule, setChoixVehicule] = useState(() => {
+    if (!soumissionExistante) return "nouveau";
+    if (soumissionExistante.vehiculeId && clientDejaLie?.vehicules?.some((v) => v.id === soumissionExistante.vehiculeId)) return soumissionExistante.vehiculeId;
+    return soumissionExistante.vehiculeDetails || !clientDejaLie?.vehicules?.length ? "nouveau" : "";
+  });
+  const [vehicule, setVehicule] = useState(() =>
+    soumissionExistante?.vehiculeDetails ? valeursFormulaireVehicule(soumissionExistante.vehiculeDetails) : VEHICULE_VIDE);
   const [taches, setTaches] = useState(
     soumissionExistante
       ? soumissionExistante.taches.map((t) => ({
@@ -55,12 +68,17 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
     setRechercheClient(c.nom);
     setClientTelephone(c.telephone || "");
     setAfficherSuggestions(false);
+    const vehicules = c.vehicules || [];
+    setChoixVehicule(vehicules.length === 1 ? vehicules[0].id : vehicules.length ? "" : "nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
   function changerClientPourNouveau() {
     setClientSelectionne(null);
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
+    setChoixVehicule("nouveau");
+    setVehicule(VEHICULE_VIDE);
   }
 
   function majTache(id, champ, valeur) {
@@ -111,6 +129,8 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
         clientNom: nomFinal, clientTelephone,
+        vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
+        vehicule: choixVehicule === "nouveau" ? vehicule : null,
         taches: tachesValides.map((t) => ({
           description: t.description,
           tempsEstime: t.tempsEstime,
@@ -179,6 +199,16 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
       {!clientSelectionne && (
         <input placeholder="Téléphone" value={clientTelephone} onChange={(e) => setClientTelephone(e.target.value)} style={champInput} />
       )}
+
+      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
+      <ChoixVehiculeClient
+        key={clientSelectionne?.id || "nouveau-client"}
+        vehicules={clientSelectionne?.vehicules || []}
+        choix={choixVehicule} onChoix={setChoixVehicule}
+        vehicule={vehicule} onVehicule={setVehicule}
+        onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
+        libelleNouveau="+ Autre véhicule (ajouté au dossier du client si la soumission est acceptée)"
+      />
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Tâches estimées</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {taches.map((t, idx) => (
