@@ -4,7 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
-import { verserVehiculeAuDossier } from "@/lib/clients";
+import { verserVehiculeAuDossier, kilometrageVehicule } from "@/lib/clients";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 
 export async function POST(request, props) {
@@ -48,11 +48,13 @@ export async function POST(request, props) {
     ? soumission.vehicule.id
     : await verserVehiculeAuDossier(clientId, soumission.vehiculeDetails);
 
+  const kilometrage = await kilometrageVehicule(vehiculeId);
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,
       clientId,
       vehiculeId,
+      kilometrage,
       // Les pièces et le temps de la soumission n'étaient que des estimés —
       // seules les descriptions des tâches sont reprises ; le vrai suivi
       // (temps, pièces réellement utilisées) démarre à zéro sur le bon.

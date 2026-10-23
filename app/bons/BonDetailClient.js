@@ -6,7 +6,7 @@ import Link from "next/link";
 import SelecteurCompteMode, { compteParDefaut } from "../components/SelecteurCompteMode";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
-import { libelleVehicule } from "@/lib/vehicules";
+import { libelleVehicule, texteKilometrage } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
 import { PhotosArriveeBon } from "../components/PhotosArrivee";
@@ -1559,13 +1559,16 @@ function VehiculeBon({ bon, modifiable }) {
   const vehicules = bon.client.vehicules || [];
   const v = bon.vehicule;
 
-  async function choisir(vehiculeId) {
+  // Kilométrage à l'arrivée en cours de modification (texte du champ), sinon null
+  const [km, setKm] = useState(null);
+
+  async function enregistrer(changements) {
     setErreur("");
     setEnCours(true);
     const res = await fetch(`/api/bons/${bon.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ vehiculeId: vehiculeId || null }),
+      body: JSON.stringify(changements),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -1574,8 +1577,10 @@ function VehiculeBon({ bon, modifiable }) {
       return;
     }
     setEdition(false);
+    setKm(null);
     router.refresh();
   }
+  const choisir = (vehiculeId) => enregistrer({ vehiculeId: vehiculeId || null });
 
   if (!v && !modifiable) return null;
 
@@ -1603,6 +1608,27 @@ function VehiculeBon({ bon, modifiable }) {
           <span style={{ fontWeight: 700 }}>🚗 {v ? libelleVehicule(v) || "Véhicule" : <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>Véhicule non précisé</span>}</span>
           {v?.plaque && <span style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>Plaque {v.plaque}</span>}
           {v?.niv && <span style={{ fontFamily: "monospace", color: "var(--text-muted)", overflowWrap: "anywhere" }}>NIV {v.niv}</span>}
+          {v && (km !== null ? (
+            <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+              <input
+                value={km}
+                onChange={(e) => setKm(e.target.value.replace(/[^\d ]/g, ""))}
+                onKeyDown={(e) => { if (e.key === "Enter") enregistrer({ kilometrage: km }); if (e.key === "Escape") setKm(null); }}
+                inputMode="numeric" placeholder="Kilométrage" autoFocus
+                className="champ" style={{ width: 110, fontSize: 12, padding: "3px 6px" }}
+              />
+              <span style={{ color: "var(--text-muted)" }}>km</span>
+              <button onClick={() => enregistrer({ kilometrage: km })} disabled={enCours} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>OK</button>
+              <button onClick={() => setKm(null)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Annuler</button>
+            </span>
+          ) : bon.kilometrage != null ? (
+            <span style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>
+              {texteKilometrage(bon.kilometrage)}
+              {modifiable && <button onClick={() => setKm(String(bon.kilometrage))} title="Modifier le kilométrage" style={{ fontSize: 11, background: "none", border: "none", cursor: "pointer", padding: "0 0 0 4px" }}>✏️</button>}
+            </span>
+          ) : modifiable && (
+            <button onClick={() => setKm("")} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>+ Kilométrage</button>
+          ))}
           {modifiable && (
             <button onClick={() => setEdition(true)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
               {v ? "Changer" : "Choisir"}

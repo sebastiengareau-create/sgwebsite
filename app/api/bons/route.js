@@ -112,6 +112,7 @@ export async function POST(request) {
       numero,
       clientId: idClientFinal,
       vehiculeId: vehiculeDuBon?.id || null,
+      kilometrage: vehiculeDuBon?.kilometrage ?? null,
       datePrevue: debutPrevu,
       problemes: { create: lignesValides.map((description) => ({ description })) },
       rendezVous: inscrireCalendrier

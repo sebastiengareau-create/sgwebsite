@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
+import { lireKilometrage } from "@/lib/vehicules";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -41,6 +43,20 @@ export async function PATCH(request, props) {
       }
     }
     data.vehiculeId = body.vehiculeId || null;
+    // Le kilométrage du bon devient celui du véhicule choisi
+    if (body.kilometrage === undefined) {
+      const v = body.vehiculeId ? await prisma.vehicule.findUnique({ where: { id: body.vehiculeId }, select: { kilometrage: true } }) : null;
+      data.kilometrage = v?.kilometrage ?? null;
+    }
+  }
+  // Kilométrage à l'arrivée — figé sur la facture, donc plus modifiable
+  // une fois le bon facturé. Plus élevé que celui du véhicule : devient
+  // aussi le dernier kilométrage connu du véhicule.
+  if (body.kilometrage !== undefined) {
+    const km = lireKilometrage(body.kilometrage);
+    if (km === undefined) return NextResponse.json({ erreur: "Kilométrage invalide." }, { status: 400 });
+    if (await bonEstVerrouille(params.id)) return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
+    data.kilometrage = km;
   }
   // Note interne (à l'écran seulement) — vide la retire
   if (body.noteInterne !== undefined) {
@@ -50,7 +66,10 @@ export async function PATCH(request, props) {
     return NextResponse.json({ erreur: "Rien à modifier." }, { status: 400 });
   }
 
-  await prisma.bonTravail.update({ where: { id: params.id }, data });
+  const bon = await prisma.bonTravail.update({ where: { id: params.id }, data, include: { vehicule: true } });
+  if (body.kilometrage !== undefined && data.kilometrage != null && bon.vehicule && !(bon.vehicule.kilometrage >= data.kilometrage)) {
+    await prisma.vehicule.update({ where: { id: bon.vehicule.id }, data: { kilometrage: data.kilometrage } });
+  }
   // Date prévue changée : le rendez-vous du bon au calendrier suit
   if (data.datePrevue) {
     await prisma.rendezVous.updateMany({ where: { bonId: params.id, statut: { not: "ANNULE" } }, data: { date: data.datePrevue } });

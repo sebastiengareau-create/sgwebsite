@@ -155,8 +155,9 @@ export default async function ImprimerBon(props) {
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(bon.vehicule) || "—"}</div>
-              {identifiantsVehicule(bon.vehicule) && (
-                <div style={{ fontSize: 12, fontFamily: "monospace" }}>{identifiantsVehicule(bon.vehicule)}</div>
+              {/* Kilométrage du bon (à l'arrivée), pas celui du véhicule aujourd'hui */}
+              {identifiantsVehicule({ ...bon.vehicule, kilometrage: bon.kilometrage }) && (
+                <div style={{ fontSize: 12, fontFamily: "monospace" }}>{identifiantsVehicule({ ...bon.vehicule, kilometrage: bon.kilometrage })}</div>
               )}
             </div>
           )}
