@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
-import { verserVehiculeAuDossier } from "@/lib/clients";
+import { verserVehiculeAuDossier, kilometrageVehicule } from "@/lib/clients";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
@@ -53,6 +53,7 @@ export async function POST(request, props) {
 
   // Le bon reste « En attente » jusqu'au premier poinçon, planifié à la date
   // du rendez-vous — un rendez-vous à venir apparaît sous sa journée prévue.
+  const kilometrage = await kilometrageVehicule(vehiculeId);
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,
@@ -60,6 +61,7 @@ export async function POST(request, props) {
       datePrevue: rdv.date,
       clientId,
       vehiculeId,
+      kilometrage,
       // Le service réservé, puis chaque tâche demandée : une ligne du bon chacune
       problemes: { create: [rdv.motif, ...(rdv.taches || [])].map((description) => ({ description })) },
     },
