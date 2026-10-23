@@ -957,3 +957,22 @@ model Notification {
 
   @@index([employeId, creeLe])
 }
+
+// Notification envoyée toute seule à une heure choisie (ex. début et fin du
+// break ou du dîner) — créée dans la page Notifications, envoyée par
+// lib/notificationsCedulees.js. Heure du Québec.
+model NotificationCedulee {
+  id           String   @id @default(cuid())
+  titre        String // ex. « Début du dîner »
+  message      String? // détails, facultatif
+  heure        String // "HH:MM"
+  frequence    String // "QUOTIDIEN" | "SEMAINE" (lundi au vendredi) | "JOURS" (jours choisis) | "UNE_FOIS"
+  jours        String[] @default([]) // "lun".."dim", pour JOURS
+  date         String? // "YYYY-MM-DD", pour UNE_FOIS
+  tous         Boolean  @default(false) // toute l'équipe active
+  roles        String[] @default([])
+  employeIds   String[] @default([])
+  actif        Boolean  @default(true)
+  dernierEnvoi String? // "YYYY-MM-DD" du dernier envoi — jamais deux fois le même jour
+  creeLe       DateTime @default(now())
+}

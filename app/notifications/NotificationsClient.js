@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import BandeauSection from "../components/BandeauSection";
 import ActivationNotifications from "../components/ActivationNotifications";
 import { depuis } from "../components/Cloche";
-import { TYPES_NOTIFICATIONS } from "@/lib/typesNotifications";
+import { TYPES_NOTIFICATIONS, FREQUENCES_CEDULEES, JOURS_SEMAINE } from "@/lib/typesNotifications";
 
 const TYPES = Object.entries(TYPES_NOTIFICATIONS);
 
@@ -30,6 +30,7 @@ export default function NotificationsClient({ estEmploye, notificationsInitiales
       {gestion && (
         <>
           {gestion.peutEnvoyer && <EnvoiMessage gestion={gestion} />}
+          {gestion.peutEnvoyer && <NotificationsCedulees gestion={gestion} />}
           {gestion.peutRegler && <QuiRecoitQuoi gestion={gestion} />}
         </>
       )}
@@ -201,6 +202,214 @@ function EnvoiMessage({ gestion }) {
       </button>
       {info.texte && <p style={{ fontSize: 12, color: info.erreur ? "var(--danger)" : "var(--text-muted)", margin: "8px 0 0" }}>{info.texte}</p>}
     </form>
+  );
+}
+
+// Modèles rapides : remplissent le titre, le reste se choisit
+const MODELES_CEDULES = ["☕ Début du break", "☕ Fin du break", "🍽️ Début du dîner", "🍽️ Fin du dîner"];
+const CEDULEE_VIDE = { titre: "", message: "", heure: "12:00", frequence: "SEMAINE", jours: [], date: "", tous: true, roles: [], employeIds: [] };
+
+const formatHeure = (hhmm) => `${Number(hhmm.slice(0, 2))} h ${hhmm.slice(3)}`;
+
+function resumeFrequence(c) {
+  if (c.frequence === "JOURS") return Object.keys(JOURS_SEMAINE).filter((j) => c.jours.includes(j)).map((j) => JOURS_SEMAINE[j]).join(", ");
+  if (c.frequence === "UNE_FOIS") {
+    const [an, mois, jour] = c.date.split("-").map(Number);
+    const date = new Date(an, mois - 1, jour).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" });
+    return `Le ${date}${!c.actif && c.dernierEnvoi ? " · envoyée" : ""}`;
+  }
+  return FREQUENCES_CEDULEES[c.frequence];
+}
+
+function resumeDestinataires(c, gestion) {
+  if (c.tous) return "Toute l'équipe";
+  const noms = [
+    ...gestion.roles.filter((r) => c.roles.includes(r.cle)).map((r) => r.nom),
+    ...gestion.equipe.filter((e) => c.employeIds.includes(e.id)).map((e) => e.nom),
+  ];
+  return noms.join(", ") || "Personne (employés retirés)";
+}
+
+function NotificationsCedulees({ gestion }) {
+  const [cedulees, setCedulees] = useState(gestion.cedulees);
+  const [edition, setEdition] = useState(null); // null | { id?, ...champs }
+  const [aSupprimer, setASupprimer] = useState(null);
+  const [occupe, setOccupe] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  const trier = (liste) => [...liste].sort((a, b) => a.heure.localeCompare(b.heure));
+  const remplacer = (c) => setCedulees((liste) => trier(liste.some((x) => x.id === c.id) ? liste.map((x) => (x.id === c.id ? c : x)) : [...liste, c]));
+
+  async function enregistrer(e) {
+    e.preventDefault();
+    setOccupe(true);
+    setErreur("");
+    try {
+      const { id, ...champs } = edition;
+      const data = await envoyer(id ? `/api/notifications/cedulees/${id}` : "/api/notifications/cedulees", id ? "PUT" : "POST", champs);
+      remplacer(data.cedulee);
+      setEdition(null);
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setOccupe(false);
+    }
+  }
+
+  async function basculerActif(c) {
+    setErreur("");
+    try {
+      const data = await envoyer(`/api/notifications/cedulees/${c.id}`, "PUT", { actif: !c.actif });
+      remplacer(data.cedulee);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
+  async function supprimer(id) {
+    setErreur("");
+    try {
+      await envoyer(`/api/notifications/cedulees/${id}`, "DELETE", {});
+      setCedulees((liste) => liste.filter((x) => x.id !== id));
+      setASupprimer(null);
+    } catch (err) {
+      setErreur(err.message);
+    }
+  }
+
+  const modifier = (c) => {
+    setErreur("");
+    setEdition({ id: c.id, titre: c.titre, message: c.message || "", heure: c.heure, frequence: c.frequence, jours: c.jours, date: c.date || "", tous: c.tous, roles: c.roles, employeIds: c.employeIds });
+  };
+  const champ = (cle, valeur) => setEdition((ed) => ({ ...ed, [cle]: valeur }));
+  const basculerDans = (cle, valeur) => setEdition((ed) => ({ ...ed, [cle]: ed[cle].includes(valeur) ? ed[cle].filter((v) => v !== valeur) : [...ed[cle], valeur] }));
+  const petitBouton = { background: "none", border: "none", color: "var(--accent)", fontSize: 12, cursor: "pointer", padding: 0 };
+  const caseACocher = { display: "flex", gap: 6, alignItems: "center", fontSize: 12.5, cursor: "pointer" };
+
+  return (
+    <div className="carte" style={{ marginBottom: 12 }}>
+      <div className="titre-section">⏰ Notifications cédulées</div>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+        Envoyées toutes seules à l'heure choisie — ex. le début et la fin du break ou du dîner.
+      </p>
+
+      {cedulees.length === 0 && !edition && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>Aucune notification cédulée.</p>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+        {cedulees.map((c) => (
+          <div key={c.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", opacity: c.actif ? 1 : 0.55 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{formatHeure(c.heure)} · {c.titre}</span>
+              {!c.actif && c.frequence !== "UNE_FOIS" && <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>En pause</span>}
+            </div>
+            {c.message && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, whiteSpace: "pre-wrap" }}>{c.message}</div>}
+            <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 3 }}>🔁 {resumeFrequence(c)} · 👥 {resumeDestinataires(c, gestion)}</div>
+            <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
+              {aSupprimer === c.id ? (
+                <>
+                  <span style={{ fontSize: 12 }}>Supprimer ?</span>
+                  <button onClick={() => supprimer(c.id)} style={{ ...petitBouton, color: "var(--danger)" }}>Oui, supprimer</button>
+                  <button onClick={() => setASupprimer(null)} style={petitBouton}>Annuler</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => modifier(c)} style={petitBouton}>Modifier</button>
+                  {!(c.frequence === "UNE_FOIS" && !c.actif && c.dernierEnvoi) && (
+                    <button onClick={() => basculerActif(c)} style={petitBouton}>{c.actif ? "Mettre en pause" : "Réactiver"}</button>
+                  )}
+                  <button onClick={() => setASupprimer(c.id)} style={{ ...petitBouton, color: "var(--danger)" }}>Supprimer</button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!edition && (
+        <button className="bouton-3d" onClick={() => { setErreur(""); setEdition({ ...CEDULEE_VIDE }); }} style={{ width: "100%", padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+          + Ajouter une notification cédulée
+        </button>
+      )}
+
+      {edition && (
+        <form onSubmit={enregistrer} style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{edition.id ? "Modifier la notification" : "Nouvelle notification cédulée"}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            {MODELES_CEDULES.map((m) => (
+              <button key={m} type="button" onClick={() => champ("titre", m)} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 999, border: "1px solid var(--border)", background: edition.titre === m ? "var(--bg)" : "transparent", color: "var(--text)", cursor: "pointer" }}>
+                {m}
+              </button>
+            ))}
+          </div>
+          <input className="champ champ-espace" maxLength={80} value={edition.titre} onChange={(e) => champ("titre", e.target.value)} placeholder="Titre — ex. : Début du dîner" required />
+          <textarea className="champ champ-espace" rows={2} maxLength={500} value={edition.message} onChange={(e) => champ("message", e.target.value)} placeholder="Message (facultatif) — ex. : Bon appétit! Retour à 12 h 30." />
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+            <label style={{ fontSize: 12, flex: "1 1 120px" }}>
+              Heure
+              <input type="time" className="champ" value={edition.heure} onChange={(e) => champ("heure", e.target.value)} required />
+            </label>
+            <label style={{ fontSize: 12, flex: "2 1 180px" }}>
+              Fréquence
+              <select className="champ" value={edition.frequence} onChange={(e) => champ("frequence", e.target.value)}>
+                {Object.entries(FREQUENCES_CEDULEES).map(([cle, nom]) => <option key={cle} value={cle}>{nom}</option>)}
+              </select>
+            </label>
+          </div>
+          {edition.frequence === "JOURS" && (
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+              {Object.entries(JOURS_SEMAINE).map(([cle, nom]) => (
+                <label key={cle} style={caseACocher}>
+                  <input type="checkbox" checked={edition.jours.includes(cle)} onChange={() => basculerDans("jours", cle)} /> {nom}
+                </label>
+              ))}
+            </div>
+          )}
+          {edition.frequence === "UNE_FOIS" && (
+            <label style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
+              Date
+              <input type="date" className="champ" value={edition.date} onChange={(e) => champ("date", e.target.value)} required />
+            </label>
+          )}
+
+          <div style={{ fontSize: 12, marginBottom: 4 }}>Destinataires</div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 8 }}>
+            {[["tous", "Toute l'équipe"], ["choix", "Rôles ou employés précis"]].map(([valeur, libelle]) => (
+              <label key={valeur} style={caseACocher}>
+                <input type="radio" name="destinataires-cedulee" checked={edition.tous === (valeur === "tous")} onChange={() => champ("tous", valeur === "tous")} /> {libelle}
+              </label>
+            ))}
+          </div>
+          {!edition.tous && (
+            <>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+                {gestion.roles.map((r) => (
+                  <label key={r.cle} style={caseACocher}>
+                    <input type="checkbox" checked={edition.roles.includes(r.cle)} onChange={() => basculerDans("roles", r.cle)} /> {r.nom}
+                  </label>
+                ))}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 6, marginBottom: 8 }}>
+                {gestion.equipe.map((e) => (
+                  <label key={e.id} style={caseACocher}>
+                    <input type="checkbox" checked={edition.employeIds.includes(e.id)} onChange={() => basculerDans("employeIds", e.id)} /> {e.nom}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="submit" className="bouton-3d" disabled={occupe || !edition.titre.trim()} style={{ flex: 1, padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+              {occupe ? "Enregistrement…" : "Enregistrer"}
+            </button>
+            <button type="button" onClick={() => { setEdition(null); setErreur(""); }} style={{ padding: "10px 14px", borderRadius: 10, fontSize: 13, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", cursor: "pointer" }}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      )}
+      {erreur && <p style={{ fontSize: 12, color: "var(--danger)", margin: "8px 0 0" }}>{erreur}</p>}
+    </div>
   );
 }
 

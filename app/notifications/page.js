@@ -7,7 +7,8 @@ import NotificationsClient from "./NotificationsClient";
 
 // Notifications : historique et activation sur le téléphone de l'employé
 // connecté. Avec la section « Notifications » (Administrateur → Rôles et
-// accès, gérant par défaut) : l'envoi d'un message. Niveau 4 seulement :
+// accès, gérant par défaut) : l'envoi d'un message et les notifications
+// cédulées (voir lib/notificationsCedulees.js). Niveau 4 seulement :
 // ses préférences et le choix de qui reçoit quoi (voir lib/typesNotifications.js)
 export default async function Notifications() {
   const session = await obtenirSession();
@@ -26,12 +27,13 @@ export default async function Notifications() {
 
   let gestion = null;
   if (peutEnvoyer || peutRegler) {
-    const [rolesParType, employes, nomsRoles] = await Promise.all([
+    const [rolesParType, employes, nomsRoles, cedulees] = await Promise.all([
       tousLesRolesParType(),
       prisma.user.findMany({ where: { actif: true }, select: { id: true, nom: true, role: true }, orderBy: { nom: "asc" } }),
       Promise.all(ROLES_VALIDES.map(async (r) => ({ cle: r, nom: await nomAffichageRole(r) }))),
+      peutEnvoyer ? prisma.notificationCedulee.findMany({ orderBy: [{ heure: "asc" }, { creeLe: "asc" }] }) : [],
     ]);
-    gestion = { rolesParType, employes: employes.filter((e) => e.id !== session.id), roles: nomsRoles, peutEnvoyer, peutRegler };
+    gestion = { rolesParType, employes: employes.filter((e) => e.id !== session.id), equipe: employes, roles: nomsRoles, cedulees, peutEnvoyer, peutRegler };
   }
 
   return (
