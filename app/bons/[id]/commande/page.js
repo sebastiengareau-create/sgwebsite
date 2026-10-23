@@ -3,7 +3,8 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../imprimer/BoutonImprimer";
-import { libelleVehicule } from "@/lib/vehicules";
+import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
+import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function BonDeCommande(props) {
@@ -44,6 +45,7 @@ export default async function BonDeCommande(props) {
             <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
             <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
             {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
+            {lignesAdresse(bon.client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
             {bon.client.garantieProlongee && (
               <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
                 🛡️ Garantie prolongée — #{bon.client.garantieProlongee}
@@ -53,11 +55,10 @@ export default async function BonDeCommande(props) {
               <div style={{ marginTop: 10 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(bon.vehicule) || "—"}</div>
-                {(bon.vehicule.plaque || bon.vehicule.niv) && (
-                  <div style={{ fontSize: 12, fontFamily: "monospace" }}>
-                    {[bon.vehicule.plaque && `Plaque ${bon.vehicule.plaque}`, bon.vehicule.niv && `NIV ${bon.vehicule.niv}`].filter(Boolean).join(" · ")}
-                  </div>
-                )}
+                {/* Kilométrage du bon (à l'arrivée), pas celui du véhicule aujourd'hui */}
+                {lignesIdentifiantsVehicule({ ...bon.vehicule, kilometrage: bon.kilometrage }).map((ligne) => (
+                  <div key={ligne} style={{ fontSize: 12, fontFamily: "monospace" }}>{ligne}</div>
+                ))}
               </div>
             )}
           </div>

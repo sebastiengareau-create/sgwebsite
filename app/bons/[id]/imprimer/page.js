@@ -3,9 +3,9 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
-import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
+import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
-import { adresseComplete } from "@/lib/adresse";
+import { lignesAdresse } from "@/lib/adresse";
 import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
@@ -143,9 +143,7 @@ export default async function ImprimerBon(props) {
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
           <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
           {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
-          {(bon.client.adresse || bon.client.ville) && (
-            <div style={{ fontSize: 13 }}>{adresseComplete(bon.client)}</div>
-          )}
+          {lignesAdresse(bon.client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
           {bon.client.garantieProlongee && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
               🛡️ Garantie prolongée — #{bon.client.garantieProlongee}
@@ -156,9 +154,9 @@ export default async function ImprimerBon(props) {
               <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 2 }}>Véhicule</div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{libelleVehicule(bon.vehicule) || "—"}</div>
               {/* Kilométrage du bon (à l'arrivée), pas celui du véhicule aujourd'hui */}
-              {identifiantsVehicule({ ...bon.vehicule, kilometrage: bon.kilometrage }) && (
-                <div style={{ fontSize: 12, fontFamily: "monospace" }}>{identifiantsVehicule({ ...bon.vehicule, kilometrage: bon.kilometrage })}</div>
-              )}
+              {lignesIdentifiantsVehicule({ ...bon.vehicule, kilometrage: bon.kilometrage }).map((ligne) => (
+                <div key={ligne} style={{ fontSize: 12, fontFamily: "monospace" }}>{ligne}</div>
+              ))}
             </div>
           )}
         </div>

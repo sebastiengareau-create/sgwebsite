@@ -2,10 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
-import { libelleVehicule } from "@/lib/vehicules";
+import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { image } from "@/lib/client";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
-import { adresseComplete } from "@/lib/adresse";
+import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 // Facture de vente d'un véhicule à vendre, à imprimer — même présentation
@@ -67,9 +67,7 @@ export default async function ImprimerFactureVente(props) {
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Acheteur</div>
           <div style={{ fontWeight: 600 }}>{client.nom}</div>
           {client.telephone && <div style={{ fontSize: 13 }}>{client.telephone}</div>}
-          {(client.adresse || client.ville) && (
-            <div style={{ fontSize: 13 }}>{adresseComplete(client)}</div>
-          )}
+          {lignesAdresse(client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
         </div>
 
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 6 }}>Véhicule vendu</div>
@@ -77,7 +75,7 @@ export default async function ImprimerFactureVente(props) {
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>{libelleVehicule(v) || "Véhicule"}</div>
             <div style={{ fontSize: 12, fontFamily: "monospace", marginTop: 2 }}>
-              {[v.niv && `NIV ${v.niv}`, v.plaque && `Plaque ${v.plaque}`, vv.kilometrage != null && `${vv.kilometrage.toLocaleString("fr-CA")} km`].filter(Boolean).join(" · ")}
+              {lignesIdentifiantsVehicule({ ...v, kilometrage: vv.kilometrage }).map((ligne) => <div key={ligne}>{ligne}</div>)}
             </div>
             {vv.description && <div style={{ fontSize: 12, color: "#444", whiteSpace: "pre-wrap", marginTop: 6 }}>{vv.description}</div>}
           </div>
