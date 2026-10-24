@@ -11,6 +11,14 @@
   --success: #6fa96b;
   --bleu: #4f82c0;
   --ombre-sombre: #100f0c;
+  /* Tableau de bord (vue d'ensemble) : couleur d'avertissement et fonds
+     teintés des lignes colorées vert / orange / rouge / bleu */
+  --avertissement: #dcae3a;
+  --success-fond: rgba(111, 169, 107, 0.13);
+  --avertissement-fond: rgba(220, 174, 58, 0.13);
+  --danger-fond: rgba(193, 91, 74, 0.14);
+  --bleu-fond: rgba(79, 130, 192, 0.15);
+  --surface-alt: #262420;
 }
 
 /* Thème clair — fond blanc, activé via l'attribut data-theme sur <html>
@@ -28,6 +36,12 @@ html[data-theme="light"] {
   --success: #3c8a42;
   --bleu: #3f6fa3;
   --ombre-sombre: #d8d3c4;
+  --avertissement: #8a6408;
+  --success-fond: rgba(60, 138, 66, 0.10);
+  --avertissement-fond: rgba(201, 162, 39, 0.14);
+  --danger-fond: rgba(178, 63, 44, 0.09);
+  --bleu-fond: rgba(63, 111, 163, 0.10);
+  --surface-alt: #faf8f3;
 }
 
 * { box-sizing: border-box; }

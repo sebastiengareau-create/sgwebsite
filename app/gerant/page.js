@@ -7,6 +7,7 @@ import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailR
 import EnTete from "../components/EnTete";
 import LiveTimer from "../components/LiveTimer";
 import VueGlobaleClient from "./VueGlobaleClient";
+import { NIVEAUX, niveauHorodateur } from "./niveaux";
 
 const NOMS_MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const NOMS_MOIS_COURT = ["Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
@@ -29,7 +30,7 @@ function calculerSanteFinanciere({ historique, soldeBancaire, clientsARecevoir, 
   const depenses = historique.reduce((s, m) => s + m.depenses, 0);
   const aucuneDonnee = !revenus && !depenses && !soldeBancaire && !clientsARecevoir && !fournisseursAPayer;
   if (aucuneDonnee) {
-    return { score: 0, label: "Aucune donnée", ratioEndettement: 0, margePct: 0, moisReserve: 0 };
+    return { score: 0, label: "Aucune donnée", aucuneDonnee: true, ratioEndettement: 0, margePct: 0, moisReserve: null };
   }
 
   const margePct = revenus > 0 ? (revenus - depenses) / revenus : 0;
@@ -137,6 +138,8 @@ export default async function EspaceGerant(props) {
     facturesImpayeesCount,
     fournisseursAPayer: resumeCourant.fournisseursAPayer,
     fournisseursImpayesCount: fournisseursImpayesDistincts.length,
+    facturesEnRetardCount: facturesEnRetard._count,
+    depensesAPayerBientotCount: depensesEcheanceProche._count,
     soldeBancaire: resumeCourant.soldeBancaire,
     soldeBancaireVariation: variation(resumeCourant.soldeBancaire, resumePrecedent.soldeBancaire),
     beneficeNet: resumeCourant.beneficeNet,
@@ -203,48 +206,35 @@ export default async function EspaceGerant(props) {
         rentabilite={{ mois: detailMois, annee: detailAnnee }}
       />
 
-      <div className="conteneur-page" style={{ marginTop: 8 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
-          <Link href="/secretaire?statut=EN_ATTENTE" style={{ textDecoration: "none" }}><Carte label="Bons en attente" valeur={enAttente} /></Link>
-          <Link href="/secretaire?statut=EN_COURS" style={{ textDecoration: "none" }}><Carte label="Bons en cours" valeur={enCours} /></Link>
-          <Link href="/secretaire/inventaire" style={{ textDecoration: "none" }}><Carte label="Pièces sous le seuil" valeur={stockBas.length} alerte={stockBas.length > 0} /></Link>
+      <div className="conteneur-page" style={{ maxWidth: 1000, marginTop: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
+          <Carte href="/secretaire?statut=EN_ATTENTE" label="Bons en attente" valeur={enAttente} niveau={enAttente > 0 ? "avertissement" : "neutre"} />
+          <Carte href="/secretaire?statut=EN_COURS" label="Bons en cours" valeur={enCours} niveau={enCours > 0 ? "bleu" : "neutre"} />
+          <Carte href="/secretaire/inventaire" label="Pièces sous le seuil" valeur={stockBas.length} niveau={stockBas.length > 0 ? "danger" : "bon"} />
         </div>
 
-        <h2 style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 8 }}>
-          ⏱ Horodateurs actifs ({totalPoinconsActifs})
-        </h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="carte" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, padding: "12px 16px", borderBottom: totalPoinconsActifs > 0 ? "1px solid var(--border)" : "none" }}>
+            <span style={{ fontSize: 13, fontWeight: 700 }}>⏱ Horodateurs actifs ({totalPoinconsActifs})</span>
+            {totalPoinconsActifs > 0 && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Orange après 8 h · rouge après 10 h</span>}
+          </div>
           {poinconsActifs.map((t) => {
             const numeroTache = t.probleme.bon.problemes.findIndex((p) => p.id === t.probleme.id) + 1;
             return (
-            <Link key={t.id} href={`/bons/${t.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{t.employe.nom}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    #{t.probleme.bon.numero} · {t.probleme.bon.client.nom} · <strong>{numeroTache}.</strong> {t.probleme.description}
-                  </div>
-                </div>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>
-                  <LiveTimer debut={t.debut.toISOString()} />
-                </span>
-              </div>
-            </Link>
+              <Link key={t.id} href={`/bons/${t.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <LigneHorodateur debut={t.debut} maintenant={maintenant} nom={t.employe.nom}>
+                  #{t.probleme.bon.numero} · {t.probleme.bon.client.nom} · <strong>{numeroTache}.</strong> {t.probleme.description}
+                </LigneHorodateur>
+              </Link>
             );
           })}
           {poinconsInternesActifs.map((t) => (
-            <div key={t.id} className="carte carte-s" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 600 }}>{t.employe.nom}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>🛠️ {t.tacheInterne.nom} (interne, non facturable)</div>
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>
-                <LiveTimer debut={t.debut.toISOString()} />
-              </span>
-            </div>
+            <LigneHorodateur key={t.id} debut={t.debut} maintenant={maintenant} nom={t.employe.nom}>
+              🛠️ {t.tacheInterne.nom} (interne, non facturable)
+            </LigneHorodateur>
           ))}
           {totalPoinconsActifs === 0 && (
-            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Personne n'est poinçonné actuellement.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0, padding: "0 16px 12px" }}>Personne n'est poinçonné actuellement.</p>
           )}
         </div>
       </div>
@@ -252,11 +242,29 @@ export default async function EspaceGerant(props) {
   );
 }
 
-function Carte({ label, valeur, alerte }) {
+function Carte({ href, label, valeur, niveau }) {
+  const { couleur, fond } = NIVEAUX[niveau];
   return (
-    <div className="carte carte-s">
-      <div style={{ fontSize: 24, fontWeight: 700, color: alerte ? "var(--danger)" : "var(--accent)" }}>{valeur}</div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</div>
+    <Link href={href} style={{ display: "flex", alignItems: "center", gap: 12, background: fond === "transparent" ? "var(--surface)" : fond, border: `1px solid ${niveau === "neutre" ? "var(--border)" : couleur}`, borderRadius: 12, padding: "12px 14px", textDecoration: "none", color: "var(--text)" }}>
+      <span style={{ fontSize: 26, fontWeight: 700, color: niveau === "neutre" ? "var(--text-muted)" : couleur }}>{valeur}</span>
+      <span style={{ fontSize: 12, fontWeight: 600 }}>{label}</span>
+    </Link>
+  );
+}
+
+// Une ligne par poinçon ouvert, colorée selon sa durée (voir niveauHorodateur)
+function LigneHorodateur({ debut, maintenant, nom, children }) {
+  const { niveau, etat } = niveauHorodateur(debut, maintenant);
+  const { couleur, fond } = NIVEAUX[niveau];
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 52, paddingRight: 16, background: fond, borderBottom: "1px solid var(--border)" }}>
+      <span style={{ width: 5, alignSelf: "stretch", background: couleur, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0, padding: "8px 0" }}>
+        <div style={{ fontWeight: 600, fontSize: 13 }}>{nom}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{children}</div>
+      </div>
+      {etat && <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: fond, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
+      <LiveTimer debut={debut.toISOString()} />
     </div>
   );
 }

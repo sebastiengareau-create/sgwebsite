@@ -3,24 +3,57 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CLIENT } from "@/lib/client";
+import { NIVEAUX } from "./niveaux";
 
 function fmt(montant) {
   return `${montant.toFixed(2)} $`;
 }
 
-const COULEUR_NIVEAU = { danger: "var(--danger)", avertissement: "#C9A227", info: "var(--success)" };
-const FOND_NIVEAU = { danger: "rgba(193,91,74,0.12)", avertissement: "rgba(201,162,39,0.12)", info: "rgba(111,169,107,0.12)" };
+function fmtNombre(n, decimales = 1) {
+  return n.toLocaleString("fr-CA", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+}
+
+const ORDRE_NIVEAU = { danger: 0, avertissement: 1, info: 2 };
+const ETAT_ALERTE = { danger: "Urgent", avertissement: "À prévoir", info: "Info" };
+
+// Feux de circulation des cartes KPI et des lignes « Santé financière ».
+// Les seuils suivent ceux de calculerSanteFinanciere (page.js) : marge
+// pleine à 25 %, réserve pleine à 3 mois, endettement nul à 50 %.
+function niveauMarge(pct) {
+  return pct >= 15 ? { niveau: "bon", etat: "Bon" } : pct >= 5 ? { niveau: "avertissement", etat: "Moyen" } : { niveau: "danger", etat: "Faible" };
+}
+function niveauReserve(mois) {
+  if (mois == null) return { niveau: "neutre", etat: null };
+  return mois >= 3 ? { niveau: "bon", etat: "Confortable" } : mois >= 1 ? { niveau: "avertissement", etat: "Serré" } : { niveau: "danger", etat: "Bas" };
+}
+function niveauEndettement(pct) {
+  return pct < 25 ? { niveau: "bon", etat: "Bon" } : pct <= 50 ? { niveau: "avertissement", etat: "À surveiller" } : { niveau: "danger", etat: "Élevé" };
+}
+function niveauVariation(variation) {
+  if (variation === null || variation === undefined) return { niveau: "neutre", etat: null };
+  return variation >= 0 ? { niveau: "bon", etat: "En hausse" } : { niveau: "avertissement", etat: "En baisse" };
+}
 
 export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes, rentabilite }) {
-  const [vueGraphique, setVueGraphique] = useState("revenus"); // "revenus" | "depenses" | "benefice"
+  const [vueGraphique, setVueGraphique] = useState("comparaison"); // "comparaison" | "benefice"
   const [periodeRentabilite, setPeriodeRentabilite] = useState("mois"); // "mois" | "annee"
 
   const moisPrecUrl = mois === 1 ? { annee: annee - 1, mois: 12 } : { annee, mois: mois - 1 };
   const moisSuivUrl = mois === 12 ? { annee: annee + 1, mois: 1 } : { annee, mois: mois + 1 };
 
-  const valeursGraphique = graphique.map((g) => g[vueGraphique === "revenus" ? "revenus" : vueGraphique === "depenses" ? "depenses" : "benefice"]);
-  const maxValeur = Math.max(1, ...valeursGraphique.map((v) => Math.abs(v)));
-  const couleurBarre = vueGraphique === "depenses" ? "var(--danger)" : vueGraphique === "benefice" ? "#4F82C0" : "var(--success)";
+  const maxValeur = Math.max(1, ...graphique.flatMap((g) => (vueGraphique === "benefice" ? [Math.abs(g.benefice)] : [g.revenus, g.depenses])));
+  const hauteur = (v) => `${Math.max(2, (Math.abs(v) / maxValeur) * 100)}%`;
+
+  // Sans aucune donnée comptable, les indicateurs restent neutres (gris)
+  // plutôt que d'afficher un rouge alarmant pour une entreprise qui débute.
+  const neutre = { niveau: "neutre", etat: null };
+  const nivReserve = niveauReserve(sante.moisReserve);
+  const alertesTriees = [...alertes].sort((a, b) => ORDRE_NIVEAU[a.niveau] - ORDRE_NIVEAU[b.niveau]);
+  const decompteAlertes = ["danger", "avertissement", "info"]
+    .map((n) => ({ n, c: alertes.filter((a) => a.niveau === n).length }))
+    .filter((x) => x.c > 0)
+    .map((x) => `${x.c} ${x.n === "danger" ? (x.c > 1 ? "urgents" : "urgent") : x.n === "avertissement" ? "à prévoir" : "info"}`)
+    .join(" · ");
 
   return (
     <div className="conteneur-page" style={{ maxWidth: 1000 }}>
@@ -37,22 +70,38 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
         </div>
       </div>
 
-      {/* KPI */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
-        <CarteKpi icone="💰" label="Chiffre d'affaires" valeur={fmt(kpis.revenus)} variation={kpis.revenusVariation} />
-        <CarteKpi icone="💳" label="À recevoir" valeur={fmt(kpis.clientsARecevoir)} sousLabel={`${kpis.facturesImpayeesCount} facture${kpis.facturesImpayeesCount !== 1 ? "s" : ""}`} href="/secretaire/factures" />
-        <CarteKpi icone="🧾" label="À payer" valeur={fmt(kpis.fournisseursAPayer)} sousLabel={`${kpis.fournisseursImpayesCount} fournisseur${kpis.fournisseursImpayesCount !== 1 ? "s" : ""}`} href="/gerant/comptabilite/comptes-a-payer" />
-        <CarteKpi icone="🏦" label="Liquidités" valeur={fmt(kpis.soldeBancaire)} variation={kpis.soldeBancaireVariation} />
-        <CarteKpi icone="📈" label="Bénéfice net" valeur={fmt(kpis.beneficeNet)} variation={kpis.beneficeNetVariation} />
+      {/* KPI — bande de couleur selon l'état */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 20 }}>
+        <CarteKpi label="Chiffre d'affaires" valeur={fmt(kpis.revenus)} variation={kpis.revenusVariation} {...niveauVariation(kpis.revenusVariation)} />
+        <CarteKpi
+          label="À recevoir" valeur={fmt(kpis.clientsARecevoir)} href="/secretaire/factures"
+          sousLabel={`${kpis.facturesImpayeesCount} facture${kpis.facturesImpayeesCount !== 1 ? "s" : ""}`}
+          {...(kpis.facturesEnRetardCount > 0 ? { niveau: "danger", etat: `${kpis.facturesEnRetardCount} en retard` } : kpis.clientsARecevoir > 0 ? { niveau: "bon", etat: "À jour" } : { niveau: "neutre" })}
+        />
+        <CarteKpi
+          label="À payer" valeur={fmt(kpis.fournisseursAPayer)} href="/gerant/comptabilite/comptes-a-payer"
+          sousLabel={`${kpis.fournisseursImpayesCount} fournisseur${kpis.fournisseursImpayesCount !== 1 ? "s" : ""}`}
+          {...(kpis.depensesAPayerBientotCount > 0 ? { niveau: "avertissement", etat: `${kpis.depensesAPayerBientotCount} à payer bientôt` } : kpis.fournisseursAPayer > 0 ? { niveau: "bon", etat: "À jour" } : { niveau: "neutre" })}
+        />
+        <CarteKpi
+          label="Liquidités" valeur={fmt(kpis.soldeBancaire)} variation={kpis.soldeBancaireVariation} {...nivReserve}
+          sousLabel={sante.moisReserve != null ? `${fmtNombre(sante.moisReserve)} mois de réserve` : null}
+        />
+        <CarteKpi
+          label="Bénéfice net" valeur={fmt(kpis.beneficeNet)} variation={kpis.beneficeNetVariation}
+          {...(kpis.beneficeNet > 0 ? { niveau: "bon", etat: "Positif" } : kpis.beneficeNet < 0 ? { niveau: "danger", etat: "Perte" } : { niveau: "neutre" })}
+        />
       </div>
 
+      <BlocAlertes alertes={alertesTriees} decompte={decompteAlertes} />
+
       {/* Graphique + santé financière */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 12, marginBottom: 20, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12, marginBottom: 20, alignItems: "start" }}>
         <div className="carte">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 700 }}>Revenus vs dépenses — 12 derniers mois</span>
             <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>
-              {[{ cle: "revenus", label: "Revenus" }, { cle: "depenses", label: "Dépenses" }, { cle: "benefice", label: "Bénéfice" }].map((v) => (
+              {[{ cle: "comparaison", label: "Revenus / dépenses" }, { cle: "benefice", label: "Bénéfice" }].map((v) => (
                 <button
                   key={v.cle}
                   onClick={() => setVueGraphique(v.cle)}
@@ -67,62 +116,72 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 160 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+            {vueGraphique === "comparaison" ? (
+              <>
+                <Legende couleur="var(--success)" label="Revenus" />
+                <Legende couleur="var(--danger)" opacite={0.55} label="Dépenses" />
+              </>
+            ) : (
+              <>
+                <Legende couleur="var(--success)" label="Bénéfice" />
+                <Legende couleur="var(--danger)" label="Perte" />
+              </>
+            )}
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--danger)" }} />Mois en perte</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 170 }}>
             {graphique.map((g, i) => {
-              const valeur = valeursGraphique[i];
-              const hauteur = Math.max(2, (Math.abs(valeur) / maxValeur) * 100);
+              const opacite = i === graphique.length - 1 ? 1 : 0.8;
               return (
                 <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end", gap: 4 }}>
-                  <div title={fmt(valeur)} style={{ width: "100%", maxWidth: 22, height: `${hauteur}%`, background: valeur < 0 ? "var(--danger)" : couleurBarre, borderRadius: "4px 4px 0 0", opacity: i === graphique.length - 1 ? 1 : 0.75 }} />
+                  <div style={{ width: "100%", flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 2 }}>
+                    {vueGraphique === "comparaison" ? (
+                      <>
+                        <div title={`Revenus : ${fmt(g.revenus)}`} style={{ width: "42%", maxWidth: 12, height: hauteur(g.revenus), background: "var(--success)", borderRadius: "3px 3px 0 0", opacity: opacite }} />
+                        <div title={`Dépenses : ${fmt(g.depenses)}`} style={{ width: "42%", maxWidth: 12, height: hauteur(g.depenses), background: "var(--danger)", borderRadius: "3px 3px 0 0", opacity: 0.55 }} />
+                      </>
+                    ) : (
+                      <div title={`Bénéfice : ${fmt(g.benefice)}`} style={{ width: "100%", maxWidth: 22, height: hauteur(g.benefice), background: g.benefice < 0 ? "var(--danger)" : "var(--success)", borderRadius: "4px 4px 0 0", opacity: opacite }} />
+                    )}
+                  </div>
                   <span style={{ fontSize: 9.5, color: "var(--text-muted)" }}>{g.label}</span>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: g.benefice < 0 ? "var(--danger)" : "transparent" }} />
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="carte">
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Santé financière</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+        <div className="carte" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 14 }}>
             <JaugeScore score={sante.score} />
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: sante.score >= 60 ? "var(--success)" : sante.score >= 40 ? "#C9A227" : "var(--danger)" }}>{sante.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>Santé financière</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: couleurScore(sante.score) }}>{sante.label}</div>
               <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Estimation indicative · 12 derniers mois ({sante.periode})</div>
             </div>
           </div>
-          <LigneSante label="Marge bénéficiaire (12 mois)" valeur={`${sante.margePct.toFixed(1)} %`} />
-          <LigneSante label="Liquidités" valeur={fmt(kpis.soldeBancaire)} />
-          {sante.moisReserve != null && <LigneSante label="Réserve (mois de dépenses)" valeur={sante.moisReserve.toFixed(1)} />}
-          <LigneSante label="Comptes à recevoir" valeur={fmt(kpis.clientsARecevoir)} />
-          <LigneSante label="Comptes à payer" valeur={fmt(kpis.fournisseursAPayer)} />
-          <LigneSante label="Ratio d'endettement" valeur={`${sante.ratioEndettement.toFixed(0)} %`} />
+          <LigneSante label="Marge bénéficiaire (12 mois)" cible="Cible ≥ 15 %" valeur={`${fmtNombre(sante.margePct)} %`} {...(sante.aucuneDonnee ? neutre : niveauMarge(sante.margePct))} />
+          {sante.moisReserve != null ? (
+            <LigneSante label="Réserve de liquidités" cible="Cible ≥ 3 mois de dépenses" valeur={`${fmtNombre(sante.moisReserve)} mois`} {...nivReserve} />
+          ) : (
+            <LigneSante label="Liquidités" valeur={fmt(kpis.soldeBancaire)} niveau="neutre" />
+          )}
+          <LigneSante
+            label="Comptes à recevoir" cible="Aucune facture de plus de 30 jours" valeur={fmt(kpis.clientsARecevoir)}
+            {...(kpis.facturesEnRetardCount > 0 ? { niveau: "danger", etat: "Retard" } : { niveau: "bon", etat: "OK" })}
+          />
+          <LigneSante
+            label="Comptes à payer" cible="Rien d'échu ni dû cette semaine" valeur={fmt(kpis.fournisseursAPayer)}
+            {...(kpis.depensesAPayerBientotCount > 0 ? { niveau: "avertissement", etat: "À payer" } : { niveau: "bon", etat: "OK" })}
+          />
+          <LigneSante label="Ratio d'endettement" cible="Cible < 25 %" valeur={`${sante.ratioEndettement.toFixed(0)} %`} {...(sante.aucuneDonnee ? neutre : niveauEndettement(sante.ratioEndettement))} />
         </div>
       </div>
 
       {/* Analyse de rentabilité */}
       <CarteRentabilite rentabilite={rentabilite} nomMois={nomMois} annee={annee} periode={periodeRentabilite} onChangerPeriode={setPeriodeRentabilite} />
-
-      {/* À surveiller */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>⚠️ À surveiller aujourd'hui</div>
-        {alertes.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Rien à signaler — tout est sous contrôle. 🎉</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {alertes.map((a, i) => (
-              <Link key={i} href={a.href} style={{ textDecoration: "none", color: "inherit" }}>
-                <div style={{ background: FOND_NIVEAU[a.niveau], border: `1px solid ${COULEUR_NIVEAU[a.niveau]}`, borderRadius: 10, padding: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 13 }}>{a.icone} {a.texte}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {a.montant !== undefined && <span style={{ fontSize: 13, fontWeight: 700 }}>{fmt(a.montant)}</span>}
-                    <span style={{ color: "var(--text-muted)" }}>→</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Actions rapides */}
       <div>
@@ -143,25 +202,73 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
   );
 }
 
-function CarteKpi({ icone, label, valeur, sousLabel, variation, href }) {
+function CarteKpi({ label, valeur, sousLabel, variation, href, niveau = "neutre", etat }) {
+  const { couleur, fond } = NIVEAUX[niveau];
   const contenu = (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, height: "100%", boxSizing: "border-box" }}>
-      <div style={{ fontSize: 18, marginBottom: 6 }}>{icone}</div>
-      <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 17, fontWeight: 700 }}>{valeur}</div>
-      {variation !== undefined && variation !== null && (
-        <div style={{ fontSize: 11, fontWeight: 700, color: variation >= 0 ? "var(--success)" : "var(--danger)", marginTop: 2 }}>
-          {variation >= 0 ? "↑" : "↓"} {Math.abs(variation).toFixed(1)} % <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs mois préc.</span>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", display: "flex", height: "100%", boxSizing: "border-box" }}>
+      <span style={{ width: 5, flexShrink: 0, background: couleur }} />
+      <div style={{ padding: "12px 14px", flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{label}</span>
+          {etat && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: fond, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
         </div>
-      )}
-      {sousLabel && <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600, marginTop: 2 }}>{sousLabel}</div>}
+        <div style={{ fontSize: 18, fontWeight: 700 }}>{valeur}</div>
+        {variation !== undefined && variation !== null && (
+          <div style={{ fontSize: 11, fontWeight: 700, color: variation >= 0 ? "var(--success)" : "var(--danger)", marginTop: 2 }}>
+            {variation >= 0 ? "↑" : "↓"} {fmtNombre(Math.abs(variation))} % <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs mois préc.</span>
+          </div>
+        )}
+        {sousLabel && <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginTop: 2 }}>{sousLabel}</div>}
+      </div>
     </div>
   );
   return href ? <Link href={href} style={{ textDecoration: "none", color: "inherit", display: "block", height: "100%" }}>{contenu}</Link> : contenu;
 }
 
+// « À surveiller aujourd'hui » : une ligne par alerte, de la plus grave à la
+// moins grave, avec bande et fond de la couleur de son niveau.
+function BlocAlertes({ alertes, decompte }) {
+  return (
+    <div className="carte" style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, padding: "12px 16px", borderBottom: alertes.length ? "1px solid var(--border)" : "none" }}>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>⚠️ À surveiller aujourd'hui</span>
+        {decompte && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{decompte}</span>}
+      </div>
+      {alertes.length === 0 ? (
+        <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0, padding: "0 16px 12px" }}>Rien à signaler — tout est sous contrôle. 🎉</p>
+      ) : (
+        alertes.map((a, i) => {
+          const { couleur, fond } = NIVEAUX[a.niveau];
+          return (
+            <Link key={i} href={a.href} style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 46, paddingRight: 16, background: fond, borderBottom: i < alertes.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", color: "inherit" }}>
+              <span style={{ width: 5, alignSelf: "stretch", background: couleur, flexShrink: 0 }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: couleur, width: 62, flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>{ETAT_ALERTE[a.niveau]}</span>
+              <span style={{ flex: 1, fontSize: 13, padding: "8px 0" }}>{a.texte}</span>
+              {a.montant !== undefined && <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{fmt(a.montant)}</span>}
+              <span style={{ color: "var(--text-muted)" }}>→</span>
+            </Link>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function Legende({ couleur, label, opacite = 1 }) {
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      <span style={{ width: 10, height: 10, borderRadius: 2, background: couleur, opacity: opacite }} />
+      {label}
+    </span>
+  );
+}
+
+function couleurScore(score) {
+  return score >= 60 ? "var(--success)" : score >= 40 ? "var(--avertissement)" : "var(--danger)";
+}
+
 function JaugeScore({ score }) {
-  const couleur = score >= 60 ? "var(--success)" : score >= 40 ? "#C9A227" : "var(--danger)";
+  const couleur = couleurScore(score);
   return (
     <div style={{ width: 68, height: 68, borderRadius: "50%", background: `conic-gradient(${couleur} ${score * 3.6}deg, var(--border) 0deg)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--surface)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
@@ -172,11 +279,20 @@ function JaugeScore({ score }) {
   );
 }
 
-function LigneSante({ label, valeur }) {
+// Ligne « feu de circulation » : bande + pastille de la couleur du niveau,
+// cible sous le libellé, état écrit à côté de la valeur.
+function LigneSante({ label, cible, valeur, niveau, etat }) {
+  const { couleur, fond } = NIVEAUX[niveau];
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontWeight: 600 }}>{valeur}</span>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 42, paddingRight: 14, background: fond, borderTop: "1px solid var(--border)" }}>
+      <span style={{ width: 5, alignSelf: "stretch", background: couleur, flexShrink: 0 }} />
+      <span style={{ width: 9, height: 9, borderRadius: "50%", background: niveau === "neutre" ? "var(--text-muted)" : couleur, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0, padding: "6px 0" }}>
+        <div style={{ fontSize: 12.5 }}>{label}</div>
+        {cible && <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{cible}</div>}
+      </div>
+      {etat && <span style={{ fontSize: 10.5, fontWeight: 700, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
+      <span style={{ fontSize: 13, fontWeight: 700, minWidth: 70, textAlign: "right", whiteSpace: "nowrap" }}>{valeur}</span>
     </div>
   );
 }
@@ -227,20 +343,19 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, marginBottom: 16 }}>
         <SectionPostes titre="Revenus" postes={revenus} total={totalRevenus} couleur="var(--success)" />
         <SectionPostes titre="Coûts" postes={depenses} total={totalDepenses} couleur="var(--danger)" sousTotal={`Fixes ${fmt(totalChargesFixes)} · Variables ${fmt(totalChargesVariables)}`} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
-        <Metrique label="Total revenus" valeur={fmt(totalRevenus)} />
-        <Metrique label="Total coûts" valeur={fmt(totalDepenses)} />
-        <Metrique label="Bénéfice" valeur={fmt(benefice)} couleur={benefice >= 0 ? "var(--success)" : "var(--danger)"} />
-        <Metrique label="Marge" valeur={`${margePct.toFixed(1)} %`} couleur={margePct >= 0 ? "var(--success)" : "var(--danger)"} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <Metrique label="Bénéfice" valeur={fmt(benefice)} niveau={benefice >= 0 ? "bon" : "danger"} />
+        <Metrique label="Marge" valeur={`${fmtNombre(margePct)} %`} niveau={totalRevenus > 0 ? niveauMarge(margePct).niveau : undefined} />
         {seuilCalculable ? (
           <>
             <Metrique label="Seuil de rentabilité" valeur={fmt(seuilRentabilite)} sousLabel="Revenu min. pour couvrir charges fixes et variables" />
-            <Metrique label={excedent >= 0 ? "Excédent" : "Déficit"} valeur={fmt(Math.abs(excedent))} couleur={excedent >= 0 ? "var(--success)" : "var(--danger)"} sousLabel="Par rapport au seuil de rentabilité" />
+            <Metrique label={excedent >= 0 ? "Excédent" : "Déficit"} valeur={fmt(Math.abs(excedent))} niveau={excedent >= 0 ? "bon" : "danger"} sousLabel="Par rapport au seuil de rentabilité" />
+            <Metrique label="Revenus / seuil" valeur={`${fmtNombre((totalRevenus / seuilRentabilite) * 100, 0)} %`} niveau={totalRevenus >= seuilRentabilite ? "bon" : "danger"} sousLabel="100 % = seuil atteint" />
           </>
         ) : (
           <div style={{ gridColumn: "1 / -1" }}>
@@ -254,39 +369,56 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
   );
 }
 
+// Tableau des postes : une ligne sur deux ombrée, part du total en % et
+// mini-barre proportionnelle (plus pâle pour les charges fixes).
 function SectionPostes({ titre, postes, total, couleur, sousTotal }) {
+  const entete = { fontSize: 10.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.3 };
   return (
     <div>
-      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>{titre}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {postes.map((p) => (
-          <div key={p.numero} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
-            <span style={{ color: "var(--text-muted)" }}>
-              {p.nom}
-              {p.typeCharge && (
-                <span style={{ fontSize: 9, fontWeight: 700, marginLeft: 5, color: p.typeCharge === "VARIABLE" ? "var(--accent)" : "var(--text-muted)" }}>
-                  ({p.typeCharge === "VARIABLE" ? "Var." : "Fixe"})
-                </span>
-              )}
-            </span>
-            <span style={{ fontWeight: 600 }}>{fmt(p.montant)}</span>
-          </div>
-        ))}
-        {postes.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", margin: 0 }}>Aucune donnée</p>}
+      <div style={{ display: "flex", padding: "0 8px 6px", ...entete }}>
+        <span style={{ flex: 1 }}>{titre}</span>
+        <span style={{ width: 52, textAlign: "right" }}>%</span>
+        <span style={{ width: 92, textAlign: "right" }}>Montant</span>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)", color: couleur }}>
-        <span>Total</span>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {postes.map((p, i) => {
+          const pct = total > 0 ? (p.montant / total) * 100 : 0;
+          return (
+            <div key={p.numero} style={{ padding: "7px 8px", background: i % 2 === 0 ? "var(--surface-alt)" : "transparent", borderRadius: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", fontSize: 12.5 }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  {p.nom}
+                  {p.typeCharge && (
+                    <span style={{ fontSize: 9.5, fontWeight: 700, marginLeft: 6, padding: "1px 6px", borderRadius: 999, background: p.typeCharge === "VARIABLE" ? "var(--bleu-fond)" : "var(--border)", color: p.typeCharge === "VARIABLE" ? "var(--bleu)" : "var(--text-muted)" }}>
+                      {p.typeCharge === "VARIABLE" ? "Variable" : "Fixe"}
+                    </span>
+                  )}
+                </span>
+                <span style={{ width: 52, textAlign: "right", color: "var(--text-muted)" }}>{fmtNombre(pct)} %</span>
+                <span style={{ width: 92, textAlign: "right", fontWeight: 600 }}>{fmt(p.montant)}</span>
+              </div>
+              <div style={{ height: 5, background: "var(--border)", borderRadius: 3, marginTop: 5, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, pct))}%`, background: couleur, opacity: p.typeCharge === "FIXE" ? 0.6 : 1, borderRadius: 3 }} />
+              </div>
+            </div>
+          );
+        })}
+        {postes.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", margin: "0 8px" }}>Aucune donnée</p>}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, margin: "6px 0 0", padding: "6px 8px 0", borderTop: "1px solid var(--border)", color: couleur }}>
+        <span>Total {titre.toLowerCase()}</span>
         <span>{fmt(total)}</span>
       </div>
-      {sousTotal && <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 3, textAlign: "right" }}>{sousTotal}</div>}
+      {sousTotal && <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 3, padding: "0 8px", textAlign: "right" }}>{sousTotal}</div>}
     </div>
   );
 }
 
-function Metrique({ label, valeur, couleur, sousLabel }) {
+function Metrique({ label, valeur, niveau, sousLabel }) {
+  const n = niveau ? NIVEAUX[niveau] : null;
   return (
-    <div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: couleur || "var(--text)" }}>{valeur}</div>
+    <div style={{ background: n ? n.fond : "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: n ? n.couleur : "var(--text)" }}>{valeur}</div>
       <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</div>
       {sousLabel && <div style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 1 }}>{sousLabel}</div>}
     </div>
