@@ -8,6 +8,7 @@ import TachePhoto from "./TachePhoto";
 import SectionTachesInternes from "./SectionTachesInternes";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { jobsDeplacementActif } from "@/lib/envois";
+import { CLIENT } from "@/lib/client";
 import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
 
 function dureeHeures(debutISO, finISO) {
@@ -134,7 +135,7 @@ export default async function EspaceMecanicien() {
           {bonsActifs.map((b) => (
             <div key={b.id} className="carte carte-m">
               <EnTeteBon b={b} />
-              <TachesBon b={b} monId={session.id} />
+              {CLIENT.horodateurBonsReplies ? <BonReplie b={b} monId={session.id} /> : <TachesBon b={b} monId={session.id} />}
             </div>
           ))}
           {bonsActifs.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun bon actif en ce moment.</p>}
@@ -156,9 +157,11 @@ export default async function EspaceMecanicien() {
                   {g.elements.map((b) => (
                     <div key={b.id} className="carte carte-m" style={{ borderLeft: "3px solid #9A7FC7" }}>
                       <EnTeteBon b={b} />
-                      <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-muted)" }}>
-                        {b.problemes.map((pr) => <li key={pr.id}>{pr.description}</li>)}
-                      </ul>
+                      {CLIENT.horodateurBonsReplies ? <ResumeTaches b={b} /> : (
+                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-muted)" }}>
+                          {b.problemes.map((pr) => <li key={pr.id}>{pr.description}</li>)}
+                        </ul>
+                      )}
                       {/* Le véhicule arrive d'avance : on peut poinçonner quand même,
                           ce qui fait passer le bon « En cours ». */}
                       <details style={{ marginTop: 8 }}>
@@ -193,6 +196,52 @@ function EnTeteBon({ b }) {
       <Link href={`/bons/${b.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>
         Voir la fiche complète →
       </Link>
+    </>
+  );
+}
+
+const TACHES_RESUME = 3;
+
+// Profil horodateurBonsReplies : les premières tâches, une ligne chacune,
+// pour que chaque carte garde à peu près la même hauteur
+function ResumeTaches({ b }) {
+  const reste = b.problemes.length - TACHES_RESUME;
+  return (
+    <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-muted)" }}>
+      {b.problemes.slice(0, TACHES_RESUME).map((pr) => (
+        <li key={pr.id} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pr.description}</li>
+      ))}
+      {reste > 0 && <li style={{ listStyle: "none", fontStyle: "italic" }}>… et {reste} autre{reste > 1 ? "s" : ""} tâche{reste > 1 ? "s" : ""}</li>}
+    </ul>
+  );
+}
+
+// Bon actif replié : résumé, mon chrono en cours (avec « Arrêter ») et ceux
+// des autres, puis toutes les tâches et leurs chronos sur demande
+function BonReplie({ b, monId }) {
+  const enCours = b.problemes.flatMap((pr) => pr.entreesTemps.filter((t) => !t.fin).map((t) => ({ ...t, tache: pr })));
+  const mien = enCours.find((t) => t.employeId === monId);
+  const autres = enCours.length - (mien ? 1 : 0);
+  return (
+    <>
+      <ResumeTaches b={b} />
+      {enCours.length > 0 && (
+        <div style={{ fontSize: 11, color: "var(--accent)", marginTop: 6 }}>
+          {mien && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", border: "1px solid var(--accent)", borderRadius: 8, padding: "6px 8px", marginBottom: 4 }}>
+              <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>⏱️ {mien.tache.description}</span>
+              <TachePoincon problemeId={mien.problemeId} actif debut={mien.debut} />
+            </div>
+          )}
+          {autres > 0 && <div>● {autres} autre{autres > 1 ? "s" : ""} chrono{autres > 1 ? "s" : ""} en cours</div>}
+        </div>
+      )}
+      <details style={{ marginTop: 8 }}>
+        <summary style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", cursor: "pointer" }}>
+          ⏱️ {b.problemes.length > 1 ? `Les ${b.problemes.length} tâches et leurs chronos` : "La tâche et ses chronos"}
+        </summary>
+        <TachesBon b={b} monId={monId} />
+      </details>
     </>
   );
 }
