@@ -1158,7 +1158,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 8 }}>
           {probleme.photos.map((p) => (
             <div key={p.id} style={{ position: "relative" }}>
-              <img src={p.url} alt="" style={{ display: "block", width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+              <img src={`/api/bons/${bonId}/photos/${p.id}`} alt="" loading="lazy" style={{ display: "block", width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
               {!verrouille && (
                 <button
                   type="button"
