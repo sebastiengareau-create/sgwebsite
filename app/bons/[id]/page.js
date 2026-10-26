@@ -25,7 +25,8 @@ export default async function DetailBonPage(props) {
       problemes: {
         orderBy: { id: "asc" },
         include: {
-          photos: true,
+          // Sans les images : chacune se charge à part (GET …/photos/[photoId])
+          photos: { select: { id: true } },
           pieces: { include: { piece: true } },
           entreesTemps: { include: { employe: true } },
         },
