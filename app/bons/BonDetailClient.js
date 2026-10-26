@@ -490,14 +490,19 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
             {peutModifier && !payeeParCoutant && (
               <div style={{ marginBottom: 12 }}>
-                <button
-                  onClick={declencherEnvoiCourriel}
-                  disabled={envoiCourrielEnCours}
-                  className="bouton-3d-sombre"
-                  style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
-                >
-                  {envoiCourrielEnCours ? "Envoi…" : "📧 Envoyer par courriel"}
-                </button>
+                <AvisVehiculePret
+                  bon={bon}
+                  boutonCourriel={
+                    <button
+                      onClick={declencherEnvoiCourriel}
+                      disabled={envoiCourrielEnCours}
+                      className="bouton-3d-sombre"
+                      style={{ flex: 1, padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                    >
+                      {envoiCourrielEnCours ? "Envoi…" : "📧 Envoyer par courriel"}
+                    </button>
+                  }
+                />
                 {demanderCourriel && (
                   <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
                     <input
@@ -513,7 +518,6 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 {messageCourriel && (
                   <p style={{ fontSize: 12, marginTop: 8, color: messageCourriel.type === "succes" ? "var(--success)" : "var(--danger)" }}>{messageCourriel.texte}</p>
                 )}
-                <AvisVehiculePret bon={bon} />
               </div>
             )}
             {payeeParCoutant && (
@@ -1706,10 +1710,11 @@ function DatePrevueBon({ bon, modifiable }) {
 }
 
 // « 🚗 Aviser le client » (bon facturé) : courriel au client, au choix, pour
-// lui dire que son véhicule est prêt (POST /api/bons/[id]/avis-pret). Profil
-// envoiPhotosCourriel : à côté, moitié-moitié, « 📷 Envoyer les photos » des
+// lui dire que son véhicule est prêt (POST /api/bons/[id]/avis-pret), sur la
+// même ligne, moitié-moitié, que « 📧 Envoyer par courriel » (boutonCourriel).
+// Profil envoiPhotosCourriel : en dessous, « 📷 Envoyer les photos » des
 // tâches en pièces jointes (POST /api/bons/[id]/envoyer-photos).
-function AvisVehiculePret({ bon }) {
+function AvisVehiculePret({ bon, boutonCourriel }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(null); // null | "avis" | "photos"
   const [courriel, setCourriel] = useState(bon.client.courriel || "");
@@ -1748,23 +1753,24 @@ function AvisVehiculePret({ bon }) {
 
   const styleBouton = { flex: 1, padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 };
   return (
-    <div style={{ marginTop: 8 }}>
+    <div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={() => basculer("avis")} disabled={!!enCours} className="bouton-3d-sombre" style={styleBouton}>
-          {enCours === "avis" ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau le client (véhicule prêt)" : "🚗 Aviser le client — véhicule prêt"}
+        {boutonCourriel}
+        <button onClick={() => basculer("avis")} disabled={!!enCours} title="Courriel au client : son véhicule est prêt" className="bouton-3d-sombre" style={styleBouton}>
+          {enCours === "avis" ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau" : "🚗 Aviser le client"}
         </button>
-        {CLIENT.envoiPhotosCourriel && (
-          <button
-            onClick={() => basculer("photos")}
-            disabled={!!enCours || nbPhotos === 0}
-            title={nbPhotos === 0 ? "Aucune photo sur les tâches de ce bon" : undefined}
-            className="bouton-3d-sombre"
-            style={styleBouton}
-          >
-            {enCours === "photos" ? "Envoi…" : `📷 Envoyer les photos${nbPhotos ? ` (${nbPhotos})` : ""}`}
-          </button>
-        )}
       </div>
+      {CLIENT.envoiPhotosCourriel && (
+        <button
+          onClick={() => basculer("photos")}
+          disabled={!!enCours || nbPhotos === 0}
+          title={nbPhotos === 0 ? "Aucune photo sur les tâches de ce bon" : undefined}
+          className="bouton-3d-sombre"
+          style={{ ...styleBouton, width: "100%", marginTop: 8 }}
+        >
+          {enCours === "photos" ? "Envoi…" : `📷 Envoyer les photos${nbPhotos ? ` (${nbPhotos})` : ""}`}
+        </button>
+      )}
       {ouvert && (
         <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
           <input
