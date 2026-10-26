@@ -11,7 +11,8 @@ export async function GET() {
   const donnees = await exporterDonnees();
   const nomFichier = `sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
 
-  return new Response(JSON.stringify(donnees, null, 2), {
+  // Sans mise en forme : bien plus léger, et la restauration le lit pareil
+  return new Response(JSON.stringify(donnees), {
     headers: {
       "Content-Type": "application/json",
       "Content-Disposition": `attachment; filename="${nomFichier}"`,

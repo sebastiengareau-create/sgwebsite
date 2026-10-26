@@ -9,6 +9,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
   const [phraseConfirmation, setPhraseConfirmation] = useState("");
   const [restaurationEnCours, setRestaurationEnCours] = useState(false);
   const [message, setMessage] = useState(null); // { type: "succes"|"erreur", texte }
+  const [messageTelechargement, setMessageTelechargement] = useState(null);
   const inputFichierRef = useRef(null);
 
   const [courrielAuto, setCourrielAuto] = useState(courrielAutoInit || "");
@@ -38,19 +39,24 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
 
   async function telecharger() {
     setTelechargementEnCours(true);
-    const res = await fetch("/api/sauvegarde/exporter");
-    setTelechargementEnCours(false);
-    if (!res.ok) {
-      setMessage({ type: "erreur", texte: "Échec du téléchargement." });
-      return;
+    setMessageTelechargement(null);
+    try {
+      const res = await fetch("/api/sauvegarde/exporter");
+      if (!res.ok) throw new Error(`le serveur a répondu ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      // Libéré plus tard : Safari (iPhone) annule le téléchargement si le lien disparaît tout de suite
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setMessageTelechargement({ type: "succes", texte: `Sauvegarde téléchargée ✓ (${(blob.size / 1048576).toFixed(1)} Mo)` });
+    } catch (e) {
+      setMessageTelechargement({ type: "erreur", texte: `Échec du téléchargement (${e.message}). Réessaie, idéalement depuis un ordinateur.` });
+    } finally {
+      setTelechargementEnCours(false);
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   async function restaurer() {
@@ -111,6 +117,16 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
         >
           {telechargementEnCours ? "Préparation…" : "⬇️ Télécharger la sauvegarde"}
         </button>
+        {telechargementEnCours && (
+          <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+            Le fichier contient tout, photos comprises : ça peut prendre quelques minutes.
+          </p>
+        )}
+        {messageTelechargement && (
+          <p style={{ fontSize: 12, color: messageTelechargement.type === "succes" ? "var(--success)" : "var(--danger)", marginTop: 8 }}>
+            {messageTelechargement.texte}
+          </p>
+        )}
       </div>
 
       {peutRestaurer && (
