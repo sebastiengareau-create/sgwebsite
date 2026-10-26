@@ -75,8 +75,8 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   imprimées** sur le bon ni sur la facture ; elles restent sur le bon à
   l'écran (et ne sont jamais dans le PDF de la facture).
 - `envoiPhotosCourriel: true` — dans la section facture du bon, un bouton
-  **« 📷 Envoyer les photos »** à côté de « 🚗 Aviser le client » (moitié-
-  moitié) envoie par courriel au client les photos des tâches, en pièces
+  **« 📷 Envoyer les photos »** sous la ligne « 📧 Envoyer par courriel » /
+  « 🚗 Aviser le client » envoie par courriel au client les photos des tâches, en pièces
   jointes (`POST /api/bons/[id]/envoyer-photos`). Courriel du dossier
   proposé, modifiable.
 - `avertirBonNonFacture: true` — créer un bon pour un client qui a déjà un
