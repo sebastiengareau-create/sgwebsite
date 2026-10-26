@@ -752,6 +752,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
   const [erreurPhoto, setErreurPhoto] = useState("");
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
+  const [suppressionPhoto, setSuppressionPhoto] = useState(null); // id de la photo en cours de suppression
   const [enCoursPoincon, setEnCoursPoincon] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [afficherTempsManuel, setAfficherTempsManuel] = useState(false);
@@ -915,6 +916,23 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       setErreurPhoto("Impossible de traiter cette photo : " + e.message);
     } finally {
       setEnvoiPhoto(false);
+    }
+  }
+
+  async function supprimerPhoto(photoId) {
+    if (!window.confirm("Supprimer définitivement cette photo ?")) return;
+    setErreurPhoto("");
+    setSuppressionPhoto(photoId);
+    try {
+      const res = await fetch(`/api/bons/${bonId}/photos/${photoId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErreurPhoto(data.erreur || `Le serveur a refusé la suppression (code ${res.status}).`);
+        return;
+      }
+      onRafraichir();
+    } finally {
+      setSuppressionPhoto(null);
     }
   }
 
@@ -1139,7 +1157,25 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       {probleme.photos.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 8 }}>
           {probleme.photos.map((p) => (
-            <img key={p.id} src={p.url} alt="" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+            <div key={p.id} style={{ position: "relative" }}>
+              <img src={p.url} alt="" style={{ display: "block", width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+              {!verrouille && (
+                <button
+                  type="button"
+                  onClick={() => supprimerPhoto(p.id)}
+                  disabled={suppressionPhoto === p.id}
+                  title="Supprimer cette photo"
+                  aria-label="Supprimer cette photo"
+                  style={{
+                    position: "absolute", top: 3, right: 3, width: 22, height: 22, padding: 0, borderRadius: 999,
+                    border: "none", background: "rgba(0, 0, 0, 0.65)", color: "#fff", fontSize: 13, fontWeight: 700,
+                    lineHeight: "22px", cursor: "pointer",
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
