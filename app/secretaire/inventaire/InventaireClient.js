@@ -10,7 +10,7 @@ import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import RecherchePieces from "../../components/RecherchePieces";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { trouverPieceParScan, extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
-import { libelleNumerosFournisseurs, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
+import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 
 const CLE_TRI = "inventaire_tri";
@@ -33,11 +33,10 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
 
-  // Les pièces en stock d'abord, puis celles à 0 ; chaque groupe dans le tri choisi
   const piecesFiltrees = pieces.filter((p) => {
     if (!p.actif && !voirDesactivees) return false;
     return pieceCorrespond(p, recherche);
-  }).sort((a, b) => (b.qte > 0) - (a.qte > 0) || TRIS[tri].comparer(a, b));
+  }).sort(comparateurPieces(tri));
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
 
   // Le tri choisi est retenu sur cet appareil
