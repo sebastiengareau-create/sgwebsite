@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, sortirDuStockPourBon } from "@/lib/bons";
+import { sortirKitDuStockPourBon } from "@/lib/kits";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -30,10 +31,14 @@ export async function POST(request, props) {
       const piece = await tx.piece.findUnique({ where: { id: pieceId } });
       if (!piece) throw new Error("INTROUVABLE");
       if (!piece.actif) throw new Error("DESACTIVEE");
+      if (piece.estKit) return sortirKitDuStockPourBon(tx, { probleme, kit: piece, quantite, creePar: session.nom });
       return sortirDuStockPourBon(tx, { probleme, piece, quantite, creePar: session.nom });
     });
     return NextResponse.json(resultat);
   } catch (e) {
+    if (e.message.startsWith("STOCK_KIT:")) {
+      return NextResponse.json({ erreur: `Stock insuffisant pour ce kit : ${e.message.slice(10)}.` }, { status: 409 });
+    }
     if (e.message === "STOCK_INSUFFISANT") {
       return NextResponse.json({ erreur: "Stock insuffisant pour cette quantité." }, { status: 409 });
     }

@@ -8,10 +8,8 @@ import { image, CLIENT } from "@/lib/client";
 import { lignesAdresse } from "@/lib/adresse";
 import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
+import { heuresFacturablesTache, libelleContenuKit } from "@/lib/kits";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
-function dureeHeures(debutISO, finISO) {
-  return (new Date(finISO) - new Date(debutISO)) / 3600000;
-}
 function fmtHeures(h) {
   const heures = Math.floor(h);
   const min = Math.round((h - heures) * 60);
@@ -44,11 +42,9 @@ export default async function ImprimerBon(props) {
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
-  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
   // Temps total seulement : le nom des employés qui ont poinçonné n'apparaît
   // pas sur la facture du client
-  const toutesEntreesTemps = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
-  const heuresPoinconnees = toutesEntreesTemps.filter((t) => t.fin).reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
+  const heuresPoinconnees = bon.problemes.reduce((s, pr) => s + heuresFacturablesTache(pr), 0);
 
   // Si une facture officielle existe, on utilise ses montants FIGÉS (le vrai
   // document légal). Sinon, on calcule un aperçu en direct, clairement marqué
@@ -170,9 +166,7 @@ export default async function ImprimerBon(props) {
         </div>
         {bon.problemes.map((pr, idx) => {
           const estMainOeuvre = (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE";
-          const heuresTache = estMainOeuvre
-            ? pr.entreesTemps.filter((t) => t.fin).reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0)
-            : 0;
+          const heuresTache = heuresFacturablesTache(pr);
           const montantManuel = !estMainOeuvre ? (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1) : 0;
           return (
           <div key={pr.id} style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
@@ -257,7 +251,8 @@ export default async function ImprimerBon(props) {
 }
 
 function LignePiece({ l }) {
-  return <LigneTravail description={l.bo ? `${l.piece.nom} (B/O — en commande)` : l.piece.nom} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />;
+  const description = l.bo ? `${l.piece.nom} (B/O — en commande)` : l.kit ? `${l.piece.nom} — comprend : ${libelleContenuKit(l.kit)}` : l.piece.nom;
+  return <LigneTravail description={description} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />;
 }
 
 function LigneTravail({ description, hrs, qte, prix, total }) {

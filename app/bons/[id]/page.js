@@ -6,6 +6,7 @@ import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilit
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import { CLIENT } from "@/lib/client";
+import { kitsDisponibles } from "@/lib/kits";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -49,11 +50,16 @@ export default async function DetailBonPage(props) {
   // N'importe quel mécanicien peut voir/travailler sur n'importe quel bon —
   // il n'y a plus d'assignation restrictive.
 
-  const inventaire = await prisma.piece.findMany({
+  // Un kit n'a pas de stock à lui : sa quantité est le nombre de kits que
+  // le stock de ses pièces permet de faire (999 : kit sans pièce)
+  const inventaire = (await prisma.piece.findMany({
     where: { actif: true },
-    include: { fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true } } },
+    include: {
+      fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true } },
+      composantsKit: { select: { pieceId: true, qte: true, piece: { select: { qte: true } } } },
+    },
     orderBy: { nom: "asc" },
-  });
+  })).map(({ composantsKit, ...p }) => (p.estKit ? { ...p, qte: kitsDisponibles(composantsKit) ?? 999 } : p));
   // Tous les employés actifs (pas seulement les mécaniciens) peuvent se voir
   // attribuer du temps manuellement sur une tâche.
   const employes = await prisma.user.findMany({

@@ -42,6 +42,8 @@ export async function PATCH(request, props) {
   try {
     const avant = await prisma.piece.findUnique({ where: { id: params.id } });
     if (!avant) return NextResponse.json({ erreur: "Pièce introuvable." }, { status: 404 });
+    // Un kit n'a pas de stock à lui (lib/kits.js)
+    if (avant.estKit) delete data.qte;
 
     // Le fournisseur est une clé étrangère — on affiche son nom dans
     // l'historique plutôt que son id, qui ne dirait rien à personne.
@@ -127,6 +129,14 @@ export async function DELETE(request, props) {
   if (utilisee > 0) {
     return NextResponse.json(
       { erreur: "Cette pièce a déjà été utilisée sur un ou des bons de travail — elle ne peut pas être supprimée (l'historique de facturation serait perdu). Tu peux la désactiver à la place." },
+      { status: 409 }
+    );
+  }
+
+  const kits = await prisma.composantKit.findMany({ where: { pieceId: params.id }, select: { kit: { select: { nom: true } } } });
+  if (kits.length > 0) {
+    return NextResponse.json(
+      { erreur: `Cette pièce fait partie ${kits.length > 1 ? "des kits" : "du kit"} ${kits.map((k) => `« ${k.kit.nom} »`).join(", ")} — retire-la du kit d'abord, ou désactive-la.` },
       { status: 409 }
     );
   }

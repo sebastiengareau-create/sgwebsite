@@ -12,12 +12,17 @@ import { useOrdreFiches } from "../../components/NavigationFiches";
 import { trouverPieceParScan, extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
+import { coutantKit, kitsDisponibles } from "@/lib/kits";
+import FormulaireKit from "./FormulaireKit";
 
 const CLE_TRI = "inventaire_tri";
 
-export default function InventaireClient({ pieces, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, sitesPieces = null }) {
+export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, sitesPieces = null }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const [afficherFormulaireKit, setAfficherFormulaireKit] = useState(false);
+  // Les kits (lib/kits.js) ont leur propre liste : pas de stock à eux
+  const pieces = toutes.filter((p) => !p.estKit);
   const [afficherCategories, setAfficherCategories] = useState(false);
   const [recherche, setRecherche] = useState("");
   const [tri, setTri] = useState("numero");
@@ -29,7 +34,8 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
   const [codeBarreNouvelle, setCodeBarreNouvelle] = useState("");
   const [modeEtiquettes, setModeEtiquettes] = useState(false);
   const [selection, setSelection] = useState(() => new Set());
-  const nombreDesactivees = pieces.filter((p) => !p.actif).length;
+  const nombreDesactivees = toutes.filter((p) => !p.actif).length;
+  const kits = toutes.filter((p) => p.estKit && (p.actif || voirDesactivees) && pieceCorrespond(p, recherche));
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
 
@@ -125,7 +131,14 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
         </button>
         {peutImporter && <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />}
         <button
-          onClick={() => { setAfficherFormulaire((v) => !v); setCodeBarreNouvelle(""); }}
+          onClick={() => { setAfficherFormulaireKit((v) => !v); setAfficherFormulaire(false); }}
+          className="bouton-3d-sombre"
+          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+        >
+          {afficherFormulaireKit ? "Annuler" : "🧰 Nouveau kit"}
+        </button>
+        <button
+          onClick={() => { setAfficherFormulaire((v) => !v); setAfficherFormulaireKit(false); setCodeBarreNouvelle(""); }}
           className="bouton-3d"
           style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
         >
@@ -218,7 +231,27 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
         <FormulaireCreation key={codeBarreNouvelle} codeBarreInitial={codeBarreNouvelle} categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
       )}
 
+      {afficherFormulaireKit && (
+        <FormulaireKit
+          pieces={pieces.filter((p) => p.actif)}
+          categories={categories.filter((c) => c.actif)}
+          coutHoraireDefaut={coutHoraireDefaut}
+          onEnregistre={(kit) => router.push(`/secretaire/inventaire/${kit.id}`)}
+          onAnnuler={() => setAfficherFormulaireKit(false)}
+        />
+      )}
+
+      {kits.length > 0 && !modeEtiquettes && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Kits ({kits.length})</div>
+          {kits.map((k) => <CarteKit key={k.id} kit={k} nomCategorie={nomCategorie} />)}
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+        {kits.length > 0 && !modeEtiquettes && piecesFiltrees.length > 0 && (
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Pièces</div>
+        )}
         {piecesFiltrees.map((p) => {
           const carte = (
             <div style={{ background: "var(--surface)", border: modeEtiquettes && selection.has(p.id) ? "1px solid var(--accent)" : p.actif && p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: p.actif ? 1 : 0.55 }}>
@@ -252,6 +285,33 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
         )}
       </div>
     </div>
+  );
+}
+
+// Kit dans la liste : son prix, son coûtant actuel et combien le stock de
+// ses pièces permet d'en faire
+function CarteKit({ kit, nomCategorie }) {
+  const cout = coutantKit(kit.composantsKit);
+  const possibles = kitsDisponibles(kit.composantsKit);
+  return (
+    <Link href={`/secretaire/inventaire/${kit.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+      <div style={{ background: "var(--surface)", border: possibles === 0 && kit.actif ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: kit.actif ? 1 : 0.55 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600 }}>🧰 {kit.nom}{!kit.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivé)</span>}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{kit.numero}</div>
+          <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>
+            {kit.composantsKit.length} élément{kit.composantsKit.length > 1 ? "s" : ""} · coûtant {cout.total.toFixed(2)} $
+          </div>
+          <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(kit.categorie)}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 700, color: possibles === 0 && kit.actif ? "var(--danger)" : "var(--text)" }}>
+            {possibles === null ? "Kit" : `${possibles} possible${possibles > 1 ? "s" : ""}`}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{kit.prix.toFixed(2)} $ vente</div>
+        </div>
+      </div>
+    </Link>
   );
 }
 

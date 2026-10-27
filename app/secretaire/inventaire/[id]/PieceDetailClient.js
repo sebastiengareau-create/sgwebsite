@@ -296,6 +296,18 @@ function OngletResume({ piece, marge, margePct }) {
         </div>
       </div>
 
+      {piece.dansKits.length > 0 && (
+        <div className="carte" style={{ marginBottom: 12 }}>
+          <TitreSection>Dans les kits</TitreSection>
+          {piece.dansKits.map((c) => (
+            <div key={c.kit.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
+              <Link href={`/secretaire/inventaire/${c.kit.id}`} style={{ color: "var(--accent)" }}>🧰 {c.kit.nom}</Link>
+              <span style={{ color: "var(--text-muted)" }}>×{c.qte} par kit</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="carte">
         <TitreSection>Fournisseur</TitreSection>
         <Champ label="Fournisseur habituel" valeur={piece.fournisseur?.nom || "Aucun"} />

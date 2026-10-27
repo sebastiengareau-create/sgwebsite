@@ -13,6 +13,7 @@ import { PhotosArriveeBon } from "../components/PhotosArrivee";
 import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
+import { heuresFacturablesTache, tacheAuForfait, libelleContenuKit } from "@/lib/kits";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
@@ -248,16 +249,15 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
   // Main-d'œuvre : seulement les tâches restées sur le poste par défaut —
   // les autres postes de revenu (remorquage, alignement…) se facturent sur
-  // leur ligne manuelle, pas sur les heures poinçonnées
-  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
+  // leur ligne manuelle, pas sur les heures poinçonnées, et une tâche avec
+  // un kit a sa main-d'œuvre comprise dans le prix du kit
+  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE" && !tacheAuForfait(pr));
   const toutesEntreesTempsMainOeuvre = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
   const totalPieces = bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0),
     0
   );
-  const totalHeuresTerminees = toutesEntreesTempsMainOeuvre
-    .filter((t) => t.fin)
-    .reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
+  const totalHeuresTerminees = bon.problemes.reduce((s, pr) => s + heuresFacturablesTache(pr), 0);
   const heuresEnCours = toutesEntreesTempsMainOeuvre.some((t) => !t.fin);
   const totalMainOeuvre = totalHeuresTerminees * tauxHoraireEffectif;
   const totalAutresRevenus = bon.problemes
@@ -283,7 +283,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // chaque employé, pas le taux facturé au client) — comparé au montant
   // facturé avant taxes.
   const coutPieces = bon.problemes.reduce(
-    (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * (l.piece?.coutant || 0), 0),
+    (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * (l.coutant ?? l.piece?.coutant ?? 0), 0),
     0
   );
   const coutMainOeuvre = bon.problemes.reduce(
@@ -744,7 +744,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         </div>
       )}
 
-      <PiecesACommander bon={bon} lignes={bon.piecesACommander || []} inventaire={inventaire} fournisseurs={fournisseurs} modifiable={peutModifier} peutCommander={peutCommander} verrouille={factureExiste} />
+      <PiecesACommander bon={bon} lignes={bon.piecesACommander || []} inventaire={inventaire.filter((p) => !p.estKit)} fournisseurs={fournisseurs} modifiable={peutModifier} peutCommander={peutCommander} verrouille={factureExiste} />
     </div>
   );
 }
@@ -1062,7 +1062,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lignesTemps.length > 0 ? 6 : 0 }}>
           <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>
-            ⏱ Temps sur cette tâche{probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE" ? " (pour la paie — ne facture pas le client)" : ""}
+            ⏱ Temps sur cette tâche{(probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE") ? " (pour la paie — ne facture pas le client)" : tacheAuForfait(probleme) ? " (pour la paie — main-d'œuvre comprise dans le kit)" : ""}
           </span>
           {peutPoinconner && !verrouille && (
             <button
@@ -1191,6 +1191,12 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
   );
 }
 
+// « 3 en stock », ou pour un kit (lib/kits.js) : combien le stock permet d'en faire
+function libelleStock(p) {
+  if (!p.estKit) return `${p.qte} en stock`;
+  return p.qte >= 999 ? "kit" : `kit · ${p.qte} possible${p.qte > 1 ? "s" : ""}`;
+}
+
 // Pièces d'un bon : liste (modifier, retirer), ajout depuis l'inventaire,
 // scan, et commande en B/O d'une pièce manquante. Sous chaque tâche, ou une
 // seule fois en haut des tâches (profil piecesEnHautDuBon : toutes les pièces
@@ -1211,7 +1217,8 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
 
   // Qui peut commander voit aussi les pièces sans stock : elles s'ajoutent en
   // B/O avec une commande au fournisseur (commanderEnBo)
-  const piecesDisponibles = peutCommander ? inventaire : inventaire.filter((p) => p.qte > 0);
+  // (pas un kit : ce sont ses pièces qui se commandent)
+  const piecesDisponibles = inventaire.filter((p) => p.qte > 0 || (peutCommander && !p.estKit));
   const [commandeBo, setCommandeBo] = useState(null); // { fournisseurId, qteCommande } : confirmation de commande en B/O ouverte
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
@@ -1248,8 +1255,8 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
         : `Code « ${code} » inconnu — associe-le à une pièce dans Inventaire (📷 Scanner une pièce).`);
       return;
     }
-    if (piece.qte <= 0 && !peutCommander) {
-      setErreurPiece(`${piece.nom} : rupture de stock (0 en stock).`);
+    if (piece.qte <= 0 && (!peutCommander || piece.estKit)) {
+      setErreurPiece(piece.estKit ? `${piece.nom} : pas assez de pièces en stock pour faire ce kit.` : `${piece.nom} : rupture de stock (0 en stock).`);
       return;
     }
     choisirPiece(piece);
@@ -1274,7 +1281,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     setConfirmationPiece("");
     if (!pieceChoisie) return;
     // Pas assez en stock : proposer de commander le reste et le mettre en B/O
-    if (peutCommander && pieceSelectionnee && Math.max(1, parseInt(qtePiece) || 1) > pieceSelectionnee.qte) {
+    if (peutCommander && pieceSelectionnee && !pieceSelectionnee.estKit && Math.max(1, parseInt(qtePiece) || 1) > pieceSelectionnee.qte) {
       const habituel = [pieceSelectionnee.fournisseurId, ...(pieceSelectionnee.fournisseurs || []).map((f) => f.fournisseurId)]
         .find((id) => id && fournisseurs.some((f) => f.id === id));
       const manque = Math.max(1, parseInt(qtePiece) || 1) - Math.max(0, pieceSelectionnee.qte);
@@ -1296,7 +1303,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     setPieceChoisie("");
     setRecherchePiece("");
     setQtePiece("1");
-    setConfirmationPiece("Pièce ajoutée et déduite de l'inventaire ✓");
+    setConfirmationPiece(pieceSelectionnee?.estKit ? "Kit ajouté — ses pièces sont déduites de l'inventaire ✓" : "Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 2500);
   }
@@ -1359,15 +1366,16 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                   </div>
                 </div>
               ) : (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13 }}>
                       {l.bo && <span title="Commandée, pas encore reçue" style={{ fontSize: 10, fontWeight: 700, color: "#D9822B", border: "1px solid #D9822B", borderRadius: 4, padding: "0 4px", marginRight: 6 }}>B/O</span>}
                       {l.piece.nom}
                     </div>
                     <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{l.qte} × {l.prix.toFixed(2)} ${l.bo ? " · en commande, pas encore reçue" : ""}</div>
+                    {l.kit && <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Kit, par unité : {libelleContenuKit(l.kit)}</div>}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{(l.qte * l.prix).toFixed(2)} $</span>
                     {!verrouille && (
                       <>
@@ -1397,7 +1405,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
               style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "7px 8px", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 6 }}
             >
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: pieceSelectionnee ? "var(--text)" : "var(--text-muted)" }}>
-                {pieceSelectionnee ? `${pieceSelectionnee.nom} — ${pieceSelectionnee.qte} en stock` : "Choisir une pièce…"}
+                {pieceSelectionnee ? `${pieceSelectionnee.nom} — ${libelleStock(pieceSelectionnee)}` : "Choisir une pièce…"}
               </span>
               <span style={{ color: "var(--text-muted)" }}>▾</span>
             </button>
@@ -1426,7 +1434,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                       onClick={() => choisirPiece(p)}
                       style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
                     >
-                      {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? "0 en stock · à commander" : `${p.qte} en stock`}</span>
+                      {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? "0 en stock · à commander" : libelleStock(p)}</span>
                       {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
                     </button>
                   ))}

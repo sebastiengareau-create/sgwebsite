@@ -6,10 +6,7 @@ import { posterFactureEmise } from "@/lib/comptabilite";
 import { MODE_PAIEMENT_COUTANT, posterCapitalisationBon } from "@/lib/vehiculesAVendre";
 import { montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte } from "@/lib/escompte";
-
-function dureeHeures(debutISO, finISO) {
-  return (new Date(finISO) - new Date(debutISO)) / 3600000;
-}
+import { heuresFacturablesTache } from "@/lib/kits";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -54,17 +51,14 @@ export async function POST(request, props) {
   // tâches restées sur le poste par défaut. Les autres postes de revenu
   // (remorquage, alignement, entreposage, autre) se facturent sur la ligne
   // manuelle saisie sur la tâche — le poinçon reste actif pour la paie, mais
-  // ne détermine plus le montant facturé au client pour ces tâches-là.
-  const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE");
-  const entreesTempsMainOeuvre = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
+  // ne détermine plus le montant facturé au client pour ces tâches-là. Même
+  // chose pour une tâche dont la main-d'œuvre est comprise dans un kit.
 
   const totalPieces = bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0),
     0
   );
-  const heuresFacturees = entreesTempsMainOeuvre
-    .filter((t) => t.fin)
-    .reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
+  const heuresFacturees = bon.problemes.reduce((s, pr) => s + heuresFacturablesTache(pr), 0);
   const totalMainOeuvre = heuresFacturees * tauxHoraireClient;
   const totalAutresRevenus = bon.problemes
     .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")

@@ -37,6 +37,7 @@ export async function POST(request, props) {
   const piece = await prisma.piece.findUnique({ where: { id: corps.pieceId } });
   if (!piece) return NextResponse.json({ erreur: "Pièce introuvable." }, { status: 404 });
   if (!piece.actif) return NextResponse.json({ erreur: "Cette pièce est désactivée dans l'inventaire." }, { status: 409 });
+  if (piece.estKit) return NextResponse.json({ erreur: "Un kit ne se commande pas : commande plutôt les pièces qui le composent." }, { status: 409 });
   const fournisseur = corps.fournisseurId ? await prisma.fournisseur.findUnique({ where: { id: corps.fournisseurId } }) : null;
   if (!fournisseur || !fournisseur.actif) return NextResponse.json({ erreur: "Choisis le fournisseur chez qui commander." }, { status: 400 });
 

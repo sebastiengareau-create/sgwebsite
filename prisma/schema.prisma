@@ -332,6 +332,30 @@ model Piece {
   fournisseurs  PieceFournisseur[] // numéro et prix de la même pièce chez chaque fournisseur
   lignesCommande LigneCommandeFournisseur[]
   piecesACommander PieceACommander[] // lignes « à commander » de bons commandées sous cette fiche
+  // Kit (ex. « Changement d'huile ») : article facturé à son prix, sans stock
+  // propre (qte reste à 0). L'ajouter à un bon sort ses pièces du stock ; sa
+  // main-d'œuvre est comprise dans son prix. Voir lib/kits.js.
+  estKit        Boolean               @default(false)
+  composantsKit ComposantKit[]        @relation("ComposantsDuKit")
+  dansKits      ComposantKit[]        @relation("PieceDansKit") // kits qui contiennent cette pièce
+}
+
+// Ligne d'un kit : une pièce d'inventaire (pieceId, quantité entière par
+// kit) ou de la main-d'œuvre (pieceId vide : heures × coût horaire, pour le
+// coûtant du kit seulement — la paie, elle, vient des heures poinçonnées).
+model ComposantKit {
+  id          String  @id @default(cuid())
+  kitId       String
+  kit         Piece   @relation("ComposantsDuKit", fields: [kitId], references: [id], onDelete: Cascade)
+  pieceId     String?
+  piece       Piece?  @relation("PieceDansKit", fields: [pieceId], references: [id], onDelete: Restrict)
+  description String? // main-d'œuvre : libellé (ex. « Main-d'œuvre »)
+  qte         Float // pièce : quantité par kit ; main-d'œuvre : heures par kit
+  coutHoraire Float? // main-d'œuvre : coût d'une heure
+  ordre       Int     @default(0)
+
+  @@index([kitId])
+  @@index([pieceId])
 }
 
 // Une même pièce peut porter un numéro différent chez chaque fournisseur :
@@ -417,6 +441,11 @@ model PieceUtilisee {
   // avant. Voir PieceACommander.
   bo         Boolean  @default(false)
   aCommander PieceACommander?
+  // Ligne d'un kit (piece.estKit) : son contenu figé à l'ajout, pour remettre
+  // en stock exactement ce qui en est sorti. { composants: [{ pieceId, nom,
+  // qte (par kit), coutant (unitaire figé) }], heures (par kit) }. coutant de
+  // la ligne = coût des pièces d'un kit (la main-d'œuvre n'est pas du stock).
+  kit        Json?
 }
 
 // Journal des mouvements de stock (ventes, réceptions, ajustements manuels) —

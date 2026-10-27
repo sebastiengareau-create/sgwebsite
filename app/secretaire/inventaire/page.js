@@ -19,9 +19,13 @@ export default async function GestionInventaire(props) {
   const moduleCompta = await prisma.parametre.findUnique({ where: { cle: "module_comptabilite" } });
   const alignement = moduleCompta?.valeur === "inactif" ? null : await calculerAlignementInventaire();
 
-  const [pieces, categories, comptesRevenu, fournisseurs, enCommande, parametreSites] = await Promise.all([
+  const [pieces, categories, comptesRevenu, fournisseurs, enCommande, parametreSites, coutHoraire] = await Promise.all([
     prisma.piece.findMany({
-      include: { fournisseur: { select: { nom: true } }, fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true, fournisseur: { select: { nom: true } } } } },
+      include: {
+        fournisseur: { select: { nom: true } },
+        fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true, fournisseur: { select: { nom: true } } } },
+        composantsKit: { select: { pieceId: true, qte: true, coutHoraire: true, piece: { select: { qte: true, coutant: true } } } },
+      },
       orderBy: { numero: "asc" },
     }),
     prisma.categorieInventaire.findMany({ orderBy: [{ actif: "desc" }, { nom: "asc" }] }),
@@ -29,12 +33,13 @@ export default async function GestionInventaire(props) {
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
     quantitesEnCommande(prisma),
     CLIENT.rechercheFournisseursInventaire ? prisma.parametre.findUnique({ where: { cle: CLE_SITES_PIECES } }) : null,
+    prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
   ]);
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <InventaireClient pieces={pieces} enCommande={enCommande} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} scanInitial={typeof searchParams?.scan === "string" ? searchParams.scan : ""} sitesPieces={CLIENT.rechercheFournisseursInventaire ? lireSites(parametreSites?.valeur) : null} />
+      <InventaireClient pieces={pieces} coutHoraireDefaut={Number(coutHoraire?.valeur || 95)} enCommande={enCommande} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} scanInitial={typeof searchParams?.scan === "string" ? searchParams.scan : ""} sitesPieces={CLIENT.rechercheFournisseursInventaire ? lireSites(parametreSites?.valeur) : null} />
     </div>
   );
 }

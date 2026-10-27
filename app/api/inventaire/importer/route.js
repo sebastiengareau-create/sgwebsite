@@ -83,7 +83,7 @@ export async function POST(request) {
   }
 
   const [piecesExistantes, codesExistants, categories, fournisseurs] = await Promise.all([
-    prisma.piece.findMany({ select: { id: true, numero: true, codeBarre: true, autresNumeros: true, prix: true, coutant: true, qte: true } })
+    prisma.piece.findMany({ select: { id: true, numero: true, codeBarre: true, autresNumeros: true, prix: true, coutant: true, qte: true, estKit: true } })
       .then((r) => new Map(r.map((p) => [p.numero.toLowerCase(), p]))),
     prisma.piece.findMany({ where: { codeBarre: { not: null } }, select: { codeBarre: true } }).then((r) => new Set(r.map((p) => p.codeBarre))),
     prisma.categorieInventaire.findMany(),
@@ -129,6 +129,8 @@ export async function POST(request) {
     const qteFichier = versNombre(donnees.qte);
 
     const existante = piecesExistantes.get(numero.toLowerCase());
+    // Numéro d'un kit : on n'y touche pas (pas de stock, contenu à part)
+    if (existante?.estKit) { doublons.push(numero); continue; }
     if (existante) {
       // Pièce déjà là : on la complète avec ses numéros UGS et son
       // code-barres s'il lui manque, et avec le prix, le coûtant et le stock

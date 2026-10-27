@@ -17,7 +17,7 @@ export default async function CommandesFournisseurs(props) {
       take: 300,
     }),
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
-    prisma.piece.findMany({ where: { actif: true }, include: { fournisseurs: true }, orderBy: { nom: "asc" } }),
+    prisma.piece.findMany({ where: { actif: true, estKit: false }, include: { fournisseurs: true }, orderBy: { nom: "asc" } }),
     // Les brouillons comptent aussi : une pièce déjà mise dans une commande
     // pas encore envoyée n'est plus à proposer.
     quantitesEnCommande(prisma, undefined, { avecBrouillons: true }),

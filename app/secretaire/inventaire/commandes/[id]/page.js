@@ -28,7 +28,7 @@ export default async function DetailCommande(props) {
 
   const [pieces, fournisseurs, parametres, enCommande, peutVoirDepenses, configPartsTech, sessionsPartsTech] = await Promise.all([
     prisma.piece.findMany({
-      where: { actif: true },
+      where: { actif: true, estKit: false },
       include: { fournisseurs: { include: { fournisseur: { select: { nom: true } } } } },
       orderBy: { nom: "asc" },
     }),

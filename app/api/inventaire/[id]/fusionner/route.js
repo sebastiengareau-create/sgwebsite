@@ -22,6 +22,7 @@ export async function POST(request, props) {
     prisma.piece.findUnique({ where: { id: cibleId }, include: { fournisseurs: true } }),
   ]);
   if (!source || !cible) return NextResponse.json({ erreur: "Pièce introuvable." }, { status: 404 });
+  if (source.estKit || cible.estKit) return NextResponse.json({ erreur: "Un kit ne se fusionne pas avec une autre fiche." }, { status: 409 });
 
   const qte = cible.qte + source.qte;
   const coutant = qte > 0 ? (cible.qte * cible.coutant + source.qte * source.coutant) / qte : cible.coutant;
@@ -51,6 +52,17 @@ export async function POST(request, props) {
     await tx.ligneCommandeFournisseur.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
     await tx.mouvementInventaire.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
     await tx.historiquePiece.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
+    // Les kits qui contenaient le doublon contiennent maintenant la cible
+    // (si un kit avait déjà les deux, les quantités s'additionnent)
+    for (const c of await tx.composantKit.findMany({ where: { pieceId: source.id } })) {
+      const dejaLa = await tx.composantKit.findFirst({ where: { kitId: c.kitId, pieceId: cible.id } });
+      if (dejaLa) {
+        await tx.composantKit.update({ where: { id: dejaLa.id }, data: { qte: dejaLa.qte + c.qte } });
+        await tx.composantKit.delete({ where: { id: c.id } });
+      } else {
+        await tx.composantKit.update({ where: { id: c.id }, data: { pieceId: cible.id } });
+      }
+    }
 
     // Le code-barres du doublon est libéré avant d'être repris par la cible
     // (contrainte d'unicité).

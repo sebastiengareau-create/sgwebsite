@@ -2,14 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
-
-// Des pièces qui reviennent en stock y rentrent à leur coût figé sur la ligne
-// (pas au coût moyen actuel) : le coût moyen de la pièce est recalculé pour
-// que la valeur du stock reste exactement égale à celle du grand livre.
-function coutMoyenApresRetour(piece, qteRetour, coutLigne) {
-  const qteTotale = piece.qte + qteRetour;
-  return qteTotale > 0 ? (piece.qte * piece.coutant + qteRetour * coutLigne) / qteTotale : piece.coutant;
-}
+import { ajusterKitSurBon, coutMoyenApresRetour } from "@/lib/kits";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -43,6 +36,23 @@ export async function PATCH(request, props) {
   if (qte !== undefined) {
     const nouvelleQte = Number(qte);
     if (isNaN(nouvelleQte) || nouvelleQte < 1) return NextResponse.json({ erreur: "Quantité invalide." }, { status: 400 });
+    // Kit : chacune de ses pièces sort du stock ou y revient
+    if (ligne.kit) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          const { coutant, kit } = await ajusterKitSurBon(tx, ligne, nouvelleQte, {
+            creePar: session.nom, note: `Correction — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom} (kit)`,
+          });
+          await tx.pieceUtilisee.update({ where: { id: ligne.id }, data: { ...data, qte: nouvelleQte, coutant, kit } });
+        });
+      } catch (e) {
+        if (e.message.startsWith("STOCK_KIT:")) {
+          return NextResponse.json({ erreur: `Stock insuffisant pour cette quantité de kits : ${e.message.slice(10)}.` }, { status: 409 });
+        }
+        throw e;
+      }
+      return NextResponse.json(await prisma.pieceUtilisee.findUnique({ where: { id: ligne.id } }));
+    }
     // Pièce B/O : pas encore sortie du stock — seule la quantité change
     const difference = ligne.bo ? 0 : nouvelleQte - ligne.qte; // positif = en prendre plus au stock
 
@@ -106,6 +116,14 @@ export async function DELETE(request, props) {
     if (!ligne || ligne.probleme.bonId !== params.id) return; // pas la bonne ligne
     // Pièce B/O : jamais sortie du stock, rien à y remettre
     if (ligne.bo) {
+      await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
+      return;
+    }
+    // Kit : chacune de ses pièces revient en stock
+    if (ligne.kit) {
+      await ajusterKitSurBon(tx, ligne, 0, {
+        creePar: session.nom, note: `Retrait — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom} (kit)`,
+      });
       await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
       return;
     }
