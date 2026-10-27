@@ -109,7 +109,7 @@ export default function AssistantSG() {
       {ouvert && (
         <div onClick={() => setOuvert(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
       )}
-      <div style={{ position: "fixed", ...placement, zIndex: 40, display: "flex", flexDirection: "column", alignItems: aDroite ? "flex-end" : "flex-start", gap: 10 }}>
+      <div className="bouton-flottant" style={{ position: "fixed", ...placement, zIndex: 40, display: "flex", flexDirection: "column", alignItems: aDroite ? "flex-end" : "flex-start", gap: 10 }}>
         {ouvert && (
           <div
             style={{

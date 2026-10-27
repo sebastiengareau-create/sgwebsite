@@ -822,6 +822,18 @@ model AmortissementMensuel {
   creeLe  DateTime @default(now())
 }
 
+// Modèle de lettre (section Documents) : texte avec des champs entre
+// accolades ({nom}, {date_embauche}…) remplis à partir de la fiche de
+// l'employé ou du client choisi — voir lib/documents.js
+model ModeleDocument {
+  id           String   @id @default(cuid())
+  nom          String
+  destinataire String // "EMPLOYE" | "CLIENT"
+  contenu      String
+  creeLe       DateTime @default(now())
+  modifieLe    DateTime @updatedAt
+}
+
 model Parametre {
   id     String @id @default(cuid())
   cle    String @unique

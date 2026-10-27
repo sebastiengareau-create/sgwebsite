@@ -9,6 +9,7 @@ import MinuteurInactivite from "./MinuteurInactivite";
 import Cloche from "./Cloche";
 import { image } from "@/lib/client";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
+import { destinatairesPermis } from "@/lib/documentsServeur";
 
 // Chaque section "empruntable" (configurable dans Administrateur → Rôles et
 // accès), avec son lien et son icône — évite de dupliquer cette liste dans
@@ -70,6 +71,10 @@ export default async function EnTete({ nom, role }) {
       liens.push({ href: section.href, label: section.label, icone: section.icone });
     }
   }
+
+  // Documents (lettres aux employés ou aux clients) : avec la section
+  // Employés ou Clients — voir lib/documentsServeur.js
+  if ((await destinatairesPermis(session)).length > 0) liens.push({ href: "/gerant/documents", label: "Documents", icone: "📄" });
 
   // Notifications (cloche 🔔) : tout employé, si le module est actif — le
   // développeur n'a pas de fiche employé, donc rien à recevoir

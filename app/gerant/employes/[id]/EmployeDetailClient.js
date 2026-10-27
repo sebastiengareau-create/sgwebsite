@@ -115,6 +115,10 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
         </div>
       </div>
 
+      <Link href={`/gerant/documents?destinataire=EMPLOYE&pour=${employe.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}>
+        📄 Lettre (référence d'emploi…)
+      </Link>
+
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
       {modeEdition ? (

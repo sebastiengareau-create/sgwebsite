@@ -106,6 +106,9 @@ export default function ClientDetailClient({ client }) {
             )}
           </div>
         )}
+        <Link href={`/gerant/documents?destinataire=CLIENT&pour=${client.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
+          📄 Lettre (promotion…)
+        </Link>
         {client.garantieProlongee && (
           <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
             <span className="bouton-3d" style={{ display: "inline-block", padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>
