@@ -94,16 +94,13 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   entre « Pièces du bon » et les tâches : texte libre pour l'équipe
   (`noteInterne` du bon, enregistré avec le bouton « Enregistrer »), consulté
   à l'écran seulement — jamais imprimé, ni sur la facture ou son PDF.
-- `horodateurBonsReplies: true` — dans l'**horodateur**, chaque bon actif
-  est une carte compacte, comme un bon à venir : les 3 premières tâches
-  (une ligne chacune), « … et N autres tâches », les chronos en cours, puis
-  « ⏱️ Les N tâches et leurs chronos » qui déploie toutes les tâches avec
-  leurs boutons Démarrer/Arrêter et photo. Mon chrono en cours reste
-  visible sur la carte repliée, avec son bouton « Arrêter ». Les bons à venir montrent aussi
-  seulement les 3 premières tâches.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
+
+- Octobre 2026 : les cartes compactes de l'horodateur
+  (`horodateurBonsReplies`), faites pour VR Premium, sont devenues le
+  comportement du modèle de base.
 
 - Jusqu'en septembre 2026, VR Premium avait sa propre branche
   `client-vr-premium`. Ses différences sont devenues ce profil ; elle roule
