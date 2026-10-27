@@ -28,7 +28,8 @@ export default function DocumentsClient({ modeles, destinataires, pour }) {
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <Link href="/gerant/documents/historique" className="bouton-3d-sombre" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🕘 Historique des courriels</Link>
         <button onClick={() => { setNouveau((v) => !v); setEnEdition(null); }} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
           {nouveau ? "Annuler" : "+ Nouveau modèle"}
         </button>

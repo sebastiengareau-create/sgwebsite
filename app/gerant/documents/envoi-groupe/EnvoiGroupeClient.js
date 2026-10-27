@@ -122,7 +122,7 @@ export default function EnvoiGroupeClient({ modele, clients, communes, courrielC
       {etat.erreur && <p style={{ color: "var(--danger)", fontSize: 13 }}>{etat.erreur}</p>}
       {etat.resultat && (
         <div className="carte carte-s" style={{ marginBottom: 14, fontSize: 13 }}>
-          ✅ {etat.resultat.envoyes} courriel{etat.resultat.envoyes > 1 ? "s" : ""} envoyé{etat.resultat.envoyes > 1 ? "s" : ""}.
+          {etat.resultat.envoyes > 0 ? "✅" : "⚠️"} {etat.resultat.envoyes} courriel{etat.resultat.envoyes > 1 ? "s" : ""} envoyé{etat.resultat.envoyes > 1 ? "s" : ""}.
           {etat.resultat.echecs.length > 0 && (
             <div style={{ color: "var(--danger)", marginTop: 6 }}>
               {etat.resultat.echecs.length} en échec : {etat.resultat.echecs[0].erreur}

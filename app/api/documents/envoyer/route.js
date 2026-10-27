@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import { obtenirInfosEntreprise } from "@/lib/config";
-import { peutGererDestinataire, chargerFiche } from "@/lib/documentsServeur";
+import { peutGererDestinataire, chargerFiche, noterEnvoi } from "@/lib/documentsServeur";
 import { courrielConfigure, courrielValide, preparerCourriel, envoyerCourriels } from "@/lib/courrielDocuments";
 
 // Envoie par courriel une lettre rédigée (texte déjà rempli et relu) —
@@ -25,6 +25,7 @@ export async function POST(request) {
 
   const courriel = preparerCourriel({ a: adresse, sujet: String(sujet).trim(), texte: String(texte), entreprise: await obtenirInfosEntreprise(), clientId: estClient ? fiche.id : null });
   const { echecs } = await envoyerCourriels([courriel]);
+  await noterEnvoi({ session, modele, groupe: false, sujet: courriel.subject, texte: String(texte), personnes: [{ nom: fiche.nom, a: adresse }], echecs });
   if (echecs.length) return NextResponse.json({ erreur: `Échec de l'envoi : ${echecs[0].erreur}` }, { status: 502 });
   return NextResponse.json({ ok: true, a: adresse });
 }

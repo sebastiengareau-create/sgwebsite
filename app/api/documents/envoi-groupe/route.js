@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import { remplirModele, passagesACompleter } from "@/lib/documents";
-import { peutGererDestinataire, preparerValeurs } from "@/lib/documentsServeur";
+import { peutGererDestinataire, preparerValeurs, noterEnvoi } from "@/lib/documentsServeur";
 import { courrielConfigure, courrielValide, preparerCourriel, envoyerCourriels } from "@/lib/courrielDocuments";
 
 // Envoi groupé d'un modèle aux clients choisis — { modeleId, sujet,
@@ -38,5 +38,6 @@ export async function POST(request) {
   }));
 
   const { envoyes, echecs } = await envoyerCourriels(courriels);
+  await noterEnvoi({ session, modele, groupe: true, sujet: sujetModele, texte: texteModele, personnes: destinataires.map((c) => ({ nom: c.nom, a: c.courriel.trim() })), echecs });
   return NextResponse.json({ envoyes, echecs, ignores: clients.length - destinataires.length });
 }

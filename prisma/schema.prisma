@@ -838,6 +838,25 @@ model ModeleDocument {
   modifieLe    DateTime @updatedAt
 }
 
+// Historique des courriels envoyés depuis la section Documents : une ligne
+// par envoi (une lettre seule, ou un envoi groupé à plusieurs clients)
+model EnvoiCourrielDocument {
+  id           String   @id @default(cuid())
+  creeLe       DateTime @default(now())
+  envoyePar    String // nom de la personne connectée
+  modeleNom    String
+  destinataire String // "EMPLOYE" | "CLIENT"
+  groupe       Boolean  @default(false)
+  sujet        String // pour un envoi groupé : avec ses {champs}
+  texte        String // la lettre envoyée ; pour un envoi groupé : le texte avec ses {champs}
+  nbEnvoyes    Int
+  nbEchecs     Int
+  // [{ nom, a, erreur? }] — erreur présente seulement pour un échec
+  destinataires Json
+
+  @@index([creeLe])
+}
+
 model Parametre {
   id     String @id @default(cuid())
   cle    String @unique
