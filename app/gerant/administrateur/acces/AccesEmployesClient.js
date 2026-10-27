@@ -13,6 +13,7 @@ const SECTIONS = [
   { cle: "comptabilite", label: "💰 Comptabilité" },
   { cle: "paie", label: "🧾 Paie" },
   { cle: "employes", label: "👥 Employés" },
+  { cle: "documents", label: "📄 Documents — lettres et courriels" },
   { cle: "vue-ensemble", label: "📊 Vue d'ensemble" },
   { cle: "jobs-temps-reel", label: "📈 Productivité par employés" },
   { cle: "jobs-deplacement", label: "🚐 Jobs en déplacement" },

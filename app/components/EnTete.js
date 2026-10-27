@@ -72,8 +72,8 @@ export default async function EnTete({ nom, role }) {
     }
   }
 
-  // Documents (lettres aux employés ou aux clients) : avec la section
-  // Employés ou Clients — voir lib/documentsServeur.js
+  // Documents (lettres aux employés ou aux clients) : section Documents,
+  // avec Employés ou Clients — voir lib/documentsServeur.js
   if ((await destinatairesPermis(session)).length > 0) liens.push({ href: "/gerant/documents", label: "Documents", icone: "📄" });
 
   // Notifications (cloche 🔔) : tout employé, si le module est actif — le

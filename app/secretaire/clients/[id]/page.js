@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../../components/EnTete";
 import ClientDetailClient from "./ClientDetailClient";
+import { peutGererDestinataire } from "@/lib/documentsServeur";
 import { voisinsFiche } from "@/lib/navigationFiches";
 import NavigationFiches from "../../../components/NavigationFiches";
 
@@ -26,7 +27,7 @@ export default async function DetailClientPage(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <ClientDetailClient client={client} />
+      <ClientDetailClient client={client} peutRedigerLettre={await peutGererDestinataire(session, "CLIENT")} />
       <NavigationFiches cle="clients" idCourant={client.id} base="/secretaire/clients" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), client.id)} />
     </div>
   );

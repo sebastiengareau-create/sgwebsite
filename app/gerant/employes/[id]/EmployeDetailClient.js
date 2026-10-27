@@ -8,7 +8,7 @@ import SelectProvince from "../../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -115,9 +115,9 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
         </div>
       </div>
 
-      <Link href={`/gerant/documents?destinataire=EMPLOYE&pour=${employe.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}>
+      {peutRedigerLettre && <Link href={`/gerant/documents?destinataire=EMPLOYE&pour=${employe.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}>
         📄 Lettre (référence d'emploi…)
-      </Link>
+      </Link>}
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
