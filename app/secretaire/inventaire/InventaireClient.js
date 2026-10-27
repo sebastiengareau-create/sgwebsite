@@ -33,10 +33,11 @@ export default function InventaireClient({ pieces, enCommande = {}, categories, 
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
 
+  // Les pièces en stock d'abord, puis celles à 0 ; chaque groupe dans le tri choisi
   const piecesFiltrees = pieces.filter((p) => {
     if (!p.actif && !voirDesactivees) return false;
     return pieceCorrespond(p, recherche);
-  }).sort(TRIS[tri].comparer);
+  }).sort((a, b) => (b.qte > 0) - (a.qte > 0) || TRIS[tri].comparer(a, b));
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
 
   // Le tri choisi est retenu sur cet appareil
