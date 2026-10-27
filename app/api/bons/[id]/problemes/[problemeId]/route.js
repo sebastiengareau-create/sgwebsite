@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreBonEnAttenteSiSansTemps } from "@/lib/bons";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreBonEnAttenteSiSansTemps, remettreLigneEnStock } from "@/lib/bons";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -62,7 +62,17 @@ export async function DELETE(request, props) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
-  await prisma.probleme.delete({ where: { id: params.problemeId } });
+  const probleme = await prisma.probleme.findUnique({ where: { id: params.problemeId }, include: { pieces: true, bon: { include: { client: true } } } });
+  if (!probleme || probleme.bonId !== params.id) {
+    return NextResponse.json({ erreur: "Tâche introuvable." }, { status: 404 });
+  }
+  // Les pièces de la tâche n'ont pas été utilisées : elles reviennent en stock
+  await prisma.$transaction(async (tx) => {
+    for (const ligne of probleme.pieces) {
+      await remettreLigneEnStock(tx, ligne, { note: `Tâche retirée — Bon #${probleme.bon.numero} — ${probleme.bon.client.nom}`, creePar: session.nom });
+    }
+    await tx.probleme.delete({ where: { id: probleme.id } });
+  });
   await remettreBonEnAttenteSiSansTemps(params.id);
   return NextResponse.json({ ok: true });
 }

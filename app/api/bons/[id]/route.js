@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { lireKilometrage } from "@/lib/vehicules";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
-import { ajusterKitSurBon } from "@/lib/kits";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreLigneEnStock } from "@/lib/bons";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -101,13 +100,7 @@ export async function DELETE(request, props) {
     // Remet en stock toutes les pièces utilisées sur ce bon avant de le supprimer
     for (const pr of problemes) {
       for (const ligne of pr.pieces) {
-        if (ligne.bo) continue; // B/O : jamais sortie du stock
-        if (ligne.kit) {
-          // Kit : ce sont ses pièces qui reviennent en stock
-          await ajusterKitSurBon(tx, ligne, 0, { creePar: session.nom, note: `Bon #${bon.numero} supprimé (kit)` });
-          continue;
-        }
-        await tx.piece.update({ where: { id: ligne.pieceId }, data: { qte: { increment: ligne.qte } } });
+        await remettreLigneEnStock(tx, ligne, { note: `Bon #${bon.numero} supprimé`, creePar: session.nom });
       }
     }
 

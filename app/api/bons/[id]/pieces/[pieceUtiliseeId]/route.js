@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
+import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreLigneEnStock } from "@/lib/bons";
 import { ajusterKitSurBon, coutMoyenApresRetour } from "@/lib/kits";
 
 export async function PATCH(request, props) {
@@ -114,35 +114,7 @@ export async function DELETE(request, props) {
       include: { probleme: { include: { bon: { include: { client: true } } } } },
     });
     if (!ligne || ligne.probleme.bonId !== params.id) return; // pas la bonne ligne
-    // Pièce B/O : jamais sortie du stock, rien à y remettre
-    if (ligne.bo) {
-      await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
-      return;
-    }
-    // Kit : chacune de ses pièces revient en stock
-    if (ligne.kit) {
-      await ajusterKitSurBon(tx, ligne, 0, {
-        creePar: session.nom, note: `Retrait — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom} (kit)`,
-      });
-      await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
-      return;
-    }
-
-    const piece = await tx.piece.findUnique({ where: { id: ligne.pieceId } });
-    const nouvelleQte = piece.qte + ligne.qte;
-    await tx.piece.update({
-      where: { id: ligne.pieceId },
-      data: {
-        qte: nouvelleQte,
-        coutant: coutMoyenApresRetour(piece, ligne.qte, ligne.coutant ?? piece.coutant),
-        mouvements: {
-          create: {
-            type: "VENTE", qte: ligne.qte, solde: nouvelleQte,
-            note: `Retrait — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom}`, creePar: session.nom,
-          },
-        },
-      },
-    });
+    await remettreLigneEnStock(tx, ligne, { note: `Retrait — Bon #${ligne.probleme.bon.numero} — ${ligne.probleme.bon.client.nom}`, creePar: session.nom });
     await tx.pieceUtilisee.delete({ where: { id: ligne.id } });
   });
 

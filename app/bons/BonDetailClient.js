@@ -725,7 +725,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             moi={moi}
             verrouille={factureExiste}
             peutSupprimer={peutModifier && !factureExiste && bon.problemes.length > 1}
-            onSupprimer={() => supprimerProbleme(pr.id)}
+            onSupprimer={() => {
+              if (pr.pieces.length > 0 && !window.confirm(`Supprimer la tâche « ${pr.description} » ? Ses pièces retourneront en stock.`)) return;
+              supprimerProbleme(pr.id);
+            }}
             onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb(pr.description) : null}
             onRafraichir={() => router.refresh()}
           />
