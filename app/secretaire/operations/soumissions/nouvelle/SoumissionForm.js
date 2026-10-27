@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { VEHICULE_VIDE } from "../../../../components/ChampsVehicule";
 import ChoixVehiculeClient from "../../../../components/ChoixVehiculeClient";
 import { valeursFormulaireVehicule } from "@/lib/vehicules";
+import { formaterTelephone } from "@/lib/telephone";
 
 function nouvelleTache() {
   return { id: Math.random().toString(36).slice(2), description: "", tempsEstime: "", pieces: [] };
@@ -197,7 +198,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
       )}
 
       {!clientSelectionne && (
-        <input placeholder="Téléphone" value={clientTelephone} onChange={(e) => setClientTelephone(e.target.value)} style={champInput} />
+        <input placeholder="Téléphone" value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
       )}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>

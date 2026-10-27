@@ -7,6 +7,7 @@ import { TitreSection, LigneInfo } from "../../../components/ui";
 import SelectProvince from "../../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre }) {
   const router = useRouter();
@@ -141,7 +142,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             </p>
           )}
           <label className="etiquette">Téléphone</label>
-          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
+          <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} className="champ" />
           <label className="etiquette">Adresse</label>
           <ChampAdresse valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} className="champ" />
           <label className="etiquette">Ville</label>

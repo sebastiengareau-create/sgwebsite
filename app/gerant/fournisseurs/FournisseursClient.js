@@ -9,6 +9,7 @@ import SelectProvince from "../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { adresseComplete, PROVINCE_DEFAUT } from "@/lib/adresse";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function FournisseursClient({ fournisseurs, peutImporter }) {
   const router = useRouter();
@@ -139,7 +140,7 @@ function FormulaireCreation({ onCree }) {
   return (
     <form onSubmit={creer} className="carte" style={{ marginBottom: 4 }}>
       <input required placeholder="Nom du fournisseur" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-      <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
+      <input placeholder="Téléphone" value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
       <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
       <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
       <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />

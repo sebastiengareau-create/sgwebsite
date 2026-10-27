@@ -9,6 +9,7 @@ import SelectProvince from "../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../components/ChampsAdresse";
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
   const router = useRouter();
@@ -174,7 +175,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
         ))}
       </select>
       <input placeholder="NIP (optionnel, 4 chiffres)" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} style={champStyle} />
-      <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
+      <input placeholder="Téléphone" value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
       <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
       <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>

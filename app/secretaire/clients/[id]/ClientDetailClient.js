@@ -9,6 +9,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { ligneVille } from "@/lib/adresse";
 import DossierVehicules from "./DossierVehicules";
 import { libelleVehicule } from "@/lib/vehicules";
+import { formaterTelephone } from "@/lib/telephone";
 
 const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
 const STATUTS_SOUMISSION = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée" };
@@ -126,7 +127,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre }) {
           <label className="etiquette">Nom</label>
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Téléphone</label>
-          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
+          <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} className="champ" />
           <label className="etiquette">Courriel</label>
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { CLES_PARAMETRE } from "@/lib/config";
+import { formaterTelephone } from "@/lib/telephone";
 
 export async function PATCH(request) {
   const session = await obtenirSession();
@@ -13,10 +14,11 @@ export async function PATCH(request) {
 
   for (const [champ, cle] of Object.entries(CLES_PARAMETRE)) {
     if (body[champ] === undefined) continue;
+    const valeur = champ === "telephone" ? formaterTelephone(String(body[champ] || "")) : String(body[champ] || "");
     await prisma.parametre.upsert({
       where: { cle },
-      update: { valeur: String(body[champ] || "") },
-      create: { cle, valeur: String(body[champ] || "") },
+      update: { valeur },
+      create: { cle, valeur },
     });
   }
 

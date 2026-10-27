@@ -11,6 +11,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { libelleVehicule } from "@/lib/vehicules";
 import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function ClientsClient({ clients, peutImporter }) {
   const router = useRouter();
@@ -210,7 +211,7 @@ function FormulaireCreation({ onCree }) {
   return (
     <form onSubmit={creer} className="carte" style={{ marginBottom: 4 }}>
       <input required placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-      <input placeholder="Téléphone" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
+      <input placeholder="Téléphone" value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
       <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
       <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
       <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />

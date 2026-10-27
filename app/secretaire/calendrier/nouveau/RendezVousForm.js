@@ -6,6 +6,7 @@ import { dateAujourdhuiQuebec } from "@/lib/temps";
 import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
 import OptionVehicule from "../../../components/OptionVehicule";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function RendezVousForm({ clientsExistants }) {
   const router = useRouter();
@@ -143,7 +144,7 @@ export default function RendezVousForm({ clientsExistants }) {
         </div>
       )}
       {!clientSelectionne && (
-        <input placeholder="Téléphone" value={clientTelephone} onChange={(e) => setClientTelephone(e.target.value)} style={champInput} />
+        <input placeholder="Téléphone" value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
       )}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>

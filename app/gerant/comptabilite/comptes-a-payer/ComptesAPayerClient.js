@@ -8,6 +8,7 @@ import { CONDITIONS_PAIEMENT, ajouterJours, joursAvantEcheance, etatEcheance } f
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import SelectProvince from "../../../components/SelectProvince";
 import { PROVINCE_DEFAUT, adresseComplete } from "@/lib/adresse";
+import { formaterTelephone } from "@/lib/telephone";
 
 const STATUTS_DEPENSE = {
   IMPAYEE: { label: "Impayées", color: "#C9A227" },
@@ -634,7 +635,7 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
       </div>
       <form onSubmit={creer} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <input placeholder="Nom du fournisseur" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-        <input placeholder="Téléphone (optionnel)" value={telephone} onChange={(e) => setTelephone(e.target.value)} style={champStyle} />
+        <input placeholder="Téléphone (optionnel)" value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
         <input placeholder="Courriel (optionnel)" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
         <ChampsAdresseFournisseur valeur={adresse} onChange={setAdresse} style={champStyle} />
         <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
@@ -691,7 +692,7 @@ function LigneEditionFournisseur({ fournisseur, onTermine, onAnnuler }) {
   return (
     <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, display: "flex", flexDirection: "column", gap: 6 }}>
       <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom" style={{ ...champStyle, marginBottom: 0 }} />
-      <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Téléphone" style={{ ...champStyle, marginBottom: 0 }} />
+      <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} placeholder="Téléphone" style={{ ...champStyle, marginBottom: 0 }} />
       <input value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Courriel" style={{ ...champStyle, marginBottom: 0 }} />
       <ChampsAdresseFournisseur valeur={adresse} onChange={setAdresse} style={{ ...champStyle, marginBottom: 0 }} />
       <div style={{ display: "flex", gap: 6 }}>

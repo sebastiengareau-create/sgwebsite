@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import SelectProvince from "../../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function InfosEntrepriseClient({ infosInit }) {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
         </div>
 
         <label style={labelStyle}>Téléphone</label>
-        <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Ex : 438-526-8936" style={champStyle} />
+        <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} placeholder="Ex : 438-526-8936" style={champStyle} />
 
         <label style={labelStyle}>Courriel (optionnel — affiché sur certains documents)</label>
         <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Ex : info@garage.com" style={champStyle} />

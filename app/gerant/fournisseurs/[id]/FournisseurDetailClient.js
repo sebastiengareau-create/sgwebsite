@@ -8,6 +8,7 @@ import SelectProvince from "../../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
 import { etatEcheance } from "@/lib/echeance";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpayees }) {
   const router = useRouter();
@@ -99,7 +100,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
           <label className="etiquette">Nom</label>
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Téléphone</label>
-          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} className="champ" />
+          <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} className="champ" />
           <label className="etiquette">Courriel</label>
           <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} className="champ" />
           <label className="etiquette">Adresse</label>

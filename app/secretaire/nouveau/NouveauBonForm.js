@@ -13,6 +13,7 @@ import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { compresserImage } from "@/lib/images";
 import { CLIENT } from "@/lib/client";
 import { messageBonsNonFactures, QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
+import { formaterTelephone } from "@/lib/telephone";
 
 export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
   const router = useRouter();
@@ -272,7 +273,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
 
       {!clientSelectionne && (
         <>
-          <Champ label="Téléphone" value={clientTelephone} onChange={setClientTelephone} />
+          <Champ label="Téléphone" type="tel" value={clientTelephone} onChange={setClientTelephone} onBlur={(v) => setClientTelephone(formaterTelephone(v))} />
           <label style={labelStyle}>Adresse</label>
           <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
           <label style={labelStyle}>Ville</label>
@@ -389,13 +390,14 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   );
 }
 
-function Champ({ label, value, onChange, requis, type = "text", style }) {
+function Champ({ label, value, onChange, onBlur, requis, type = "text", style }) {
   return (
     <div style={style}>
       <label style={labelStyle}>{label}</label>
       <input
         type={type} required={requis} value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur && ((e) => onBlur(e.target.value))}
         style={champInput}
       />
     </div>
