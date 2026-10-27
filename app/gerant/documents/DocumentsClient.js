@@ -46,7 +46,12 @@ export default function DocumentsClient({ modeles, destinataires, pour }) {
                 <FormulaireModele key={m.id} modele={m} destinataires={destinataires} onEnregistre={apresEnregistrement} onAnnule={() => setEnEdition(null)} />
               ) : (
                 <div key={m.id} className="carte carte-m" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div style={{ fontWeight: 600 }}>{m.nom}</div>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{m.nom}</div>
+                    {m.destinataire === "CLIENT" && !pour && (
+                      <Link href={`/gerant/documents/envoi-groupe?modele=${m.id}`} style={{ fontSize: 11.5, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>📢 Envoi groupé par courriel</Link>
+                    )}
+                  </div>
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                     <button onClick={() => { setEnEdition(m.id); setNouveau(false); }} className="bouton-3d-sombre" style={{ padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Modifier</button>
                     <Link href={`/gerant/documents/rediger?modele=${m.id}${pour ? `&pour=${pour.id}` : ""}`} className="bouton-3d" style={{ padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>✍️ Rédiger</Link>

@@ -77,6 +77,10 @@ model Client {
   province          String? // code à deux lettres (ex. « QC ») — voir lib/adresse.js
   codePostal        String?
   garantieProlongee String? // numéro de contrat de garantie prolongée, si applicable
+  // Désabonné des courriels de promotion (lien au bas de chaque courriel de
+  // la section Documents) — exclu des envois groupés. Exigé par la loi
+  // canadienne anti-pourriel (LCAP).
+  promotionsRefuseesLe DateTime?
   vehicules         Vehicule[]
   bons              BonTravail[]
   soumissions       Soumission[]

@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DESTINATAIRES, remplirModele, passagesACompleter } from "@/lib/documents";
+import { DESTINATAIRES, remplirModele, passagesACompleter, sujetParDefaut } from "@/lib/documents";
 import { image } from "@/lib/client";
 
 // Choix de l'employé ou du client, texte rempli modifiable, puis impression
-// de la lettre sur l'en-tête de l'entreprise. Le texte modifié n'est pas
-// enregistré : le modèle, lui, reste intact.
-export default function RedigerClient({ modele, personnes, choisi, valeurs, entreprise }) {
+// de la lettre sur l'en-tête de l'entreprise, ou envoi par courriel. Le
+// texte modifié n'est pas enregistré : le modèle, lui, reste intact.
+export default function RedigerClient({ modele, personnes, choisi, valeurs, entreprise, courrielConfigure }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [texte, setTexte] = useState(() => (valeurs ? remplirModele(modele.contenu, valeurs, modele.destinataire) : ""));
@@ -70,6 +70,7 @@ export default function RedigerClient({ modele, personnes, choisi, valeurs, entr
                 <button onClick={() => window.print()} className="bouton-3d" style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>🖨️ Imprimer / PDF</button>
                 <button onClick={() => setTexte(remplirModele(modele.contenu, valeurs, modele.destinataire))} className="bouton-3d-sombre" style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>Recommencer à partir du modèle</button>
               </div>
+              <EnvoiCourriel modele={modele} choisi={choisi} texte={texte} aCompleter={aCompleter} courrielConfigure={courrielConfigure} />
             </>
           )}
         </div>
@@ -89,6 +90,54 @@ export default function RedigerClient({ modele, personnes, choisi, valeurs, entr
           <div style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.6 }}>{texte}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Envoi de la lettre (le texte tel qu'affiché) au courriel de la fiche, ou
+// à une autre adresse
+function EnvoiCourriel({ modele, choisi, texte, aCompleter, courrielConfigure }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [a, setA] = useState(choisi.courriel);
+  const [sujet, setSujet] = useState(() => sujetParDefaut(texte, modele.nom));
+  const [etat, setEtat] = useState({ enCours: false, message: "", erreur: "" });
+
+  if (!courrielConfigure) return <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "10px 0 0" }}>L'envoi par courriel n'est pas configuré sur cette installation.</p>;
+  if (choisi.desabonne && modele.destinataire === "CLIENT") return <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "10px 0 0" }}>✉️ Ce client s'est désabonné de nos courriels — impression seulement.</p>;
+
+  async function envoyer() {
+    if (aCompleter.length > 0 && !window.confirm(`Il reste à compléter : ${aCompleter.join(" · ")}\n\nEnvoyer quand même ?`)) return;
+    setEtat({ enCours: true, message: "", erreur: "" });
+    const res = await fetch("/api/documents/envoyer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modeleId: modele.id, pourId: choisi.id, a, sujet, texte }),
+    });
+    const donnees = await res.json().catch(() => ({}));
+    setEtat(res.ok ? { enCours: false, message: `✅ Envoyé à ${donnees.a}`, erreur: "" } : { enCours: false, message: "", erreur: donnees.erreur || "Échec de l'envoi." });
+  }
+
+  if (!ouvert) {
+    return (
+      <button onClick={() => setOuvert(true)} className="bouton-3d-sombre" style={{ marginTop: 8, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+        ✉️ Envoyer par courriel
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+      <label className="etiquette" style={{ marginTop: 0 }}>Courriel du destinataire</label>
+      <input type="email" value={a} onChange={(e) => setA(e.target.value)} className="champ" placeholder="adresse@exemple.com" />
+      <label className="etiquette">Sujet</label>
+      <input value={sujet} onChange={(e) => setSujet(e.target.value)} className="champ" />
+      {modele.destinataire === "CLIENT" && (
+        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 0" }}>Vos coordonnées et un lien de désabonnement sont ajoutés au bas du courriel (exigé par la loi anti-pourriel).</p>
+      )}
+      {etat.erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "8px 0 0" }}>{etat.erreur}</p>}
+      {etat.message && <p style={{ color: "var(--success)", fontSize: 12, margin: "8px 0 0" }}>{etat.message}</p>}
+      <button onClick={envoyer} disabled={etat.enCours || !a.trim() || !sujet.trim()} className="bouton-3d" style={{ marginTop: 10, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+        {etat.enCours ? "Envoi…" : "✉️ Envoyer"}
+      </button>
     </div>
   );
 }
