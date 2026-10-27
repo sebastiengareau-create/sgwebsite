@@ -16,6 +16,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
   const [codePostal, setCodePostal] = useState(infosInit.codePostal);
   const [telephone, setTelephone] = useState(infosInit.telephone);
   const [courriel, setCourriel] = useState(infosInit.courriel);
+  const [personneResponsable, setPersonneResponsable] = useState(infosInit.personneResponsable);
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null);
   const remplir = remplisseurAdresse({ ville, setAdresse: setAdresseLigne1, setVille, setProvince, setCodePostal });
@@ -28,7 +29,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nomEntreprise, adresseLigne1, ville, province, codePostal, telephone, courriel,
+        nomEntreprise, adresseLigne1, ville, province, codePostal, telephone, courriel, personneResponsable,
         // Ligne affichée sur les documents (voir lib/config.js)
         adresseLigne2: [ville.trim(), province].filter(Boolean).join(", "),
       }),
@@ -77,7 +78,10 @@ export default function InfosEntrepriseClient({ infosInit }) {
         <input value={telephone} onChange={(e) => setTelephone(e.target.value)} placeholder="Ex : 438-526-8936" style={champStyle} />
 
         <label style={labelStyle}>Courriel (optionnel — affiché sur certains documents)</label>
-        <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Ex : info@garage.com" style={{ ...champStyle, marginBottom: 12 }} />
+        <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Ex : info@garage.com" style={champStyle} />
+
+        <label style={labelStyle}>Personne responsable (signe les lettres de la section Documents)</label>
+        <input value={personneResponsable} onChange={(e) => setPersonneResponsable(e.target.value)} placeholder="Ex : Marc Tremblay, propriétaire" style={{ ...champStyle, marginBottom: 12 }} />
 
         {message && (
           <p style={{ fontSize: 12, marginBottom: 10, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
