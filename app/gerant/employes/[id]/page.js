@@ -5,6 +5,7 @@ import { dateAujourdhuiQuebec, limitesJourQuebec, jourSemaineQuebec } from "@/li
 import EnTete from "../../../components/EnTete";
 import EmployeDetailClient from "./EmployeDetailClient";
 import { peutGererDestinataire } from "@/lib/documentsServeur";
+import { texteDerniereActivite } from "@/lib/presence";
 import { voisinsFiche } from "@/lib/navigationFiches";
 import NavigationFiches from "../../../components/NavigationFiches";
 
@@ -78,6 +79,7 @@ export default async function DetailEmploye(props) {
         soldeVacances={soldeVacances} heures={heures} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
         rolesAssignables={rolesAssignables} peutGererEmploye={peutGererEmploye}
         peutRedigerLettre={await peutGererDestinataire(session, "EMPLOYE")} peutVoirNas={peutVoirNas}
+        activite={session.role === "DEVELOPPEUR" ? texteDerniereActivite(employeComplet.derniereActivite) : null}
       />
       <NavigationFiches cle="employes" idCourant={employe.id} base="/gerant/employes" voisinsParDefaut={voisinsFiche(ordre.map((e) => e.id), employe.id)} />
     </div>

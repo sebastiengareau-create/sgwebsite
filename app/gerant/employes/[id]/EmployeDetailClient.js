@@ -10,7 +10,7 @@ import { ligneVille } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { formaterNas, masquerNas } from "@/lib/nas";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre, peutVoirNas }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre, peutVoirNas, activite }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -276,6 +276,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <LigneInfo label="Ville" valeur={ligneVille(employe) || null} />
             <LigneInfo label="Téléphone" valeur={employe.telephone && <a href={`tel:${employe.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{employe.telephone}</a>} />
             <LigneInfo label="Courriel" valeur={employe.courriel && <a href={`mailto:${employe.courriel}`} style={{ color: "inherit" }}>{employe.courriel}</a>} />
+            {activite && <LigneInfo label="Dernière activité" valeur={activite} />}
             <LigneInfo label="NIP" valeur={employe.pin ? "Défini" : "Aucun"} />
             <LigneInfo label="Assignation" valeur={employe.assignation} />
             <LigneInfo label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />

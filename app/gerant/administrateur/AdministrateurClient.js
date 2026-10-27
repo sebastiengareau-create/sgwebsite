@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BoutonEnLigne from "../../components/BoutonEnLigne";
 
 export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
@@ -74,6 +75,8 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
         Visible seulement par toi. Active ou désactive des modules complets sur cette installation —
         utile pour ajuster ce qu'un client voit, une fois ce logiciel revendu à d'autres garages.
       </p>
+
+      {estDeveloppeur && <BoutonEnLigne />}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {modules.map((m) => (
