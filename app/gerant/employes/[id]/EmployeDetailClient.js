@@ -8,8 +8,9 @@ import SelectProvince from "../../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
+import { formaterNas, masquerNas } from "@/lib/nas";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre, peutVoirNas }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -25,6 +26,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [codePostal, setCodePostal] = useState(employe.codePostal || "");
   const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
   const [assignation, setAssignation] = useState(employe.assignation || "");
+  const [nas, setNas] = useState(formaterNas(employe.nas || ""));
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
   const [nouveauPin, setNouveauPin] = useState("");
@@ -42,6 +44,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
     setEnCours(true);
     const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
+    if (peutVoirNas) body.nas = nas;
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
     if (retirerPin) body.pin = "";
     else if (nouveauPin) body.pin = nouveauPin;
@@ -161,6 +164,12 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" className="champ" />
           <label className="etiquette">Date d'embauche</label>
           <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} className="champ" />
+          {peutVoirNas && (
+            <>
+              <label className="etiquette">NAS — numéro d'assurance sociale (pour les T4 et RL-1)</label>
+              <input value={nas} onChange={(e) => setNas(e.target.value)} onBlur={(e) => setNas(formaterNas(e.target.value))} inputMode="numeric" autoComplete="off" placeholder="123 456 789" className="champ" />
+            </>
+          )}
           <label className="etiquette">NIP ({employe.pin ? "défini" : "aucun"}) — 4 chiffres, laisse vide pour ne pas changer</label>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
@@ -270,6 +279,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <LigneInfo label="NIP" valeur={employe.pin ? "Défini" : "Aucun"} />
             <LigneInfo label="Assignation" valeur={employe.assignation} />
             <LigneInfo label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
+            {peutVoirNas && <LigneInfo label="NAS" valeur={masquerNas(employe.nas) || null} />}
             <LigneInfo label="Affichage" valeur={`${employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
           </div>
 

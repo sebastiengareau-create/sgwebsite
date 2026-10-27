@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, hashPassword, aAccesSection, estGerantOuDev, estNiveauMaxOuDev, niveauRole, ROLES_VALIDES } from "@/lib/auth";
 import { validerPin } from "@/lib/employes";
 import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
+import { normaliserNas, nasValide } from "@/lib/nas";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -76,6 +77,13 @@ export async function PATCH(request, props) {
   if (body.frequencePaie && ["HEBDOMADAIRE", "BIHEBDOMADAIRE", "BIMENSUEL", "MENSUEL"].includes(body.frequencePaie)) data.frequencePaie = body.frequencePaie;
   if (body.tauxVacances !== undefined && body.tauxVacances !== "") data.tauxVacances = Number(body.tauxVacances);
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
+  // NAS (feuillets T4 / RL-1) : réservé à qui a la section Paie
+  if (body.nas !== undefined) {
+    if (!(await aAccesSection(session, "paie"))) return NextResponse.json({ erreur: "Le NAS se modifie seulement avec l'accès à la Paie." }, { status: 403 });
+    const nas = normaliserNas(body.nas);
+    if (nas && !nasValide(nas)) return NextResponse.json({ erreur: "NAS invalide — vérifie les 9 chiffres." }, { status: 400 });
+    data.nas = nas || null;
+  }
   if (body.adresse !== undefined) data.adresse = body.adresse || null;
   if (body.ville !== undefined) data.ville = body.ville || null;
   if (body.province !== undefined) data.province = normaliserProvince(body.province);

@@ -18,6 +18,8 @@ export default function InfosEntrepriseClient({ infosInit }) {
   const [telephone, setTelephone] = useState(infosInit.telephone);
   const [courriel, setCourriel] = useState(infosInit.courriel);
   const [personneResponsable, setPersonneResponsable] = useState(infosInit.personneResponsable);
+  const [numeroEmployeurArc, setNumeroEmployeurArc] = useState(infosInit.numeroEmployeurArc);
+  const [numeroEmployeurRq, setNumeroEmployeurRq] = useState(infosInit.numeroEmployeurRq);
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null);
   const remplir = remplisseurAdresse({ ville, setAdresse: setAdresseLigne1, setVille, setProvince, setCodePostal });
@@ -31,6 +33,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nomEntreprise, adresseLigne1, ville, province, codePostal, telephone, courriel, personneResponsable,
+        numeroEmployeurArc: numeroEmployeurArc.replace(/\s+/g, "").toUpperCase(), numeroEmployeurRq: numeroEmployeurRq.replace(/\s+/g, "").toUpperCase(),
         // Ligne affichée sur les documents (voir lib/config.js)
         adresseLigne2: [ville.trim(), province].filter(Boolean).join(", "),
       }),
@@ -82,7 +85,13 @@ export default function InfosEntrepriseClient({ infosInit }) {
         <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Ex : info@garage.com" style={champStyle} />
 
         <label style={labelStyle}>Personne responsable (signe les lettres de la section Documents)</label>
-        <input value={personneResponsable} onChange={(e) => setPersonneResponsable(e.target.value)} placeholder="Ex : Marc Tremblay, propriétaire" style={{ ...champStyle, marginBottom: 12 }} />
+        <input value={personneResponsable} onChange={(e) => setPersonneResponsable(e.target.value)} placeholder="Ex : Marc Tremblay, propriétaire" style={champStyle} />
+
+        <label style={labelStyle}>Numéro d'employeur ARC — compte de retenues sur la paie (pour les T4)</label>
+        <input value={numeroEmployeurArc} onChange={(e) => setNumeroEmployeurArc(e.target.value)} placeholder="Ex : 123456789RP0001" style={champStyle} />
+
+        <label style={labelStyle}>Numéro d'identification Revenu Québec — dossier RS (pour les RL-1)</label>
+        <input value={numeroEmployeurRq} onChange={(e) => setNumeroEmployeurRq(e.target.value)} placeholder="Ex : 1234567890RS0001" style={{ ...champStyle, marginBottom: 12 }} />
 
         {message && (
           <p style={{ fontSize: 12, marginBottom: 10, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>

@@ -142,6 +142,7 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
           <BoutonAction icone="👥" label="Gérer les employés" href="/gerant/employes" />
           <BoutonAction icone="📖" label="Journal / sommaire" href="/gerant/paie/journal" />
           <BoutonAction icone="🖨️" label="Cumulatifs" href="/gerant/paie/cumulatifs" />
+          <BoutonAction icone="🧾" label="Sommaires T4 / RL-1" href="/gerant/paie/feuillets" />
         </div>
       </div>
 
