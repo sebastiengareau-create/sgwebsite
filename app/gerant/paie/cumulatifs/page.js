@@ -34,7 +34,7 @@ export default async function CumulatifsPaie(props) {
     }
     const d = parEmploye[nom];
     d.brut += p.salaireBrut;
-    d.rrq += p.rrqEmploye;
+    d.rrq += p.rrqEmploye + p.rrq2Employe; // RRQ au complet, 2e cotisation supplémentaire comprise
     d.rqap += p.rqapEmploye;
     d.ae += p.aeEmploye;
     d.impotFederal += p.impotFederal;

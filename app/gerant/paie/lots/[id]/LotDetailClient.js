@@ -300,6 +300,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
 
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 6 }}>Retenues détaillées</div>
           <LigneDetail label="RRQ" valeur={paie.rrqEmploye} />
+          {paie.rrq2Employe > 0 && <LigneDetail label="RRQ — 2e cotisation supplémentaire" valeur={paie.rrq2Employe} />}
           <LigneDetail label="RQAP" valeur={paie.rqapEmploye} />
           <LigneDetail label="Assurance-emploi" valeur={paie.aeEmploye} />
           <LigneDetail label="Impôt fédéral" valeur={paie.impotFederal} />

@@ -38,7 +38,7 @@ export default async function JournalPaie(props) {
     } else {
       parEmploye[nom].vacancesAccumulees += p.vacancesAccumulees;
     }
-    parEmploye[nom].chargesEmployeur += p.rrqEmployeur + p.rqapEmployeur + p.aeEmployeur;
+    parEmploye[nom].chargesEmployeur += p.rrqEmployeur + p.rrq2Employeur + p.rqapEmployeur + p.aeEmployeur;
     parEmploye[nom].nbPaies += 1;
   }
   const sommaireEmployes = Object.entries(parEmploye).sort((a, b) => b[1].brut - a[1].brut);
@@ -50,7 +50,7 @@ export default async function JournalPaie(props) {
       deductions: acc.deductions + p.totalDeductions,
       vacancesAccumulees: acc.vacancesAccumulees + (p.typePaie === "VACANCES" ? 0 : p.vacancesAccumulees),
       vacancesVersees: acc.vacancesVersees + (p.typePaie === "VACANCES" ? p.salaireBrut : 0),
-      chargesEmployeur: acc.chargesEmployeur + p.rrqEmployeur + p.rqapEmployeur + p.aeEmployeur,
+      chargesEmployeur: acc.chargesEmployeur + p.rrqEmployeur + p.rrq2Employeur + p.rqapEmployeur + p.aeEmployeur,
     }),
     { brut: 0, net: 0, deductions: 0, vacancesAccumulees: 0, vacancesVersees: 0, chargesEmployeur: 0 }
   );

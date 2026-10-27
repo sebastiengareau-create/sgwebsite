@@ -14,6 +14,7 @@ export async function POST(request) {
     employeId, periodeDebut, periodeFin, heuresTravaillees, salaireBrutPeriode,
     rrqEmploye, rqapEmploye, aeEmploye, impotFederal, impotQuebec, totalDeductions, salaireNet,
     rrqEmployeur, rqapEmployeur, aeEmployeur, vacancesAccumulees, typePaie,
+    rrq2Employe = 0, rrq2Employeur = 0,
   } = body;
 
   if (!employeId || !periodeDebut || !periodeFin) {
@@ -28,7 +29,7 @@ export async function POST(request) {
       heuresTravaillees: heuresTravaillees || 0,
       salaireBrut: salaireBrutPeriode,
       rrqEmploye, rqapEmploye, aeEmploye, impotFederal, impotQuebec, totalDeductions, salaireNet,
-      rrqEmployeur, rqapEmployeur, aeEmployeur,
+      rrqEmployeur, rqapEmployeur, aeEmployeur, rrq2Employe, rrq2Employeur,
       vacancesAccumulees: vacancesAccumulees || 0,
       typePaie: typePaie === "VACANCES" ? "VACANCES" : "REGULIERE",
       statut: "VERSEE",

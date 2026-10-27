@@ -42,6 +42,7 @@ export default async function TalonsDuLot(props) {
         (acc, p) => ({
           brut: acc.brut + p.salaireBrut,
           rrq: acc.rrq + p.rrqEmploye,
+          rrq2: acc.rrq2 + p.rrq2Employe,
           rqap: acc.rqap + p.rqapEmploye,
           ae: acc.ae + p.aeEmploye,
           impotFederal: acc.impotFederal + p.impotFederal,
@@ -49,7 +50,7 @@ export default async function TalonsDuLot(props) {
           net: acc.net + p.salaireNet,
           heures: acc.heures + p.heuresTravaillees,
         }),
-        { brut: 0, rrq: 0, rqap: 0, ae: 0, impotFederal: 0, impotQuebec: 0, net: 0, heures: 0 }
+        { brut: 0, rrq: 0, rrq2: 0, rqap: 0, ae: 0, impotFederal: 0, impotQuebec: 0, net: 0, heures: 0 }
       );
     })
   );

@@ -49,6 +49,7 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
         <tbody>
           <LigneTalon label={estVacances ? "Vacances versées" : "Salaire brut"} valeur={paie.salaireBrut} cumul={cumulatif.brut} gras />
           <LigneTalon label="RRQ" valeur={-paie.rrqEmploye} cumul={-cumulatif.rrq} />
+          {(paie.rrq2Employe > 0 || cumulatif.rrq2 > 0) && <LigneTalon label="RRQ — 2e cotisation supplémentaire" valeur={-paie.rrq2Employe} cumul={-cumulatif.rrq2} />}
           <LigneTalon label="RQAP" valeur={-paie.rqapEmploye} cumul={-cumulatif.rqap} />
           <LigneTalon label="Assurance-emploi" valeur={-paie.aeEmploye} cumul={-cumulatif.ae} />
           <LigneTalon label="Impôt fédéral" valeur={-paie.impotFederal} cumul={-cumulatif.impotFederal} />

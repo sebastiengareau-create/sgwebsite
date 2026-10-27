@@ -687,7 +687,8 @@ model Paie {
   heuresHorodateur   Float? // total réellement poinçonné, informatif seulement — heuresTravaillees peut différer (horaire d'ouverture par défaut, ou ajusté manuellement)
   boni               Float     @default(0) // prime/extra ajouté au brut, imposé comme le reste
   salaireBrut        Float
-  rrqEmploye         Float     @default(0)
+  rrqEmploye         Float     @default(0) // cotisation de base + 1re supplémentaire
+  rrq2Employe        Float     @default(0) // 2e cotisation supplémentaire au RRQ (gains entre le MGA et le MSGA) — T4 case 17A, RL-1 case B.B
   rqapEmploye        Float     @default(0)
   aeEmploye          Float     @default(0)
   impotFederal       Float     @default(0)
@@ -695,6 +696,7 @@ model Paie {
   totalDeductions    Float     @default(0)
   salaireNet         Float
   rrqEmployeur       Float     @default(0)
+  rrq2Employeur      Float     @default(0) // même montant que rrq2Employe
   rqapEmployeur      Float     @default(0)
   aeEmployeur        Float     @default(0)
   vacancesAccumulees Float     @default(0) // % du brut accumulé en vacances cette paie-ci
