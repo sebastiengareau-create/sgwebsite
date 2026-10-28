@@ -16,6 +16,9 @@ import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "./FormulaireKit";
 
 const CLE_TRI = "inventaire_tri";
+// Choix « Pièces désactivées » du menu Trier par : seulement celles-là, par
+// numéro (pas retenu sur l'appareil, ce n'est pas un tri)
+const DESACTIVEES = "desactivees";
 
 export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, sitesPieces = null }) {
   const router = useRouter();
@@ -35,14 +38,16 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
   const [modeEtiquettes, setModeEtiquettes] = useState(false);
   const [selection, setSelection] = useState(() => new Set());
   const nombreDesactivees = toutes.filter((p) => !p.actif).length;
-  const kits = toutes.filter((p) => p.estKit && (p.actif || voirDesactivees) && pieceCorrespond(p, recherche));
+  const seulementDesactivees = tri === DESACTIVEES;
+  const visible = (p) => (seulementDesactivees ? !p.actif : p.actif || voirDesactivees);
+  const kits = toutes.filter((p) => p.estKit && visible(p) && pieceCorrespond(p, recherche));
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
 
   const piecesFiltrees = pieces.filter((p) => {
-    if (!p.actif && !voirDesactivees) return false;
+    if (!visible(p)) return false;
     return pieceCorrespond(p, recherche);
-  }).sort(comparateurPieces(tri));
+  }).sort(comparateurPieces(seulementDesactivees ? "numero" : tri));
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
 
   // Le tri choisi est retenu sur cet appareil
@@ -54,6 +59,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
   }, []);
   function choisirTri(valeur) {
     setTri(valeur);
+    if (valeur === DESACTIVEES) return;
     try { localStorage.setItem(CLE_TRI, valeur); } catch {}
   }
 
@@ -164,7 +170,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
       )}
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <Link
-          href={`/gerant/comptabilite/rapports/inventaire?tri=${tri}`}
+          href={`/gerant/comptabilite/rapports/inventaire?tri=${seulementDesactivees ? "numero" : tri}`}
           target="_blank"
           className="bouton-3d-sombre"
           style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
@@ -199,13 +205,14 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
         placeholder="🔍 Rechercher par description, numéro ou no fournisseur…"
         style={{ ...champStyle, marginBottom: 6 }}
       />
-      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: nombreDesactivees > 0 ? 6 : 16 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: nombreDesactivees > 0 && !seulementDesactivees ? 6 : 16 }}>
         Trier par
         <select value={tri} onChange={(e) => choisirTri(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "4px 8px", fontSize: 12 }}>
           {Object.entries(TRIS).map(([cle, t]) => <option key={cle} value={cle}>{t.libelle}</option>)}
+          <option value={DESACTIVEES}>Pièces désactivées ({nombreDesactivees})</option>
         </select>
       </label>
-      {nombreDesactivees > 0 && (
+      {nombreDesactivees > 0 && !seulementDesactivees && (
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16, cursor: "pointer" }}>
           <input type="checkbox" checked={voirDesactivees} onChange={(e) => setVoirDesactivees(e.target.checked)} />
           Afficher les pièces désactivées ({nombreDesactivees})
@@ -262,7 +269,10 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
                 {libelleNumerosFournisseurs(p) && (
                   <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>{libelleNumerosFournisseurs(p)}</div>
                 )}
-                <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(p.categorie)}</div>
+                <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>
+                  {nomCategorie(p.categorie)}
+                  {p.emplacement && <span style={{ color: "var(--text-muted)" }}> · 📍 {p.emplacement}</span>}
+                </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontWeight: 700, color: p.actif && p.qte <= p.qteMin ? "var(--danger)" : "var(--text)" }}>{p.qte} en stock</div>
@@ -279,6 +289,9 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
         })}
         {piecesFiltrees.length === 0 && pieces.length > 0 && recherche.trim() && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce ne correspond à "{recherche}".</p>
+        )}
+        {seulementDesactivees && nombreDesactivees === 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce désactivée.</p>
         )}
         {pieces.length === 0 && !afficherFormulaire && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce dans l'inventaire — ajoute la première avec "+ Nouvelle pièce".</p>
