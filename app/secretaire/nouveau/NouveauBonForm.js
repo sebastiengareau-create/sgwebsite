@@ -325,7 +325,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
             {CLIENT.photosTachesCreation && (
               <label title="Photo du problème" style={{ ...boutonTexte, alignSelf: "center", fontSize: 17, padding: "0 2px" }}>
                 📷
-                <input type="file" accept="image/*" capture="environment" multiple style={{ display: "none" }}
+                <input type="file" accept="image/*" multiple style={{ display: "none" }}
                   onChange={(e) => { if (e.target.files?.length) ajouterPhotosProbleme(i, e.target.files); e.target.value = ""; }} />
               </label>
             )}
