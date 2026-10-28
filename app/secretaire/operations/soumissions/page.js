@@ -19,6 +19,8 @@ export default async function ListeSoumissions() {
   ]);
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
+  const tpsTaux = Number(dict.tps_taux || 5);
+  const tvqTaux = Number(dict.tvq_taux || 9.975);
 
   return (
     <div>
@@ -26,7 +28,7 @@ export default async function ListeSoumissions() {
       <OperationsTabs />
       <FacturationPeriodes />
       <ResumeOperations />
-      <SoumissionsListe soumissions={soumissions} tauxHoraireClient={tauxHoraireClient} />
+      <SoumissionsListe soumissions={soumissions} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
     </div>
   );
 }

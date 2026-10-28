@@ -14,7 +14,7 @@ function nouvellePiece() {
   return { id: Math.random().toString(36).slice(2), nom: "", prixEstime: "", qte: "1" };
 }
 
-export default function SoumissionForm({ clientsExistants, tauxHoraireClient, soumissionExistante }) {
+export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tpsTaux, tvqTaux, soumissionExistante }) {
   const router = useRouter();
   const clientDejaLie = soumissionExistante?.client
     ? clientsExistants.find((c) => c.id === soumissionExistante.client.id) || soumissionExistante.client
@@ -109,6 +109,10 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
   const totalMainOeuvre = totalTemps * tauxHoraireClient;
   const totalPieces = taches.reduce((s, t) => s + t.pieces.reduce((s2, p) => s2 + (Number(p.prixEstime) || 0) * (Number(p.qte) || 1), 0), 0);
   const totalEstime = totalMainOeuvre + totalPieces;
+  // Taxes comme sur une facture
+  const tpsMontant = totalEstime * (tpsTaux / 100);
+  const tvqMontant = totalEstime * (tvqTaux / 100);
+  const totalAvecTaxes = totalEstime + tpsMontant + tvqMontant;
 
   async function creer(e) {
     e.preventDefault();
@@ -270,9 +274,21 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, so
           <span style={{ color: "var(--text-muted)" }}>Pièces estimées</span>
           <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
         </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
+          <span>Sous-total</span>
+          <span>{totalEstime.toFixed(2)} $</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+          <span style={{ color: "var(--text-muted)" }}>TPS ({tpsTaux}%)</span>
+          <span>{tpsMontant.toFixed(2)} $</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+          <span style={{ color: "var(--text-muted)" }}>TVQ ({tvqTaux}%)</span>
+          <span>{tvqMontant.toFixed(2)} $</span>
+        </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
-          <span>Total estimé</span>
-          <span style={{ color: "var(--accent)" }}>{totalEstime.toFixed(2)} $</span>
+          <span>Total estimé (taxes incl.)</span>
+          <span style={{ color: "var(--accent)" }}>{totalAvecTaxes.toFixed(2)} $</span>
         </div>
       </div>
 

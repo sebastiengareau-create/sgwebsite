@@ -13,7 +13,7 @@ const STATUTS = {
 const LIBELLE_STATUT = (s) => STATUTS[s]?.label || (s === "BROUILLON" || s === "ENVOYEE" ? "En attente" : s === "REFUSEE" ? "Refusée" : s);
 const COULEUR_STATUT = (s) => STATUTS[s]?.color || (s === "REFUSEE" ? "#C15B4A" : "#9C978A");
 
-export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
+export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTaux, tvqTaux }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [enCoursId, setEnCoursId] = useState(null);
@@ -76,7 +76,7 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
         {filtrees.map((s) => {
           const totalTemps = s.taches.reduce((sum, t) => sum + t.tempsEstime, 0);
           const totalPieces = s.taches.reduce((sum, t) => sum + t.pieces.reduce((s2, p) => s2 + p.prixEstime * p.qte, 0), 0);
-          const totalEstime = totalTemps * tauxHoraireClient + totalPieces;
+          const totalEstime = (totalTemps * tauxHoraireClient + totalPieces) * (1 + (tpsTaux + tvqTaux) / 100);
           const dejaTransformee = !!s.bonId;
 
           return (
@@ -92,7 +92,7 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient }) {
                   {s.taches.length} tâche(s) · {totalTemps}h
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--accent)", marginTop: 4 }}>
-                  {totalEstime.toFixed(2)} $ estimé
+                  {totalEstime.toFixed(2)} $ estimé (taxes incl.)
                 </div>
               </Link>
 

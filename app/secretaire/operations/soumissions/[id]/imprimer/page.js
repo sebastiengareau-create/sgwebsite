@@ -27,6 +27,8 @@ export default async function ImprimerSoumission(props) {
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
+  const tpsTaux = Number(dict.tps_taux || 5);
+  const tvqTaux = Number(dict.tvq_taux || 9.975);
 
   const totalTemps = soumission.taches.reduce((s, t) => s + t.tempsEstime, 0);
   const totalMainOeuvre = totalTemps * tauxHoraireClient;
@@ -35,6 +37,10 @@ export default async function ImprimerSoumission(props) {
     0
   );
   const totalEstime = totalMainOeuvre + totalPieces;
+  // Taxes comme sur une facture
+  const tpsMontant = totalEstime * (tpsTaux / 100);
+  const tvqMontant = totalEstime * (tvqTaux / 100);
+  const totalAvecTaxes = totalEstime + tpsMontant + tvqMontant;
   const garantie = soumission.client?.garantieProlongee;
   // Véhicule du dossier choisi, ou le nouveau gardé avec la soumission
   const vehicule = soumission.vehicule || soumission.vehiculeDetails;
@@ -63,6 +69,12 @@ export default async function ImprimerSoumission(props) {
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>
                 {adresseLigne1}<br />{adresseLigne2}<br />{telephone}
               </p>
+              {(dict.tps_numero || dict.tvq_numero) && (
+                <p style={{ fontSize: 10.5, color: "#999", margin: "3px 0 0", lineHeight: 1.4 }}>
+                  {dict.tps_numero && <>TPS : {dict.tps_numero}<br /></>}
+                  {dict.tvq_numero && <>TVQ : {dict.tvq_numero}</>}
+                </p>
+              )}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -128,9 +140,21 @@ export default async function ImprimerSoumission(props) {
             <span>Pièces estimées</span>
             <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: "1px solid #ddd" }}>
-            <span>Total estimé</span>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid #ddd" }}>
+            <span>Sous-total</span>
             <span>{totalEstime.toFixed(2)} $</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666" }}>
+            <span>TPS ({tpsTaux}%)</span>
+            <span>{tpsMontant.toFixed(2)} $</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666" }}>
+            <span>TVQ ({tvqTaux}%)</span>
+            <span>{tvqMontant.toFixed(2)} $</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: "1px solid #ddd" }}>
+            <span>Total estimé (taxes incl.)</span>
+            <span>{totalAvecTaxes.toFixed(2)} $</span>
           </div>
         </div>
 
