@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreLigneEnStock } from "@/lib/bons";
 import { ajusterKitSurBon, coutMoyenApresRetour } from "@/lib/kits";
+import { CLIENT } from "@/lib/client";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -60,7 +61,7 @@ export async function PATCH(request, props) {
       await prisma.$transaction(async (tx) => {
         if (difference !== 0) {
           const piece = await tx.piece.findUnique({ where: { id: ligne.pieceId } });
-          if (difference > 0 && piece.qte < difference) throw new Error("STOCK_INSUFFISANT");
+          if (difference > 0 && piece.qte < difference && !CLIENT.stockNegatifBons) throw new Error("STOCK_INSUFFISANT");
           const nouvelleQtePiece = piece.qte - difference;
           const coutLigne = ligne.coutant ?? piece.coutant;
           // Plus de pièces prises : elles sortent au coût moyen actuel, la ligne

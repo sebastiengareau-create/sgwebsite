@@ -94,6 +94,13 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   entre « Pièces du bon » et les tâches : texte libre pour l'équipe
   (`noteInterne` du bon, enregistré avec le bouton « Enregistrer »), consulté
   à l'écran seulement — jamais imprimé, ni sur la facture ou son PDF.
+- `stockNegatifBons: true` — sur le bon, une pièce (ou un kit) **s'ajoute
+  même si l'inventaire est à 0 ou insuffisant** : pas de refus ni de
+  proposition de commande en B/O, le stock de la pièce **tombe en négatif**
+  (ex. −2), avec le mouvement au journal comme d'habitude. Toutes les pièces
+  actives sont offertes dans la recherche, avec leur stock affiché. À la
+  réception suivante, le stock remonte ; le coût moyen ne tient compte que
+  des pièces reçues (les pièces manquantes sont déjà sorties).
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

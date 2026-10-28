@@ -1221,7 +1221,9 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
   // Qui peut commander voit aussi les pièces sans stock : elles s'ajoutent en
   // B/O avec une commande au fournisseur (commanderEnBo)
   // (pas un kit : ce sont ses pièces qui se commandent)
-  const piecesDisponibles = inventaire.filter((p) => p.qte > 0 || (peutCommander && !p.estKit));
+  // Profil stockNegatifBons : toutes les pièces, même sans stock (le stock
+  // tombe en négatif)
+  const piecesDisponibles = inventaire.filter((p) => p.qte > 0 || CLIENT.stockNegatifBons || (peutCommander && !p.estKit));
   const [commandeBo, setCommandeBo] = useState(null); // { fournisseurId, qteCommande } : confirmation de commande en B/O ouverte
   // Recherche par nom ou numéro de pièce — l'inventaire peut être long
   const qPiece = recherchePiece.trim().toLowerCase();
@@ -1258,7 +1260,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
         : `Code « ${code} » inconnu — associe-le à une pièce dans Inventaire (📷 Scanner une pièce).`);
       return;
     }
-    if (piece.qte <= 0 && (!peutCommander || piece.estKit)) {
+    if (piece.qte <= 0 && !CLIENT.stockNegatifBons && (!peutCommander || piece.estKit)) {
       setErreurPiece(piece.estKit ? `${piece.nom} : pas assez de pièces en stock pour faire ce kit.` : `${piece.nom} : rupture de stock (0 en stock).`);
       return;
     }
@@ -1284,7 +1286,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     setConfirmationPiece("");
     if (!pieceChoisie) return;
     // Pas assez en stock : proposer de commander le reste et le mettre en B/O
-    if (peutCommander && pieceSelectionnee && !pieceSelectionnee.estKit && Math.max(1, parseInt(qtePiece) || 1) > pieceSelectionnee.qte) {
+    if (!CLIENT.stockNegatifBons && peutCommander && pieceSelectionnee && !pieceSelectionnee.estKit && Math.max(1, parseInt(qtePiece) || 1) > pieceSelectionnee.qte) {
       const habituel = [pieceSelectionnee.fournisseurId, ...(pieceSelectionnee.fournisseurs || []).map((f) => f.fournisseurId)]
         .find((id) => id && fournisseurs.some((f) => f.id === id));
       const manque = Math.max(1, parseInt(qtePiece) || 1) - Math.max(0, pieceSelectionnee.qte);
@@ -1429,7 +1431,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                 </div>
                 <div style={{ maxHeight: 260, overflowY: "auto" }}>
                   {suggestionsPieces.length === 0 ? (
-                    <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>{peutCommander ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
+                    <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>{peutCommander || CLIENT.stockNegatifBons ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
                   ) : suggestionsPieces.map((p) => (
                     <button
                       key={p.id}
@@ -1437,7 +1439,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                       onClick={() => choisirPiece(p)}
                       style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
                     >
-                      {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? "0 en stock · à commander" : libelleStock(p)}</span>
+                      {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? (CLIENT.stockNegatifBons ? `${p.estKit ? "kit · " : ""}${p.qte} en stock` : "0 en stock · à commander") : libelleStock(p)}</span>
                       {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
                     </button>
                   ))}
