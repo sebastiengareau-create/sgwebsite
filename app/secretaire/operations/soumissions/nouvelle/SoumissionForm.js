@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { VEHICULE_VIDE } from "../../../../components/ChampsVehicule";
 import ChoixVehiculeClient from "../../../../components/ChoixVehiculeClient";
 import { valeursFormulaireVehicule } from "@/lib/vehicules";
@@ -14,7 +15,7 @@ function nouvellePiece() {
   return { id: Math.random().toString(36).slice(2), nom: "", prixEstime: "", qte: "1" };
 }
 
-export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tpsTaux, tvqTaux, soumissionExistante }) {
+export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tpsTaux, tvqTaux, soumissionExistante, vientDEtreCreee }) {
   const router = useRouter();
   const clientDejaLie = soumissionExistante?.client
     ? clientsExistants.find((c) => c.id === soumissionExistante.client.id) || soumissionExistante.client
@@ -48,6 +49,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
       : [nouvelleTache()]
   );
   const [erreur, setErreur] = useState("");
+  const [confirmation, setConfirmation] = useState(vientDEtreCreee ? "✓ Soumission créée." : "");
   const [enCours, setEnCours] = useState(false);
 
   useEffect(() => {
@@ -117,6 +119,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
   async function creer(e) {
     e.preventDefault();
     setErreur("");
+    setConfirmation("");
 
     const tachesValides = taches.filter((t) => t.description.trim());
     const nomFinal = clientSelectionne ? clientSelectionne.nom : clientNom;
@@ -149,12 +152,23 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
       setErreur(data.erreur || "Erreur lors de l'enregistrement.");
       return;
     }
-    const idFinal = soumissionExistante ? soumissionExistante.id : (await res.json()).id;
-    router.push(`/secretaire/operations/soumissions/${idFinal}/imprimer`);
+    // On reste sur la soumission (l'impression se fait avec son bouton)
+    if (soumissionExistante) {
+      setConfirmation("✓ Modifications enregistrées.");
+      router.refresh();
+    } else {
+      router.replace(`/secretaire/operations/soumissions/${(await res.json()).id}/modifier?creee=1`);
+    }
   }
 
   return (
     <form onSubmit={creer} className="conteneur-page">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <Link href="/secretaire/operations/soumissions" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux soumissions</Link>
+        {soumissionExistante && (
+          <Link href={`/secretaire/operations/soumissions/${soumissionExistante.id}/imprimer`} target="_blank" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>🖨️ Imprimer</Link>
+        )}
+      </div>
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>{soumissionExistante ? "Modifier la soumission" : "Nouvelle soumission"}</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
         {soumissionExistante ? `#${soumissionExistante.numero}` : "Un estimé à donner au client avant de commencer les travaux."}
@@ -293,6 +307,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 10 }}>{erreur}</p>}
+      {confirmation && <p style={{ color: "var(--success)", fontSize: 13, marginTop: 10 }}>{confirmation}</p>}
 
       <button
         type="submit" disabled={enCours}

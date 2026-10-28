@@ -7,6 +7,7 @@ import SoumissionForm from "../../nouvelle/SoumissionForm";
 
 export default async function ModifierSoumissionPage(props) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
 
@@ -28,7 +29,7 @@ export default async function ModifierSoumissionPage(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} soumissionExistante={soumissionExistante} />
+      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
     </div>
   );
 }
