@@ -53,7 +53,8 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 - `photosArrivee: true` — à la création d'un bon, **5 photos du véhicule à
   l'arrivée** (Coin 1 à 4, Dash), compressées fort (800 px, JPEG 0,5) pour
   prendre le moins d'espace possible. Gardées en haut du bon, repliées et
-  cliquables sur demande ; jamais imprimées. Facultatives.
+  cliquables sur demande ; jamais imprimées. Facultatives. Chaque photo se
+  prend avec la caméra ou se choisit dans la photothèque ou les fichiers.
 - `piecesEnHautDuBon: true` — sur le bon, une seule section **« Pièces du
   bon »** en haut des tâches (plusieurs pièces possibles) au lieu d'une
   section par tâche. Les pièces ajoutées sont rattachées à la première tâche

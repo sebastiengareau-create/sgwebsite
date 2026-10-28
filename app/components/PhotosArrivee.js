@@ -109,7 +109,7 @@ function GrillePhotos({ cases, enCours, modifiable, onFichier, lienAgrandir = fa
 
 function CasePhoto({ libelle, libelleCourt, src, enCours, modifiable, onFichier, lienAgrandir }) {
   const inputRef = useRef(null);
-  const ouvrirCamera = () => inputRef.current?.click();
+  const choisirPhoto = () => inputRef.current?.click();
   const image = src && <img src={src} alt={libelle} style={{ width: "100%", height: 48, objectFit: "cover", borderRadius: 6, display: "block" }} />;
 
   return (
@@ -119,19 +119,21 @@ function CasePhoto({ libelle, libelleCourt, src, enCours, modifiable, onFichier,
         lienAgrandir ? <a href={src} target="_blank" rel="noopener noreferrer" title="Ouvrir en grand">{image}</a> : image
       ) : (
         <button
-          type="button" onClick={ouvrirCamera} disabled={enCours || !modifiable}
+          type="button" onClick={choisirPhoto} disabled={enCours || !modifiable}
           style={{ width: "100%", height: 48, borderRadius: 6, border: "1px dashed var(--border)", background: "var(--bg)", color: "var(--text-muted)", fontSize: 16, padding: 0, cursor: modifiable ? "pointer" : "default" }}
         >
           {enCours ? "…" : modifiable ? "📷" : "—"}
         </button>
       )}
       {src && modifiable && (
-        <button type="button" onClick={ouvrirCamera} disabled={enCours} style={{ marginTop: 2, width: "100%", fontSize: 10, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+        <button type="button" onClick={choisirPhoto} disabled={enCours} style={{ marginTop: 2, width: "100%", fontSize: 10, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
           {enCours ? "…" : "Reprendre"}
         </button>
       )}
+      {/* Sans capture : le téléphone offre caméra, photothèque ou fichier,
+          comme pour les photos des tâches */}
       <input
-        ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+        ref={inputRef} type="file" accept="image/*" style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onFichier(f); e.target.value = ""; }}
       />
     </div>
