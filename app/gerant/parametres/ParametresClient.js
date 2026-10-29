@@ -107,35 +107,44 @@ export default function ParametresClient({
       return;
     }
     setEnCours(true);
-    const res = await fetch("/api/parametres", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        taux_horaire_client: tauxHoraire,
-        cout_horaire_mecanicien: coutHoraire,
-        employes_facturables: employesFacturables,
-        heures_lun: horaire.lun,
-        heures_mar: horaire.mar,
-        heures_mer: horaire.mer,
-        heures_jeu: horaire.jeu,
-        heures_ven: horaire.ven,
-        heures_sam: horaire.sam,
-        heures_dim: horaire.dim,
-        ...Object.fromEntries(JOURS.flatMap((j) => [
-          [`ouverture_${j.cle}`, ouverture[j.cle].ouvert ? ouverture[j.cle].ouverture : ""],
-          [`fermeture_${j.cle}`, ouverture[j.cle].ouvert ? ouverture[j.cle].fermeture : ""],
-        ])),
-        reservation_intervalle_minutes: intervalleReservation,
-        reservation_capacite: capaciteReservation,
-        tps_numero: tpsNumero,
-        tps_taux: tpsTaux,
-        tvq_numero: tvqNumero,
-        tvq_taux: tvqTaux,
-      }),
-    });
+    let res;
+    try {
+      res = await fetch("/api/parametres", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taux_horaire_client: tauxHoraire,
+          cout_horaire_mecanicien: coutHoraire,
+          employes_facturables: employesFacturables,
+          heures_lun: horaire.lun,
+          heures_mar: horaire.mar,
+          heures_mer: horaire.mer,
+          heures_jeu: horaire.jeu,
+          heures_ven: horaire.ven,
+          heures_sam: horaire.sam,
+          heures_dim: horaire.dim,
+          ...Object.fromEntries(JOURS.flatMap((j) => [
+            [`ouverture_${j.cle}`, ouverture[j.cle].ouvert ? ouverture[j.cle].ouverture : ""],
+            [`fermeture_${j.cle}`, ouverture[j.cle].ouvert ? ouverture[j.cle].fermeture : ""],
+          ])),
+          reservation_intervalle_minutes: intervalleReservation,
+          reservation_capacite: capaciteReservation,
+          tps_numero: tpsNumero,
+          tps_taux: tpsTaux,
+          tvq_numero: tvqNumero,
+          tvq_taux: tvqTaux,
+        }),
+      });
+    } catch {
+      setEnCours(false);
+      setErreur("Erreur lors de la sauvegarde : pas de réponse du serveur (connexion internet ?).");
+      return;
+    }
     setEnCours(false);
     if (!res.ok) {
-      setErreur("Erreur lors de la sauvegarde.");
+      // La raison exacte, pour savoir quoi corriger
+      const data = await res.json().catch(() => ({}));
+      setErreur(`Erreur lors de la sauvegarde : ${data.erreur || `le serveur a répondu ${res.status}`}`);
       return;
     }
     setConfirmation("Sauvegardé ✓");

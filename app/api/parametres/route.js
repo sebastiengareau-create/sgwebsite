@@ -17,13 +17,18 @@ export async function PATCH(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const body = await request.json();
-  for (const [cle, valeur] of Object.entries(body)) {
-    await prisma.parametre.upsert({
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") return NextResponse.json({ erreur: "Données invalides." }, { status: 400 });
+  try {
+    // Tout ou rien, en une seule transaction
+    await prisma.$transaction(Object.entries(body).map(([cle, valeur]) => prisma.parametre.upsert({
       where: { cle },
-      update: { valeur: String(valeur) },
-      create: { cle, valeur: String(valeur) },
-    });
+      update: { valeur: String(valeur ?? "") },
+      create: { cle, valeur: String(valeur ?? "") },
+    })));
+  } catch (e) {
+    console.error("PATCH /api/parametres", e);
+    return NextResponse.json({ erreur: `base de données — ${e.message?.split("\n").filter(Boolean).pop() || "erreur inconnue"}` }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }
