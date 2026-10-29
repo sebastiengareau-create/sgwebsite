@@ -900,26 +900,30 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     setTimeout(() => setConfirmationFacturation(""), 2500);
   }
 
-  async function gererFichierPhoto(file) {
+  // Plusieurs photos choisies d'un coup : envoyées une à une, arrêt à la
+  // première refusée (les précédentes restent sur la tâche).
+  async function gererFichiersPhoto(fichiers) {
     setErreurPhoto("");
     setEnvoiPhoto(true);
     try {
-      const dataUrl = await compresserImage(file);
-      const res = await fetch(`/api/bons/${bonId}/photos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ problemeId: probleme.id, dataUrl }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setErreurPhoto(data.erreur || `Le serveur a refusé la photo (code ${res.status}).`);
-        return;
+      for (const file of fichiers) {
+        const dataUrl = await compresserImage(file);
+        const res = await fetch(`/api/bons/${bonId}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ problemeId: probleme.id, dataUrl }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setErreurPhoto(data.erreur || `Le serveur a refusé la photo (code ${res.status}).`);
+          return;
+        }
       }
-      onRafraichir();
     } catch (e) {
       setErreurPhoto("Impossible de traiter cette photo : " + e.message);
     } finally {
       setEnvoiPhoto(false);
+      onRafraichir();
     }
   }
 
@@ -1155,7 +1159,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       {/* Photos */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{probleme.photos.length} photo(s)</span>
-        {!verrouille && <BoutonPhoto onFichier={gererFichierPhoto} enCours={envoiPhoto} />}
+        {!verrouille && <BoutonPhoto onFichiers={gererFichiersPhoto} enCours={envoiPhoto} />}
       </div>
       {erreurPhoto && <p style={{ color: "var(--danger)", fontSize: 11, marginTop: 6 }}>{erreurPhoto}</p>}
       {probleme.photos.length > 0 && (
@@ -2005,8 +2009,8 @@ function Label({ children }) {
   return <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--text-muted)", marginBottom: 8 }}>{children}</div>;
 }
 
-function BoutonPhoto({ onFichier, enCours }) {
-  const photo = useChoixPhoto(([f]) => onFichier(f));
+function BoutonPhoto({ onFichiers, enCours }) {
+  const photo = useChoixPhoto(onFichiers, { multiple: true });
   return (
     <>
       <button

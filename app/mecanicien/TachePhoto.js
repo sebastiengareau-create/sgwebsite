@@ -13,29 +13,33 @@ export default function TachePhoto({ bonId, problemeId, nbPhotos }) {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
 
-  async function envoyer(file) {
+  // Plusieurs photos choisies d'un coup : envoyées une à une, arrêt à la
+  // première refusée (les précédentes restent sur la tâche).
+  async function envoyer(fichiers) {
     setErreur("");
     setEnvoi(true);
     try {
-      const dataUrl = await compresserImage(file);
-      const res = await fetch(`/api/bons/${bonId}/photos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ problemeId, dataUrl }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setErreur(data.erreur || `Le serveur a refusé la photo (code ${res.status}).`);
-        return;
+      for (const file of fichiers) {
+        const dataUrl = await compresserImage(file);
+        const res = await fetch(`/api/bons/${bonId}/photos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ problemeId, dataUrl }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setErreur(data.erreur || `Le serveur a refusé la photo (code ${res.status}).`);
+          return;
+        }
       }
-      router.refresh();
     } catch (e) {
       setErreur("Impossible de traiter cette photo : " + e.message);
     } finally {
       setEnvoi(false);
+      router.refresh();
     }
   }
-  const photo = useChoixPhoto(([f]) => envoyer(f));
+  const photo = useChoixPhoto(envoyer, { multiple: true });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
