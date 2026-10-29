@@ -11,6 +11,7 @@ import SelectProvince from "../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { PrisePhotosArrivee } from "../../components/PhotosArrivee";
 import { compresserImage } from "@/lib/images";
+import { useChoixPhoto } from "../../components/ChoixPhoto";
 import { CLIENT } from "@/lib/client";
 import { messageBonsNonFactures, QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 import { formaterTelephone } from "@/lib/telephone";
@@ -323,11 +324,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
               style={{ ...champInput, marginBottom: 0, flex: 1 }}
             />
             {CLIENT.photosTachesCreation && (
-              <label title="Photo du problème" style={{ ...boutonTexte, alignSelf: "center", fontSize: 17, padding: "0 2px" }}>
-                📷
-                <input type="file" accept="image/*" multiple style={{ display: "none" }}
-                  onChange={(e) => { if (e.target.files?.length) ajouterPhotosProbleme(i, e.target.files); e.target.value = ""; }} />
-              </label>
+              <BoutonPhotoProbleme onFichiers={(f) => ajouterPhotosProbleme(i, f)} />
             )}
             {problemes.length > 1 && (
               <button type="button" onClick={() => supprimerLigneProbleme(i)} style={boutonTexte}>✕</button>
@@ -387,6 +384,16 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         {enCours ? "Création…" : "Créer le bon de travail"}
       </button>
     </form>
+  );
+}
+
+function BoutonPhotoProbleme({ onFichiers }) {
+  const photo = useChoixPhoto(onFichiers, { multiple: true });
+  return (
+    <>
+      <button type="button" title="Photo du problème" onClick={photo.ouvrir} style={{ ...boutonTexte, alignSelf: "center", fontSize: 17, padding: "0 2px" }}>📷</button>
+      {photo.element}
+    </>
   );
 }
 

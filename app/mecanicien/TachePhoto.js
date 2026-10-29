@@ -1,15 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { compresserImage } from "@/lib/images";
+import { useChoixPhoto } from "@/app/components/ChoixPhoto";
 
 // Bouton photo d'une tâche, directement dans l'horodateur : le mécanicien
 // documente son travail sans ouvrir la fiche du bon. Les photos rejoignent
 // celles de la tâche sur le bon (même route que la fiche).
 export default function TachePhoto({ bonId, problemeId, nbPhotos }) {
   const router = useRouter();
-  const inputRef = useRef(null);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
 
@@ -35,13 +35,14 @@ export default function TachePhoto({ bonId, problemeId, nbPhotos }) {
       setEnvoi(false);
     }
   }
+  const photo = useChoixPhoto(([f]) => envoyer(f));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
       <button
         type="button"
         disabled={envoi}
-        onClick={() => inputRef.current?.click()}
+        onClick={photo.ouvrir}
         style={{
           padding: "6px 12px", borderRadius: 999, border: "1px solid var(--border)", fontSize: 11, fontWeight: 700,
           cursor: "pointer", background: "var(--surface)", color: "var(--text)",
@@ -49,10 +50,7 @@ export default function TachePhoto({ bonId, problemeId, nbPhotos }) {
       >
         {envoi ? "Envoi…" : `📷 Photo${nbPhotos > 0 ? ` (${nbPhotos})` : ""}`}
       </button>
-      <input
-        ref={inputRef} type="file" accept="image/*" style={{ display: "none" }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) envoyer(f); e.target.value = ""; }}
-      />
+      {photo.element}
       {erreur && <div style={{ color: "var(--danger)", fontSize: 10.5, marginTop: 4, maxWidth: 220, textAlign: "right" }}>{erreur}</div>}
     </div>
   );

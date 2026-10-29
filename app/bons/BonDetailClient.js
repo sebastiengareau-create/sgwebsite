@@ -10,6 +10,7 @@ import { libelleVehicule, texteKilometrage } from "@/lib/vehicules";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
 import { PhotosArriveeBon } from "../components/PhotosArrivee";
+import { useChoixPhoto } from "../components/ChoixPhoto";
 import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
@@ -2005,21 +2006,18 @@ function Label({ children }) {
 }
 
 function BoutonPhoto({ onFichier, enCours }) {
-  const inputRef = useRef(null);
+  const photo = useChoixPhoto(([f]) => onFichier(f));
   return (
     <>
       <button
         type="button"
         disabled={enCours}
-        onClick={() => inputRef.current?.click()}
+        onClick={photo.ouvrir}
         style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", cursor: "pointer" }}
       >
         {enCours ? "Envoi…" : "📷 Photo"}
       </button>
-      <input
-        ref={inputRef} type="file" accept="image/*" style={{ display: "none" }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFichier(f); e.target.value = ""; }}
-      />
+      {photo.element}
     </>
   );
 }

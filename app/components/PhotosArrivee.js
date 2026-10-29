@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { compresserImage } from "@/lib/images";
 import { POSITIONS_ARRIVEE, urlPhotoArrivee } from "@/lib/photosArrivee";
+import { useChoixPhoto } from "./ChoixPhoto";
 
 // Photos du véhicule à l'arrivée (voir lib/photosArrivee.js) : 4 coins et
 // tableau de bord, compressées fort avant l'envoi (simple référence de l'état
@@ -108,8 +109,8 @@ function GrillePhotos({ cases, enCours, modifiable, onFichier, lienAgrandir = fa
 }
 
 function CasePhoto({ libelle, libelleCourt, src, enCours, modifiable, onFichier, lienAgrandir }) {
-  const inputRef = useRef(null);
-  const choisirPhoto = () => inputRef.current?.click();
+  const photo = useChoixPhoto(([f]) => onFichier(f));
+  const choisirPhoto = photo.ouvrir;
   const image = src && <img src={src} alt={libelle} style={{ width: "100%", height: 48, objectFit: "cover", borderRadius: 6, display: "block" }} />;
 
   return (
@@ -130,12 +131,7 @@ function CasePhoto({ libelle, libelleCourt, src, enCours, modifiable, onFichier,
           {enCours ? "…" : "Reprendre"}
         </button>
       )}
-      {/* Sans capture : le téléphone offre caméra, photothèque ou fichier,
-          comme pour les photos des tâches */}
-      <input
-        ref={inputRef} type="file" accept="image/*" style={{ display: "none" }}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFichier(f); e.target.value = ""; }}
-      />
+      {photo.element}
     </div>
   );
 }
