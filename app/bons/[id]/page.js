@@ -93,6 +93,10 @@ export default async function DetailBonPage(props) {
     ? await prisma.fournisseur.findMany({ where: { actif: true }, select: { id: true, nom: true }, orderBy: { nom: "asc" } })
     : [];
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
+  // Choix d'un autre client (« Changer » sous le nom) : bon modifiable seulement
+  const clientsChoix = peutModifier && !bon.facture && !bon.vehiculeVenteId
+    ? await prisma.client.findMany({ select: { id: true, nom: true, numero: true, telephone: true }, orderBy: { nom: "asc" } })
+    : [];
 
   return (
     <div>
@@ -115,6 +119,7 @@ export default async function DetailBonPage(props) {
         peutPoinconner={peutPoinconner}
         estGerant={estGerantOuDev(session)}
         moi={session.id}
+        clientsChoix={clientsChoix}
       />
     </div>
   );

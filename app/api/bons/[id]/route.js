@@ -24,8 +24,29 @@ export async function PATCH(request, props) {
   if (body.datePrevue !== undefined) {
     data.datePrevue = body.datePrevue ? dateHeureLocaleVersUTC(body.datePrevue) : null;
   }
+  // Client du bon (corriger un mauvais choix) — tant que le bon n'est pas
+  // facturé. Le véhicule de l'ancien client ne le suit pas : le bon prend le
+  // véhicule du nouveau client s'il n'en a qu'un, sinon aucun (à choisir).
+  let nouveauClient = null;
+  if (body.clientId !== undefined) {
+    const [bon, client] = await Promise.all([
+      prisma.bonTravail.findUnique({ where: { id: params.id }, include: { facture: true } }),
+      body.clientId ? prisma.client.findUnique({ where: { id: String(body.clientId) }, include: { vehicules: true } }) : null,
+    ]);
+    if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
+    if (bon.facture) return NextResponse.json({ erreur: "Ce bon est facturé — le client ne peut plus changer." }, { status: 409 });
+    if (bon.vehiculeVenteId) return NextResponse.json({ erreur: "Ce bon porte sur un véhicule à vendre — son client ne peut pas changer." }, { status: 409 });
+    if (!client) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
+    if (client.id !== bon.clientId) {
+      nouveauClient = client;
+      const seul = client.vehicules.length === 1 ? client.vehicules[0] : null;
+      data.clientId = client.id;
+      data.vehiculeId = seul?.id || null;
+      data.kilometrage = seul?.kilometrage ?? null;
+    }
+  }
   // Véhicule du dossier client sur lequel porte le bon — null le retire
-  if (body.vehiculeId !== undefined) {
+  if (body.vehiculeId !== undefined && body.clientId === undefined) {
     // Bon d'un véhicule à vendre : il reste sur ce véhicule
     const vente = await prisma.bonTravail.findUnique({ where: { id: params.id }, select: { vehiculeVenteId: true } });
     if (vente?.vehiculeVenteId) {
@@ -69,6 +90,13 @@ export async function PATCH(request, props) {
   const bon = await prisma.bonTravail.update({ where: { id: params.id }, data, include: { vehicule: true } });
   if (body.kilometrage !== undefined && data.kilometrage != null && bon.vehicule && !(bon.vehicule.kilometrage >= data.kilometrage)) {
     await prisma.vehicule.update({ where: { id: bon.vehicule.id }, data: { kilometrage: data.kilometrage } });
+  }
+  // Client changé : le rendez-vous du bon au calendrier suit
+  if (nouveauClient) {
+    await prisma.rendezVous.updateMany({
+      where: { bonId: params.id },
+      data: { clientId: nouveauClient.id, clientNom: nouveauClient.nom, clientTelephone: nouveauClient.telephone || null, clientCourriel: nouveauClient.courriel || null },
+    });
   }
   // Date prévue changée : le rendez-vous du bon au calendrier suit
   if (data.datePrevue) {

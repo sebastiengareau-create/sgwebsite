@@ -55,7 +55,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [] }) {
   const router = useRouter();
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
@@ -354,7 +354,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         <StatusPill statut={bon.statut} />
       </div>
       <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
-      <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
+      <ClientBon bon={bon} clients={clientsChoix} />
       {(bon.client.adresse || bon.client.ville) && (
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
           {adresseComplete(bon.client)}
@@ -1596,6 +1596,96 @@ function NotesTache({ bonId, probleme, modifiable, onRafraichir }) {
       {etat && (
         <div style={{ fontSize: 10.5, marginTop: 2, color: etat === "ok" ? "var(--success)" : etat === "enregistrement" ? "var(--text-muted)" : "var(--danger)" }}>
           {etat === "ok" ? "Notes enregistrées ✓" : etat === "enregistrement" ? "Enregistrement…" : etat}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Nom du client du bon, avec « Changer » pour corriger un mauvais choix
+// (clients : la liste offerte, vide si le bon n'est plus modifiable)
+function ClientBon({ bon, clients }) {
+  const router = useRouter();
+  const [edition, setEdition] = useState(false);
+  const [recherche, setRecherche] = useState("");
+  const [erreur, setErreur] = useState("");
+  const [enCours, setEnCours] = useState(false);
+
+  const q = recherche.trim().toLowerCase();
+  const chiffres = q.replace(/\D/g, "");
+  const suggestions = q
+    ? clients.filter((c) => c.id !== bon.clientId && (
+        c.nom.toLowerCase().includes(q)
+        || c.numero?.toLowerCase().includes(q)
+        || (chiffres.length >= 3 && c.telephone?.replace(/\D/g, "").includes(chiffres))
+      )).slice(0, 8)
+    : [];
+
+  async function choisir(c) {
+    if (!confirm(`Changer le client du bon #${bon.numero} pour ${c.nom} ?`)) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bon.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: c.id }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    setEdition(false);
+    setRecherche("");
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+        <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
+        {clients.length > 0 && !edition && (
+          <button onClick={() => setEdition(true)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            Changer
+          </button>
+        )}
+      </div>
+      {edition && (
+        <div style={{ margin: "2px 0 8px", maxWidth: 360 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setEdition(false); }}
+              placeholder="🔍 Nom, numéro ou téléphone du client…"
+              autoFocus disabled={enCours}
+              className="champ" style={{ flex: 1, fontSize: 12, padding: "6px 8px" }}
+            />
+            <button onClick={() => { setEdition(false); setRecherche(""); setErreur(""); }} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Annuler</button>
+          </div>
+          {suggestions.length > 0 && (
+            <div style={{ marginTop: 4, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", overflow: "hidden" }}>
+              {suggestions.map((c) => (
+                <button
+                  key={c.id} type="button" onClick={() => choisir(c)} disabled={enCours}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                >
+                  {c.nom}
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{[c.numero, c.telephone].filter(Boolean).map((x) => ` · ${x}`).join("")}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {q && suggestions.length === 0 && (
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+              Aucun client trouvé — <Link href="/secretaire/clients" style={{ color: "var(--accent)" }}>créer le dossier</Link> d'abord.
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+            Le véhicule du bon devient celui du nouveau client s'il n'en a qu'un ; sinon, à choisir.
+          </div>
+          {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreur}</p>}
         </div>
       )}
     </div>
