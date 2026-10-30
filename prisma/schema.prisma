@@ -654,6 +654,8 @@ model CompteTresorerie {
   facturesVente  FactureVente[]
   depenses       Depense[]
   rapprochements RapprochementBancaire[]
+  transactionsBancaires TransactionBancaire[]
+  importsBancaires      ImportBancaire[]
 }
 
 // Une écriture comptable = une transaction complète, composée d'au moins
@@ -686,10 +688,13 @@ model LigneEcriture {
   rapproche   Boolean           @default(false) // coché lors d'une conciliation bancaire
   rapprochementId String? // conciliation enregistrée qui a verrouillé cette ligne — vide tant qu'elle est encore modifiable
   rapprochement   RapprochementBancaire? @relation(fields: [rapprochementId], references: [id])
+  transactionBancaireId String? // transaction du relevé bancaire à laquelle la ligne est associée (voir TransactionBancaire)
+  transactionBancaire   TransactionBancaire? @relation(fields: [transactionBancaireId], references: [id], onDelete: SetNull)
 
   @@index([rapprochementId])
   @@index([ecritureId])
   @@index([compteId])
+  @@index([transactionBancaireId])
 }
 
 // ---------- TÂCHES INTERNES (suivi de présence, non facturable) ----------
@@ -796,6 +801,94 @@ model RapprochementBancaire {
   lignes             LigneEcriture[]
 }
 
+// Un fichier de relevé importé (Transactions bancaires) : copie de l'original
+// et compte rendu de l'import, pour l'historique et la vérification.
+model ImportBancaire {
+  id                 String                @id @default(cuid())
+  compteTresorerieId String
+  compteTresorerie   CompteTresorerie      @relation(fields: [compteTresorerieId], references: [id])
+  nomFichier         String
+  format             String // "OFX" | "CSV"
+  numeroCompte       String? // compte choisi, quand le fichier en contient plusieurs
+  contenu            Bytes // copie du fichier original, tel que reçu
+  nbLues             Int // transactions du compte lues dans le fichier
+  nbImportees        Int
+  nbDoublons         Int // déjà importées auparavant — ignorées
+  debut              DateTime?
+  fin                DateTime?
+  soldeBanque        Float? // solde lu dans le fichier, dans le sens de la conciliation (carte : solde dû)
+  soldeLe            DateTime?
+  importePar         String?
+  importeLe          DateTime              @default(now())
+  annuleLe           DateTime? // « Annuler cet import » : ses transactions encore à examiner ont été retirées
+  annulePar          String?
+  transactions       TransactionBancaire[]
+
+  @@index([compteTresorerieId, importeLe])
+}
+
+// Transaction telle que la banque la montre, importée d'un fichier de relevé
+// (OFX/QFX/CSV) téléchargé de la banque en ligne — voir
+// lib/transactionsBancaires.js. Elle attend « à examiner » jusqu'à ce qu'on
+// la relie aux livres : associée à des lignes d'écriture qui existaient déjà,
+// ajoutée (dépense, écriture, transfert ou paiement créé depuis elle), ou
+// exclue. Les lignes reliées sont cochées pour la conciliation bancaire.
+model TransactionBancaire {
+  id                 String           @id @default(cuid())
+  compteTresorerieId String
+  compteTresorerie   CompteTresorerie @relation(fields: [compteTresorerieId], references: [id])
+  date               DateTime // jour civil, ancré à midi UTC (voir jourCivil, lib/depenses.js)
+  montant            Float // vu par le titulaire : + argent qui entre (dépôt, paiement de la carte), − argent qui sort (retrait, achat)
+  description        String
+  reference          String? // numéro de chèque, si le fichier le donne
+  cle                String // date + montant + description (+ rang si identiques) — une transaction réimportée est ignorée
+  fitid              String? // identifiant de la transaction donné par la banque (OFX) — vérifié en plus de `cle`, voir importerReleve
+  statut             String           @default("A_EXAMINER") // "A_EXAMINER" | "ASSOCIEE" | "AJOUTEE" | "EXCLUE"
+  // Ce que l'examen a créé, pour pouvoir l'annuler : "DEPENSE" (id de la
+  // dépense), "ECRITURE" (id de l'écriture — autre compte ou transfert),
+  // "PAIEMENT_DEPENSE" / "PAIEMENT_FACTURE" (dépense ou facture impayée
+  // marquée payée). Vide pour une simple association.
+  creeType           String?
+  creeId             String?
+  importId           String
+  importBancaire     ImportBancaire   @relation(fields: [importId], references: [id])
+  importeLe          DateTime         @default(now())
+  examineLe          DateTime?
+  examinePar         String?
+  // Validations et annulations successives : [{ le, par, action }], action
+  // "ASSOCIEE" | "EXCLUE" | un creeType | "ANNULEE"
+  journal            Json             @default("[]")
+  lignes             LigneEcriture[]
+
+  @@unique([compteTresorerieId, cle])
+  @@index([compteTresorerieId, statut])
+  @@index([compteTresorerieId, fitid])
+  @@index([importId])
+}
+
+// Classement appris : chaque transaction bancaire ajoutée (dépense, écriture,
+// transfert) enseigne quoi faire de la prochaine qui lui ressemble — mêmes
+// mots dans la description, même sens. Il est proposé, jamais comptabilisé
+// sans confirmation (voir lib/transactionsBancaires.js).
+model RegleBancaire {
+  id                  String            @id @default(cuid())
+  signature           String // mots significatifs de la description, sans chiffres — ex. « NAPA PIECES AUTO »
+  sens                Int // 1 : argent qui entre, -1 : argent qui sort
+  action              String // "DEPENSE" | "ECRITURE"
+  fournisseurId       String?
+  fournisseur         Fournisseur?      @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+  categorieDepenseId  String?
+  categorieDepense    CategorieDepense? @relation(fields: [categorieDepenseId], references: [id], onDelete: Cascade)
+  taxesIncluses       Boolean           @default(false)
+  compteNumero        String? // ECRITURE : l'autre compte du plan comptable
+  description         String? // description choisie, si elle différait de celle de la banque
+  utilisations        Int               @default(1)
+  derniereUtilisation DateTime          @default(now())
+  creeLe              DateTime          @default(now())
+
+  @@unique([signature, sens])
+}
+
 // ---------- COMPTES À PAYER ----------
 
 model Fournisseur {
@@ -814,6 +907,7 @@ model Fournisseur {
   piecesDefaut Piece[] // articles d'inventaire dont c'est le fournisseur habituel
   pieces       PieceFournisseur[]
   commandes    CommandeFournisseur[]
+  reglesBancaires RegleBancaire[] // classements appris des transactions bancaires
   creeLe       DateTime  @default(now())
 }
 
@@ -826,6 +920,7 @@ model CategorieDepense {
   compteDepenseNumero String
   actif               Boolean        @default(true)
   lignesDepense       LigneDepense[]
+  reglesBancaires     RegleBancaire[]
 }
 
 model Depense {

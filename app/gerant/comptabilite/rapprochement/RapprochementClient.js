@@ -7,10 +7,10 @@ import Link from "next/link";
 const aujourdhuiQuebec = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
-export default function RapprochementClient({ comptesTresorerie, compteId, categorie, soldeOuverture, lignes, historique }) {
+export default function RapprochementClient({ comptesTresorerie, compteId, categorie, soldeOuverture, lignes, historique, releveSuggere }) {
   const router = useRouter();
-  const [soldeReleve, setSoldeReleve] = useState("");
-  const [dateReleve, setDateReleve] = useState(aujourdhuiQuebec);
+  const [soldeReleve, setSoldeReleve] = useState(releveSuggere ? releveSuggere.solde.toFixed(2) : "");
+  const [dateReleve, setDateReleve] = useState(releveSuggere?.date || aujourdhuiQuebec);
   const [enCours, setEnCours] = useState(null);
   const [enregistrement, setEnregistrement] = useState(false);
   const [confirmation, setConfirmation] = useState("");
@@ -90,10 +90,14 @@ export default function RapprochementClient({ comptesTresorerie, compteId, categ
       <select
         value={compteId || ""}
         onChange={(e) => changerCompte(e.target.value)}
-        style={{ ...champStyle, marginBottom: 16, fontWeight: 700 }}
+        style={{ ...champStyle, marginBottom: 8, fontWeight: 700 }}
       >
         {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
       </select>
+      <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
+        <Link href={`/gerant/comptabilite/transactions-bancaires?compte=${compteId || ""}`} style={{ color: "var(--accent)" }}>📥 Importe d'abord le fichier de ta banque</Link>
+        {" "}: les transactions reliées à tes livres arrivent cochées, et le solde du relevé est rempli d'office.
+      </p>
 
       <div className="carte carte-m" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 12 }}>

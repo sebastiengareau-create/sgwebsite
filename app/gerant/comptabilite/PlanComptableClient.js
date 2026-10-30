@@ -12,6 +12,7 @@ const OUTILS = [
   { href: "/gerant/comptabilite/procedure", icone: "📋", label: "Procédure de fermeture" },
   { href: "/gerant/comptabilite/fermeture", icone: "🔒", label: "Fermeture de période" },
   { href: "/gerant/comptabilite/ecriture-manuelle", icone: "✍️", label: "Écriture supplémentaire" },
+  { href: "/gerant/comptabilite/transactions-bancaires", icone: "📥", label: "Transactions bancaires" },
   { href: "/gerant/comptabilite/rapprochement", icone: "🏦", label: "Conciliation bancaire" },
   { href: "/gerant/comptabilite/previsions", icone: "📊", label: "Prévisions de trésorerie" },
   { href: "/gerant/comptabilite/immobilisations", icone: "🏗️", label: "Immobilisations" },
