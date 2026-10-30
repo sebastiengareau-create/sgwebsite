@@ -262,3 +262,17 @@ a { color: inherit; }
 .dossier-mois > summary::-webkit-details-marker { display: none; }
 .dossier-mois > summary .chevron-dossier { display: inline-block; transition: transform 0.15s; }
 .dossier-mois[open] > summary .chevron-dossier { transform: rotate(90deg); }
+
+/* ---------- Écran de chargement (app/components/Chargement.js) ---------- */
+.squelette {
+  background: var(--border);
+  border-radius: 6px;
+  animation: squelette-pulsation 1.2s ease-in-out infinite;
+}
+@keyframes squelette-pulsation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .squelette { animation: none; }
+}
