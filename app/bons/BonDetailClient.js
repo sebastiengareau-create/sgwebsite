@@ -641,7 +641,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 <input
                   placeholder="Raison (optionnel)" value={escompteRaisonInput}
                   onChange={(e) => setEscompteRaisonInput(e.target.value)}
-                  style={{ flex: 1, padding: "5px 7px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12 }}
+                  // minWidth 0 : sans lui, le champ garde sa largeur par défaut et
+                  // pousse le bouton ✓ hors de l'écran d'un téléphone
+                  style={{ flex: 1, minWidth: 0, padding: "5px 7px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12 }}
                 />
                 <button onClick={sauvegarderEscompte} disabled={enCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>✓</button>
               </div>
