@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { associer, payerDepense, payerFacture } from "@/lib/transactionsBancaires";
+import { associer, payerDepense, payerFacture, appliquerRegle } from "@/lib/transactionsBancaires";
 
-// Accepte d'un coup les correspondances proposées à l'écran. Chacune est
-// revalidée (montant, compte, ligne encore libre) ; celles qui échouent
-// restent à examiner.
+// Accepte d'un coup les suggestions choisies à l'écran (correspondances
+// trouvées, ou classements appris). Chacune est revalidée (montant, compte,
+// ligne encore libre) ; celles qui échouent restent à examiner.
 export async function POST(request) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "comptabilite"))) {
@@ -19,6 +19,7 @@ export async function POST(request) {
       if (s.type === "LIGNE") await associer(s.transactionId, [s.ligneId], session.nom);
       else if (s.type === "DEPENSE") await payerDepense(s.transactionId, s.depenseId, session.nom);
       else if (s.type === "FACTURE") await payerFacture(s.transactionId, s.factureId, session.nom);
+      else if (s.type === "REGLE") await appliquerRegle(s.transactionId, s.regleId, session.nom);
       else continue;
       acceptees++;
     } catch (e) {

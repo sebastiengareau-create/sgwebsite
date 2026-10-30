@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import {
-  associer, payerDepense, payerFacture, ajouterDepense, ajouterEcriture, transferer, exclure, annulerExamen, erreurPourReponse,
+  associer, payerDepense, payerFacture, ajouterDepense, ajouterEcriture, transferer, appliquerRegle, exclure, annulerExamen, erreurPourReponse,
 } from "@/lib/transactionsBancaires";
 
 // Examen d'une transaction bancaire — voir lib/transactionsBancaires.js
@@ -21,8 +21,9 @@ export async function POST(request, props) {
       case "depense": await ajouterDepense(params.id, corps, session.nom); break;
       case "ecriture": await ajouterEcriture(params.id, corps, session.nom); break;
       case "transfert": await transferer(params.id, corps.compteTresorerieId, session.nom); break;
+      case "regle": await appliquerRegle(params.id, corps.regleId, session.nom); break;
       case "exclure": await exclure(params.id, session.nom); break;
-      case "annuler": await annulerExamen(params.id); break;
+      case "annuler": await annulerExamen(params.id, session.nom); break;
       default: return NextResponse.json({ erreur: "Action inconnue." }, { status: 400 });
     }
     return NextResponse.json({ ok: true });

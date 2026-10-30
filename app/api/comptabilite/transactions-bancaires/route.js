@@ -24,6 +24,7 @@ export async function POST(request) {
       octets: Buffer.from(await fichier.arrayBuffer()),
       nomFichier: fichier.name,
       numeroCompte: formData.get("numeroCompte") || null,
+      nomUtilisateur: session.nom,
     });
     return NextResponse.json(resultat);
   } catch (e) {

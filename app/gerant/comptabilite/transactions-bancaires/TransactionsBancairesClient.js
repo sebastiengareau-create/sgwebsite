@@ -11,8 +11,16 @@ const LABEL_CREE = {
   PAIEMENT_DEPENSE: "Paiement de la dépense enregistré",
   PAIEMENT_FACTURE: "Paiement de la facture enregistré",
 };
+const LABEL_JOURNAL = {
+  ...LABEL_CREE,
+  ASSOCIEE: "Associée",
+  EXCLUE: "Exclue",
+  ANNULEE: "Remise à examiner",
+  DETACHEE: "Remise à examiner : l'écriture reliée a été supprimée ailleurs",
+};
 
 const formaterMontant = (m) => `${m < 0 ? "−" : "+"}${Math.abs(m).toFixed(2)} $`;
+const formaterDateHeure = (iso) => new Date(iso).toLocaleString("fr-CA", { timeZone: "America/Toronto", dateStyle: "short", timeStyle: "short" });
 const normaliser = (texte) => String(texte || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
 
 // Fournisseur dont le nom apparaît dans la description de la banque
@@ -28,7 +36,7 @@ function devinerFournisseur(description, fournisseurs) {
 }
 
 export default function TransactionsBancairesClient({
-  comptesTresorerie, compte, aExaminer, examinees, exclues, dernierImport,
+  comptesTresorerie, compte, aExaminer, examinees, exclues, nbExaminees, totalDoublons, imports, regles,
   fournisseurs, categories, comptesGl, dernierPosteParFournisseur, tpsTaux, tvqTaux,
 }) {
   const router = useRouter();
@@ -40,7 +48,9 @@ export default function TransactionsBancairesClient({
   const [limite, setLimite] = useState(TAILLE_PAGE);
 
   const estCarte = compte.categorie === "CARTE_CREDIT";
-  const avecSuggestion = aExaminer.filter((t) => t.suggestion);
+  const sures = aExaminer.filter((t) => t.suggestion?.certitude === "SURE");
+  const apprises = aExaminer.filter((t) => t.suggestion?.type === "REGLE");
+  const nbReconnues = aExaminer.filter((t) => t.suggestion).length;
   const autresComptes = comptesTresorerie.filter((c) => c.id !== compte.id);
 
   // Envoie une action d'examen ; retourne le message d'erreur, ou null
@@ -64,17 +74,16 @@ export default function TransactionsBancairesClient({
     return null;
   }
 
-  async function accepterTout() {
-    const paiements = avecSuggestion.filter((t) => t.suggestion.type !== "LIGNE").length;
-    const texte = `Accepter les ${avecSuggestion.length} correspondance(s) trouvée(s) ?`
-      + (paiements > 0 ? ` ${paiements} dépense(s) ou facture(s) impayée(s) seront marquées payées.` : "");
-    if (!window.confirm(texte)) return;
+  // Confirme d'un coup les correspondances trouvées, ou les classements
+  // appris — les correspondances seulement possibles se confirment une à une
+  async function confirmerGroupe(liste, question) {
+    if (!window.confirm(question)) return;
     setEnCours("tout");
     setMessage(null);
     const res = await fetch("/api/comptabilite/transactions-bancaires/associer-tout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ suggestions: avecSuggestion.map((t) => ({ transactionId: t.id, ...t.suggestion })) }),
+      body: JSON.stringify({ suggestions: liste.map((t) => ({ transactionId: t.id, ...t.suggestion })) }),
     });
     setEnCours(null);
     const data = await res.json().catch(() => ({}));
@@ -84,7 +93,7 @@ export default function TransactionsBancairesClient({
     }
     setMessage({
       erreur: data.erreurs.length > 0,
-      texte: `${data.acceptees} correspondance(s) acceptée(s).` + (data.erreurs.length > 0 ? ` ${data.erreurs.length} restée(s) à examiner : ${data.erreurs[0]}` : ""),
+      texte: `${data.acceptees} transaction(s) confirmée(s).` + (data.erreurs.length > 0 ? ` ${data.erreurs.length} restée(s) à examiner : ${data.erreurs[0]}` : ""),
     });
     router.refresh();
   }
@@ -99,14 +108,16 @@ export default function TransactionsBancairesClient({
       <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>📥 Transactions bancaires</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
         Importe le fichier des transactions de ta banque en ligne, puis relie chacune à tes livres : associe-la à ce qui est déjà
-        saisi, ajoute ce qui manque, ou exclus-la. Tout ce qui est relié est coché d'avance dans la conciliation bancaire.
+        saisi, ajoute ce qui manque, ou exclus-la. Ce que tu ajoutes est retenu pour reconnaître les transactions semblables.
+        Tout ce qui est relié est coché d'avance dans la conciliation bancaire.
       </p>
 
-      <select value={compte.id} onChange={(e) => router.push(`/gerant/comptabilite/transactions-bancaires?compte=${e.target.value}`)} className="champ" style={{ marginBottom: 16, fontWeight: 700 }}>
+      <select value={compte.id} onChange={(e) => router.push(`/gerant/comptabilite/transactions-bancaires?compte=${e.target.value}`)} className="champ" style={{ marginBottom: 4, fontWeight: 700 }}>
         {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
       </select>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16 }}>Compte comptable : {compte.compteGl}</p>
 
-      <div className="carte carte-m" style={{ marginBottom: 16 }}>
+      <div className="carte carte-m" style={{ marginBottom: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
             <div className="titre-section" style={{ marginBottom: 2 }}>{estCarte ? "Solde dû selon la banque" : "Solde selon la banque"}</div>
@@ -119,7 +130,14 @@ export default function TransactionsBancairesClient({
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>toutes dates confondues</div>
           </div>
         </div>
-        <Importation compte={compte} dernierImport={dernierImport} />
+        <Importation compte={compte} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 12 }}>
+        <Tuile valeur={aExaminer.length - nbReconnues} libelle="À classifier" couleur={aExaminer.length - nbReconnues > 0 ? "var(--danger)" : "var(--text-muted)"} />
+        <Tuile valeur={nbReconnues} libelle="Reconnues, à confirmer" couleur={nbReconnues > 0 ? "var(--success)" : "var(--text-muted)"} />
+        <Tuile valeur={nbExaminees} libelle="Examinées" couleur="var(--text)" />
+        <Tuile valeur={totalDoublons} libelle="Doublons ignorés" couleur="var(--text-muted)" />
       </div>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
@@ -142,16 +160,33 @@ export default function TransactionsBancairesClient({
 
       {onglet === "examiner" && (
         <>
-          {avecSuggestion.length > 0 && (
-            <button onClick={accepterTout} disabled={enCours === "tout"} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
-              {enCours === "tout" ? "Association…" : `✓ Accepter les ${avecSuggestion.length} correspondance(s) trouvée(s)`}
-            </button>
+          {(sures.length > 0 || apprises.length > 0) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+              {sures.length > 0 && (
+                <button
+                  onClick={() => confirmerGroupe(sures, `Associer les ${sures.length} correspondance(s) trouvée(s) à leur écriture ?`)}
+                  disabled={enCours === "tout"} className="bouton-3d" style={{ padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                >
+                  {enCours === "tout" ? "Confirmation…" : `✓ Associer les ${sures.length} correspondance(s) trouvée(s)`}
+                </button>
+              )}
+              {apprises.length > 0 && (
+                <button
+                  onClick={() => confirmerGroupe(apprises, `Confirmer les ${apprises.length} classement(s) appris ? Une dépense ou une écriture sera ajoutée pour chacune, comme la dernière fois.`)}
+                  disabled={enCours === "tout"} className="bouton-3d-sombre" style={{ padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                >
+                  {enCours === "tout" ? "Confirmation…" : `🧠 Confirmer les ${apprises.length} classement(s) appris`}
+                </button>
+              )}
+            </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {aExaminer.slice(0, limite).map((t) => (
               <div key={t.id} className="carte carte-s" style={{ opacity: enCours === t.id ? 0.6 : 1 }}>
                 <EnteteTransaction t={t} />
-                {t.suggestion && <Suggestion t={t} enCours={enCours === t.id} onAccepter={(corps) => envoyer(t.id, corps)} />}
+                {t.suggestion
+                  ? <Suggestion t={t} enCours={enCours === t.id} onAccepter={(corps) => envoyer(t.id, corps)} />
+                  : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>Aucune correspondance — à classifier</div>}
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                   <BoutonAction actif={ouvert?.id === t.id && ouvert.mode === "ajouter"} onClick={() => basculer(t.id, "ajouter")}>➕ Ajouter</BoutonAction>
                   {autresComptes.length > 0 && <BoutonAction actif={ouvert?.id === t.id && ouvert.mode === "transfert"} onClick={() => basculer(t.id, "transfert")}>⇄ Transfert</BoutonAction>}
@@ -172,11 +207,12 @@ export default function TransactionsBancairesClient({
                   <PanneauTrouver t={t} enCours={enCours === t.id} onEnvoyer={(corps) => envoyer(t.id, corps)} />
                 )}
                 {erreurs[t.id] && <p style={{ color: "var(--danger)", fontSize: 12, fontWeight: 700, marginTop: 8, whiteSpace: "pre-line" }}>{erreurs[t.id]}</p>}
+                <Journal t={t} />
               </div>
             ))}
             {aExaminer.length === 0 && (
               <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                {dernierImport ? "Tout est examiné ✓" : "Aucune transaction pour l'instant — importe un fichier de ta banque ci-dessus."}
+                {imports.length > 0 ? "Tout est examiné ✓" : "Aucune transaction pour l'instant — importe un fichier de ta banque ci-dessus."}
               </p>
             )}
             {aExaminer.length > limite && (
@@ -212,9 +248,11 @@ export default function TransactionsBancairesClient({
                 Annuler
               </button>
               {erreurs[t.id] && <p style={{ color: "var(--danger)", fontSize: 12, fontWeight: 700, marginTop: 6, whiteSpace: "pre-line" }}>{erreurs[t.id]}</p>}
+              <Journal t={t} />
             </div>
           ))}
           {examinees.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune transaction examinée pour l'instant.</p>}
+          {nbExaminees > examinees.length && <p style={{ color: "var(--text-muted)", fontSize: 11 }}>Les {examinees.length} plus récentes sont affichées.</p>}
         </div>
       )}
 
@@ -229,6 +267,7 @@ export default function TransactionsBancairesClient({
               >
                 Remettre à examiner
               </button>
+              <Journal t={t} />
             </div>
           ))}
           {exclues.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune transaction exclue.</p>}
@@ -238,11 +277,23 @@ export default function TransactionsBancairesClient({
       <Link href={`/gerant/comptabilite/rapprochement?compte=${compte.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", marginTop: 20, padding: 10, borderRadius: 8, fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>
         🏦 Passer à la conciliation bancaire
       </Link>
+
+      <HistoriqueImports imports={imports} />
+      <ClassementsAppris regles={regles} />
     </div>
   );
 }
 
-function Importation({ compte, dernierImport }) {
+function Tuile({ valeur, libelle, couleur }) {
+  return (
+    <div className="carte carte-s" style={{ padding: "10px 8px", textAlign: "center" }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: couleur }}>{valeur}</div>
+      <div style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.25 }}>{libelle}</div>
+    </div>
+  );
+}
+
+function Importation({ compte }) {
   const router = useRouter();
   const [fichier, setFichier] = useState(null);
   const [cleChamp, setCleChamp] = useState(0); // vide le champ fichier après un import
@@ -278,13 +329,6 @@ function Importation({ compte, dernierImport }) {
     router.refresh();
   }
 
-  async function annulerImport() {
-    if (!window.confirm(`Retirer les ${dernierImport.aExaminer} transaction(s) de ce fichier encore à examiner ?`)) return;
-    await fetch(`/api/comptabilite/transactions-bancaires/imports/${dernierImport.importId}`, { method: "DELETE" });
-    setResultat(null);
-    router.refresh();
-  }
-
   return (
     <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
       <div className="titre-section">Importer un fichier de la banque</div>
@@ -316,29 +360,92 @@ function Importation({ compte, dernierImport }) {
       {resultat && (
         <p style={{ color: "var(--success)", fontSize: 12, fontWeight: 700, marginTop: 8 }}>
           {resultat.importees} transaction(s) importée(s) du {resultat.debut} au {resultat.fin}
-          {resultat.dejaImportees > 0 && ` · ${resultat.dejaImportees} déjà importée(s), ignorée(s)`}
+          {resultat.dejaImportees > 0 && ` · ${resultat.dejaImportees} doublon(s) ignoré(s)`}
           {resultat.solde && ` · solde de la banque mis à jour`}
-        </p>
-      )}
-      {dernierImport && !resultat && (
-        <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
-          Dernier import : {dernierImport.fichier || "fichier"} le {new Date(dernierImport.importeLe).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
-          {dernierImport.aExaminer > 0 && (
-            <> · <button onClick={annulerImport} style={{ fontSize: 11, background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 0 }}>annuler cet import</button></>
-          )}
         </p>
       )}
 
       <details style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 10 }}>
         <summary style={{ cursor: "pointer" }}>Où trouver le fichier ?</summary>
         <p style={{ marginTop: 6 }}>
-          Dans la banque en ligne pour entreprises (RBC, CIBC…), ouvre le compte, choisis la période, puis télécharge les transactions.
-          Préfère le format <strong>OFX</strong>, <strong>QFX (Quicken)</strong> ou <strong>QBO (QuickBooks)</strong> : il donne aussi le solde du compte.
-          Le format <strong>CSV</strong> fonctionne aussi. Garde le même format d'un import à l'autre : réimporter une période qui chevauche la précédente
-          ne crée pas de doublons.
+          Dans la banque en ligne pour entreprises (RBC, CIBC, AccèsD Affaires…), ouvre le compte, choisis la période, puis télécharge
+          ou exporte les transactions — pas le relevé mensuel en PDF. Préfère le format <strong>OFX</strong>, <strong>QFX (Quicken)</strong>
+          ou <strong>QBO (QuickBooks)</strong> : il donne aussi le solde du compte. Le format <strong>CSV</strong> fonctionne aussi. Garde le
+          même format d'un import à l'autre : réimporter une période qui chevauche la précédente ne crée pas de doublons.
         </p>
       </details>
     </div>
+  );
+}
+
+function HistoriqueImports({ imports }) {
+  const router = useRouter();
+
+  async function annuler(i) {
+    if (!window.confirm(`Retirer les ${i.aExaminer} transaction(s) de « ${i.nomFichier} » encore à examiner ? L'import restera dans l'historique.`)) return;
+    await fetch(`/api/comptabilite/transactions-bancaires/imports/${i.id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  if (imports.length === 0) return null;
+  return (
+    <details className="carte carte-m" style={{ marginTop: 16 }}>
+      <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🗂️ Historique des imports</summary>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+        {imports.map((i) => (
+          <div key={i.id} style={{ fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 8, opacity: i.annuleLe ? 0.6 : 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <a href={`/api/comptabilite/transactions-bancaires/imports/${i.id}`} style={{ color: "var(--accent)", fontWeight: 600, overflowWrap: "anywhere" }} title="Télécharger la copie du fichier original">
+                {i.nomFichier}
+              </a>
+              <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>{formaterDateHeure(i.importeLe)}</span>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              {i.format}{i.numeroCompte ? ` · compte ${i.numeroCompte}` : ""}{i.debut ? ` · du ${i.debut} au ${i.fin}` : ""}
+              {` · ${i.nbImportees} importée(s), ${i.nbDoublons} doublon(s)`}{i.importePar ? ` · par ${i.importePar}` : ""}
+            </div>
+            {i.annuleLe && <div style={{ fontSize: 11, color: "var(--danger)" }}>Annulé le {formaterDateHeure(i.annuleLe)}{i.annulePar ? ` par ${i.annulePar}` : ""}</div>}
+            {!i.annuleLe && i.aExaminer > 0 && (
+              <button onClick={() => annuler(i)} style={{ fontSize: 11, background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 0 }}>
+                Annuler cet import ({i.aExaminer} encore à examiner)
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function ClassementsAppris({ regles }) {
+  const router = useRouter();
+
+  async function oublier(r) {
+    if (!window.confirm(`Oublier le classement « ${r.signature} » ? Il se réapprendra au prochain ajout semblable.`)) return;
+    await fetch(`/api/comptabilite/transactions-bancaires/regles/${r.id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  return (
+    <details className="carte carte-m" style={{ marginTop: 10 }}>
+      <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🧠 Classements appris ({regles.length})</summary>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "8px 0" }}>
+        Chaque transaction ajoutée (dépense, écriture, transfert) est retenue par ses mots significatifs. La prochaine qui lui
+        ressemble est proposée avec le même classement — à confirmer, jamais comptabilisée sans toi. Valables pour tous les comptes.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {regles.map((r) => (
+          <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, overflowWrap: "anywhere" }}>{r.signature} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>{r.sens > 0 ? "(entrée)" : "(sortie)"}</span></div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>→ {r.classement} · utilisé {r.utilisations} fois</div>
+            </div>
+            <button onClick={() => oublier(r)} style={{ fontSize: 11, background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 0 }}>Oublier</button>
+          </div>
+        ))}
+        {regles.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Rien d'appris pour l'instant.</p>}
+      </div>
+    </details>
   );
 }
 
@@ -354,17 +461,40 @@ function EnteteTransaction({ t }) {
   );
 }
 
+// Validations et annulations successives de la transaction
+function Journal({ t }) {
+  if (!t.journal?.length) return null;
+  return (
+    <details style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>
+      <summary style={{ cursor: "pointer" }}>Historique ({t.journal.length})</summary>
+      {t.journal.map((j, i) => (
+        <div key={i}>{formaterDateHeure(j.le)} · {LABEL_JOURNAL[j.action] || j.action}{j.par ? ` · ${j.par}` : ""}</div>
+      ))}
+    </details>
+  );
+}
+
+// Correspondance trouvée (sûre), possible (à vérifier), ou classement appris
+const STYLE_CERTITUDE = {
+  SURE: { fond: "rgba(111,169,107,0.12)", couleur: "var(--success)" },
+  POSSIBLE: { fond: "rgba(201,162,39,0.14)", couleur: "#C9A227" },
+  APPRISE: { fond: "rgba(79,130,192,0.14)", couleur: "#4F82C0" },
+};
+
 function Suggestion({ t, enCours, onAccepter }) {
   const s = t.suggestion;
   const [titre, bouton, corps] = s.type === "LIGNE"
-    ? [`Correspondance : ${s.numero} · ${s.date}`, "Associer", { action: "associer", ligneIds: [s.ligneId] }]
+    ? [`${s.certitude === "SURE" ? "Correspondance trouvée" : "Correspondance possible, à vérifier"} : ${s.numero} · ${s.date}`, "Associer", { action: "associer", ligneIds: [s.ligneId] }]
     : s.type === "DEPENSE"
-      ? [`Dépense impayée du ${s.date}`, "Enregistrer le paiement", { action: "payer-depense", depenseId: s.depenseId }]
-      : [`Facture impayée ${s.numero} du ${s.date}`, "Enregistrer le paiement", { action: "payer-facture", factureId: s.factureId }];
+      ? [`Correspondance possible : dépense impayée du ${s.date}`, "Enregistrer le paiement", { action: "payer-depense", depenseId: s.depenseId }]
+      : s.type === "FACTURE"
+        ? [`Correspondance possible : facture impayée ${s.numero} du ${s.date}`, "Enregistrer le paiement", { action: "payer-facture", factureId: s.factureId }]
+        : [`Classement appris : ${s.action === "DEPENSE" ? "dépense" : "écriture"}`, "Confirmer", { action: "regle", regleId: s.regleId }];
+  const style = STYLE_CERTITUDE[s.certitude] || STYLE_CERTITUDE.POSSIBLE;
   return (
-    <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: "rgba(111,169,107,0.12)", display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: style.fond, display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--success)" }}>{titre}</div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: style.couleur }}>{titre}</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)", overflowWrap: "anywhere" }}>{s.description}</div>
       </div>
       <button onClick={() => onAccepter(corps)} disabled={enCours} className="bouton-3d" style={{ padding: "7px 10px", borderRadius: 8, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -386,15 +516,17 @@ function BoutonAction({ actif, children, ...props }) {
 }
 
 // « Ajouter » : une sortie devient une dépense fournisseur (payée par ce
-// compte), ou toute transaction une écriture vers un autre compte
+// compte), ou toute transaction une écriture vers un autre compte. Un
+// classement appris remplit d'office les mêmes choix que la dernière fois.
 function PanneauAjouter({ t, fournisseurs, categories, comptesGl, dernierPosteParFournisseur, tpsTaux, tvqTaux, enCours, onEnvoyer }) {
-  const devine = t.montant < 0 ? devinerFournisseur(t.description, fournisseurs) : null;
-  const [mode, setMode] = useState(t.montant < 0 ? "depense" : "ecriture");
-  const [fournisseurId, setFournisseurId] = useState(devine?.id || "");
+  const appris = t.suggestion?.type === "REGLE" ? t.suggestion : null;
+  const devine = t.montant < 0 && !appris ? devinerFournisseur(t.description, fournisseurs) : null;
+  const [mode, setMode] = useState(appris ? (appris.action === "DEPENSE" ? "depense" : "ecriture") : t.montant < 0 ? "depense" : "ecriture");
+  const [fournisseurId, setFournisseurId] = useState(appris?.fournisseurId || devine?.id || "");
   const [nouveauNom, setNouveauNom] = useState(t.description.split(" — ")[0].replace(/\s+#?\d[\d\s-]*$/, "").trim());
-  const [categorieDepenseId, setCategorieDepenseId] = useState((devine && dernierPosteParFournisseur[devine.id]) || "");
-  const [taxesIncluses, setTaxesIncluses] = useState(true);
-  const [compteNumero, setCompteNumero] = useState("");
+  const [categorieDepenseId, setCategorieDepenseId] = useState(appris?.categorieDepenseId || (devine && dernierPosteParFournisseur[devine.id]) || "");
+  const [taxesIncluses, setTaxesIncluses] = useState(appris ? appris.taxesIncluses : true);
+  const [compteNumero, setCompteNumero] = useState(appris?.compteNumero || "");
   const [description, setDescription] = useState(t.description);
 
   function choisirFournisseur(id) {
@@ -452,6 +584,10 @@ function PanneauAjouter({ t, fournisseurs, categories, comptesGl, dernierPostePa
             <input type="checkbox" checked={taxesIncluses} onChange={(e) => setTaxesIncluses(e.target.checked)} />
             TPS ({tpsTaux} %) et TVQ ({tvqTaux} %) incluses dans le montant — récupérables
           </label>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+            La banque ne dit pas si un achat est taxé, ni s'il s'agit d'inventaire : vérifie avant d'ajouter. Une réception de pièces
+            en inventaire se saisit plutôt dans les comptes à payer, puis s'associe ici.
+          </p>
         </>
       ) : (
         <div>
