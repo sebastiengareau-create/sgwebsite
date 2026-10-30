@@ -150,6 +150,10 @@ model BonTravail {
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
+  @@index([statut])
+  @@index([clientId])
+  @@index([vehiculeId])
+  @@index([creeLe])
 }
 
 // Pièce trouvée chez un fournisseur (« 🔎 Rechercher des pièces » du bon,
@@ -260,6 +264,9 @@ model Facture {
   compteTresorerieId String? // compte où l'encaissement a été déposé, rempli seulement une fois payée
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   referenceVersement String? // numéro de chèque ou de transaction, optionnel — même champ que Depense
+
+  @@index([statut])
+  @@index([dateEmission])
 }
 
 model Probleme {
@@ -278,6 +285,8 @@ model Probleme {
   photos              Photo[]
   pieces              PieceUtilisee[]
   entreesTemps        EntreeTemps[]
+
+  @@index([bonId])
 }
 
 model Photo {
@@ -288,6 +297,8 @@ model Photo {
   employeId  String?
   employe    User?    @relation(fields: [employeId], references: [id])
   ajouteeLe  DateTime @default(now())
+
+  @@index([problemeId])
 }
 
 // Photos du véhicule à son arrivée, prises à la création du bon : une par
@@ -424,6 +435,8 @@ model LigneCommandeFournisseur {
   qteCommandee      Int
   qteRecue          Int                 @default(0) // cumul des réceptions
   coutUnitaire      Float // prix prévu à la commande, avant taxes
+
+  @@index([commandeId])
 }
 
 model PieceUtilisee {
@@ -446,6 +459,9 @@ model PieceUtilisee {
   // qte (par kit), coutant (unitaire figé) }], heures (par kit) }. coutant de
   // la ligne = coût des pièces d'un kit (la main-d'œuvre n'est pas du stock).
   kit        Json?
+
+  @@index([problemeId])
+  @@index([pieceId])
 }
 
 // Journal des mouvements de stock (ventes, réceptions, ajustements manuels) —
@@ -464,6 +480,8 @@ model MouvementInventaire {
   ligneDepenseId  String? // référence informative vers la ligne de facture fournisseur, si applicable
   creePar         String?
   creeLe          DateTime @default(now())
+
+  @@index([pieceId])
 }
 
 // Historique des modifications faites directement sur la fiche d'un article
@@ -478,6 +496,8 @@ model HistoriquePiece {
   nouvelleValeur String?
   modifiePar     String?
   modifieLe      DateTime @default(now())
+
+  @@index([pieceId])
 }
 
 // ---------- PARAMÈTRES (valeurs clés configurables, ex. taux horaire facturé) ----------
@@ -499,6 +519,8 @@ model Soumission {
   bonId           String?           @unique // rempli une fois transformée en vrai bon de commande
   taches          TacheSoumission[]
   creeLe          DateTime          @default(now())
+
+  @@index([statut])
 }
 
 model TacheSoumission {
@@ -547,6 +569,8 @@ model RendezVous {
   referenceExterne String?     @unique // référence du site de réservation en ligne, si applicable
   source           String      @default("LOCAL") // "LOCAL" (entré au calendrier) | "WEB" (site de réservation) | "BON" (créé avec un bon de travail)
   creeLe           DateTime    @default(now())
+
+  @@index([date])
 }
 
 // Fichier joint par le client sur le site de réservation (photo, devis…),
@@ -645,6 +669,9 @@ model EcritureComptable {
   creePar     String? // nom de l'utilisateur connecté au moment de la création
   lignes      LigneEcriture[]
   creeLe      DateTime        @default(now())
+
+  @@index([date])
+  @@index([sourceId])
 }
 
 model LigneEcriture {
@@ -661,6 +688,8 @@ model LigneEcriture {
   rapprochement   RapprochementBancaire? @relation(fields: [rapprochementId], references: [id])
 
   @@index([rapprochementId])
+  @@index([ecritureId])
+  @@index([compteId])
 }
 
 // ---------- TÂCHES INTERNES (suivi de présence, non facturable) ----------
@@ -681,6 +710,8 @@ model EntreeTempsInterne {
   tacheInterne   TacheInterne @relation(fields: [tacheInterneId], references: [id])
   debut          DateTime
   fin            DateTime?
+
+  @@index([employeId])
 }
 
 // ---------- PAIE (estimation — voir avertissements dans l'interface) ----------
@@ -737,6 +768,9 @@ model Paie {
   modePaiement       String? // "CHEQUE" | "VIREMENT" — comment l'employé a été payé
   referencePaiement  String? // numéro du chèque ou du virement, selon modePaiement
   creeLe             DateTime  @default(now())
+
+  @@index([employeId])
+  @@index([lotId])
 }
 
 // Catégories d'inventaire — chacune reliée à un compte de revenu, pour que
@@ -814,6 +848,9 @@ model Depense {
   commandeFournisseurId String? // réception d'une commande fournisseur, si la dépense en vient
   commandeFournisseur   CommandeFournisseur? @relation(fields: [commandeFournisseurId], references: [id], onDelete: SetNull)
   creeLe             DateTime          @default(now())
+
+  @@index([statut])
+  @@index([fournisseurId])
 }
 
 // Une ligne de fractionnement d'une dépense — chacune débite son propre
@@ -835,6 +872,8 @@ model LigneDepense {
   pieceId            String?
   piece              Piece?           @relation(fields: [pieceId], references: [id])
   qteRecue           Int?
+
+  @@index([depenseId])
 }
 
 // ---------- IMMOBILISATIONS ET AMORTISSEMENT ----------
@@ -940,6 +979,9 @@ model EntreeTemps {
   probleme   Probleme  @relation(fields: [problemeId], references: [id], onDelete: Cascade)
   debut      DateTime
   fin        DateTime? // null = poinçon actif (en cours)
+
+  @@index([employeId])
+  @@index([problemeId])
 }
 
 // ---------- ENVOI DE BONS AUX EMPLOYÉS (et suivi GPS) ----------
