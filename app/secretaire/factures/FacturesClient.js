@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
 import { regrouperParJour, cleMoisQuebec } from "@/lib/regroupementDates";
-import DossiersParMois from "../../components/DossiersParMois";
+import DossiersParMois, { DossiersParMoisACharger } from "../../components/DossiersParMois";
 
 const STATUTS = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
@@ -12,26 +12,65 @@ const STATUTS = {
   ANNULEE: { label: "Annulée", color: "#C15B4A" },
 };
 
-export default function FacturesClient({ factures, comptesTresorerie }) {
+// La page ne reçoit que les factures impayées et celles de ce mois-ci, plus
+// le résumé des mois passés (moisAnciens), dont les dossiers se chargent à
+// l'ouverture — voir lib/listeFactures.js. La recherche passe par le serveur
+// pour couvrir tout l'historique.
+export default function FacturesClient({ factures, moisAnciens, totaux, comptesTresorerie }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState("IMPAYEE");
   const [recherche, setRecherche] = useState("");
+  const [resultats, setResultats] = useState(null); // { q, factures, tronque } — réponse du serveur pour la recherche q
   const [avertissement, setAvertissement] = useState("");
   const [factureAPayer, setFactureAPayer] = useState(null); // id de la facture en train d'être marquée payée
+  const [version, setVersion] = useState(0); // augmente après un paiement : recharge les dossiers ouverts
+  const moisCharges = useRef(new Map()); // cle du mois → promesse de ses factures
 
-  const facturesFiltrees = factures.filter((f) => {
-    if (filtre !== "TOUTES" && f.statut !== filtre) return false;
-    const q = recherche.trim().toLowerCase();
-    if (!q) return true;
-    return f.numero.toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q);
-  });
+  const q = recherche.trim().toLowerCase();
 
-  // « Toutes » : les factures du mois en cours restent affichées une par une,
-  // les plus anciennes vont dans un dossier repliable par mois d'émission
+  // Recherche : les factures déjà chargées sont filtrées tout de suite, puis
+  // le serveur répond avec tout l'historique.
+  useEffect(() => {
+    if (!q) return;
+    let annule = false;
+    const minuterie = setTimeout(() => {
+      fetch(`/api/factures?recherche=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => { if (!annule) setResultats({ q, factures: d.factures, tronque: d.tronque }); })
+        .catch(() => { if (!annule) setResultats({ q, factures: null }); });
+    }, 300);
+    return () => { annule = true; clearTimeout(minuterie); };
+  }, [q]);
+
+  function chargerMois(cle) {
+    if (!moisCharges.current.has(cle)) {
+      const promesse = fetch(`/api/factures?mois=${cle}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => d.factures);
+      promesse.catch(() => moisCharges.current.delete(cle));
+      moisCharges.current.set(cle, promesse);
+    }
+    return moisCharges.current.get(cle).then((liste) => (filtre === "TOUTES" ? liste : liste.filter((f) => f.statut === filtre)));
+  }
+
+  const serveur = q && resultats?.q === q ? resultats : null;
+  const rechercheEnCours = !!q && !serveur;
+  const source = !q ? factures : serveur?.factures || factures.filter((f) => f.numero.toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q));
+  const facturesFiltrees = source.filter((f) => filtre === "TOUTES" || f.statut === filtre);
+
+  // Les factures du mois en cours restent affichées une par une ; les plus
+  // anciennes vont dans un dossier repliable par mois d'émission (sauf les
+  // impayées, toujours affichées une par une : c'est la liste de travail).
+  // Hors recherche, ces dossiers se chargent à l'ouverture.
   const moisCourant = cleMoisQuebec(new Date());
-  const anciennes = filtre === "TOUTES" ? facturesFiltrees.filter((f) => cleMoisQuebec(f.dateEmission) < moisCourant) : [];
-  const recentes = facturesFiltrees.filter((f) => !anciennes.includes(f));
+  const estAncienne = (f) => cleMoisQuebec(f.dateEmission) < moisCourant;
+  const anciennes = q && filtre === "TOUTES" ? facturesFiltrees.filter(estAncienne) : [];
+  const recentes = !q && filtre === "TOUTES" ? facturesFiltrees.filter((f) => !estAncienne(f)) : facturesFiltrees.filter((f) => !anciennes.includes(f));
   const totalSansAnnulees = (liste) => liste.filter((f) => f.statut !== "ANNULEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
+  const dossiersACharger = q || filtre === "IMPAYEE" ? [] : moisAnciens.flatMap(({ cle, statuts }) => {
+    const retenus = Object.entries(statuts).filter(([statut]) => filtre === "TOUTES" || statut === filtre);
+    const nombre = retenus.reduce((s, [, r]) => s + r.nombre, 0);
+    const total = retenus.filter(([statut]) => statut !== "ANNULEE").reduce((s, [, r]) => s + r.total, 0);
+    return nombre > 0 ? [{ cle, nombre, resume: `${total.toFixed(2)} $` }] : [];
+  });
 
   function carteFacture(f) {
     const joursEcoules = Math.floor((Date.now() - new Date(f.dateEmission).getTime()) / 86400000);
@@ -86,7 +125,6 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
   }
 
   const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
-  const totalPaye = factures.filter((f) => f.statut === "PAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
 
   async function marquerPayee(id, compteTresorerieId, modePaiement, reference) {
     setAvertissement("");
@@ -101,6 +139,8 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
       setAvertissement(`Facture marquée payée, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
     }
     setFactureAPayer(null);
+    moisCharges.current.clear();
+    setVersion((v) => v + 1);
     router.refresh();
     return null;
   }
@@ -109,7 +149,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
     <div className="conteneur-page">
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>Factures</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        {factures.length} facture{factures.length !== 1 ? "s" : ""} émise{factures.length !== 1 ? "s" : ""} au total.
+        {totaux.nombre} facture{totaux.nombre !== 1 ? "s" : ""} émise{totaux.nombre !== 1 ? "s" : ""} au total.
       </p>
       {avertissement && <p style={{ fontSize: 12, color: "var(--accent)", marginBottom: 12 }}>⚠️ {avertissement}</p>}
 
@@ -119,7 +159,7 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total impayé</div>
         </div>
         <div className="carte carte-s">
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#6FA96B" }}>{totalPaye.toFixed(2)} $</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#6FA96B" }}>{totaux.totalPaye.toFixed(2)} $</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total payé</div>
         </div>
       </div>
@@ -166,9 +206,18 @@ export default function FacturesClient({ factures, comptesTresorerie }) {
         ))}
         <DossiersParMois
           elements={anciennes} obtenirDate={(f) => f.dateEmission} carte={carteFacture}
-          ouvert={!!recherche.trim()} resume={(liste) => `${totalSansAnnulees(liste).toFixed(2)} $`}
+          ouvert={!!q} resume={(liste) => `${totalSansAnnulees(liste).toFixed(2)} $`}
         />
-        {facturesFiltrees.length === 0 && (
+        <DossiersParMoisACharger key={filtre} mois={dossiersACharger} charger={chargerMois} carte={carteFacture} version={version} />
+        {serveur?.tronque && (
+          <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>
+            Seules les {serveur.factures.length} factures les plus récentes qui correspondent sont affichées — précise la recherche pour en trouver une plus ancienne.
+          </p>
+        )}
+        {rechercheEnCours && facturesFiltrees.length === 0 && (
+          <p style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", padding: 20 }}>Recherche dans tout l'historique…</p>
+        )}
+        {!rechercheEnCours && facturesFiltrees.length === 0 && dossiersACharger.length === 0 && (
           <div style={{ textAlign: "center", padding: "30px 16px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 12 }}>
             <div style={{ fontSize: 30, marginBottom: 8 }}>🧾</div>
             <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Aucune facture pour ce filtre — les factures se créent depuis un bon de commande terminé.</p>

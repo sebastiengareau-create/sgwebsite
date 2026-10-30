@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { regrouperParMois, libelleMois } from "@/lib/regroupementDates";
 
 // Un dossier repliable par mois (du plus récent au plus ancien) — pour les
@@ -19,26 +19,36 @@ export default function DossiersParMois({ elements, obtenirDate, carte, ouvert, 
 }
 
 // Même dossiers, mais dont le contenu n'est pas encore chargé : `mois` ne
-// donne que [{ cle, nombre }], et `charger(cle)` va chercher les éléments du
-// mois à la première ouverture du dossier.
-export function DossiersParMoisACharger({ mois, charger, carte, compact, couleur = "#6FA96B" }) {
+// donne que [{ cle, nombre, resume? }], et `charger(cle)` va chercher les
+// éléments du mois à la première ouverture du dossier. Changer `version`
+// (ex. après avoir marqué une facture payée) recharge les dossiers déjà ouverts.
+export function DossiersParMoisACharger({ mois, charger, carte, compact, couleur = "#6FA96B", version }) {
   return mois.map((m) => (
-    <DossierACharger key={m.cle} cleMois={m.cle} nombre={m.nombre} charger={charger} carte={carte} compact={compact} couleur={couleur} />
+    <DossierACharger key={m.cle} cleMois={m.cle} nombre={m.nombre} resume={m.resume} charger={charger} carte={carte} compact={compact} couleur={couleur} version={version} />
   ));
 }
 
-function DossierACharger({ cleMois, nombre, charger, carte, compact, couleur }) {
+function DossierACharger({ cleMois, nombre, resume, charger, carte, compact, couleur, version }) {
   const [elements, setElements] = useState(null);
   const [erreur, setErreur] = useState(false);
+  const versionChargee = useRef(version);
 
-  function ouvrir(e) {
-    if (!e.currentTarget.open || elements) return;
+  function charge() {
     setErreur(false);
+    versionChargee.current = version;
     charger(cleMois).then(setElements, () => setErreur(true));
   }
 
+  useEffect(() => {
+    if (elements && versionChargee.current !== version) charge();
+  });
+
+  function ouvrir(e) {
+    if (e.currentTarget.open && !elements) charge();
+  }
+
   return (
-    <Dossier libelle={libelleMois(cleMois)} nombre={nombre} compact={compact} couleur={couleur} onToggle={ouvrir}>
+    <Dossier libelle={libelleMois(cleMois)} nombre={nombre} resume={resume} compact={compact} couleur={couleur} onToggle={ouvrir}>
       {elements ? elements.map(carte) : (
         <p style={{ fontSize: 12, color: erreur ? "var(--danger)" : "var(--text-muted)", textAlign: "center", padding: "6px 0", margin: 0 }}>
           {erreur ? "Chargement impossible — referme et rouvre le dossier pour réessayer." : "Chargement…"}

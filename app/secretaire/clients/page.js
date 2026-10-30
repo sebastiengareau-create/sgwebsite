@@ -9,9 +9,14 @@ export default async function ListeClients() {
   if (!(await aAccesSection(session, "clients"))) redirect("/mecanicien");
 
   const [clientsBruts, facturesImpayees] = await Promise.all([
-    // Le nombre de bons suffit ici — pas besoin de charger chaque bon
+    // Seulement ce que la liste affiche ou fouille (ClientsClient) — le
+    // nombre de bons suffit, pas besoin de charger chaque bon
     prisma.client.findMany({
-      include: { vehicules: true, _count: { select: { bons: true } } },
+      select: {
+        id: true, numero: true, nom: true, telephone: true, courriel: true, adresse: true, ville: true, province: true, codePostal: true, garantieProlongee: true,
+        vehicules: { select: { annee: true, marque: true, modele: true, version: true, niv: true, plaque: true } },
+        _count: { select: { bons: true } },
+      },
       orderBy: { nom: "asc" },
     }),
     prisma.facture.findMany({ where: { statut: "IMPAYEE" }, select: { totalAvecTaxes: true, bon: { select: { clientId: true } } } }),

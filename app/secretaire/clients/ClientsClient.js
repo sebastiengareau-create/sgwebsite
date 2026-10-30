@@ -13,9 +13,15 @@ import { libelleVehicule } from "@/lib/vehicules";
 import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 
+// Clients affichés d'un coup, puis par tranche avec « Afficher plus » : des
+// milliers de fiches à l'écran alourdissent la page, surtout sur cellulaire.
+// La recherche et les filtres portent toujours sur tous les clients.
+const TRANCHE = 100;
+
 export default function ClientsClient({ clients, peutImporter }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
+  const [nombreAffiches, setNombreAffiches] = useState(TRANCHE);
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [seulementSolde, setSeulementSolde] = useState(false);
   const [filtre, setFiltre] = useState("TOUS");
@@ -70,7 +76,7 @@ export default function ClientsClient({ clients, peutImporter }) {
 
       {avecSolde.length > 0 && (
         <button
-          onClick={() => setSeulementSolde((v) => !v)}
+          onClick={() => { setSeulementSolde((v) => !v); setNombreAffiches(TRANCHE); }}
           className="carte carte-s"
           style={{ width: "100%", textAlign: "left", cursor: "pointer", color: "var(--text)", marginBottom: 12, border: seulementSolde ? "1px solid var(--accent)" : undefined }}
         >
@@ -87,7 +93,7 @@ export default function ClientsClient({ clients, peutImporter }) {
 
       <input
         value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
+        onChange={(e) => { setRecherche(e.target.value); setNombreAffiches(TRANCHE); }}
         placeholder="🔍 Rechercher par nom, ville, téléphone, courriel, plaque, NIV, véhicule…"
         style={{
           width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
@@ -97,12 +103,12 @@ export default function ClientsClient({ clients, peutImporter }) {
 
       <div style={{ display: "flex", gap: 6, overflowX: "auto" }}>
         {Object.entries(FILTRES).map(([cle, f]) => (
-          <FiltrePill key={cle} actif={filtre === cle} onClick={() => setFiltre(cle)} label={f.label} nombre={clients.filter(f.garde).length} />
+          <FiltrePill key={cle} actif={filtre === cle} onClick={() => { setFiltre(cle); setNombreAffiches(TRANCHE); }} label={f.label} nombre={clients.filter(f.garde).length} />
         ))}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-        {clientsFiltres.map((c) => (
+        {clientsFiltres.slice(0, nombreAffiches).map((c) => (
           <Link key={c.id} href={`/secretaire/clients/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
             <div className="bouton-3d-sombre" style={{ borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{
@@ -131,6 +137,15 @@ export default function ClientsClient({ clients, peutImporter }) {
             </div>
           </Link>
         ))}
+        {clientsFiltres.length > nombreAffiches && (
+          <button
+            onClick={() => setNombreAffiches((n) => n + TRANCHE)}
+            className="bouton-3d-sombre"
+            style={{ padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700 }}
+          >
+            Afficher plus — {clientsFiltres.length - nombreAffiches} autre{clientsFiltres.length - nombreAffiches > 1 ? "s" : ""}
+          </button>
+        )}
         {clientsFiltres.length === 0 && clients.length > 0 && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>{recherche ? `Aucun client ne correspond à "${recherche}".` : "Aucun client pour ce filtre."}</p>
         )}
