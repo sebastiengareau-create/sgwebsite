@@ -44,9 +44,9 @@ function versInputLocal(dateVal) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function fmtHeures(h) {
-  const heures = Math.floor(h);
-  const min = Math.round((h - heures) * 60);
-  return `${heures}h${String(min).padStart(2, "0")}`;
+  // Arrondi à la minute d'abord : 1,9999 h donne 2h00, pas 1h60
+  const totalMinutes = Math.round(h * 60);
+  return `${Math.floor(totalMinutes / 60)}h${String(totalMinutes % 60).padStart(2, "0")}`;
 }
 function tempsEcoule(debutISO) {
   const s = Math.floor((Date.now() - new Date(debutISO).getTime()) / 1000);
@@ -787,6 +787,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     else parEmploye[t.employeId].active = t;
   }
   const lignesTemps = Object.values(parEmploye);
+  const heuresTerminees = lignesTemps.reduce((s, l) => s + l.termine, 0);
+  const debutsActifs = lignesTemps.filter((l) => l.active).map((l) => l.active.debut);
   const monEntreeActive = probleme.entreesTemps.find((t) => t.employeId === moi && !t.fin);
 
   async function togglePoincon() {
@@ -1071,7 +1073,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lignesTemps.length > 0 ? 6 : 0 }}>
           <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>
-            ⏱ Temps sur cette tâche{(probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE") ? " (pour la paie — ne facture pas le client)" : tacheAuForfait(probleme) ? " (pour la paie — main-d'œuvre comprise dans le kit)" : ""}
+            ⏱ Temps sur cette tâche · <TotalTemps heuresTerminees={heuresTerminees} debutsActifs={debutsActifs} />{(probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE") ? " (pour la paie — ne facture pas le client)" : tacheAuForfait(probleme) ? " (pour la paie — main-d'œuvre comprise dans le kit)" : ""}
           </span>
           {peutPoinconner && !verrouille && (
             <button
@@ -1541,6 +1543,24 @@ function LiveTimer({ debut }) {
     return () => clearInterval(id);
   }, [debut]);
   return <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontFamily: "monospace" }}>{t}</span>;
+}
+
+// Total des heures poinçonnées sur une tâche, tous employés confondus —
+// les poinçons en cours y sont comptés et le total avance avec eux
+function TotalTemps({ heuresTerminees, debutsActifs }) {
+  const [maintenant, setMaintenant] = useState(() => Date.now());
+  const enCours = debutsActifs.length > 0;
+  useEffect(() => {
+    if (!enCours) return;
+    const id = setInterval(() => setMaintenant(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [enCours]);
+  const heuresEnCours = debutsActifs.reduce((s, debut) => s + Math.max(0, maintenant - new Date(debut).getTime()) / 3600000, 0);
+  return (
+    <span style={{ textTransform: "none", fontWeight: 700, color: enCours ? "var(--accent)" : "var(--text)" }}>
+      {fmtHeures(heuresTerminees + heuresEnCours)}
+    </span>
+  );
 }
 
 function StatutFacturePill({ statut }) {
