@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { bonsDuQuotidien, moisAnciensBons } from "@/lib/listeBons";
 import EnTete from "../components/EnTete";
 import OperationsTabs from "../components/OperationsTabs";
 import FacturationPeriodes from "../components/FacturationPeriodes";
@@ -14,12 +14,11 @@ export default async function EspaceSecretaire(props) {
   if (!(await aAccesSection(session, "operations"))) redirect(`/${session.role.toLowerCase()}`);
   const filtre = searchParams?.statut;
 
-  // Tous les bons : le filtre (?statut=…) est appliqué côté client pour
-  // afficher le compte de chaque catégorie, dont « Planifiés ».
-  const bons = await prisma.bonTravail.findMany({
-    include: { client: true, facture: { select: { dateEmission: true } }, problemes: { orderBy: { id: "asc" }, include: { pieces: { include: { piece: { select: { nom: true } } } } } } },
-    orderBy: { creeLe: "desc" },
-  });
+  // Bons du quotidien, plus le nombre de bons facturés de chaque mois passé
+  // (leurs dossiers se chargent à l'ouverture — voir lib/listeBons.js). Le
+  // filtre (?statut=…) est appliqué côté client pour afficher le compte de
+  // chaque catégorie, dont « Planifiés ».
+  const [bons, moisAnciens] = await Promise.all([bonsDuQuotidien(), moisAnciensBons()]);
 
   return (
     <div>
@@ -27,7 +26,7 @@ export default async function EspaceSecretaire(props) {
       <OperationsTabs />
       <FacturationPeriodes />
       <ResumeOperations />
-      <ListeBonsClient bons={bons} filtreActuel={filtre} />
+      <ListeBonsClient bons={bons} moisAnciens={moisAnciens} filtreActuel={filtre} />
     </div>
   );
 }

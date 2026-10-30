@@ -10,6 +10,25 @@ import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
+import { bonsFacturesDuMois, rechercherBons } from "@/lib/listeBons";
+
+// Liste des bons (Opérations) : contenu d'un dossier de mois passé
+// (?mois=YYYY-MM), ou recherche dans tout l'historique (?recherche=…)
+export async function GET(request) {
+  const session = await obtenirSession();
+  if (!(await aAccesSection(session, "operations"))) {
+    return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+  const { searchParams } = new URL(request.url);
+  const mois = searchParams.get("mois");
+  const recherche = searchParams.get("recherche")?.trim();
+  if (mois) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mois)) return NextResponse.json({ erreur: "Mois invalide." }, { status: 400 });
+    return NextResponse.json({ bons: await bonsFacturesDuMois(mois) });
+  }
+  if (recherche) return NextResponse.json(await rechercherBons(recherche));
+  return NextResponse.json({ erreur: "Préciser un mois ou une recherche." }, { status: 400 });
+}
 
 export async function POST(request) {
   const session = await obtenirSession();

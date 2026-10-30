@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import BanderoleBo from "../components/BanderoleBo";
-import DossiersParMois from "../components/DossiersParMois";
+import DossiersParMois, { DossiersParMoisACharger } from "../components/DossiersParMois";
 import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 
 const STATUTS = {
@@ -26,7 +26,9 @@ function infosEtape(cle) {
 const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "TERMINE"];
 
 // Bons facturés : ceux facturés ce mois-ci restent affichés un par un ; les
-// plus anciens vont dans un dossier repliable par mois de facturation.
+// plus anciens vont dans un dossier repliable par mois de facturation. Hors
+// recherche, la page ne reçoit que le nombre de bons de ces mois passés
+// (moisAnciens) : chaque dossier se charge à son ouverture (lib/listeBons.js).
 function dateFacturation(b) {
   return b.facture?.dateEmission || dateBon(b);
 }
@@ -36,20 +38,48 @@ function separerFactures(bons) {
   return { recents: bons.filter((b) => !anciens.includes(b)), anciens };
 }
 
-export default function ListeBonsClient({ bons, filtreActuel }) {
+export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
   const [recherche, setRecherche] = useState("");
+  const [resultats, setResultats] = useState(null); // { q, bons, tronque } — réponse du serveur pour la recherche q
   const [vue, setVue] = useState("tableau"); // "liste" | "tableau"
   const [filtre, setFiltre] = useState(ETAPES.includes(filtreActuel) ? filtreActuel : "TOUS");
+  const moisCharges = useRef(new Map()); // cle du mois → promesse de ses bons
 
-  const bonsRecherches = bons.filter((b) => {
-    const q = recherche.trim().toLowerCase();
-    if (!q) return true;
-    const champs = [b.numero, b.client.nom];
-    return champs.some((champ) => champ && champ.toLowerCase().includes(q));
-  });
-  const compte = (cle) => bonsRecherches.filter((b) => etape(b) === cle).length;
+  const q = recherche.trim().toLowerCase();
+
+  // Recherche : les bons déjà chargés sont filtrés tout de suite, puis le
+  // serveur répond avec tout l'historique (mois passés compris).
+  useEffect(() => {
+    if (!q) return;
+    let annule = false;
+    const minuterie = setTimeout(() => {
+      fetch(`/api/bons?recherche=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => { if (!annule) setResultats({ q, bons: d.bons, tronque: d.tronque }); })
+        .catch(() => { if (!annule) setResultats({ q, bons: null }); });
+    }, 300);
+    return () => { annule = true; clearTimeout(minuterie); };
+  }, [q]);
+
+  function chargerMois(cle) {
+    if (!moisCharges.current.has(cle)) {
+      const promesse = fetch(`/api/bons?mois=${cle}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => d.bons);
+      promesse.catch(() => moisCharges.current.delete(cle));
+      moisCharges.current.set(cle, promesse);
+    }
+    return moisCharges.current.get(cle);
+  }
+
+  const serveur = q && resultats?.q === q ? resultats : null;
+  const rechercheEnCours = !!q && !serveur;
+  const bonsRecherches = !q ? bons : serveur?.bons || bons.filter((b) => [b.numero, b.client.nom].some((champ) => champ && champ.toLowerCase().includes(q)));
+  // Pendant une recherche, les mois passés trouvés arrivent avec les résultats
+  const moisACharger = q ? [] : moisAnciens;
+  const nombreACharger = moisACharger.reduce((s, m) => s + m.nombre, 0);
+  const compte = (cle) => bonsRecherches.filter((b) => etape(b) === cle).length + (cle === "TERMINE" ? nombreACharger : 0);
   const bonsFiltres = filtre === "TOUS" ? bonsRecherches : bonsRecherches.filter((b) => etape(b) === filtre);
   const { recents, anciens } = separerFactures(bonsFiltres);
+  const dossiersACharger = filtre === "TOUS" || filtre === "TERMINE" ? moisACharger : [];
 
   return (
     <div style={{ padding: 16, maxWidth: vue === "tableau" ? 1200 : 560, margin: "0 auto", width: "100%" }}>
@@ -71,7 +101,7 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
 
       {vue === "liste" && (
         <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto" }}>
-          <FiltrePill actif={filtre === "TOUS"} onClick={() => setFiltre("TOUS")} label="Tous" nombre={bonsRecherches.length} />
+          <FiltrePill actif={filtre === "TOUS"} onClick={() => setFiltre("TOUS")} label="Tous" nombre={bonsRecherches.length + nombreACharger} />
           {ETAPES.map((cle) => (
             <FiltrePill
               key={cle} actif={filtre === cle} onClick={() => setFiltre(cle)}
@@ -81,7 +111,13 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
         </div>
       )}
 
-      {bons.length === 0 ? (
+      {serveur?.tronque && (
+        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+          Seuls les {serveur.bons.length} bons les plus récents qui correspondent sont affichés — précise la recherche pour trouver un bon plus ancien.
+        </p>
+      )}
+
+      {bons.length === 0 && moisAnciens.length === 0 ? (
         <EtatVide />
       ) : vue === "liste" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -91,34 +127,36 @@ export default function ListeBonsClient({ bons, filtreActuel }) {
               {g.elements.map((b) => <CarteBon key={b.id} b={b} />)}
             </section>
           ))}
-          <DossiersParMois elements={anciens} obtenirDate={dateFacturation} ouvert={!!recherche.trim()} carte={(b) => <CarteBon key={b.id} b={b} />} />
-          {bonsFiltres.length === 0 && (
+          <DossiersParMois elements={anciens} obtenirDate={dateFacturation} ouvert={!!q} carte={(b) => <CarteBon key={b.id} b={b} />} />
+          <DossiersParMoisACharger mois={dossiersACharger} charger={chargerMois} carte={(b) => <CarteBon key={b.id} b={b} />} />
+          {bonsFiltres.length === 0 && dossiersACharger.length === 0 && (
             <p style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>
-              Aucun bon {recherche ? `ne correspond à "${recherche}"` : "dans cette catégorie"}.
+              {rechercheEnCours ? "Recherche dans tout l'historique…" : `Aucun bon ${q ? `ne correspond à "${recherche.trim()}"` : "dans cette catégorie"}.`}
             </p>
           )}
         </div>
       ) : (
-        <TableauBons bons={bonsRecherches} ouvert={!!recherche.trim()} />
+        <TableauBons bons={bonsRecherches} ouvert={!!q} moisACharger={moisACharger} nombreACharger={nombreACharger} chargerMois={chargerMois} />
       )}
     </div>
   );
 }
 
-function TableauBons({ bons, ouvert }) {
+function TableauBons({ bons, ouvert, moisACharger, nombreACharger, chargerMois }) {
   return (
     <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, alignItems: "flex-start" }}>
       {ETAPES.map((cle) => {
         const infos = infosEtape(cle);
         const bonsColonne = bons.filter((b) => etape(b) === cle);
         const { recents, anciens } = separerFactures(bonsColonne);
+        const dossiersACharger = cle === "TERMINE" ? moisACharger : [];
         return (
           <div key={cle} style={{ flex: "1 1 240px", minWidth: 220, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 4px 8px", borderBottom: `2px solid ${infos.color}`, marginBottom: 8 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: infos.color }} />
               <span style={{ fontSize: 12, fontWeight: 700 }}>{infos.label}</span>
               <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: infos.color, background: `${infos.color}22`, borderRadius: 999, padding: "1px 8px" }}>
-                {bonsColonne.length}
+                {bonsColonne.length + (cle === "TERMINE" ? nombreACharger : 0)}
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -129,7 +167,8 @@ function TableauBons({ bons, ouvert }) {
                 </div>
               ))}
               <DossiersParMois elements={anciens} obtenirDate={dateFacturation} ouvert={ouvert} compact carte={(b) => <CarteBonCompacte key={b.id} b={b} />} />
-              {bonsColonne.length === 0 && (
+              <DossiersParMoisACharger mois={dossiersACharger} charger={chargerMois} compact carte={(b) => <CarteBonCompacte key={b.id} b={b} />} />
+              {bonsColonne.length === 0 && dossiersACharger.length === 0 && (
                 <p style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", textAlign: "center", padding: "10px 0" }}>
                   {cle === "PLANIFIE" ? "Aucun bon à venir" : "Vide"}
                 </p>
