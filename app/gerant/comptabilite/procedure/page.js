@@ -16,7 +16,7 @@ const ETAPES = [
     numero: 2,
     titre: "Rapprochement bancaire",
     obligatoire: false,
-    description: "Coche chaque écriture du compte Banque qui apparaît sur ton relevé, puis entre le solde du relevé. Ça révèle ce qui est vraiment passé en banque par rapport à ce qui reste « en circulation » (chèque ou dépôt pas encore traité par la banque).",
+    description: "Coche chaque écriture du compte Banque qui apparaît sur ton relevé, puis entre le solde du relevé. Ça révèle ce qui est vraiment passé en banque par rapport à ce qui reste « en circulation » (chèque ou dépôt pas encore traité par la banque). Le plus rapide : importe d'abord le fichier de ta banque dans 📥 Transactions bancaires — tout ce qui y est relié arrive coché.",
     lien: { href: "/gerant/comptabilite/rapprochement", label: "🏦 Rapprochement bancaire" },
   },
   {

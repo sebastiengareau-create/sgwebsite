@@ -35,6 +35,14 @@ export default async function Rapprochement(props) {
       ])
     : [0, [], []];
 
+  // Solde importé avec le fichier de la banque (Transactions bancaires), ou
+  // entré à la main, plus récent que la dernière conciliation : proposé
+  // d'office comme date et solde du relevé.
+  const derniere = historique[0]?.dateRapprochement;
+  const releveSuggere = compteChoisi?.soldeReleveLe && (!derniere || compteChoisi.soldeReleveLe > derniere)
+    ? { date: dateQuebecStr(compteChoisi.soldeReleveLe), solde: compteChoisi.soldeReleve }
+    : null;
+
   // Montants déjà dans le sens du relevé (voir sensCompte) et date en jour
   // civil du Québec, pour que le client filtre selon la date du relevé.
   const lignes = lignesBrutes.map((l) => ({
@@ -50,6 +58,8 @@ export default async function Rapprochement(props) {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <RapprochementClient
+        key={compteId}
+        releveSuggere={releveSuggere}
         comptesTresorerie={comptesTresorerie}
         compteId={compteId}
         categorie={compteChoisi?.categorie}

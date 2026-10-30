@@ -654,6 +654,7 @@ model CompteTresorerie {
   facturesVente  FactureVente[]
   depenses       Depense[]
   rapprochements RapprochementBancaire[]
+  transactionsBancaires TransactionBancaire[]
 }
 
 // Une écriture comptable = une transaction complète, composée d'au moins
@@ -686,10 +687,13 @@ model LigneEcriture {
   rapproche   Boolean           @default(false) // coché lors d'une conciliation bancaire
   rapprochementId String? // conciliation enregistrée qui a verrouillé cette ligne — vide tant qu'elle est encore modifiable
   rapprochement   RapprochementBancaire? @relation(fields: [rapprochementId], references: [id])
+  transactionBancaireId String? // transaction du relevé bancaire à laquelle la ligne est associée (voir TransactionBancaire)
+  transactionBancaire   TransactionBancaire? @relation(fields: [transactionBancaireId], references: [id], onDelete: SetNull)
 
   @@index([rapprochementId])
   @@index([ecritureId])
   @@index([compteId])
+  @@index([transactionBancaireId])
 }
 
 // ---------- TÂCHES INTERNES (suivi de présence, non facturable) ----------
@@ -794,6 +798,40 @@ model RapprochementBancaire {
   ecart              Float // relevé − (ouverture + lignes pointées) ; toujours 0 depuis la nouvelle logique, peut être ≠ 0 dans l'ancien historique
   creeLe             DateTime          @default(now())
   lignes             LigneEcriture[]
+}
+
+// Transaction telle que la banque la montre, importée d'un fichier de relevé
+// (OFX/QFX/CSV) téléchargé de la banque en ligne — voir
+// lib/transactionsBancaires.js. Elle attend « à examiner » jusqu'à ce qu'on
+// la relie aux livres : associée à des lignes d'écriture qui existaient déjà,
+// ajoutée (dépense, écriture, transfert ou paiement créé depuis elle), ou
+// exclue. Les lignes reliées sont cochées pour la conciliation bancaire.
+model TransactionBancaire {
+  id                 String           @id @default(cuid())
+  compteTresorerieId String
+  compteTresorerie   CompteTresorerie @relation(fields: [compteTresorerieId], references: [id])
+  date               DateTime // jour civil, ancré à midi UTC (voir jourCivil, lib/depenses.js)
+  montant            Float // vu par le titulaire : + argent qui entre (dépôt, paiement de la carte), − argent qui sort (retrait, achat)
+  description        String
+  reference          String? // numéro de chèque, si le fichier le donne
+  cle                String // date + montant + description (+ rang si identiques) — une transaction réimportée est ignorée
+  statut             String           @default("A_EXAMINER") // "A_EXAMINER" | "ASSOCIEE" | "AJOUTEE" | "EXCLUE"
+  // Ce que l'examen a créé, pour pouvoir l'annuler : "DEPENSE" (id de la
+  // dépense), "ECRITURE" (id de l'écriture — autre compte ou transfert),
+  // "PAIEMENT_DEPENSE" / "PAIEMENT_FACTURE" (dépense ou facture impayée
+  // marquée payée). Vide pour une simple association.
+  creeType           String?
+  creeId             String?
+  importId           String // regroupe les transactions d'un même import, pour pouvoir l'annuler
+  fichier            String?
+  importeLe          DateTime         @default(now())
+  examineLe          DateTime?
+  examinePar         String?
+  lignes             LigneEcriture[]
+
+  @@unique([compteTresorerieId, cle])
+  @@index([compteTresorerieId, statut])
+  @@index([importId])
 }
 
 // ---------- COMPTES À PAYER ----------
