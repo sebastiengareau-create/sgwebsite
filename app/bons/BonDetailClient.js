@@ -19,7 +19,7 @@ import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
-import { trouverPieceParScan, pieceCorrespond } from "@/lib/codesBarres";
+import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
@@ -58,6 +58,7 @@ function tempsEcoule(debutISO) {
 
 export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [] }) {
   const router = useRouter();
+  useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
   // Il faut au moins le NIV, ou la marque et le modèle, pour chercher
@@ -1200,6 +1201,10 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
 }
 
 // « 3 en stock », ou pour un kit (lib/kits.js) : combien le stock permet d'en faire
+// Pièces listées d'un coup dans le choix de pièce : l'inventaire peut en
+// compter des milliers, et la recherche trouve les autres
+const MAX_SUGGESTIONS_PIECES = 50;
+
 function libelleStock(p) {
   if (!p.estKit) return `${p.qte} en stock`;
   return p.qte >= 999 ? "kit" : `kit · ${p.qte} possible${p.qte > 1 ? "s" : ""}`;
@@ -1437,7 +1442,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                 <div style={{ maxHeight: 260, overflowY: "auto" }}>
                   {suggestionsPieces.length === 0 ? (
                     <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>{peutCommander || CLIENT.stockNegatifBons ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
-                  ) : suggestionsPieces.map((p) => (
+                  ) : suggestionsPieces.slice(0, MAX_SUGGESTIONS_PIECES).map((p) => (
                     <button
                       key={p.id}
                       type="button"
@@ -1448,6 +1453,11 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                       {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
                     </button>
                   ))}
+                  {suggestionsPieces.length > MAX_SUGGESTIONS_PIECES && (
+                    <div style={{ padding: "8px 10px", fontSize: 11.5, color: "var(--text-muted)" }}>
+                      … et {suggestionsPieces.length - MAX_SUGGESTIONS_PIECES} autres — tape un nom ou un numéro pour préciser.
+                    </div>
+                  )}
                 </div>
               </div>
             )}

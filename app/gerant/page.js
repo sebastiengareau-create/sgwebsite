@@ -110,7 +110,7 @@ export default async function EspaceGerant(props) {
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
-    prisma.piece.findMany({ where: { actif: true, estKit: false } }),
+    prisma.piece.findMany({ where: { actif: true, estKit: false }, select: { qte: true, qteMin: true } }),
     prisma.entreeTemps.findMany({
       where: { fin: null },
       include: { employe: true, probleme: { include: { bon: { include: { client: true, problemes: { orderBy: { id: "asc" } } } } } } },

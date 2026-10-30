@@ -379,6 +379,9 @@ function LigneCommande({ ligne, piece, ligneServeur, fournisseurId, modifiable, 
 }
 
 // Recherche d'une pièce (nom, numéro, code-barres, numéro fournisseur) ou scan.
+// Pièces suggérées d'un coup : l'inventaire peut en compter des milliers
+const MAX_SUGGESTIONS = 50;
+
 function AjoutPiece({ pieces, onAjouter }) {
   const [recherche, setRecherche] = useState("");
   const [scanner, setScanner] = useState(false);
@@ -416,11 +419,14 @@ function AjoutPiece({ pieces, onAjouter }) {
       )}
       {suggestions.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6, maxHeight: 320, overflowY: "auto" }}>
-          {suggestions.map((p) => (
+          {suggestions.slice(0, MAX_SUGGESTIONS).map((p) => (
             <button key={p.id} onClick={() => choisir(p)} style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12.5, cursor: "pointer" }}>
               {p.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>— {p.numero} · stock {p.qte}</span>
             </button>
           ))}
+          {suggestions.length > MAX_SUGGESTIONS && (
+            <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "2px 0 0" }}>… et {suggestions.length - MAX_SUGGESTIONS} autres — précise la recherche.</p>
+          )}
         </div>
       )}
       {q && suggestions.length === 0 && <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 0" }}>Aucune pièce trouvée — crée-la d'abord dans l'inventaire.</p>}

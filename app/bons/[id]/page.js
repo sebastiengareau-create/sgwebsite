@@ -52,9 +52,13 @@ export default async function DetailBonPage(props) {
 
   // Un kit n'a pas de stock à lui : sa quantité est le nombre de kits que
   // le stock de ses pièces permet de faire (999 : kit sans pièce)
+  // Seulement ce qu'utilisent le choix de pièce, le scan et les pièces à
+  // commander (BonDetailClient, PiecesACommander) — l'inventaire peut compter
+  // des milliers de pièces, envoyées à chaque ouverture d'un bon
   const inventaire = (await prisma.piece.findMany({
     where: { actif: true },
-    include: {
+    select: {
+      id: true, nom: true, numero: true, autresNumeros: true, codeBarre: true, qte: true, prix: true, estKit: true, actif: true, fournisseurId: true,
       fournisseurs: { select: { numeroFournisseur: true, fournisseurId: true } },
       composantsKit: { select: { pieceId: true, qte: true, piece: { select: { qte: true } } } },
     },

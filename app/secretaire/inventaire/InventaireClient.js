@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useDeferredValue } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
@@ -9,7 +9,7 @@ import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import RecherchePieces from "../../components/RecherchePieces";
 import { useOrdreFiches } from "../../components/NavigationFiches";
-import { trouverPieceParScan, extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
+import { trouverPieceParScan, extraireIdEtiquette, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
@@ -19,6 +19,10 @@ const CLE_TRI = "inventaire_tri";
 // Choix « Pièces désactivées » du menu Trier par : seulement celles-là, par
 // numéro (pas retenu sur l'appareil, ce n'est pas un tri)
 const DESACTIVEES = "desactivees";
+// Pièces affichées d'un coup, puis par tranche avec « Afficher plus » : des
+// milliers de fiches à l'écran rendent la page lente, surtout sur cellulaire.
+// La recherche, le tri et les étiquettes portent toujours sur toutes les pièces.
+const TRANCHE = 100;
 
 export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, sitesPieces = null }) {
   const router = useRouter();
@@ -28,6 +32,10 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
   const pieces = toutes.filter((p) => !p.estKit);
   const [afficherCategories, setAfficherCategories] = useState(false);
   const [recherche, setRecherche] = useState("");
+  // Le filtrage suit la frappe sans la bloquer : le champ se met à jour
+  // tout de suite, la liste juste après
+  const rechercheDifferee = useDeferredValue(recherche);
+  const [nombreAffiches, setNombreAffiches] = useState(TRANCHE);
   const [tri, setTri] = useState("numero");
   const [voirDesactivees, setVoirDesactivees] = useState(false);
   const [scannerOuvert, setScannerOuvert] = useState(false);
@@ -40,15 +48,18 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
   const nombreDesactivees = toutes.filter((p) => !p.actif).length;
   const seulementDesactivees = tri === DESACTIVEES;
   const visible = (p) => (seulementDesactivees ? !p.actif : p.actif || voirDesactivees);
-  const kits = toutes.filter((p) => p.estKit && visible(p) && pieceCorrespond(p, recherche));
+  const kits = toutes.filter((p) => p.estKit && visible(p) && pieceCorrespond(p, rechercheDifferee));
 
   const nomCategorie = (code) => categories.find((c) => c.code === code)?.nom || code;
 
-  const piecesFiltrees = pieces.filter((p) => {
+  const piecesFiltrees = useMemo(() => pieces.filter((p) => {
     if (!visible(p)) return false;
-    return pieceCorrespond(p, recherche);
-  }).sort(comparateurPieces(seulementDesactivees ? "numero" : tri));
+    return pieceCorrespond(p, rechercheDifferee);
+  }).sort(comparateurPieces(seulementDesactivees ? "numero" : tri)),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [toutes, rechercheDifferee, tri, voirDesactivees]);
   useOrdreFiches("pieces", piecesFiltrees.map((p) => p.id));
+  useEffect(() => preparerRecherchePieces(toutes), [toutes]);
 
   // Le tri choisi est retenu sur cet appareil
   useEffect(() => {
@@ -59,6 +70,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
   }, []);
   function choisirTri(valeur) {
     setTri(valeur);
+    setNombreAffiches(TRANCHE);
     if (valeur === DESACTIVEES) return;
     try { localStorage.setItem(CLE_TRI, valeur); } catch {}
   }
@@ -201,7 +213,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
 
       <input
         value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
+        onChange={(e) => { setRecherche(e.target.value); setNombreAffiches(TRANCHE); }}
         placeholder="🔍 Rechercher par description, numéro ou no fournisseur…"
         style={{ ...champStyle, marginBottom: 6 }}
       />
@@ -214,7 +226,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
       </label>
       {nombreDesactivees > 0 && !seulementDesactivees && (
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16, cursor: "pointer" }}>
-          <input type="checkbox" checked={voirDesactivees} onChange={(e) => setVoirDesactivees(e.target.checked)} />
+          <input type="checkbox" checked={voirDesactivees} onChange={(e) => { setVoirDesactivees(e.target.checked); setNombreAffiches(TRANCHE); }} />
           Afficher les pièces désactivées ({nombreDesactivees})
         </label>
       )}
@@ -259,7 +271,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
         {kits.length > 0 && !modeEtiquettes && piecesFiltrees.length > 0 && (
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Pièces</div>
         )}
-        {piecesFiltrees.map((p) => {
+        {piecesFiltrees.slice(0, nombreAffiches).map((p) => {
           const carte = (
             <div style={{ background: "var(--surface)", border: modeEtiquettes && selection.has(p.id) ? "1px solid var(--accent)" : p.actif && p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: p.actif ? 1 : 0.55 }}>
               {modeEtiquettes && <input type="checkbox" checked={selection.has(p.id)} readOnly style={{ flexShrink: 0, pointerEvents: "none" }} />}
@@ -287,7 +299,16 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
             <Link key={p.id} href={`/secretaire/inventaire/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>{carte}</Link>
           );
         })}
-        {piecesFiltrees.length === 0 && pieces.length > 0 && recherche.trim() && (
+        {piecesFiltrees.length > nombreAffiches && (
+          <button
+            onClick={() => setNombreAffiches((n) => n + TRANCHE)}
+            className="bouton-3d-sombre"
+            style={{ padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700 }}
+          >
+            Afficher plus — {piecesFiltrees.length - nombreAffiches} autre{piecesFiltrees.length - nombreAffiches > 1 ? "s" : ""}
+          </button>
+        )}
+        {piecesFiltrees.length === 0 && pieces.length > 0 && rechercheDifferee.trim() && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce ne correspond à "{recherche}".</p>
         )}
         {seulementDesactivees && nombreDesactivees === 0 && (
