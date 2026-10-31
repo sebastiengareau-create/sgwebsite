@@ -2,7 +2,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { CLIENT } from "@/lib/client";
-import { coutantTotal, assurerComptesVehiculesAVendre } from "@/lib/vehiculesAVendre";
+import { coutantTotal, assurerComptesVehiculesAVendre, calculerAlignementVehicules, moduleComptabiliteActif } from "@/lib/vehiculesAVendre";
 import EnTete from "../../../components/EnTete";
 import VehiculesVenteClient from "./VehiculesVenteClient";
 
@@ -29,10 +29,13 @@ export default async function VehiculesAVendre() {
     vente: vv.factureVente,
   }));
 
+  // Coûtant en stock vs compte 1250 (seulement si la comptabilité est active)
+  const alignement = (await moduleComptabiliteActif()) ? await calculerAlignementVehicules() : null;
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <VehiculesVenteClient vehicules={vehicules} />
+      <VehiculesVenteClient vehicules={vehicules} alignement={alignement} />
     </div>
   );
 }
