@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import SelecteurCompteMode, { compteParDefaut } from "../../components/SelecteurCompteMode";
+import FormulaireEncaissement from "../../components/FormulaireEncaissement";
 import { regrouperParJour, cleMoisQuebec } from "@/lib/regroupementDates";
 import DossiersParMois, { DossiersParMoisACharger } from "../../components/DossiersParMois";
 
@@ -99,6 +99,11 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
         {f.statut === "PAYEE" && f.referenceVersement && (
           <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {f.referenceVersement}</div>
         )}
+        {f.statut === "IMPAYEE" && f.montantPaye > 0 && (
+          <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>
+            Payé {f.montantPaye.toFixed(2)} $ · <strong style={{ color: "#C9A227" }}>solde {(f.totalAvecTaxes - f.montantPaye).toFixed(2)} $</strong>
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalAvecTaxes.toFixed(2)} $</span>
           {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
@@ -107,15 +112,15 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
               className="bouton-3d"
               style={{ fontSize: 11, fontWeight: 700, padding: "7px 12px", borderRadius: 8 }}
             >
-              Marquer payée
+              {f.montantPaye > 0 ? "Encaisser le solde" : "Marquer payée"}
             </button>
           )}
         </div>
         {factureAPayer === f.id && (
           <div onClick={(e) => e.stopPropagation()}>
             <FormulaireEncaissement
-              comptesTresorerie={comptesTresorerie}
-              onConfirmer={(compteTresorerieId, modePaiement, reference) => marquerPayee(f.id, compteTresorerieId, modePaiement, reference)}
+              comptesTresorerie={comptesTresorerie} solde={f.totalAvecTaxes - f.montantPaye}
+              onConfirmer={(paiements) => encaisser(f.id, paiements)}
               onAnnuler={() => setFactureAPayer(null)}
             />
           </div>
@@ -124,19 +129,19 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
     );
   }
 
-  const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalAvecTaxes, 0);
+  const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalAvecTaxes - f.montantPaye, 0);
 
-  async function marquerPayee(id, compteTresorerieId, modePaiement, reference) {
+  async function encaisser(id, paiements) {
     setAvertissement("");
-    const res = await fetch(`/api/factures/${id}`, {
-      method: "PATCH",
+    const res = await fetch(`/api/factures/${id}/paiements`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut: "PAYEE", compteTresorerieId, modePaiement, reference }),
+      body: JSON.stringify({ paiements }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return data.erreur || "Erreur.";
     if (data.avertissementComptable) {
-      setAvertissement(`Facture marquée payée, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
+      setAvertissement(`Paiement enregistré, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
     }
     setFactureAPayer(null);
     moisCharges.current.clear();
@@ -223,47 +228,6 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
             <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Aucune facture pour ce filtre — les factures se créent depuis un bon de commande terminé.</p>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function FormulaireEncaissement({ comptesTresorerie, onConfirmer, onAnnuler }) {
-  const [compteTresorerieId, setCompteTresorerieId] = useState(compteParDefaut(comptesTresorerie));
-  const [modePaiement, setModePaiement] = useState("CARTE_DEBIT");
-  const [reference, setReference] = useState("");
-  const [erreur, setErreur] = useState("");
-  const [enCours, setEnCours] = useState(false);
-
-  async function confirmer() {
-    if (!compteTresorerieId) { setErreur("Aucun compte de trésorerie disponible."); return; }
-    setErreur("");
-    setEnCours(true);
-    const erreurRes = await onConfirmer(compteTresorerieId, modePaiement, reference);
-    setEnCours(false);
-    if (erreurRes) setErreur(erreurRes);
-  }
-
-  return (
-    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-      <SelecteurCompteMode
-        comptes={comptesTresorerie}
-        compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
-        modePaiement={modePaiement} setModePaiement={setModePaiement}
-      />
-      <input
-        placeholder="No de chèque ou de transaction (optionnel)" value={reference}
-        onChange={(e) => setReference(e.target.value)}
-        style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
-      />
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
-      <div style={{ display: "flex", gap: 6 }}>
-        <button onClick={confirmer} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-          {enCours ? "…" : "✓ Confirmer l'encaissement"}
-        </button>
-        <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
-          Annuler
-        </button>
       </div>
     </div>
   );

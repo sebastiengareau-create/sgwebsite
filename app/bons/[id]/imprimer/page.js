@@ -240,6 +240,13 @@ export default async function ImprimerBon(props) {
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>Total {estFacturee ? "" : "estimé "}(taxes incl.)</span>
             <span style={{ fontSize: 20, fontWeight: 700 }}>{totalAvecTaxes.toFixed(2)} $</span>
           </div>
+          {/* Paiement partiel déjà reçu (lib/paiementsFactures.js) : le solde dû */}
+          {estFacturee && bon.facture.statut === "IMPAYEE" && bon.facture.montantPaye > 0 && (
+            <>
+              <LigneTotal label="Montant déjà payé" valeur={-bon.facture.montantPaye} petit />
+              <LigneTotal label="Solde dû" valeur={bon.facture.totalAvecTaxes - bon.facture.montantPaye} gras bordureHaut />
+            </>
+          )}
         </div>
 
         <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>

@@ -264,9 +264,36 @@ model Facture {
   compteTresorerieId String? // compte où l'encaissement a été déposé, rempli seulement une fois payée
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   referenceVersement String? // numéro de chèque ou de transaction, optionnel — même champ que Depense
+  // Somme des paiements reçus (PaiementFacture) — solde dû = totalAvecTaxes − montantPaye.
+  // La facture reste "IMPAYEE" tant qu'il reste un solde, et passe à "PAYEE" quand il tombe à 0.
+  // Les champs modePaiement / compteTresorerieId / referenceVersement ci-dessus résument
+  // alors les paiements (modePaiement "MULTIPLE" s'ils ont été faits de plusieurs façons).
+  montantPaye        Float             @default(0)
+  paiements          PaiementFacture[]
 
   @@index([statut])
   @@index([dateEmission])
+}
+
+// Un encaissement reçu sur une facture : une facture peut se payer en
+// plusieurs fois et de plusieurs façons (1000 $ comptant + 3500 $ par
+// virement, le solde par chèque plus tard…). Chaque paiement a sa propre
+// écriture comptable FACTURE_PAYEE (débit trésorerie / crédit comptes clients).
+model PaiementFacture {
+  id                 String           @id @default(cuid())
+  factureId          String
+  facture            Facture          @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  montant            Float
+  modePaiement       String? // mêmes valeurs que Facture.modePaiement (lib/modesPaiement.js)
+  compteTresorerieId String
+  compteTresorerie   CompteTresorerie @relation(fields: [compteTresorerieId], references: [id])
+  reference          String? // numéro de chèque ou de transaction, optionnel
+  datePaiement       DateTime         @default(now())
+  ecritureId         String? // écriture FACTURE_PAYEE de ce paiement — vide si la comptabilité est désactivée ou la période verrouillée
+  creePar            String?
+  creeLe             DateTime         @default(now())
+
+  @@index([factureId])
 }
 
 model Probleme {
@@ -651,6 +678,7 @@ model CompteTresorerie {
   actif          Boolean                 @default(true)
   creeLe         DateTime                @default(now())
   factures       Facture[]
+  paiementsFactures PaiementFacture[]
   facturesVente  FactureVente[]
   depenses       Depense[]
   rapprochements RapprochementBancaire[]

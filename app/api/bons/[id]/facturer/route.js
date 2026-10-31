@@ -91,7 +91,7 @@ export async function POST(request, props) {
         tvqMontant,
         totalAvecTaxes,
         // Bon interne : payée d'office, son montant va au coûtant du véhicule
-        ...(vehiculeVente && { statut: "PAYEE", datePaiement: new Date(), modePaiement: MODE_PAIEMENT_COUTANT }),
+        ...(vehiculeVente && { statut: "PAYEE", datePaiement: new Date(), modePaiement: MODE_PAIEMENT_COUTANT, montantPaye: totalAvecTaxes }),
       },
     });
     // Émettre la facture marque automatiquement le bon comme terminé

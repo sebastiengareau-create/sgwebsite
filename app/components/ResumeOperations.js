@@ -8,10 +8,10 @@ export default async function ResumeOperations() {
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE", OR: [{ datePrevue: null }, { datePrevue: { lte: finAujourdhui } }] } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE", datePrevue: { gt: finAujourdhui } } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
-    prisma.facture.findMany({ where: { statut: "IMPAYEE" }, select: { totalAvecTaxes: true } }),
+    prisma.facture.findMany({ where: { statut: "IMPAYEE" }, select: { totalAvecTaxes: true, montantPaye: true } }),
     prisma.soumission.count({ where: { statut: "EN_ATTENTE" } }),
   ]);
-  const totalImpaye = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes, 0);
+  const totalImpaye = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes - f.montantPaye, 0);
 
   const stats = [
     { valeur: planifies, label: "Planifiés", couleur: "#9A7FC7" },

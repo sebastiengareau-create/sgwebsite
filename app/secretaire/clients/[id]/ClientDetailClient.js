@@ -37,7 +37,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre }) {
     .filter((b) => b.facture?.statut === "IMPAYEE")
     .map((b) => ({ ...b.facture, bonId: b.id }))
     .sort((a, b) => new Date(a.dateEmission) - new Date(b.dateEmission));
-  const soldeDu = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes, 0);
+  const soldeDu = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes - f.montantPaye, 0);
 
   async function sauvegarder(e, confirmerDoublon = false) {
     e?.preventDefault();
@@ -183,7 +183,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre }) {
                         <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>{dateCourte(f.dateEmission)}</span>
                         {jours > 30 && <span style={{ color: "var(--danger)", fontWeight: 700, fontSize: 10.5, marginLeft: 6 }}>{jours} j</span>}
                       </span>
-                      <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{f.totalAvecTaxes.toFixed(2)} $ ›</span>
+                      <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{(f.totalAvecTaxes - f.montantPaye).toFixed(2)} $ ›</span>
                     </Link>
                   );
                 })}

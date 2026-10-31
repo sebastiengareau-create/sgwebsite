@@ -20,7 +20,7 @@ const prisma = new PrismaClient();
 
 const {
   assurerPlanComptable, assurerCategoriesInventaire, assurerCategoriesDepense,
-  posterFactureEmise, posterFacturePayee, posterDepenseRecue, posterDepensePayee, posterPaie,
+  posterFactureEmise, posterPaiementFacture, posterDepenseRecue, posterDepensePayee, posterPaie,
 } = require("../lib/comptabilite");
 const { calculerPaiePourEmploye } = require("../lib/paie");
 
@@ -348,6 +348,7 @@ async function main() {
           tpsMontant, tvqMontant, totalAvecTaxes, dateEmission: dateEmissionDate,
           statut: payer ? "PAYEE" : "IMPAYEE",
           datePaiement: payer ? dateEmissionDate : null,
+          montantPaye: payer ? totalAvecTaxes : 0,
         },
       });
       await tx.bonTravail.update({ where: { id: bon.id }, data: { statut: "TERMINE" } });
@@ -355,7 +356,8 @@ async function main() {
     });
 
     await posterFactureEmise(bon, facture, CREE_PAR);
-    if (payer) await posterFacturePayee(facture, CREE_PAR);
+    // Pas de compte de trésorerie dans les données test : écriture seulement, sans PaiementFacture
+    if (payer) await posterPaiementFacture(facture, { montant: totalAvecTaxes, datePaiement: dateEmissionDate }, CREE_PAR);
   }
 
   async function creerLotPaie({ periodeDebut, periodeFin, dateVersement, employeIds, comptabiliser }) {

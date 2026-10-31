@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { soldeFacture } from "@/lib/paiementsFactures";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import Link from "next/link";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
@@ -37,9 +38,10 @@ export default async function RapportComptesClients() {
     // Regroupé par id (deux clients peuvent porter le même nom)
     const clientId = f.bon.client.id;
     if (!parClient[clientId]) parClient[clientId] = { nom: f.bon.client.nom, "0-30": 0, "31-60": 0, "61-90": 0, "90+": 0, total: 0, factures: [] };
-    parClient[clientId][tranche] += f.totalAvecTaxes;
-    parClient[clientId].total += f.totalAvecTaxes;
-    parClient[clientId].factures.push({ numero: f.numero, jours, montant: f.totalAvecTaxes, tranche });
+    const solde = soldeFacture(f); // moins les paiements partiels déjà reçus
+    parClient[clientId][tranche] += solde;
+    parClient[clientId].total += solde;
+    parClient[clientId].factures.push({ numero: f.numero, jours, montant: solde, tranche });
   }
 
   const lignesClients = Object.entries(parClient).sort((a, b) => b[1].total - a[1].total);

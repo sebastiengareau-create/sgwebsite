@@ -32,7 +32,7 @@ export default async function DetailBonPage(props) {
           entreesTemps: { include: { employe: true } },
         },
       },
-      facture: true,
+      facture: { include: { paiements: { include: { compteTresorerie: { select: { nom: true } } }, orderBy: { datePaiement: "asc" } } } },
       piecesACommander: {
         orderBy: { creeLe: "asc" },
         include: {

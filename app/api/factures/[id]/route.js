@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
-import { posterFacturePayee, verifierPeriodeModifiable } from "@/lib/comptabilite";
+import { verifierPeriodeModifiable } from "@/lib/comptabilite";
+import { enregistrerPaiements, retirerPaiements, soldeFacture } from "@/lib/paiementsFactures";
+import { erreurPourReponse } from "@/lib/transactionsBancaires";
 import { MODE_PAIEMENT_COUTANT } from "@/lib/vehiculesAVendre";
 
+// Changement de statut. « PAYEE » encaisse le solde en un seul paiement
+// (les paiements multiples passent par ./paiements) ; « IMPAYEE » retire
+// tous les paiements et leurs écritures.
 export async function PATCH(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
@@ -17,46 +22,29 @@ export async function PATCH(request, props) {
   }
 
   const ancienneFacture = await prisma.facture.findUnique({ where: { id: params.id } });
-  if (ancienneFacture?.modePaiement === MODE_PAIEMENT_COUTANT) {
+  if (!ancienneFacture) return NextResponse.json({ erreur: "Facture introuvable." }, { status: 404 });
+  if (ancienneFacture.modePaiement === MODE_PAIEMENT_COUTANT) {
     return NextResponse.json({ erreur: "Cette facture est payée par le coûtant du véhicule à vendre — son statut ne se change pas." }, { status: 409 });
   }
 
-  let compteTresorerie = null;
-  if (statut === "PAYEE") {
-    if (!compteTresorerieId) {
-      return NextResponse.json({ erreur: "Choisis un compte pour l'encaissement." }, { status: 400 });
+  try {
+    if (statut === "PAYEE") {
+      if (!compteTresorerieId) return NextResponse.json({ erreur: "Choisis un compte pour l'encaissement." }, { status: 400 });
+      const { facture, avertissementComptable } = await enregistrerPaiements(
+        params.id, [{ montant: soldeFacture(ancienneFacture), modePaiement, compteTresorerieId, reference }], { creePar: session.nom }
+      );
+      return NextResponse.json({ ...facture, avertissementComptable });
     }
-    compteTresorerie = await prisma.compteTresorerie.findUnique({ where: { id: compteTresorerieId }, include: { compte: true } });
-    if (!compteTresorerie) return NextResponse.json({ erreur: "Compte introuvable." }, { status: 400 });
-  }
-
-  const facture = await prisma.facture.update({
-    where: { id: params.id },
-    data: {
-      statut,
-      datePaiement: statut === "PAYEE" ? new Date() : null,
-      compteTresorerieId: statut === "PAYEE" ? compteTresorerieId : null,
-      modePaiement: statut === "PAYEE" ? (modePaiement || null) : null,
-      referenceVersement: statut === "PAYEE" ? (reference || null) : null,
-    },
-  });
-
-  // Comptabilise l'encaissement seulement au moment où ça bascule VERS
-  // "Payée" (pas si c'était déjà payée) — évite les doublons d'écritures
-  let avertissementComptable = null;
-  if (statut === "PAYEE" && ancienneFacture?.statut !== "PAYEE") {
-    try {
-      await posterFacturePayee(facture, session.nom, compteTresorerie.compte.numero, modePaiement);
-    } catch (e) {
-      if (e.message.startsWith("PERIODE_LOCK:")) {
-        avertissementComptable = e.message.replace("PERIODE_LOCK:", "").split("\n")[0];
-      } else {
-        console.error("Erreur comptabilisation facture payée :", e);
-      }
+    if (statut === "ANNULEE" && ancienneFacture.montantPaye > 0) {
+      return NextResponse.json({ erreur: "Retire d'abord les paiements reçus sur cette facture." }, { status: 409 });
     }
+    let facture = await retirerPaiements(params.id);
+    if (statut === "ANNULEE") facture = await prisma.facture.update({ where: { id: params.id }, data: { statut } });
+    return NextResponse.json(facture);
+  } catch (e) {
+    const { erreur, status } = erreurPourReponse(e);
+    return NextResponse.json({ erreur }, { status });
   }
-
-  return NextResponse.json({ ...facture, avertissementComptable });
 }
 
 export async function DELETE(request, props) {
