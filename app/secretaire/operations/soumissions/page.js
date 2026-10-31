@@ -6,10 +6,12 @@ import OperationsTabs from "../../../components/OperationsTabs";
 import FacturationPeriodes from "../../../components/FacturationPeriodes";
 import ResumeOperations from "../../../components/ResumeOperations";
 import SoumissionsListe from "./SoumissionsListe";
+import { reparerEcrituresFacturesSoumissions } from "@/lib/soumissions";
 
 export default async function ListeSoumissions() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
+  await reparerEcrituresFacturesSoumissions(session.nom);
   const [soumissions, parametres] = await Promise.all([
     prisma.soumission.findMany({
       include: { taches: { include: { pieces: true } } },

@@ -116,6 +116,8 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   facture : une tâche par tâche de la soumission (ligne fixe main-d'œuvre,
   compte 4000) puis une par pièce (ligne fixe, compte 4010) — pas de poinçon
   ni de sortie d'inventaire. La soumission passe à « Facturée ».
+  Les quantités sont reprises telles qu'entrées : une pièce à 0 (ou laissée
+  vide) et une tâche à 0 h facturent 0.
   Une soumission acceptée avant ce réglage (ex. SOU-001) a un bouton
   **« ↩ Remettre en attente »** (pour tous les clients) : son bon est supprimé
   s'il est encore vide ; refusé s'il a déjà du temps, des pièces ou une
