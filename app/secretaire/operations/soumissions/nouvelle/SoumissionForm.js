@@ -21,7 +21,7 @@ function nouvellePiece() {
   return { id: Math.random().toString(36).slice(2), nom: "", prixEstime: "", qte: "1" };
 }
 
-export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tpsTaux, tvqTaux, soumissionExistante, vientDEtreCreee }) {
+export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee }) {
   const router = useRouter();
   const clientDejaLie = soumissionExistante?.client
     ? clientsExistants.find((c) => c.id === soumissionExistante.client.id) || soumissionExistante.client
@@ -325,11 +325,11 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
           <span>{totalEstime.toFixed(2)} $</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-          <span style={{ color: "var(--text-muted)" }}>TPS ({tpsTaux}%)</span>
+          <span style={{ color: "var(--text-muted)" }}>TPS ({tpsTaux}%){tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
           <span>{tpsMontant.toFixed(2)} $</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-          <span style={{ color: "var(--text-muted)" }}>TVQ ({tvqTaux}%)</span>
+          <span style={{ color: "var(--text-muted)" }}>TVQ ({tvqTaux}%){tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
           <span>{tvqMontant.toFixed(2)} $</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>

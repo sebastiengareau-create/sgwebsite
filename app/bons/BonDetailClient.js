@@ -57,7 +57,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [] }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [] }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -469,11 +469,11 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>
-              <span>TPS</span>
+              <span>TPS{tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
               <span>{bon.facture.tpsMontant.toFixed(2)} $</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-              <span>TVQ</span>
+              <span>TVQ{tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
               <span>{bon.facture.tvqMontant.toFixed(2)} $</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 12 }}>
@@ -675,11 +675,11 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>
-              <span>TPS ({tpsTaux}%)</span>
+              <span>TPS ({tpsTaux}%){tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
               <span>{tpsEstime.toFixed(2)} $</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-              <span>TVQ ({tvqTaux}%)</span>
+              <span>TVQ ({tvqTaux}%){tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
               <span>{tvqEstime.toFixed(2)} $</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)" }}>

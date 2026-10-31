@@ -19,7 +19,7 @@ export default async function NouvelleSoumissionPage() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
+      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} />
     </div>
   );
 }
