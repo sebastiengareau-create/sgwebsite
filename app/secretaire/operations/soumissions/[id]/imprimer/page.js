@@ -7,6 +7,7 @@ import { image, CLIENT } from "@/lib/client";
 import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { LibelleTaxe } from "@/app/components/PiedFacture";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", FACTUREE: "Facturée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
@@ -71,12 +72,6 @@ export default async function ImprimerSoumission(props) {
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>
                 {adresseLigne1}<br />{adresseLigne2}<br />{telephone}
               </p>
-              {(dict.tps_numero || dict.tvq_numero) && (
-                <p style={{ fontSize: 10.5, color: "#999", margin: "3px 0 0", lineHeight: 1.4 }}>
-                  {dict.tps_numero && <>TPS : {dict.tps_numero}<br /></>}
-                  {dict.tvq_numero && <>TVQ : {dict.tvq_numero}</>}
-                </p>
-              )}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -142,11 +137,11 @@ export default async function ImprimerSoumission(props) {
             <span>{totalEstime.toFixed(2)} $</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666" }}>
-            <span>TPS ({tpsTaux}%)</span>
+            <LibelleTaxe libelle={`TPS (${tpsTaux}%)`} numero={dict.tps_numero} />
             <span>{tpsMontant.toFixed(2)} $</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666" }}>
-            <span>TVQ ({tvqTaux}%)</span>
+            <LibelleTaxe libelle={`TVQ (${tvqTaux}%)`} numero={dict.tvq_numero} />
             <span>{tvqMontant.toFixed(2)} $</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: "1px solid #ddd" }}>

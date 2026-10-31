@@ -115,6 +115,8 @@ export default async function DetailBonPage(props) {
         coutHoraireMecanicien={coutHoraireMecanicien}
         tpsTaux={tpsTaux}
         tvqTaux={tvqTaux}
+        tpsNumero={dict.tps_numero || ""}
+        tvqNumero={dict.tvq_numero || ""}
         sitesPieces={sitesPieces}
         fournisseurs={fournisseurs}
         peutCommander={peutCommander}

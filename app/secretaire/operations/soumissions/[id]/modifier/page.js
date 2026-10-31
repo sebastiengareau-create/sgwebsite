@@ -29,7 +29,7 @@ export default async function ModifierSoumissionPage(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
+      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
     </div>
   );
 }
