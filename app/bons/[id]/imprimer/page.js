@@ -10,6 +10,7 @@ import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materiel
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, libelleContenuKit } from "@/lib/kits";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
 import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -24,7 +25,7 @@ const COLONNES_TRAVAUX = "1fr 55px 45px 65px 75px"; // description | hrs | qté 
 export default async function ImprimerBon(props) {
   const params = await props.params;
   const session = await obtenirSession();
-  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone } = await obtenirInfosEntreprise();
+  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone, courriel } = await obtenirInfosEntreprise();
   if (!session) redirect("/login");
 
   const [bon, parametres] = await Promise.all([
@@ -111,13 +112,8 @@ export default async function ImprimerBon(props) {
                 {adresseLigne1}<br />
                 {adresseLigne2}<br />
                 {telephone}
+                {courriel && <><br />{courriel}</>}
               </p>
-              {(dict.tps_numero || dict.tvq_numero) && (
-                <p style={{ fontSize: 10, color: "#888", margin: "4px 0 0", lineHeight: 1.4 }}>
-                  {dict.tps_numero && <>TPS : {dict.tps_numero}<br /></>}
-                  {dict.tvq_numero && <>TVQ : {dict.tvq_numero}</>}
-                </p>
-              )}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -233,7 +229,7 @@ export default async function ImprimerBon(props) {
           )}
         </div>
 
-        <div style={{ marginTop: 16, marginLeft: "auto", width: 260 }}>
+        <div style={{ marginTop: 16, marginLeft: "auto", width: 320, maxWidth: "100%" }}>
           <LigneTotal label="Main-d'œuvre" valeur={totalMainOeuvre} />
           {totalAutresRevenus > 0 && <LigneTotal label="Autres services" valeur={totalAutresRevenus} />}
           <LigneTotal label="Pièces" valeur={totalPieces} />
@@ -245,8 +241,8 @@ export default async function ImprimerBon(props) {
               <LigneTotal label="Sous-total après escompte" valeur={totalFacture} gras />
             </>
           )}
-          <LigneTotal label={`TPS (${tpsTaux}%)`} valeur={tpsMontant} petit />
-          <LigneTotal label={`TVQ (${tvqTaux}%)`} valeur={tvqMontant} petit />
+          <LigneTotal label={<LibelleTaxe libelle={`TPS (${tpsTaux}%)`} numero={dict.tps_numero} />} valeur={tpsMontant} petit />
+          <LigneTotal label={<LibelleTaxe libelle={`TVQ (${tvqTaux}%)`} numero={dict.tvq_numero} />} valeur={tvqMontant} petit />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "2px solid #17150f" }}>
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>Total {estFacturee ? "" : "estimé "}(taxes incl.)</span>
             <span style={{ fontSize: 20, fontWeight: 700 }}>{totalAvecTaxes.toFixed(2)} $</span>
@@ -260,9 +256,7 @@ export default async function ImprimerBon(props) {
           )}
         </div>
 
-        <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>
-          {nomEntreprise} — document généré le {new Date().toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
-        </p>
+        <PiedFacture nomEntreprise={nomEntreprise} />
       </div>
     </div>
   );

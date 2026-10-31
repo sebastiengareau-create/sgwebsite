@@ -7,6 +7,7 @@ import { image } from "@/lib/client";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
 
 // Facture de vente d'un véhicule à vendre, à imprimer — même présentation
 // que la facture d'un bon (app/bons/[id]/imprimer).
@@ -25,7 +26,7 @@ export default async function ImprimerFactureVente(props) {
   const client = fv.client;
   const v = vv.vehicule;
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
-  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone } = infos;
+  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone, courriel } = infos;
 
   return (
     <div>
@@ -46,13 +47,8 @@ export default async function ImprimerFactureVente(props) {
               <h1 style={{ fontSize: 22, margin: 0 }}>{nomEntreprise}</h1>
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>
                 {adresseLigne1}<br />{adresseLigne2}<br />{telephone}
+                {courriel && <><br />{courriel}</>}
               </p>
-              {(dict.tps_numero || dict.tvq_numero) && (
-                <p style={{ fontSize: 10, color: "#888", margin: "4px 0 0", lineHeight: 1.4 }}>
-                  {dict.tps_numero && <>TPS : {dict.tps_numero}<br /></>}
-                  {dict.tvq_numero && <>TVQ : {dict.tvq_numero}</>}
-                </p>
-              )}
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
@@ -82,10 +78,10 @@ export default async function ImprimerFactureVente(props) {
           <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>{fv.prixVente.toFixed(2)} $</div>
         </div>
 
-        <div style={{ marginTop: 16, marginLeft: "auto", width: 260 }}>
+        <div style={{ marginTop: 16, marginLeft: "auto", width: 320, maxWidth: "100%" }}>
           <LigneTotal label="Sous-total" valeur={fv.prixVente} />
-          <LigneTotal label="TPS" valeur={fv.tpsMontant} petit />
-          <LigneTotal label="TVQ" valeur={fv.tvqMontant} petit />
+          <LigneTotal label={<LibelleTaxe libelle="TPS" numero={dict.tps_numero} />} valeur={fv.tpsMontant} petit />
+          <LigneTotal label={<LibelleTaxe libelle="TVQ" numero={dict.tvq_numero} />} valeur={fv.tvqMontant} petit />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "2px solid #17150f" }}>
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>Total (taxes incl.)</span>
             <span style={{ fontSize: 20, fontWeight: 700 }}>{fv.totalAvecTaxes.toFixed(2)} $</span>
@@ -94,9 +90,7 @@ export default async function ImprimerFactureVente(props) {
 
         {fv.note && <p style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 24, padding: 10, background: "#f2f0ea", borderRadius: 4 }}>{fv.note}</p>}
 
-        <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>
-          {nomEntreprise} — document généré le {new Date().toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
-        </p>
+        <PiedFacture nomEntreprise={nomEntreprise} />
       </div>
     </div>
   );
