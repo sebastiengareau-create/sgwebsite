@@ -1016,7 +1016,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       {verrouille && (
         <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-muted)" }}>
           Poste : {probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE"
-            ? `${probleme.categorieRevenu} — ${postesRevenu.find((c) => c.numero === probleme.categorieRevenu)?.nom || ""}`
+            ? `${probleme.categorieRevenu} — ${postesRevenu.find((c) => c.numero === probleme.categorieRevenu)?.nom || NOMS_POSTES_RESERVES[probleme.categorieRevenu] || ""}`
             : `🔧 ${COMPTE_MAIN_OEUVRE} — Main-d'œuvre`}
         </div>
       )}
@@ -2079,6 +2079,10 @@ const champStyle = {
   flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
   background: "var(--surface)", color: "var(--text)", fontSize: 13,
 };
+
+// Postes réservés (pas dans la liste des postes) : lignes fixes d'une
+// soumission facturée telle quelle (profil soumissionFacturerDirect)
+const NOMS_POSTES_RESERVES = { 4000: "Main-d'œuvre", 4010: "Pièces" };
 
 const boutonAjout = {
   padding: "0 16px", borderRadius: 8, border: "1px solid var(--border)",

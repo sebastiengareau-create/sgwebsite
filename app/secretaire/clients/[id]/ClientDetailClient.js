@@ -12,7 +12,7 @@ import { libelleVehicule } from "@/lib/vehicules";
 import { formaterTelephone } from "@/lib/telephone";
 
 const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
-const STATUTS_SOUMISSION = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée" };
+const STATUTS_SOUMISSION = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", FACTUREE: "✓ Facturée" };
 const JOUR_MS = 86400000;
 
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
@@ -232,7 +232,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre }) {
                         <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{dateCourte(s.creeLe)}</span>
                         {s.vehiculeInfo && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>🚗 {s.vehiculeInfo}</div>}
                       </span>
-                      <span style={{ color: s.statut === "ACCEPTEE" ? "var(--success)" : "var(--text-muted)", fontSize: 11, fontWeight: s.statut === "ACCEPTEE" ? 700 : 400 }}>
+                      <span style={{ color: s.statut !== "EN_ATTENTE" ? "var(--success)" : "var(--text-muted)", fontSize: 11, fontWeight: s.statut !== "EN_ATTENTE" ? 700 : 400 }}>
                         {s.statut === "ACCEPTEE" ? "✓ Acceptée → bon" : STATUTS_SOUMISSION[s.statut] || s.statut}
                       </span>
                     </div>

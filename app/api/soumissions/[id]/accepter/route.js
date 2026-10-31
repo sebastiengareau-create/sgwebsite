@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { prochainNumeroClient, prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
+import { prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
-import { verserVehiculeAuDossier, kilometrageVehicule } from "@/lib/clients";
+import { clientEtVehiculeDuBon } from "@/lib/soumissions";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 
 export async function POST(request, props) {
@@ -19,6 +19,11 @@ export async function POST(request, props) {
     include: { taches: true, vehicule: true },
   });
   if (!soumission) return NextResponse.json({ erreur: "Soumission introuvable." }, { status: 404 });
+  // Profil soumissionFacturerDirect : une soumission se facture, elle ne
+  // devient pas un bon à suivre
+  if (CLIENT.soumissionFacturerDirect) {
+    return NextResponse.json({ erreur: "Les soumissions se facturent directement (bouton « Facturé »)." }, { status: 409 });
+  }
   if (soumission.bonId) {
     return NextResponse.json({ erreur: "Cette soumission a déjà été transformée en bon." }, { status: 409 });
   }
@@ -33,22 +38,9 @@ export async function POST(request, props) {
     }
   }
 
-  // Client : réutilise celui déjà lié, sinon en crée un nouveau
-  let clientId = soumission.clientId;
-  if (!clientId) {
-    const client = await prisma.client.create({
-      data: { numero: await prochainNumeroClient(), nom: soumission.clientNom, telephone: soumission.clientTelephone || null },
-    });
-    clientId = client.id;
-  }
-
-  // Véhicule : celui du dossier choisi sur la soumission (s'il y est
-  // toujours), sinon le nouveau, versé au dossier du client
-  const vehiculeId = soumission.vehicule?.clientId === clientId
-    ? soumission.vehicule.id
-    : await verserVehiculeAuDossier(clientId, soumission.vehiculeDetails);
-
-  const kilometrage = await kilometrageVehicule(vehiculeId);
+  // Client : réutilise celui déjà lié, sinon en crée un nouveau ; véhicule
+  // du dossier, sinon le nouveau, versé au dossier du client
+  const { clientId, vehiculeId, kilometrage } = await clientEtVehiculeDuBon(soumission);
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,

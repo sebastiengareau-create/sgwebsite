@@ -542,7 +542,7 @@ model Soumission {
   vehiculeId      String? // véhicule choisi dans le dossier du client
   vehicule        Vehicule?         @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
   vehiculeDetails Json? // { annee, marque, modele, version, niv, plaque, kilometrage } d'un nouveau véhicule — versé au dossier du client quand la soumission devient un bon
-  statut          String            @default("EN_ATTENTE") // "EN_ATTENTE" | "ACCEPTEE"
+  statut          String            @default("EN_ATTENTE") // "EN_ATTENTE" | "ACCEPTEE" | "FACTUREE" (profil soumissionFacturerDirect)
   bonId           String?           @unique // rempli une fois transformée en vrai bon de commande
   taches          TacheSoumission[]
   creeLe          DateTime          @default(now())

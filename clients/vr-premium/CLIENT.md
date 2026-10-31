@@ -102,6 +102,19 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   actives sont offertes dans la recherche, avec leur stock affiché. À la
   réception suivante, le stock remonte ; le coût moyen ne tient compte que
   des pièces reçues (les pièces manquantes sont déjà sorties).
+- `soumissionFacturerDirect: true` — dans **Soumissions**, un seul bouton
+  **« ✓ Facturé »** au lieu de « Accepter → créer le bon » : la facture
+  reprend **exactement ce qui a été entré** — heures estimées × taux horaire,
+  pièces estimées à leur prix, plus TPS/TVQ (même total que l'estimé de la
+  liste), sans fournitures d'atelier ni escompte
+  (`POST /api/soumissions/[id]/facturer`). Un bon déjà terminé porte la
+  facture : une tâche par tâche de la soumission (ligne fixe main-d'œuvre,
+  compte 4000) puis une par pièce (ligne fixe, compte 4010) — pas de poinçon
+  ni de sortie d'inventaire. La soumission passe à « Facturée ».
+  Une soumission acceptée avant ce réglage (ex. SOU-001) a un bouton
+  **« ↩ Remettre en attente »** (pour tous les clients) : son bon est supprimé
+  s'il est encore vide ; refusé s'il a déjà du temps, des pièces ou une
+  facture.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
