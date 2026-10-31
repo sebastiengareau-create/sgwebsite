@@ -15,6 +15,7 @@ import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, tacheAuForfait, libelleContenuKit } from "@/lib/kits";
+import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
@@ -69,6 +70,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // Un bon facturé est figé — plus rien n'est modifiable dessus (tâches,
   // pièces, temps, photos, poste). Seul "Annuler la facture" le débloque.
   const factureExiste = !!bon.facture;
+  // Pièces d'une soumission facturée (lignes fixes) : section à part, au début
+  const { pieces: piecesSoumission, taches: tachesAffichees } = separerPiecesSoumission(bon.problemes);
   // Pièce commandée pas encore reçue : le bon ne se facture pas avant
   const aDesPiecesBo = piecesBo(bon).length > 0;
   // Bon interne sur un véhicule à vendre : sa facture (sans taxes) est payée
@@ -710,7 +713,21 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         )}
       </div>
 
-      {CLIENT.piecesEnHautDuBon && peutModifier && bon.problemes.length > 0 && (
+      {/* Pièces d'une soumission facturée : au début, avant les tâches */}
+      {piecesSoumission.length > 0 && (
+        <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+          <Label>Pièces ({piecesSoumission.length})</Label>
+          {piecesSoumission.map(ligneDePieceSoumission).map((l) => (
+            <div key={l.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "4px 0", borderTop: "1px solid var(--border)" }}>
+              <span>{l.nom}</span>
+              <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>{l.qte} × {l.prix.toFixed(2)} $ = <strong style={{ color: "var(--text)" }}>{l.total.toFixed(2)} $</strong></span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bon d'une soumission facturée : ses pièces sont dans la section ci-dessus */}
+      {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
         <PiecesBon
           titre="Pièces du bon"
           style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}
@@ -725,11 +742,11 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       )}
 
       <div style={{ marginTop: 20 }}>
-        <Label>Tâches ({bon.problemes.length})</Label>
+        <Label>Tâches ({tachesAffichees.length})</Label>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {bon.problemes.map((pr, idx) => (
+        {tachesAffichees.map((pr, idx) => (
           <LigneTache
             key={pr.id}
             probleme={pr}
@@ -745,7 +762,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             estGerant={estGerant}
             moi={moi}
             verrouille={factureExiste}
-            peutSupprimer={peutModifier && !factureExiste && bon.problemes.length > 1}
+            peutSupprimer={peutModifier && !factureExiste && tachesAffichees.length > 1}
             onSupprimer={() => {
               if (pr.pieces.length > 0 && !window.confirm(`Supprimer la tâche « ${pr.description} » ? Ses pièces retourneront en stock.`)) return;
               supprimerProbleme(pr.id);

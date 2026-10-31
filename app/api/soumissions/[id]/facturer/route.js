@@ -13,7 +13,7 @@ import { posterFactureEmise, COMPTE_MAIN_OEUVRE } from "@/lib/comptabilite";
 // est créé, déjà terminé, dont les tâches portent ces montants en lignes de
 // facturation fixes (main-d'œuvre au compte 4000, pièces au compte 4010) —
 // pas de poinçon ni de sortie d'inventaire.
-const COMPTE_PIECES = "4010";
+import { COMPTE_PIECES_SOUMISSION as COMPTE_PIECES } from "@/lib/piecesSoumission";
 
 export async function POST(request, props) {
   const params = await props.params;
