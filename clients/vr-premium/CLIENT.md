@@ -125,7 +125,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   Une soumission acceptée avant ce réglage (ex. SOU-001) a un bouton
   **« ↩ Remettre en attente »** (pour tous les clients) : son bon est supprimé
   s'il est encore vide ; refusé s'il a déjà du temps, des pièces ou une
-  facture.
+  facture en vigueur. Une soumission facturée dont la facture a été
+  **annulée** revient aussi en attente : le bon et la facture annulée restent
+  comme historique (seulement détachés), et la soumission peut être
+  refacturée.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique

@@ -20,6 +20,14 @@ export default async function ListeSoumissions() {
     prisma.parametre.findMany(),
   ]);
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
+  // Soumissions facturées : la facture est-elle encore en vigueur ? Annulée
+  // (ou supprimée), la soumission peut revenir en attente.
+  const bonIdsFactures = soumissions.filter((s) => s.statut === "FACTUREE" && s.bonId).map((s) => s.bonId);
+  const facturesEnVigueur = new Set((await prisma.facture.findMany({
+    where: { bonId: { in: bonIdsFactures }, statut: { not: "ANNULEE" } },
+    select: { bonId: true },
+  })).map((f) => f.bonId));
+  const soumissionsAvecFacture = soumissions.map((s) => ({ ...s, factureEnVigueur: s.statut === "FACTUREE" && facturesEnVigueur.has(s.bonId) }));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
   const tpsTaux = Number(dict.tps_taux || 5);
   const tvqTaux = Number(dict.tvq_taux || 9.975);
@@ -30,7 +38,7 @@ export default async function ListeSoumissions() {
       <OperationsTabs />
       <FacturationPeriodes />
       <ResumeOperations />
-      <SoumissionsListe soumissions={soumissions} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
+      <SoumissionsListe soumissions={soumissionsAvecFacture} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
     </div>
   );
 }

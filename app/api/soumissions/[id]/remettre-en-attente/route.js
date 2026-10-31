@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 
-// Remet une soumission acceptée en attente. Le bon créé à partir d'elle est
-// supprimé s'il est encore vide (aucun temps poinçonné, aucune pièce) ; un
-// bon déjà commencé ou facturé n'est jamais touché — on refuse.
+// Remet une soumission acceptée (ou facturée puis annulée) en attente. Le bon
+// créé à partir d'elle est supprimé s'il est encore vide (aucun temps
+// poinçonné, aucune pièce). Un bon dont la facture est annulée reste tel
+// quel avec elle (document officiel) : la soumission en est seulement
+// détachée, et pourra être facturée de nouveau. Un bon commencé ou avec une
+// facture en vigueur n'est jamais touché — on refuse.
 export async function POST(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
@@ -23,22 +26,23 @@ export async function POST(request, props) {
     : null;
 
   if (bon) {
-    if (bon.facture) {
-      return NextResponse.json({ erreur: `Le bon #${bon.numero} de cette soumission est déjà facturé (${bon.facture.numero}) — elle ne peut plus revenir en attente.` }, { status: 409 });
+    if (bon.facture && bon.facture.statut !== "ANNULEE") {
+      return NextResponse.json({ erreur: `Le bon #${bon.numero} de cette soumission est facturé (${bon.facture.numero}). Annule d'abord cette facture (fiche du bon), puis remets la soumission en attente.` }, { status: 409 });
     }
-    const commence = bon.problemes.some((pr) => pr._count.pieces > 0 || pr._count.entreesTemps > 0);
+    const commence = !bon.facture && bon.problemes.some((pr) => pr._count.pieces > 0 || pr._count.entreesTemps > 0);
     if (commence) {
       return NextResponse.json({ erreur: `Le bon #${bon.numero} de cette soumission a déjà du temps ou des pièces. Supprime d'abord ce bon (sa fiche), puis remets la soumission en attente.` }, { status: 409 });
     }
   }
 
   await prisma.$transaction(async (tx) => {
-    if (bon) {
+    // Facture annulée : le bon et la facture restent, seulement détachés
+    if (bon && !bon.facture) {
       await tx.rendezVous.deleteMany({ where: { bonId: bon.id, source: "BON" } });
       await tx.bonTravail.delete({ where: { id: bon.id } }); // tâches et photos en cascade
     }
     await tx.soumission.update({ where: { id: soumission.id }, data: { statut: "EN_ATTENTE", bonId: null } });
   });
 
-  return NextResponse.json({ ok: true, bonSupprime: bon?.numero || null });
+  return NextResponse.json({ ok: true, bonSupprime: bon && !bon.facture ? bon.numero : null });
 }
