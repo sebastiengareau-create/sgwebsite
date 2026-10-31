@@ -7,6 +7,12 @@ import { VEHICULE_VIDE } from "../../../../components/ChampsVehicule";
 import ChoixVehiculeClient from "../../../../components/ChoixVehiculeClient";
 import { valeursFormulaireVehicule } from "@/lib/vehicules";
 import { formaterTelephone } from "@/lib/telephone";
+import { CLIENT } from "@/lib/client";
+
+// Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
+// en haut, avant les tâches. Les pièces restent enregistrées sur une tâche
+// (la première), comme celles du bon.
+const PIECES_EN_HAUT = CLIENT.piecesEnHautDuBon;
 
 function nouvelleTache() {
   return { id: Math.random().toString(36).slice(2), description: "", tempsEstime: "", pieces: [] };
@@ -48,6 +54,9 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
         }))
       : [nouvelleTache()]
   );
+  // Pièces de la section du haut (PIECES_EN_HAUT) : toutes celles de la soumission
+  const [piecesHaut, setPiecesHaut] = useState(() =>
+    (soumissionExistante?.taches || []).flatMap((t) => t.pieces.map((p) => ({ id: p.id, nom: p.nom, prixEstime: String(p.prixEstime), qte: String(p.qte) }))));
   const [erreur, setErreur] = useState("");
   const [confirmation, setConfirmation] = useState(vientDEtreCreee ? "✓ Soumission créée." : "");
   const [enCours, setEnCours] = useState(false);
@@ -93,6 +102,9 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
   function supprimerTache(id) {
     setTaches((prev) => prev.filter((t) => t.id !== id));
   }
+  function majPieceHaut(pieceId, champ, valeur) {
+    setPiecesHaut((prev) => prev.map((p) => (p.id === pieceId ? { ...p, [champ]: valeur } : p)));
+  }
   function ajouterPiece(tacheId) {
     setTaches((prev) => prev.map((t) => (t.id === tacheId ? { ...t, pieces: [...t.pieces, nouvellePiece()] } : t)));
   }
@@ -109,7 +121,8 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
 
   const totalTemps = taches.reduce((s, t) => s + (Number(t.tempsEstime) || 0), 0);
   const totalMainOeuvre = totalTemps * tauxHoraireClient;
-  const totalPieces = taches.reduce((s, t) => s + t.pieces.reduce((s2, p) => s2 + (Number(p.prixEstime) || 0) * (Number(p.qte) || 0), 0), 0);
+  const montantPieces = (liste) => liste.reduce((s, p) => s + (Number(p.prixEstime) || 0) * (Number(p.qte) || 0), 0);
+  const totalPieces = PIECES_EN_HAUT ? montantPieces(piecesHaut) : taches.reduce((s, t) => s + montantPieces(t.pieces), 0);
   const totalEstime = totalMainOeuvre + totalPieces;
   // Taxes comme sur une facture
   const tpsMontant = totalEstime * (tpsTaux / 100);
@@ -139,10 +152,12 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
         clientNom: nomFinal, clientTelephone,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
         vehicule: choixVehicule === "nouveau" ? vehicule : null,
-        taches: tachesValides.map((t) => ({
+        taches: tachesValides.map((t, i) => ({
           description: t.description,
           tempsEstime: t.tempsEstime,
-          pieces: t.pieces.filter((p) => p.nom.trim()).map((p) => ({ nom: p.nom, prixEstime: p.prixEstime, qte: p.qte })),
+          // Pièces du haut : rattachées à la première tâche, comme sur le bon
+          pieces: (PIECES_EN_HAUT ? (i === 0 ? piecesHaut : []) : t.pieces)
+            .filter((p) => p.nom.trim()).map((p) => ({ nom: p.nom, prixEstime: p.prixEstime, qte: p.qte })),
         })),
       }),
     });
@@ -228,6 +243,24 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
         onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
         libelleNouveau="+ Autre véhicule (ajouté au dossier du client si la soumission est acceptée)"
       />
+      {PIECES_EN_HAUT && (
+        <>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Pièces de la soumission</div>
+          <div className="carte carte-s">
+            {piecesHaut.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
+                {piecesHaut.map((p) => (
+                  <LignePiece key={p.id} piece={p} onChange={(champ, valeur) => majPieceHaut(p.id, champ, valeur)} onSupprimer={() => setPiecesHaut((prev) => prev.filter((x) => x.id !== p.id))} />
+                ))}
+              </div>
+            )}
+            <button type="button" onClick={() => setPiecesHaut((prev) => [...prev, nouvellePiece()])} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
+              + Ajouter une pièce estimée
+            </button>
+          </div>
+        </>
+      )}
+
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Tâches estimées</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {taches.map((t, idx) => (
@@ -257,21 +290,20 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
               </span>
             </div>
 
-            {t.pieces.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
-                {t.pieces.map((p) => (
-                  <div key={p.id} style={{ display: "flex", gap: 6 }}>
-                    <input placeholder="Pièce" value={p.nom} onChange={(e) => majPiece(t.id, p.id, "nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12 }} />
-                    <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => majPiece(t.id, p.id, "qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
-                    <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => majPiece(t.id, p.id, "prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 70, fontSize: 12 }} />
-                    <button type="button" onClick={() => supprimerPiece(t.id, p.id)} style={boutonTexte}>✕</button>
+            {!PIECES_EN_HAUT && (
+              <>
+                {t.pieces.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
+                    {t.pieces.map((p) => (
+                      <LignePiece key={p.id} piece={p} onChange={(champ, valeur) => majPiece(t.id, p.id, champ, valeur)} onSupprimer={() => supprimerPiece(t.id, p.id)} />
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+                <button type="button" onClick={() => ajouterPiece(t.id)} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
+                  + Ajouter une pièce estimée
+                </button>
+              </>
             )}
-            <button type="button" onClick={() => ajouterPiece(t.id)} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
-              + Ajouter une pièce estimée
-            </button>
           </div>
         ))}
       </div>
@@ -316,6 +348,17 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
         {enCours ? "Enregistrement…" : soumissionExistante ? "Sauvegarder les modifications" : "Créer la soumission"}
       </button>
     </form>
+  );
+}
+
+function LignePiece({ piece: p, onChange, onSupprimer }) {
+  return (
+    <div style={{ display: "flex", gap: 6 }}>
+      <input placeholder="Pièce" value={p.nom} onChange={(e) => onChange("nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12 }} />
+      <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => onChange("qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
+      <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => onChange("prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 70, fontSize: 12 }} />
+      <button type="button" onClick={onSupprimer} style={boutonTexte}>✕</button>
+    </div>
   );
 }
 
