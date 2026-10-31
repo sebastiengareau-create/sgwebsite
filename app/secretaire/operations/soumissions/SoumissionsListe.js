@@ -68,7 +68,10 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
   }
 
   async function remettreEnAttente(s) {
-    if (!window.confirm(`Remettre la soumission #${s.numero} en attente ?${s.bonId ? " Le bon créé à partir d'elle sera supprimé (seulement s'il est encore vide)." : ""}`)) return;
+    const detail = s.statut === "FACTUREE"
+      ? " Le bon et sa facture annulée restent comme historique ; la soumission pourra être facturée de nouveau."
+      : s.bonId ? " Le bon créé à partir d'elle sera supprimé (seulement s'il est encore vide)." : "";
+    if (!window.confirm(`Remettre la soumission #${s.numero} en attente ?${detail}`)) return;
     setErreurId(null);
     setEnCoursId(s.id);
     const res = await fetch(`/api/soumissions/${s.id}/remettre-en-attente`, { method: "POST" });
@@ -111,8 +114,8 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
           const totalEstime = (totalTemps * tauxHoraireClient + totalPieces) * (1 + (tpsTaux + tvqTaux) / 100);
           const dejaTransformee = !!s.bonId;
           const facturee = s.statut === "FACTUREE";
-          // Acceptée (avec ou sans bon), pas facturée : peut revenir en attente
-          const peutRemettreEnAttente = !facturee && (dejaTransformee || s.statut === "ACCEPTEE");
+          // Acceptée (avec ou sans bon), ou facturée puis annulée : peut revenir en attente
+          const peutRemettreEnAttente = !s.factureEnVigueur && (dejaTransformee || s.statut !== "EN_ATTENTE");
 
           return (
             <div key={s.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${COULEUR_STATUT(s.statut)}` }}>
@@ -135,7 +138,7 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
                 <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
                   {dejaTransformee && (
                     <Link href={`/bons/${s.bonId}`} style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", textDecoration: "none" }}>
-                      {facturee ? "✓ Facturée — voir la facture →" : "✓ Transformée en bon de commande →"}
+                      {facturee ? (s.factureEnVigueur ? "✓ Facturée — voir la facture →" : "Facture annulée — voir le bon →") : "✓ Transformée en bon de commande →"}
                     </Link>
                   )}
                   {peutRemettreEnAttente && (
