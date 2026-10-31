@@ -58,7 +58,7 @@ export default async function ImprimerBon(props) {
   const totalMainOeuvre = estFacturee ? bon.facture.totalMainOeuvre : totalHeures * tauxHoraireClient;
   const totalAutresRevenus = estFacturee
     ? (bon.facture.totalAutresRevenus || 0)
-    : bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE").reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
+    : bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE").reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1), 0);
   const totalMaterielAtelier = estFacturee ? (bon.facture.totalMaterielAtelier || 0) : montantMaterielAtelier(totalHeures);
   const sousTotalAvantEscompte = estFacturee
     ? bon.facture.totalFacture + (bon.facture.escompteApplique || 0)
@@ -167,7 +167,7 @@ export default async function ImprimerBon(props) {
         {bon.problemes.map((pr, idx) => {
           const estMainOeuvre = (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE";
           const heuresTache = heuresFacturablesTache(pr);
-          const montantManuel = !estMainOeuvre ? (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1) : 0;
+          const montantManuel = !estMainOeuvre ? (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1) : 0;
           return (
           <div key={pr.id} style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>{idx + 1}. {pr.description}</div>
@@ -179,7 +179,7 @@ export default async function ImprimerBon(props) {
               <LigneTravail description="Main-d'œuvre" hrs={fmtHeures(heuresTache)} prix={tauxHoraireClient} total={heuresTache * tauxHoraireClient} />
             )}
             {!estMainOeuvre && montantManuel > 0.005 && (
-              <LigneTravail description={pr.factureDescription || "Service"} qte={pr.factureQte || 1} prix={pr.facturePrixUnitaire || 0} total={montantManuel} />
+              <LigneTravail description={pr.factureDescription || "Service"} qte={pr.factureQte ?? 1} prix={pr.facturePrixUnitaire || 0} total={montantManuel} />
             )}
             {!CLIENT.piecesEnHautDuBon && pr.pieces.map((l) => <LignePiece key={l.id} l={l} />)}
 

@@ -280,7 +280,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   const totalMainOeuvre = totalHeuresTerminees * tauxHoraireEffectif;
   const totalAutresRevenus = bon.problemes
     .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
-    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
+    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1), 0);
   const totalMaterielAtelier = montantMaterielAtelier(totalHeuresTerminees);
   const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   // Ancien escompte en dollars : affiché en pourcentage équivalent
@@ -908,7 +908,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
       body: JSON.stringify({
         factureDescription: editDescriptionFacturation,
         facturePrixUnitaire: parseFloat(editPrixFacturation.replace(",", ".")) || 0,
-        factureQte: parseFloat(editQteFacturation.replace(",", ".")) || 1,
+        factureQte: (() => { const n = parseFloat(editQteFacturation.replace(",", ".")); return Number.isFinite(n) && n >= 0 ? n : 1; })(),
       }),
     });
     setEnCours(false);
@@ -1082,8 +1082,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
           <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>💵 Facturation de cette tâche</div>
           {probleme.factureDescription && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{probleme.factureDescription}</div>}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-            <span style={{ color: "var(--text-muted)" }}>{probleme.factureQte || 1} × {(probleme.facturePrixUnitaire || 0).toFixed(2)} $</span>
-            <span style={{ fontWeight: 700 }}>{((probleme.facturePrixUnitaire || 0) * (probleme.factureQte || 1)).toFixed(2)} $</span>
+            <span style={{ color: "var(--text-muted)" }}>{probleme.factureQte ?? 1} × {(probleme.facturePrixUnitaire || 0).toFixed(2)} $</span>
+            <span style={{ fontWeight: 700 }}>{((probleme.facturePrixUnitaire || 0) * (probleme.factureQte ?? 1)).toFixed(2)} $</span>
           </div>
         </div>
       )}

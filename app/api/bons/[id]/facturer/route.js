@@ -62,7 +62,7 @@ export async function POST(request, props) {
   const totalMainOeuvre = heuresFacturees * tauxHoraireClient;
   const totalAutresRevenus = bon.problemes
     .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
-    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte || 1), 0);
+    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1), 0);
   const totalMaterielAtelier = montantMaterielAtelier(heuresFacturees);
   const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   const escompte = montantEscompte(bon, sousTotalAvantEscompte);

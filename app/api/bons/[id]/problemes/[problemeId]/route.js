@@ -43,7 +43,11 @@ export async function PATCH(request, props) {
   }
   if (factureDescription !== undefined) data.factureDescription = factureDescription || null;
   if (facturePrixUnitaire !== undefined) data.facturePrixUnitaire = Number(facturePrixUnitaire) || 0;
-  if (factureQte !== undefined) data.factureQte = Number(factureQte) || 1;
+  if (factureQte !== undefined) {
+    // 0 est une vraie quantité (rien à facturer) ; seul un nombre invalide vaut 1
+    const n = Number(factureQte);
+    data.factureQte = Number.isFinite(n) && n >= 0 ? n : 1;
+  }
 
   const existe = await prisma.probleme.findFirst({ where: { id: params.problemeId, bonId: params.id }, select: { id: true } });
   if (!existe) return NextResponse.json({ erreur: "Tâche introuvable sur ce bon." }, { status: 404 });

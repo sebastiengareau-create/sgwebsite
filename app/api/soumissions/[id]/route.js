@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { lireVehiculeSoumission } from "@/lib/soumissions";
+import { lireVehiculeSoumission, quantiteSoumission } from "@/lib/soumissions";
 
 export async function PUT(request, props) {
   const params = await props.params;
@@ -37,7 +37,7 @@ export async function PUT(request, props) {
             create: (t.pieces || []).map((p) => ({
               nom: p.nom,
               prixEstime: Number(p.prixEstime) || 0,
-              qte: Number(p.qte) || 1,
+              qte: quantiteSoumission(p.qte),
             })),
           },
         })),

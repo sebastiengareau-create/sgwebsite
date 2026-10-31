@@ -109,7 +109,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
 
   const totalTemps = taches.reduce((s, t) => s + (Number(t.tempsEstime) || 0), 0);
   const totalMainOeuvre = totalTemps * tauxHoraireClient;
-  const totalPieces = taches.reduce((s, t) => s + t.pieces.reduce((s2, p) => s2 + (Number(p.prixEstime) || 0) * (Number(p.qte) || 1), 0), 0);
+  const totalPieces = taches.reduce((s, t) => s + t.pieces.reduce((s2, p) => s2 + (Number(p.prixEstime) || 0) * (Number(p.qte) || 0), 0), 0);
   const totalEstime = totalMainOeuvre + totalPieces;
   // Taxes comme sur une facture
   const tpsMontant = totalEstime * (tpsTaux / 100);
@@ -262,7 +262,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
                 {t.pieces.map((p) => (
                   <div key={p.id} style={{ display: "flex", gap: 6 }}>
                     <input placeholder="Pièce" value={p.nom} onChange={(e) => majPiece(t.id, p.id, "nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12 }} />
-                    <input type="number" min={1} placeholder="Qté" value={p.qte} onChange={(e) => majPiece(t.id, p.id, "qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
+                    <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => majPiece(t.id, p.id, "qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
                     <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => majPiece(t.id, p.id, "prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 70, fontSize: 12 }} />
                     <button type="button" onClick={() => supprimerPiece(t.id, p.id)} style={boutonTexte}>✕</button>
                   </div>
