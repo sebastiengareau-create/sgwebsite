@@ -65,6 +65,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   section par tâche. Les pièces ajoutées sont rattachées à la première tâche
   du bon ; sur la facture (page imprimée et PDF), elles sont dans une
   section « Pièces » à part, après les tâches.
+  Même présentation dans les **soumissions** : une section « Pièces de la
+  soumission » au-dessus des tâches (formulaire), et « Pièces » avant les
+  travaux sur la soumission imprimée ; les pièces sont enregistrées sur la
+  première tâche.
 - `materielAtelierParHeure: 1.5` — au bas de la facture, une ligne (le montant seul, sans les heures ni le taux)
   **« Fournitures d'atelier »** : heures de main-d'œuvre facturées × 1,50 $.
   Taxable, ajoutée au sous-total avant l'escompte, figée sur la facture

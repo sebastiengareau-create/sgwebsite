@@ -3,7 +3,7 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
-import { image } from "@/lib/client";
+import { image, CLIENT } from "@/lib/client";
 import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
@@ -42,6 +42,8 @@ export default async function ImprimerSoumission(props) {
   const tvqMontant = totalEstime * (tvqTaux / 100);
   const totalAvecTaxes = totalEstime + tpsMontant + tvqMontant;
   const garantie = soumission.client?.garantieProlongee;
+  const piecesEnHaut = CLIENT.piecesEnHautDuBon;
+  const toutesPieces = soumission.taches.flatMap((t) => t.pieces);
   // Véhicule du dossier choisi, ou le nouveau gardé avec la soumission
   const vehicule = soumission.vehicule || soumission.vehiculeDetails;
 
@@ -107,6 +109,14 @@ export default async function ImprimerSoumission(props) {
           {!vehicule && soumission.vehiculeInfo && <div style={{ fontSize: 13, marginTop: 10 }}>🚗 {soumission.vehiculeInfo}</div>}
         </div>
 
+        {/* Profil piecesEnHautDuBon : comme sur le bon, toutes les pièces d'abord */}
+        {piecesEnHaut && toutesPieces.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Pièces</div>
+            <TablePieces pieces={toutesPieces} />
+          </div>
+        )}
+
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 8 }}>Travaux estimés</div>
         {soumission.taches.map((t, idx) => (
           <div key={t.id} style={{ marginBottom: 14 }}>
@@ -114,20 +124,7 @@ export default async function ImprimerSoumission(props) {
               <span>{idx + 1}. {t.description}</span>
               <span style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>{t.tempsEstime}h × {tauxHoraireClient.toFixed(2)} $ = {(t.tempsEstime * tauxHoraireClient).toFixed(2)} $</span>
             </div>
-            {t.pieces.length > 0 && (
-              <table style={{ width: "100%", fontSize: 12, marginTop: 4, borderCollapse: "collapse" }}>
-                <tbody>
-                  {t.pieces.map((p) => (
-                    <tr key={p.id}>
-                      <td style={{ padding: "2px 0", color: "#444" }}>{p.nom}</td>
-                      <td style={{ padding: "2px 0", textAlign: "center", width: 50 }}>{p.qte} ×</td>
-                      <td style={{ padding: "2px 0", textAlign: "right", width: 70 }}>{p.prixEstime.toFixed(2)} $</td>
-                      <td style={{ padding: "2px 0", textAlign: "right", width: 80, fontWeight: 600 }}>{(p.qte * p.prixEstime).toFixed(2)} $</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            {!piecesEnHaut && t.pieces.length > 0 && <TablePieces pieces={t.pieces} />}
           </div>
         ))}
 
@@ -163,5 +160,22 @@ export default async function ImprimerSoumission(props) {
         </p>
       </div>
     </div>
+  );
+}
+
+function TablePieces({ pieces }) {
+  return (
+    <table style={{ width: "100%", fontSize: 12, marginTop: 4, borderCollapse: "collapse" }}>
+      <tbody>
+        {pieces.map((p) => (
+          <tr key={p.id}>
+            <td style={{ padding: "2px 0", color: "#444" }}>{p.nom}</td>
+            <td style={{ padding: "2px 0", textAlign: "center", width: 50 }}>{p.qte} ×</td>
+            <td style={{ padding: "2px 0", textAlign: "right", width: 70 }}>{p.prixEstime.toFixed(2)} $</td>
+            <td style={{ padding: "2px 0", textAlign: "right", width: 80, fontWeight: 600 }}>{(p.qte * p.prixEstime).toFixed(2)} $</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
