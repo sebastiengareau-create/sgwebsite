@@ -147,6 +147,10 @@ model BonTravail {
   // Note interne (profil noteInterneBon) : texte libre consulté à l'écran
   // seulement, jamais imprimé ni sur la facture
   noteInterne         String?
+  // Nom du client affiché sur CE bon et sa facture seulement (correction
+  // demandée par le client) ; vide = le nom du dossier. Le dossier, le
+  // véhicule et le reste ne changent pas. Voir lib/nomClient.js.
+  clientNomAffiche    String?
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])

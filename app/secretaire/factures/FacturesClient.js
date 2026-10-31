@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { nomClientBon } from "@/lib/nomClient";
 import { useRouter } from "next/navigation";
 import FormulaireEncaissement from "../../components/FormulaireEncaissement";
 import { regrouperParJour, cleMoisQuebec } from "@/lib/regroupementDates";
@@ -53,7 +54,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
 
   const serveur = q && resultats?.q === q ? resultats : null;
   const rechercheEnCours = !!q && !serveur;
-  const source = !q ? factures : serveur?.factures || factures.filter((f) => f.numero.toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q));
+  const source = !q ? factures : serveur?.factures || factures.filter((f) => f.numero.toLowerCase().includes(q) || nomClientBon(f.bon).toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q));
   const facturesFiltrees = source.filter((f) => filtre === "TOUTES" || f.statut === filtre);
 
   // Les factures du mois en cours restent affichées une par une ; les plus
@@ -94,7 +95,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
             <span style={{ fontSize: 11, fontWeight: 700, color: STATUTS[f.statut].color }}>{STATUTS[f.statut].label}</span>
           </div>
         </div>
-        <div style={{ fontWeight: 600, marginTop: 2 }}>{f.bon.client.nom}</div>
+        <div style={{ fontWeight: 600, marginTop: 2 }}>{nomClientBon(f.bon)}</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(f.dateEmission).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
         {f.statut === "PAYEE" && f.referenceVersement && (
           <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>Réf. {f.referenceVersement}</div>

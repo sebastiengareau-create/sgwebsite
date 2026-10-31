@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { nomClientBon } from "@/lib/nomClient";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { genererPdfFacture } from "@/lib/pdfFacture";
@@ -60,7 +61,7 @@ export async function POST(request, props) {
       from: `${nomEntreprise} <${adresseEnvoi}>`,
       to: destinataire,
       subject: `Facture ${bon.facture.numero} — ${nomEntreprise}`,
-      text: `Bonjour ${bon.client.nom},\n\nVoici votre facture ${bon.facture.numero}, en pièce jointe.\n\nMontant total : ${bon.facture.totalAvecTaxes.toFixed(2)} $\n\nMerci de votre confiance,\n${nomEntreprise}`,
+      text: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${bon.facture.numero}, en pièce jointe.\n\nMontant total : ${bon.facture.totalAvecTaxes.toFixed(2)} $\n\nMerci de votre confiance,\n${nomEntreprise}`,
       attachments: [
         {
           filename: `facture-${bon.facture.numero}.pdf`,

@@ -28,6 +28,11 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
     : null;
 
   const [clientSelectionne, setClientSelectionne] = useState(clientDejaLie);
+  // Nom du client sur cette soumission seulement (corrigé au besoin) — le
+  // dossier, le véhicule et le reste ne changent pas
+  const [nomSurSoumission, setNomSurSoumission] = useState(clientDejaLie ? (soumissionExistante.clientNom || clientDejaLie.nom) : "");
+  const [editionNom, setEditionNom] = useState(false);
+  const [nomEnEdition, setNomEnEdition] = useState("");
   const [rechercheClient, setRechercheClient] = useState(soumissionExistante?.clientNom || "");
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const boiteRef = useRef(null);
@@ -75,8 +80,22 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
     return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q)).slice(0, 6);
   }, [rechercheClient, clientsExistants]);
 
+  function validerNom() {
+    const nouveau = nomEnEdition.trim() || clientSelectionne.nom;
+    if (nouveau !== nomSurSoumission) {
+      const message = nouveau !== clientSelectionne.nom
+        ? `Êtes-vous certain de changer le nom du client pour « ${nouveau} » ?\n\nSeulement sur cette soumission (et sa facture) : le dossier du client (${clientSelectionne.nom}), le véhicule et le reste ne changent pas.`
+        : `Êtes-vous certain de remettre le nom du dossier (« ${clientSelectionne.nom} ») ?`;
+      if (!window.confirm(message)) return;
+      setNomSurSoumission(nouveau);
+    }
+    setEditionNom(false);
+  }
+
   function choisirClient(c) {
     setClientSelectionne(c);
+    setNomSurSoumission(c.nom);
+    setEditionNom(false);
     setRechercheClient(c.nom);
     setClientTelephone(c.telephone || "");
     setAfficherSuggestions(false);
@@ -135,7 +154,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
     setConfirmation("");
 
     const tachesValides = taches.filter((t) => t.description.trim());
-    const nomFinal = clientSelectionne ? clientSelectionne.nom : clientNom;
+    const nomFinal = clientSelectionne ? (nomSurSoumission.trim() || clientSelectionne.nom) : clientNom;
     if (!nomFinal.trim() || tachesValides.length === 0) {
       setErreur("Indique le nom du client et au moins une tâche.");
       return;
@@ -193,15 +212,35 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
 
       {clientSelectionne ? (
         <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{clientSelectionne.nom}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {editionNom ? (
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                  value={nomEnEdition} onChange={(e) => setNomEnEdition(e.target.value)} autoFocus placeholder={clientSelectionne.nom}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); validerNom(); } if (e.key === "Escape") setEditionNom(false); }}
+                  style={{ ...champInput, marginBottom: 0, flex: 1, minWidth: 140, fontWeight: 600 }}
+                />
+                <button type="button" onClick={validerNom} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>OK</button>
+                <button type="button" onClick={() => setEditionNom(false)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Annuler</button>
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {nomSurSoumission || clientSelectionne.nom}
+                <button type="button" onClick={() => { setNomEnEdition(nomSurSoumission || clientSelectionne.nom); setEditionNom(true); }} style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                  ✏️ Modifier le nom
+                </button>
+              </div>
+            )}
+            {nomSurSoumission && nomSurSoumission !== clientSelectionne.nom && !editionNom && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Nom sur cette soumission seulement — dossier : {clientSelectionne.nom}</div>
+            )}
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
               {clientSelectionne.telephone || "Client existant"}
               {clientSelectionne.garantieProlongee && <> · 🛡️ Garantie #{clientSelectionne.garantieProlongee}</>}
             </div>
           </div>
-          <button type="button" onClick={changerClientPourNouveau} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
-            Changer
+          <button type="button" onClick={changerClientPourNouveau} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
+            Changer de client
           </button>
         </div>
       ) : (

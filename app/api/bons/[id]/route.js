@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { nomAfficheAEnregistrer } from "@/lib/nomClient";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
@@ -41,9 +42,18 @@ export async function PATCH(request, props) {
       nouveauClient = client;
       const seul = client.vehicules.length === 1 ? client.vehicules[0] : null;
       data.clientId = client.id;
+      data.clientNomAffiche = null; // autre client : son nom de dossier
       data.vehiculeId = seul?.id || null;
       data.kilometrage = seul?.kilometrage ?? null;
     }
+  }
+  // Nom du client sur ce bon et sa facture seulement — vide revient au nom
+  // du dossier. Ne touche ni au dossier, ni au véhicule, ni au reste.
+  if (body.clientNomAffiche !== undefined) {
+    const bon = await prisma.bonTravail.findUnique({ where: { id: params.id }, include: { client: { select: { nom: true } } } });
+    if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
+    if (await bonEstVerrouille(params.id)) return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
+    data.clientNomAffiche = nomAfficheAEnregistrer(body.clientNomAffiche, bon.client.nom);
   }
   // Véhicule du dossier client sur lequel porte le bon — null le retire
   if (body.vehiculeId !== undefined && body.clientId === undefined) {
