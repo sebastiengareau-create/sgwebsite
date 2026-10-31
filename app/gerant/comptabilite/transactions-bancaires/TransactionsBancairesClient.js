@@ -333,8 +333,11 @@ function Importation({ compte }) {
     <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
       <div className="titre-section">Importer un fichier de la banque</div>
       <div style={{ display: "flex", gap: 8 }}>
+        {/* Pas d'attribut accept : l'iPhone (et certains Android) ne connaît
+            pas le type .ofx/.qfx/.qbo et grise ces fichiers dans le sélecteur.
+            Le serveur reconnaît le format et refuse un fichier illisible. */}
         <input
-          key={cleChamp} type="file" accept=".ofx,.qfx,.qbo,.csv,.txt"
+          key={cleChamp} type="file"
           onChange={(e) => { setFichier(e.target.files?.[0] || null); setChoixCompte(null); setErreur(""); }}
           className="champ" style={{ flex: 1, minWidth: 0 }}
         />
