@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { obtenirInfosEntreprise } from "@/lib/config";
+import { obtenirInfosEntreprise, lignesEnteteEntreprise } from "@/lib/config";
 import BoutonImprimer from "./BoutonImprimer";
 import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { image, CLIENT } from "@/lib/client";
@@ -25,7 +25,8 @@ const COLONNES_TRAVAUX = "1fr 55px 45px 65px 75px"; // description | hrs | qté 
 export default async function ImprimerBon(props) {
   const params = await props.params;
   const session = await obtenirSession();
-  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone, courriel } = await obtenirInfosEntreprise();
+  const infosEntreprise = await obtenirInfosEntreprise();
+  const { nomEntreprise } = infosEntreprise;
   if (!session) redirect("/login");
 
   const [bon, parametres] = await Promise.all([
@@ -109,10 +110,7 @@ export default async function ImprimerBon(props) {
             <div>
               <h1 style={{ fontSize: 22, margin: 0 }}>{nomEntreprise}</h1>
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>
-                {adresseLigne1}<br />
-                {adresseLigne2}<br />
-                {telephone}
-                {courriel && <><br />{courriel}</>}
+                {lignesEnteteEntreprise(infosEntreprise).map((ligne) => <span key={ligne} style={{ display: "block" }}>{ligne}</span>)}
               </p>
             </div>
           </div>

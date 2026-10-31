@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { obtenirInfosEntreprise } from "@/lib/config";
+import { obtenirInfosEntreprise, lignesEnteteEntreprise } from "@/lib/config";
 import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { image } from "@/lib/client";
 import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
@@ -26,7 +26,7 @@ export default async function ImprimerFactureVente(props) {
   const client = fv.client;
   const v = vv.vehicule;
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
-  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone, courriel } = infos;
+  const { nomEntreprise } = infos;
 
   return (
     <div>
@@ -46,8 +46,7 @@ export default async function ImprimerFactureVente(props) {
             <div>
               <h1 style={{ fontSize: 22, margin: 0 }}>{nomEntreprise}</h1>
               <p style={{ fontSize: 11.5, color: "#666", margin: "3px 0 0", lineHeight: 1.4 }}>
-                {adresseLigne1}<br />{adresseLigne2}<br />{telephone}
-                {courriel && <><br />{courriel}</>}
+                {lignesEnteteEntreprise(infos).map((ligne) => <span key={ligne} style={{ display: "block" }}>{ligne}</span>)}
               </p>
             </div>
           </div>
