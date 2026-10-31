@@ -40,13 +40,14 @@ export async function POST(request, props) {
 
   // Client : réutilise celui déjà lié, sinon en crée un nouveau ; véhicule
   // du dossier, sinon le nouveau, versé au dossier du client
-  const { clientId, vehiculeId, kilometrage } = await clientEtVehiculeDuBon(soumission);
+  const { clientId, vehiculeId, kilometrage, clientNomAffiche } = await clientEtVehiculeDuBon(soumission);
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: {
       numero,
       clientId,
       vehiculeId,
       kilometrage,
+      clientNomAffiche,
       // Les pièces et le temps de la soumission n'étaient que des estimés —
       // seules les descriptions des tâches sont reprises ; le vrai suivi
       // (temps, pièces réellement utilisées) démarre à zéro sur le bon.

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { nomClientBon } from "@/lib/nomClient";
 import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
@@ -43,7 +44,7 @@ export default async function BonDeCommande(props) {
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
-            <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
+            <div style={{ fontWeight: 600 }}>{nomClientBon(bon)}</div>
             {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
             {lignesAdresse(bon.client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
             {bon.client.garantieProlongee && (

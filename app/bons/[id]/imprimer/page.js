@@ -10,6 +10,7 @@ import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materiel
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, libelleContenuKit } from "@/lib/kits";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { nomClientBon } from "@/lib/nomClient";
 import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
 import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
 function fmtHeures(h) {
@@ -133,7 +134,7 @@ export default async function ImprimerBon(props) {
 
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
-          <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
+          <div style={{ fontWeight: 600 }}>{nomClientBon(bon)}</div>
           {bon.client.telephone && <div style={{ fontSize: 13 }}>{bon.client.telephone}</div>}
           {lignesAdresse(bon.client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
           {bon.client.garantieProlongee && (

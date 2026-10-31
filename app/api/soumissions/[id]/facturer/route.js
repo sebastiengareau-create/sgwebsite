@@ -45,7 +45,7 @@ export async function POST(request, props) {
   const tpsMontant = totalFacture * (tpsTaux / 100);
   const tvqMontant = totalFacture * (tvqTaux / 100);
 
-  const { clientId, vehiculeId, kilometrage } = await clientEtVehiculeDuBon(soumission);
+  const { clientId, vehiculeId, kilometrage, clientNomAffiche } = await clientEtVehiculeDuBon(soumission);
 
   // Une tâche par tâche de la soumission (ses heures), puis une par pièce
   const problemes = [
@@ -66,7 +66,7 @@ export async function POST(request, props) {
   ];
 
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
-    data: { numero, clientId, vehiculeId, kilometrage, statut: "TERMINE", tauxHoraireOverride: tauxHoraire },
+    data: { numero, clientId, vehiculeId, kilometrage, clientNomAffiche, statut: "TERMINE", tauxHoraireOverride: tauxHoraire },
   }));
   // Une à une, pour garder l'ordre des tâches sur la facture
   for (const pr of problemes) await prisma.probleme.create({ data: { ...pr, bonId: bon.id } });

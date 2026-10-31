@@ -16,6 +16,7 @@ import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, tacheAuForfait, libelleContenuKit } from "@/lib/kits";
 import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
+import { nomClientBon } from "@/lib/nomClient";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
@@ -375,7 +376,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         <StatusPill statut={bon.statut} />
       </div>
       <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
-      <ClientBon bon={bon} clients={clientsChoix} />
+      <ClientBon bon={bon} clients={clientsChoix} peutModifierNom={peutModifier && !factureExiste} />
       {(bon.client.adresse || bon.client.ville) && (
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
           {adresseComplete(bon.client)}
@@ -1675,9 +1676,36 @@ function NotesTache({ bonId, probleme, modifiable, onRafraichir }) {
 
 // Nom du client du bon, avec « Changer » pour corriger un mauvais choix
 // (clients : la liste offerte, vide si le bon n'est plus modifiable)
-function ClientBon({ bon, clients }) {
+function ClientBon({ bon, clients, peutModifierNom }) {
   const router = useRouter();
   const [edition, setEdition] = useState(false);
+  // Nom corrigé pour ce bon seulement (bon.clientNomAffiche)
+  const [editionNom, setEditionNom] = useState(false);
+  const [nom, setNom] = useState(nomClientBon(bon));
+
+  async function enregistrerNom() {
+    const nouveau = nom.trim();
+    if (nouveau === nomClientBon(bon)) { setEditionNom(false); return; }
+    const message = nouveau && nouveau !== bon.client.nom
+      ? `Êtes-vous certain de changer le nom du client pour « ${nouveau} » ?\n\nSeulement sur ce bon et sa facture : le dossier du client (${bon.client.nom}), le véhicule et le reste ne changent pas.`
+      : `Êtes-vous certain de remettre le nom du dossier (« ${bon.client.nom} ») sur ce bon ?`;
+    if (!confirm(message)) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bon.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientNomAffiche: nouveau }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    setEditionNom(false);
+    router.refresh();
+  }
   const [recherche, setRecherche] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -1715,10 +1743,27 @@ function ClientBon({ bon, clients }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 20, margin: "4px 0" }}>{bon.client.nom}</h1>
-        {clients.length > 0 && !edition && (
+        {editionNom ? (
+          <span style={{ display: "flex", gap: 6, alignItems: "center", margin: "4px 0", flexWrap: "wrap" }}>
+            <input
+              value={nom} onChange={(e) => setNom(e.target.value)} autoFocus disabled={enCours}
+              onKeyDown={(e) => { if (e.key === "Enter") enregistrerNom(); if (e.key === "Escape") { setEditionNom(false); setNom(nomClientBon(bon)); } }}
+              placeholder={bon.client.nom} className="champ" style={{ fontSize: 15, fontWeight: 700, padding: "5px 8px", maxWidth: 260 }}
+            />
+            <button onClick={enregistrerNom} disabled={enCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>Enregistrer</button>
+            <button onClick={() => { setEditionNom(false); setNom(nomClientBon(bon)); }} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Annuler</button>
+          </span>
+        ) : (
+          <h1 style={{ fontSize: 20, margin: "4px 0" }}>{nomClientBon(bon)}</h1>
+        )}
+        {peutModifierNom && !editionNom && !edition && (
+          <button onClick={() => { setNom(nomClientBon(bon)); setEditionNom(true); }} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            ✏️ Modifier le nom
+          </button>
+        )}
+        {clients.length > 0 && !edition && !editionNom && (
           <button onClick={() => setEdition(true)} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-            Changer
+            Changer de client
           </button>
         )}
       </div>
@@ -1759,6 +1804,14 @@ function ClientBon({ bon, clients }) {
           {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreur}</p>}
         </div>
       )}
+      {/* Nom corrigé sur ce bon : rappel du nom au dossier */}
+      {bon.clientNomAffiche && !editionNom && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -2 }}>Nom sur ce bon seulement — dossier : {bon.client.nom}</div>
+      )}
+      {editionNom && (
+        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Change le nom sur ce bon et sa facture seulement. Vide = nom du dossier ({bon.client.nom}).</div>
+      )}
+      {editionNom && erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>{erreur}</p>}
     </div>
   );
 }
