@@ -132,6 +132,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   **annulée** revient aussi en attente : le bon et la facture annulée restent
   comme historique (seulement détachés), et la soumission peut être
   refacturée.
+- `signatureFacture: true` — au bas des factures (facture d'un bon,
+  facture de vente d'un véhicule, PDF envoyé par courriel), une ligne
+  **« Signature : ______ »** pour signer, au lieu de la mention « VR
+  Premium — document généré le … » (`app/components/PiedFacture.js`).
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
