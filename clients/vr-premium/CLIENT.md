@@ -39,6 +39,11 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
     véhicules », coût 5010 « Coût des véhicules vendus ». L'achat d'un VR se
     saisit dans les comptes à payer sur le poste « Achat de véhicule à vendre
     (actif) » (débite 1250).
+  - **Alignement avec le grand livre** (en haut de Véhicules à vendre) :
+    coûtant des véhicules en stock comparé au solde du 1250, avec un bouton
+    qui passe l'écart contre 3010 « Soldes d'ouverture » (sans effet sur le
+    bénéfice). Pour les VR déjà à l'entreprise avant la comptabilité dans le
+    logiciel (leur coûtant de fiche n'avait jamais été porté au 1250).
 - `partstech: false` — **pas de PartsTech** (agrégateur de pièces
   automobiles, propre au modèle de base) : ni bouton « Chercher dans
   PartsTech » dans les commandes, ni section Paramètres → PartsTech.

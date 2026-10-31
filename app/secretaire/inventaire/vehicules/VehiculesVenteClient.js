@@ -16,7 +16,7 @@ const FILTRES = [
 
 const argent = (n) => `${(n || 0).toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
-export default function VehiculesVenteClient({ vehicules }) {
+export default function VehiculesVenteClient({ vehicules, alignement = null }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState("EN_STOCK");
   const [recherche, setRecherche] = useState("");
@@ -49,6 +49,8 @@ export default function VehiculesVenteClient({ vehicules }) {
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Coûtant total en stock</div>
         </div>
       </div>
+
+      {alignement && <AlignementVehicules alignement={alignement} />}
 
       <button
         onClick={() => setAfficherFormulaire((v) => !v)}
@@ -177,3 +179,55 @@ const champStyle = {
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
 const labelStyle = { display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 3 };
+
+// Coûtant des véhicules en stock comparé au compte 1250 du grand livre, avec
+// l'alignement contre 3010 Soldes d'ouverture (lib/vehiculesAVendre.js)
+function AlignementVehicules({ alignement }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const aligne = Math.abs(alignement.ecart) < 0.005;
+
+  async function aligner() {
+    if (!window.confirm(`Passer une écriture de ${argent(Math.abs(alignement.ecart))} entre 1250 Véhicules à vendre et 3010 Soldes d'ouverture ?`)) return;
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch("/api/vehicules-a-vendre/aligner", { method: "POST" });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur.");
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div style={{
+      background: aligne ? "rgba(111,169,107,0.10)" : "rgba(201,162,39,0.12)",
+      border: `1px solid ${aligne ? "var(--success)" : "#C9A227"}`,
+      borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 12.5,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <span>Coûtant des véhicules en stock</span><strong>{argent(alignement.valeurStock)}</strong>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2 }}>
+        <span>Grand livre — 1250 Véhicules à vendre</span><strong>{argent(alignement.soldeGL)}</strong>
+      </div>
+      <p style={{ margin: "8px 0 0", fontWeight: 700 }}>
+        {aligne ? "✅ Véhicules alignés avec le grand livre" : `⚠️ Écart de ${argent(alignement.ecart)}`}
+      </p>
+      {!aligne && (
+        <>
+          <p style={{ margin: "4px 0 8px", color: "var(--text-muted)" }}>
+            Pour les véhicules déjà à l'entreprise avant la comptabilité : l'alignement passe une écriture entre 1250 et 3010 Soldes d'ouverture, sans toucher au bénéfice. Un achat payé par l'entreprise se saisit plutôt dans les comptes à payer (poste « Achat de véhicule à vendre »).
+          </p>
+          <button onClick={aligner} disabled={enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+            {enCours ? "…" : "Aligner les véhicules sur le grand livre"}
+          </button>
+        </>
+      )}
+      {erreur && <p style={{ color: "var(--danger)", margin: "6px 0 0" }}>{erreur}</p>}
+    </div>
+  );
+}
