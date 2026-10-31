@@ -103,7 +103,7 @@ export default async function EspaceGerant(props) {
     calculerDetailRevenusDepenses({ debut: debutAnnee, fin: finAnnee }),
     prisma.facture.count({ where: { statut: "IMPAYEE", dateEmission: { lte: fin } } }),
     prisma.depense.findMany({ where: { statut: "IMPAYEE", dateFacture: { lte: fin } }, select: { fournisseurId: true }, distinct: ["fournisseurId"] }),
-    prisma.facture.aggregate({ where: { statut: "IMPAYEE", dateEmission: { lte: ilYA30Jours } }, _sum: { totalAvecTaxes: true }, _count: true }),
+    prisma.facture.aggregate({ where: { statut: "IMPAYEE", dateEmission: { lte: ilYA30Jours } }, _sum: { totalAvecTaxes: true, montantPaye: true }, _count: true }),
     // inclut les échues : une facture en retard est encore plus urgente
     prisma.depense.aggregate({ where: { statut: "IMPAYEE", dateEcheance: { lte: dansUneSemaine } }, _sum: { montant: true }, _count: true }),
     prisma.paie.findFirst({ where: { statut: { not: "CORRIGEE" } }, orderBy: { dateVersement: "desc" } }),
@@ -175,7 +175,7 @@ export default async function EspaceGerant(props) {
 
   const alertes = [];
   if (facturesEnRetard._count > 0) {
-    alertes.push({ niveau: "danger", icone: "🔴", texte: `${facturesEnRetard._count} facture${facturesEnRetard._count > 1 ? "s" : ""} en retard`, montant: facturesEnRetard._sum.totalAvecTaxes, href: "/secretaire/factures" });
+    alertes.push({ niveau: "danger", icone: "🔴", texte: `${facturesEnRetard._count} facture${facturesEnRetard._count > 1 ? "s" : ""} en retard`, montant: (facturesEnRetard._sum.totalAvecTaxes || 0) - (facturesEnRetard._sum.montantPaye || 0), href: "/secretaire/factures" });
   }
   if (depensesEcheanceProche._count > 0) {
     alertes.push({ niveau: "avertissement", icone: "🟠", texte: `${depensesEcheanceProche._count} facture${depensesEcheanceProche._count > 1 ? "s" : ""} fournisseur à payer (échue${depensesEcheanceProche._count > 1 ? "s" : ""} ou cette semaine)`, montant: depensesEcheanceProche._sum.montant, href: "/gerant/comptabilite/comptes-a-payer" });
