@@ -10,6 +10,7 @@ import { LIBELLE_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materiel
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, libelleContenuKit } from "@/lib/kits";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
 function fmtHeures(h) {
   const heures = Math.floor(h);
   const min = Math.round((h - heures) * 60);
@@ -41,6 +42,7 @@ export default async function ImprimerBon(props) {
   if (!bon) notFound();
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
+  const { pieces: piecesSoumission, taches: tachesAffichees } = separerPiecesSoumission(bon.problemes);
 
   // Temps total seulement : le nom des employés qui ont poinçonné n'apparaît
   // pas sur la facture du client
@@ -164,7 +166,16 @@ export default async function ImprimerBon(props) {
           <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Prix</div>
           <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Total</div>
         </div>
-        {bon.problemes.map((pr, idx) => {
+        {/* Pièces d'une soumission facturée : au début, avant les tâches */}
+        {piecesSoumission.length > 0 && (
+          <div style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>Pièces</div>
+            {piecesSoumission.map(ligneDePieceSoumission).map((l) => (
+              <LigneTravail key={l.id} description={l.nom} qte={l.qte} prix={l.prix} total={l.total} />
+            ))}
+          </div>
+        )}
+        {tachesAffichees.map((pr, idx) => {
           const estMainOeuvre = (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE";
           const heuresTache = heuresFacturablesTache(pr);
           const montantManuel = !estMainOeuvre ? (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1) : 0;
@@ -267,7 +278,7 @@ function LigneTravail({ description, hrs, qte, prix, total }) {
     <div style={{ display: "grid", gridTemplateColumns: COLONNES_TRAVAUX, fontSize: 12, padding: "2px 0" }}>
       <span style={{ color: "#444" }}>{description}</span>
       <span style={{ textAlign: "right" }}>{hrs || ""}</span>
-      <span style={{ textAlign: "right" }}>{qte || ""}</span>
+      <span style={{ textAlign: "right" }}>{qte ?? ""}</span>
       <span style={{ textAlign: "right" }}>{prix.toFixed(2)} $</span>
       <span style={{ textAlign: "right", fontWeight: 600 }}>{total.toFixed(2)} $</span>
     </div>
