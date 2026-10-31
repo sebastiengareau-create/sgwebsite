@@ -4,10 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
+import { CLIENT } from "@/lib/client";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
   ACCEPTEE: { label: "Acceptée", color: "#6FA96B" },
+  FACTUREE: { label: "Facturée", color: "#6FA96B" },
 };
 // Anciennes valeurs possibles sur des soumissions créées avant ce changement
 const LIBELLE_STATUT = (s) => STATUTS[s]?.label || (s === "BROUILLON" || s === "ENVOYEE" ? "En attente" : s === "REFUSEE" ? "Refusée" : s);
@@ -49,6 +51,36 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
     router.push(`/bons/${bonId}`);
   }
 
+  // Profil soumissionFacturerDirect : facture exactement la soumission
+  async function facturer(s) {
+    if (!window.confirm(`Facturer la soumission #${s.numero} ? La facture reprend exactement ce qui a été entré (heures × taux, pièces), plus les taxes.`)) return;
+    setErreurId(null);
+    setEnCoursId(s.id);
+    const res = await fetch(`/api/soumissions/${s.id}/facturer`, { method: "POST" });
+    setEnCoursId(null);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setErreurId({ id: s.id, message: data.erreur || "Erreur." });
+      return;
+    }
+    if (data.avertissementComptable) window.alert(data.avertissementComptable);
+    router.push(`/bons/${data.bonId}`);
+  }
+
+  async function remettreEnAttente(s) {
+    if (!window.confirm(`Remettre la soumission #${s.numero} en attente ?${s.bonId ? " Le bon créé à partir d'elle sera supprimé (seulement s'il est encore vide)." : ""}`)) return;
+    setErreurId(null);
+    setEnCoursId(s.id);
+    const res = await fetch(`/api/soumissions/${s.id}/remettre-en-attente`, { method: "POST" });
+    setEnCoursId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurId({ id: s.id, message: data.erreur || "Erreur." });
+      return;
+    }
+    router.refresh();
+  }
+
   async function supprimer(id, e) {
     e.preventDefault();
     e.stopPropagation();
@@ -78,6 +110,9 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
           const totalPieces = s.taches.reduce((sum, t) => sum + t.pieces.reduce((s2, p) => s2 + p.prixEstime * p.qte, 0), 0);
           const totalEstime = (totalTemps * tauxHoraireClient + totalPieces) * (1 + (tpsTaux + tvqTaux) / 100);
           const dejaTransformee = !!s.bonId;
+          const facturee = s.statut === "FACTUREE";
+          // Acceptée (avec ou sans bon), pas facturée : peut revenir en attente
+          const peutRemettreEnAttente = !facturee && (dejaTransformee || s.statut === "ACCEPTEE");
 
           return (
             <div key={s.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, borderLeft: `3px solid ${COULEUR_STATUT(s.statut)}` }}>
@@ -96,19 +131,42 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
                 </div>
               </Link>
 
-              {dejaTransformee ? (
-                <Link href={`/bons/${s.bonId}`} style={{ display: "inline-block", marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--success)", textDecoration: "none" }}>
-                  ✓ Transformée en bon de commande →
-                </Link>
+              {dejaTransformee || peutRemettreEnAttente ? (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  {dejaTransformee && (
+                    <Link href={`/bons/${s.bonId}`} style={{ fontSize: 11, fontWeight: 700, color: "var(--success)", textDecoration: "none" }}>
+                      {facturee ? "✓ Facturée — voir la facture →" : "✓ Transformée en bon de commande →"}
+                    </Link>
+                  )}
+                  {peutRemettreEnAttente && (
+                    <button
+                      onClick={() => remettreEnAttente(s)}
+                      disabled={enCoursId === s.id}
+                      style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}
+                    >
+                      ↩ Remettre en attente
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button
-                    onClick={() => accepter(s)}
-                    disabled={enCoursId === s.id}
-                    style={{ fontSize: 11, fontWeight: 700, color: "#17150f", background: "var(--success)", border: "none", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}
-                  >
-                    ✓ Accepter → créer le bon
-                  </button>
+                  {CLIENT.soumissionFacturerDirect ? (
+                    <button
+                      onClick={() => facturer(s)}
+                      disabled={enCoursId === s.id}
+                      style={{ fontSize: 11, fontWeight: 700, color: "#17150f", background: "var(--success)", border: "none", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}
+                    >
+                      ✓ Facturé
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => accepter(s)}
+                      disabled={enCoursId === s.id}
+                      style={{ fontSize: 11, fontWeight: 700, color: "#17150f", background: "var(--success)", border: "none", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}
+                    >
+                      ✓ Accepter → créer le bon
+                    </button>
+                  )}
                   <Link href={`/secretaire/operations/soumissions/${s.id}/imprimer`} target="_blank" style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8 }}>
                     🖨️
                   </Link>

@@ -8,7 +8,7 @@ import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
-const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
+const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", FACTUREE: "Facturée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
 export default async function ImprimerSoumission(props) {
   const params = await props.params;
