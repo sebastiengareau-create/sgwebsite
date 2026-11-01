@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { lireVehiculeSoumission, quantiteSoumission } from "@/lib/soumissions";
+import { lireVehiculeSoumission, quantiteSoumission, adresseClientSoumission } from "@/lib/soumissions";
 import { prochainNumeroSoumission, creerAvecNumero } from "@/lib/numerotation";
 
 export async function POST(request) {
@@ -10,7 +10,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { clientId, clientNom, clientTelephone, vehiculeId, vehicule, taches } = await request.json();
+  const { clientId, clientNom, clientTelephone, vehiculeId, vehicule, taches, ...corps } = await request.json();
 
   if (!clientNom || !taches || taches.length === 0) {
     return NextResponse.json({ erreur: "Nom du client et au moins une tâche requis." }, { status: 400 });
@@ -25,6 +25,7 @@ export async function POST(request) {
       clientId: clientId || null,
       clientNom,
       clientTelephone: clientTelephone || null,
+      ...adresseClientSoumission(clientId, corps),
       ...vehiculeSoumission.data,
       statut: "EN_ATTENTE",
       taches: {

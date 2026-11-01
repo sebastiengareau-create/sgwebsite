@@ -542,6 +542,12 @@ model Soumission {
   client          Client?           @relation(fields: [clientId], references: [id])
   clientNom       String
   clientTelephone String?
+  // Adresse d'un nouveau client (sans dossier) — versée à son dossier si la
+  // soumission devient un bon. Client lié : l'adresse vient de son dossier.
+  clientAdresse    String?
+  clientVille      String?
+  clientProvince   String? // code à deux lettres (ex. « QC »)
+  clientCodePostal String?
   vehiculeInfo    String? // libellé affiché : "2019 Honda Civic" (texte libre sur les anciennes soumissions)
   vehiculeId      String? // véhicule choisi dans le dossier du client
   vehicule        Vehicule?         @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
