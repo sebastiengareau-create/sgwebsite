@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 import { CLIENT } from "@/lib/client";
+import { correspondRecherche } from "@/lib/recherche";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -24,7 +25,7 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
   const filtrees = soumissions.filter((s) => {
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
-    return s.clientNom.toLowerCase().includes(q) || s.numero.toLowerCase().includes(q);
+    return correspondRecherche(q, s.clientNom, s.numero);
   });
 
   async function accepter(s, confirmerBonNonFacture = false) {

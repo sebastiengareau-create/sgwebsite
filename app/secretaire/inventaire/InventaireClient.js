@@ -693,7 +693,7 @@ function CodeInconnu({ code, pieces, onAssociee, onNouvelle, onFermer }) {
 
   const q = recherche.trim().toLowerCase();
   const suggestions = q
-    ? pieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)).slice(0, 8)
+    ? pieces.filter((p) => pieceCorrespond(p, q)).slice(0, 8)
     : [];
 
   async function associer(piece) {

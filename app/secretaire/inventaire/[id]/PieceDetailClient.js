@@ -6,7 +6,7 @@ import Link from "next/link";
 import { TitreSection } from "../../../components/ui";
 import ScannerCodeBarres from "../../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../../components/ImpressionEtiquettes";
-import { extraireIdEtiquette } from "@/lib/codesBarres";
+import { extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
 
 const ONGLETS = [
   { code: "resume", label: "Résumé" },
@@ -566,7 +566,7 @@ function FusionPiece({ piece, autresPieces, onFermer }) {
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const q = recherche.trim().toLowerCase();
-  const suggestions = q ? autresPieces.filter((p) => p.nom.toLowerCase().includes(q) || p.numero.toLowerCase().includes(q)).slice(0, 8) : [];
+  const suggestions = q ? autresPieces.filter((p) => pieceCorrespond(p, q)).slice(0, 8) : [];
 
   async function fusionner(cible) {
     if (!window.confirm(`Fusionner « ${piece.nom} » (${piece.numero}) dans « ${cible.nom} » (${cible.numero}) ?\n\nLe stock (${piece.qte}) s'ajoute à celui de « ${cible.nom} », tout l'historique et les numéros fournisseurs suivent, puis la fiche ${piece.numero} est supprimée. C'est irréversible.`)) return;

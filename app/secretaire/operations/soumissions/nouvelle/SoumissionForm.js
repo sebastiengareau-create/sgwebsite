@@ -11,6 +11,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import SelectProvince from "../../../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { CLIENT } from "@/lib/client";
+import { correspondRecherche } from "@/lib/recherche";
 
 // Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
 // en haut, avant les tâches. Les pièces restent enregistrées sur une tâche
@@ -87,7 +88,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
   const suggestions = useMemo(() => {
     const q = rechercheClient.trim().toLowerCase();
     if (!q) return [];
-    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q)).slice(0, 6);
+    return clientsExistants.filter((c) => correspondRecherche(q, c.nom)).slice(0, 6);
   }, [rechercheClient, clientsExistants]);
 
   function validerNom() {

@@ -9,6 +9,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import SelectProvince from "../../../components/SelectProvince";
 import { PROVINCE_DEFAUT, adresseComplete } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
+import { correspondRecherche } from "@/lib/recherche";
 
 const STATUTS_DEPENSE = {
   IMPAYEE: { label: "Impayées", color: "#C9A227" },
@@ -62,8 +63,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
       if (filtre === "EN_RETARD" && !etatEcheance(d)?.enRetard) return false;
       if (fournisseurFiltre && d.fournisseurId !== fournisseurFiltre) return false;
       if (terme) {
-        const texte = [d.fournisseur.nom, d.description, d.referenceVersement, d.montant.toFixed(2), ...d.lignes.map((l) => l.categorieDepense.nom)].filter(Boolean).join(" ").toLowerCase();
-        if (!texte.includes(terme)) return false;
+        if (!correspondRecherche(terme, d.fournisseur.nom, d.description, d.referenceVersement, d.montant.toFixed(2), d.lignes.map((l) => l.categorieDepense.nom))) return false;
       }
       return true;
     })

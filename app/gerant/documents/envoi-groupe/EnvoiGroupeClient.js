@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { remplirModele, passagesACompleter, sujetParDefaut, valeursClient } from "@/lib/documents";
+import { correspondRecherche } from "@/lib/recherche";
 
 const RE_COURRIEL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,7 +24,7 @@ export default function EnvoiGroupeClient({ modele, clients, communes, courrielC
 
   const aCompleter = passagesACompleter(`${sujet}\n${contenu}`);
   const terme = recherche.trim().toLowerCase();
-  const visibles = terme ? admissibles.filter((c) => [c.nom, c.courriel, c.ville].some((v) => v?.toLowerCase().includes(terme))) : admissibles;
+  const visibles = terme ? admissibles.filter((c) => correspondRecherche(terme, c.nom, c.courriel, c.ville)) : admissibles;
   const clientApercu = admissibles.find((c) => c.id === apercuId) || admissibles.find((c) => choisis.has(c.id));
   const valeursApercu = clientApercu ? { ...communes, ...valeursClient(clientApercu) } : null;
 

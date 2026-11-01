@@ -5,6 +5,7 @@ import Link from "next/link";
 import BanderoleBo from "../components/BanderoleBo";
 import DossiersParMois, { DossiersParMoisACharger } from "../components/DossiersParMois";
 import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
+import { correspondRecherche } from "@/lib/recherche";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -72,7 +73,7 @@ export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
 
   const serveur = q && resultats?.q === q ? resultats : null;
   const rechercheEnCours = !!q && !serveur;
-  const bonsRecherches = !q ? bons : serveur?.bons || bons.filter((b) => [b.numero, b.client.nom].some((champ) => champ && champ.toLowerCase().includes(q)));
+  const bonsRecherches = !q ? bons : serveur?.bons || bons.filter((b) => correspondRecherche(q, b.numero, b.client.nom, b.clientNomAffiche));
   // Pendant une recherche, les mois passés trouvés arrivent avec les résultats
   const moisACharger = q ? [] : moisAnciens;
   const nombreACharger = moisACharger.reduce((s, m) => s + m.nombre, 0);

@@ -12,6 +12,7 @@ import SelecteurCompteMode, { compteParDefaut } from "../../../../components/Sel
 import { ChampsFiche } from "../VehiculesVenteClient";
 import { libelleVehicule, descriptionVehicule } from "@/lib/vehicules";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
+import { correspondRecherche } from "@/lib/recherche";
 
 const argent = (n) => `${(n || 0).toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 const dateFr = (d) => (d ? new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : "");
@@ -232,7 +233,7 @@ function Vendre({ vv, clients, comptesTresorerie, tpsTaux, tvqTaux, bonsOuverts,
   const tps = Math.round(prix * tpsTaux) / 100;
   const tvq = Math.round(prix * tvqTaux) / 100;
   const q = rechercheClient.trim().toLowerCase();
-  const suggestions = q ? clients.filter((c) => c.nom.toLowerCase().includes(q) || c.telephone?.includes(q) || c.numero?.toLowerCase().includes(q)).slice(0, 8) : [];
+  const suggestions = q ? clients.filter((c) => correspondRecherche(q, c.nom, c.numero) || c.telephone?.includes(q)).slice(0, 8) : [];
   const clientChoisi = clients.find((c) => c.id === clientId);
 
   async function vendre(confirmerDoublon = false) {

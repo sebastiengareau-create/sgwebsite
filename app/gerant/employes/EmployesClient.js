@@ -10,6 +10,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
+import { correspondRecherche } from "@/lib/recherche";
 
 export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
   const router = useRouter();
@@ -19,8 +20,7 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
   const [voirInactifs, setVoirInactifs] = useState(false);
 
   const terme = recherche.trim().toLowerCase();
-  const filtres = employes.filter((e) => !terme || [e.nom, nomsRoles[e.role], e.assignation, e.courriel, e.telephone, e.numeroEmploye]
-    .some((champ) => champ && champ.toLowerCase().includes(terme)));
+  const filtres = employes.filter((e) => correspondRecherche(terme, e.nom, nomsRoles[e.role], e.assignation, e.courriel, e.telephone, e.numeroEmploye));
   const actifs = filtres.filter((e) => e.actif);
   const inactifs = filtres.filter((e) => !e.actif);
   useOrdreFiches("employes", [...actifs, ...(voirInactifs ? inactifs : [])].map((e) => e.id));

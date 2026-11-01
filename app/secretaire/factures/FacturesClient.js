@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import FormulaireEncaissement from "../../components/FormulaireEncaissement";
 import { regrouperParJour, cleMoisQuebec } from "@/lib/regroupementDates";
 import DossiersParMois, { DossiersParMoisACharger } from "../../components/DossiersParMois";
+import { correspondRecherche } from "@/lib/recherche";
 
 const STATUTS = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
@@ -54,7 +55,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
 
   const serveur = q && resultats?.q === q ? resultats : null;
   const rechercheEnCours = !!q && !serveur;
-  const source = !q ? factures : serveur?.factures || factures.filter((f) => f.numero.toLowerCase().includes(q) || nomClientBon(f.bon).toLowerCase().includes(q) || f.bon.client.nom.toLowerCase().includes(q) || f.bon.numero.toLowerCase().includes(q));
+  const source = !q ? factures : serveur?.factures || factures.filter((f) => correspondRecherche(q, f.numero, nomClientBon(f.bon), f.bon.client.nom, f.bon.numero));
   const facturesFiltrees = source.filter((f) => filtre === "TOUTES" || f.statut === filtre);
 
   // Les factures du mois en cours restent affichées une par une ; les plus

@@ -12,6 +12,7 @@ import { useOrdreFiches } from "../../components/NavigationFiches";
 import { libelleVehicule } from "@/lib/vehicules";
 import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
+import { correspondRecherche } from "@/lib/recherche";
 
 // Clients affichés d'un coup, puis par tranche avec « Afficher plus » : des
 // milliers de fiches à l'écran alourdissent la page, surtout sur cellulaire.
@@ -38,7 +39,7 @@ export default function ClientsClient({ clients, peutImporter }) {
       c.nom, c.telephone, c.courriel, c.adresse, c.ville, c.province, c.codePostal,
       ...c.vehicules.flatMap((v) => [v.plaque, v.niv, libelleVehicule(v)]),
     ];
-    return champs.some((champ) => champ && champ.toLowerCase().includes(q));
+    return correspondRecherche(q, champs);
   });
   useOrdreFiches("clients", clientsFiltres.map((c) => c.id));
 
