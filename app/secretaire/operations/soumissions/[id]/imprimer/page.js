@@ -86,7 +86,7 @@ export default async function ImprimerSoumission(props) {
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Client</div>
           <div style={{ fontWeight: 600 }}>{soumission.clientNom}</div>
           {soumission.clientTelephone && <div style={{ fontSize: 13 }}>{soumission.clientTelephone}</div>}
-          {soumission.client && lignesAdresse(soumission.client).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
+          {lignesAdresse(soumission.client || { adresse: soumission.clientAdresse, ville: soumission.clientVille, province: soumission.clientProvince, codePostal: soumission.clientCodePostal }).map((ligne) => <div key={ligne} style={{ fontSize: 13 }}>{ligne}</div>)}
           {garantie && (
             <div style={{ fontSize: 12, marginTop: 6, padding: "4px 8px", background: "#f2f0ea", borderRadius: 4, display: "inline-block" }}>
               🛡️ Garantie prolongée — contrat #{garantie}

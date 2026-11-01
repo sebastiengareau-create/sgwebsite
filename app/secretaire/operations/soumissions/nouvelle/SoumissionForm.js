@@ -7,6 +7,9 @@ import { VEHICULE_VIDE } from "../../../../components/ChampsVehicule";
 import ChoixVehiculeClient from "../../../../components/ChoixVehiculeClient";
 import { valeursFormulaireVehicule } from "@/lib/vehicules";
 import { formaterTelephone } from "@/lib/telephone";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../../components/ChampsAdresse";
+import SelectProvince from "../../../../components/SelectProvince";
+import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { CLIENT } from "@/lib/client";
 
 // Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
@@ -39,6 +42,13 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
 
   const [clientNom, setClientNom] = useState(soumissionExistante?.clientNom || "");
   const [clientTelephone, setClientTelephone] = useState(soumissionExistante?.clientTelephone || "");
+  // Adresse complète d'un nouveau client, comme sur un bon (versée à son
+  // dossier si la soumission devient un bon)
+  const [clientAdresse, setClientAdresse] = useState(soumissionExistante?.clientAdresse || "");
+  const [clientVille, setClientVille] = useState(soumissionExistante?.clientVille || "");
+  const [clientProvince, setClientProvince] = useState(soumissionExistante?.clientProvince || PROVINCE_DEFAUT);
+  const [clientCodePostal, setClientCodePostal] = useState(soumissionExistante?.clientCodePostal || "");
+  const remplirAdresse = remplisseurAdresse({ ville: clientVille, setAdresse: setClientAdresse, setVille: setClientVille, setProvince: setClientProvince, setCodePostal: setClientCodePostal });
   // Véhicule, comme sur un bon : un véhicule du dossier du client (son id),
   // "nouveau" (formulaire, versé au dossier si la soumission devient un bon)
   // ou "" (non précisé)
@@ -108,6 +118,10 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
+    setClientAdresse("");
+    setClientVille("");
+    setClientProvince(PROVINCE_DEFAUT);
+    setClientCodePostal("");
     setChoixVehicule("nouveau");
     setVehicule(VEHICULE_VIDE);
   }
@@ -169,6 +183,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
         clientNom: nomFinal, clientTelephone,
+        clientAdresse, clientVille, clientProvince, clientCodePostal,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
         vehicule: choixVehicule === "nouveau" ? vehicule : null,
         taches: tachesValides.map((t, i) => ({
@@ -235,7 +250,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
               <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Nom sur cette soumission seulement — dossier : {clientSelectionne.nom}</div>
             )}
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              {clientSelectionne.telephone || "Client existant"}
+              {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
               {clientSelectionne.garantieProlongee && <> · 🛡️ Garantie #{clientSelectionne.garantieProlongee}</>}
             </div>
           </div>
@@ -245,6 +260,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
         </div>
       ) : (
         <div ref={boiteRef} style={{ position: "relative" }}>
+          <label style={labelStyle}>Nom du client</label>
           <input
             required
             value={rechercheClient}
@@ -261,7 +277,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
                   style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}
                 >
                   <div style={{ fontWeight: 600 }}>{c.nom}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.telephone}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{[c.telephone, c.ville].filter(Boolean).join(" · ")}</div>
                 </button>
               ))}
             </div>
@@ -270,7 +286,24 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
       )}
 
       {!clientSelectionne && (
-        <input placeholder="Téléphone" value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+        <>
+          <label style={labelStyle}>Téléphone</label>
+          <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+          <label style={labelStyle}>Adresse</label>
+          <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
+          <label style={labelStyle}>Ville</label>
+          <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Province</label>
+              <SelectProvince valeur={clientProvince} onChange={setClientProvince} style={champInput} />
+            </div>
+            <div style={{ width: 110 }}>
+              <label style={labelStyle}>Code postal</label>
+              <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={champInput} />
+            </div>
+          </div>
+        </>
       )}
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
@@ -401,6 +434,7 @@ function LignePiece({ piece: p, onChange, onSupprimer }) {
   );
 }
 
+const labelStyle = { display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
 const champInput = {
   width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
