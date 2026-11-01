@@ -311,6 +311,11 @@ model Probleme {
   factureDescription  String?
   facturePrixUnitaire Float?
   factureQte          Float?          @default(1)
+  // Coût de main-d'œuvre fixé à la création (soumission facturée, profil
+  // soumissionCoutMainOeuvre : heures estimées × coûtant horaire), compté
+  // dans la rentabilité de la facture en plus des heures poinçonnées. Vide :
+  // seulement les heures poinçonnées.
+  coutMainOeuvreFixe  Float?
   bonId               String
   bon                 BonTravail      @relation(fields: [bonId], references: [id], onDelete: Cascade)
   photos              Photo[]

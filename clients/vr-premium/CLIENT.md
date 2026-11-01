@@ -123,6 +123,13 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   Sur le bon, la facture imprimée et le PDF, ces pièces sont regroupées dans
   une section « Pièces » **au début, avant les tâches**, comme sur la
   soumission (`lib/piecesSoumission.js`).
+- `soumissionCoutMainOeuvre: true` — une soumission facturée a un **coût de
+  main-d'œuvre** : heures estimées × « Coûtant horaire des mécaniciens »
+  (Paramètres, 95 $/h chez VR Premium), ex. 3 h → 285 $. Figé sur la tâche à
+  la facturation (`Probleme.coutMainOeuvreFixe`) et compté dans la
+  **Rentabilité de cette facture** (fiche du bon, gérant) — sans poinçon,
+  ce coût serait à 0 $. Pas d'écriture au grand livre : les salaires y
+  passent déjà par la paie.
   Les quantités sont reprises telles qu'entrées : une pièce à 0 (ou laissée
   vide) et une tâche à 0 h facturent 0.
   Une soumission acceptée avant ce réglage (ex. SOU-001) a un bouton
