@@ -309,7 +309,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * (l.coutant ?? l.piece?.coutant ?? 0), 0),
     0
   );
-  const coutMainOeuvre = bon.problemes.reduce(
+  // Soumission facturée (profil soumissionCoutMainOeuvre) : pas de poinçon,
+  // le coût fixé à la facturation (heures estimées × coûtant horaire) compte
+  const coutMainOeuvreFixe = bon.problemes.reduce((s, pr) => s + (pr.coutMainOeuvreFixe || 0), 0);
+  const coutMainOeuvre = coutMainOeuvreFixe + bon.problemes.reduce(
     (s, pr) => s + pr.entreesTemps
       .filter((t) => t.fin)
       .reduce((s2, t) => s2 + dureeHeures(t.debut, t.fin) * (t.employe?.tauxHoraireEmploye || coutHoraireMecanicien), 0),
@@ -493,7 +496,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                   <span>{coutPieces.toFixed(2)} $</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Coût réel main-d'œuvre (taux employés)</span>
+                  <span style={{ color: "var(--text-muted)" }}>{coutMainOeuvreFixe > 0 ? "Coût main-d'œuvre (heures estimées × coûtant horaire)" : "Coût réel main-d'œuvre (taux employés)"}</span>
                   <span>{coutMainOeuvre.toFixed(2)} $</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)", marginBottom: 6 }}>

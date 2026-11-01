@@ -41,6 +41,9 @@ export async function POST(request, props) {
   const tauxHoraire = Number(dict.taux_horaire_client || 195);
   const tpsTaux = Number(dict.tps_taux || 5);
   const tvqTaux = Number(dict.tvq_taux || 9.975);
+  // Profil soumissionCoutMainOeuvre : coût de la main-d'œuvre estimée, au
+  // coûtant horaire des mécaniciens — figé sur la tâche
+  const coutHoraire = CLIENT.soumissionCoutMainOeuvre ? Number(dict.cout_horaire_mecanicien || 95) : null;
 
   const totaux = totauxSoumission(soumission, tauxHoraire);
   const totalFacture = totaux.mainOeuvre + totaux.pieces;
@@ -63,6 +66,7 @@ export async function POST(request, props) {
       factureDescription: "Main-d'œuvre",
       facturePrixUnitaire: tauxHoraire,
       factureQte: t.tempsEstime || 0,
+      coutMainOeuvreFixe: coutHoraire != null ? (t.tempsEstime || 0) * coutHoraire : null,
     })),
     ...soumission.taches.flatMap((t) => t.pieces.map((p) => ({
       description: p.nom,
