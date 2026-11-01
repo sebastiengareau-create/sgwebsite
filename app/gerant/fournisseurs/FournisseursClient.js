@@ -10,6 +10,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { useOrdreFiches } from "../../components/NavigationFiches";
 import { adresseComplete, PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
+import { correspondRecherche } from "@/lib/recherche";
 
 export default function FournisseursClient({ fournisseurs, peutImporter }) {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function FournisseursClient({ fournisseurs, peutImporter }) {
     const q = recherche.trim().toLowerCase();
     if (!q) return true;
     const champs = [f.nom, f.telephone, f.courriel, f.adresse, f.ville, f.province, f.codePostal];
-    return champs.some((champ) => champ && champ.toLowerCase().includes(q));
+    return correspondRecherche(q, champs);
   });
   useOrdreFiches("fournisseurs", fournisseursFiltres.map((f) => f.id));
 
