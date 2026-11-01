@@ -7,6 +7,7 @@ import { libelleVehicule, identifiantsVehicule } from "@/lib/vehicules";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
 import OptionVehicule from "../../../components/OptionVehicule";
 import { formaterTelephone } from "@/lib/telephone";
+import { correspondRecherche } from "@/lib/recherche";
 
 export default function RendezVousForm({ clientsExistants }) {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function RendezVousForm({ clientsExistants }) {
   const suggestions = useMemo(() => {
     const q = rechercheClient.trim().toLowerCase();
     if (!q) return [];
-    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q)).slice(0, 6);
+    return clientsExistants.filter((c) => correspondRecherche(q, c.nom)).slice(0, 6);
   }, [rechercheClient, clientsExistants]);
 
   function choisirClient(c) {

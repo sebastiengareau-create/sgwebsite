@@ -25,6 +25,7 @@ import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
+import { correspondRecherche } from "@/lib/recherche";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -1714,8 +1715,7 @@ function ClientBon({ bon, clients, peutModifierNom }) {
   const chiffres = q.replace(/\D/g, "");
   const suggestions = q
     ? clients.filter((c) => c.id !== bon.clientId && (
-        c.nom.toLowerCase().includes(q)
-        || c.numero?.toLowerCase().includes(q)
+        correspondRecherche(q, c.nom, c.numero)
         || (chiffres.length >= 3 && c.telephone?.replace(/\D/g, "").includes(chiffres))
       )).slice(0, 8)
     : [];

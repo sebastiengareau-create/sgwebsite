@@ -15,6 +15,7 @@ import { useChoixPhoto } from "../../components/ChoixPhoto";
 import { CLIENT } from "@/lib/client";
 import { messageBonsNonFactures, QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 import { formaterTelephone } from "@/lib/telephone";
+import { correspondRecherche } from "@/lib/recherche";
 
 export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     const qCompact = q.replace(/[\s-]/g, "");
     const parVehicule = (c) => qCompact.length >= 3 && c.vehicules.some((v) =>
       [v.plaque, v.niv].some((x) => x && x.toLowerCase().replace(/[\s-]/g, "").includes(qCompact)));
-    return clientsExistants.filter((c) => c.nom.toLowerCase().includes(q) || parVehicule(c));
+    return clientsExistants.filter((c) => correspondRecherche(q, c.nom) || parVehicule(c));
   }, [rechercheClient, clientsExistants]);
 
   async function choisirClient(c) {

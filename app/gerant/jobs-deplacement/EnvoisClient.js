@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { STATUTS_ENVOI, STATUTS_ACTIFS, resumeAvis } from "@/lib/statutsEnvoi";
 import { dateCourteQuebec, heureQuebec } from "@/lib/regroupementDates";
+import { correspondRecherche } from "@/lib/recherche";
 
 function texteVehicule(v) {
   return v ? [v.annee, v.marque, v.modele].filter(Boolean).join(" ") : "";
@@ -21,7 +22,7 @@ export default function EnvoisClient({ bons, employes, envois, bonInitial }) {
   const [resultats, setResultats] = useState(null);
 
   const q = recherche.trim().toLowerCase();
-  const bonsFiltres = bons.filter((b) => !q || [b.numero, b.client.nom].some((c) => c?.toLowerCase().includes(q)));
+  const bonsFiltres = bons.filter((b) => correspondRecherche(q, b.numero, b.client.nom));
   const bon = bons.find((b) => b.id === bonId);
 
   function basculer(id) {

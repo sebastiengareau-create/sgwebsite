@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DESTINATAIRES, remplirModele, passagesACompleter, sujetParDefaut } from "@/lib/documents";
 import { image } from "@/lib/client";
+import { correspondRecherche } from "@/lib/recherche";
 
 // Choix de l'employé ou du client, texte rempli modifiable, puis impression
 // de la lettre sur l'en-tête de l'entreprise, ou envoi par courriel. Le
@@ -17,7 +18,7 @@ export default function RedigerClient({ modele, personnes, choisi, valeurs, entr
   const aCompleter = passagesACompleter(texte);
 
   const terme = recherche.trim().toLowerCase();
-  const resultats = terme ? personnes.filter((p) => p.nom.toLowerCase().includes(terme) || p.telephone?.includes(terme)).slice(0, 8) : [];
+  const resultats = terme ? personnes.filter((p) => correspondRecherche(terme, p.nom) || p.telephone?.includes(terme)).slice(0, 8) : [];
 
   function choisir(id) {
     setRecherche("");
