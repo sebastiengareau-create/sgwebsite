@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { inventairePourSoumission } from "@/lib/soumissions";
 import EnTete from "../../../../../components/EnTete";
 import SoumissionForm from "../../nouvelle/SoumissionForm";
 
@@ -11,13 +12,14 @@ export default async function ModifierSoumissionPage(props) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "operations"))) redirect("/login");
 
-  const [soumissionExistante, clients, parametres] = await Promise.all([
+  const [soumissionExistante, clients, parametres, inventaire] = await Promise.all([
     prisma.soumission.findUnique({
       where: { id: params.id },
       include: { taches: { include: { pieces: true } }, client: { include: { vehicules: { orderBy: { creeLe: "desc" } } } } },
     }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: { orderBy: { creeLe: "desc" } } } }),
     prisma.parametre.findMany(),
+    inventairePourSoumission(),
   ]);
   if (!soumissionExistante) notFound();
 
@@ -29,7 +31,7 @@ export default async function ModifierSoumissionPage(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm clientsExistants={clients} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
+      <SoumissionForm clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
     </div>
   );
 }

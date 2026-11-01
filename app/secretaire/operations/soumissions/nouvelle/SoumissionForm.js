@@ -12,6 +12,7 @@ import SelectProvince from "../../../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { CLIENT } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
+import { pieceCorrespond } from "@/lib/codesBarres";
 
 // Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
 // en haut, avant les tâches. Les pièces restent enregistrées sur une tâche
@@ -22,10 +23,23 @@ function nouvelleTache() {
   return { id: Math.random().toString(36).slice(2), description: "", tempsEstime: "", pieces: [] };
 }
 function nouvellePiece() {
-  return { id: Math.random().toString(36).slice(2), nom: "", prixEstime: "", qte: "1" };
+  return { id: Math.random().toString(36).slice(2), nom: "", prixEstime: "", qte: "1", pieceId: null };
 }
+// Pièce choisie dans l'inventaire : nom et prix de vente de la fiche (le prix
+// reste modifiable). Rien ne sort du stock ici — seulement quand la
+// soumission devient un bon ou une facture.
+function pieceDeLInventaire(piece) {
+  return { id: Math.random().toString(36).slice(2), nom: piece.nom, prixEstime: String(piece.prix ?? ""), qte: "1", pieceId: piece.id };
+}
+// Ajoute une pièce de l'inventaire à une liste : déjà là, sa quantité monte
+function ajouterDeLInventaire(liste, piece) {
+  const existante = liste.find((p) => p.pieceId === piece.id);
+  if (!existante) return [...liste, pieceDeLInventaire(piece)];
+  return liste.map((p) => (p === existante ? { ...p, qte: String((parseInt(p.qte) || 0) + 1) } : p));
+}
+const ligneDuFormulaire = (p) => ({ id: p.id, nom: p.nom, prixEstime: String(p.prixEstime), qte: String(p.qte), pieceId: p.pieceId || null });
 
-export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee }) {
+export default function SoumissionForm({ clientsExistants, inventaire = [], tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee }) {
   const router = useRouter();
   const clientDejaLie = soumissionExistante?.client
     ? clientsExistants.find((c) => c.id === soumissionExistante.client.id) || soumissionExistante.client
@@ -66,13 +80,13 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
           id: t.id,
           description: t.description,
           tempsEstime: String(t.tempsEstime),
-          pieces: t.pieces.map((p) => ({ id: p.id, nom: p.nom, prixEstime: String(p.prixEstime), qte: String(p.qte) })),
+          pieces: t.pieces.map(ligneDuFormulaire),
         }))
       : [nouvelleTache()]
   );
   // Pièces de la section du haut (PIECES_EN_HAUT) : toutes celles de la soumission
   const [piecesHaut, setPiecesHaut] = useState(() =>
-    (soumissionExistante?.taches || []).flatMap((t) => t.pieces.map((p) => ({ id: p.id, nom: p.nom, prixEstime: String(p.prixEstime), qte: String(p.qte) }))));
+    (soumissionExistante?.taches || []).flatMap((t) => t.pieces.map(ligneDuFormulaire)));
   const [erreur, setErreur] = useState("");
   const [confirmation, setConfirmation] = useState(vientDEtreCreee ? "✓ Soumission créée." : "");
   const [enCours, setEnCours] = useState(false);
@@ -142,6 +156,9 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
   function ajouterPiece(tacheId) {
     setTaches((prev) => prev.map((t) => (t.id === tacheId ? { ...t, pieces: [...t.pieces, nouvellePiece()] } : t)));
   }
+  function ajouterPieceInventaire(tacheId, piece) {
+    setTaches((prev) => prev.map((t) => (t.id === tacheId ? { ...t, pieces: ajouterDeLInventaire(t.pieces, piece) } : t)));
+  }
   function majPiece(tacheId, pieceId, champ, valeur) {
     setTaches((prev) => prev.map((t) =>
       t.id !== tacheId ? t : { ...t, pieces: t.pieces.map((p) => (p.id === pieceId ? { ...p, [champ]: valeur } : p)) }
@@ -192,7 +209,7 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
           tempsEstime: t.tempsEstime,
           // Pièces du haut : rattachées à la première tâche, comme sur le bon
           pieces: (PIECES_EN_HAUT ? (i === 0 ? piecesHaut : []) : t.pieces)
-            .filter((p) => p.nom.trim()).map((p) => ({ nom: p.nom, prixEstime: p.prixEstime, qte: p.qte })),
+            .filter((p) => p.nom.trim()).map((p) => ({ nom: p.nom, prixEstime: p.prixEstime, qte: p.qte, pieceId: p.pieceId || null })),
         })),
       }),
     });
@@ -323,13 +340,15 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
             {piecesHaut.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
                 {piecesHaut.map((p) => (
-                  <LignePiece key={p.id} piece={p} onChange={(champ, valeur) => majPieceHaut(p.id, champ, valeur)} onSupprimer={() => setPiecesHaut((prev) => prev.filter((x) => x.id !== p.id))} />
+                  <LignePiece key={p.id} piece={p} inventaire={inventaire} onChange={(champ, valeur) => majPieceHaut(p.id, champ, valeur)} onSupprimer={() => setPiecesHaut((prev) => prev.filter((x) => x.id !== p.id))} />
                 ))}
               </div>
             )}
-            <button type="button" onClick={() => setPiecesHaut((prev) => [...prev, nouvellePiece()])} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
-              + Ajouter une pièce estimée
-            </button>
+            <AjoutPieces
+              inventaire={inventaire}
+              onAjouterLibre={() => setPiecesHaut((prev) => [...prev, nouvellePiece()])}
+              onAjouterInventaire={(piece) => setPiecesHaut((prev) => ajouterDeLInventaire(prev, piece))}
+            />
           </div>
         </>
       )}
@@ -368,13 +387,15 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
                 {t.pieces.length > 0 && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
                     {t.pieces.map((p) => (
-                      <LignePiece key={p.id} piece={p} onChange={(champ, valeur) => majPiece(t.id, p.id, champ, valeur)} onSupprimer={() => supprimerPiece(t.id, p.id)} />
+                      <LignePiece key={p.id} piece={p} inventaire={inventaire} onChange={(champ, valeur) => majPiece(t.id, p.id, champ, valeur)} onSupprimer={() => supprimerPiece(t.id, p.id)} />
                     ))}
                   </div>
                 )}
-                <button type="button" onClick={() => ajouterPiece(t.id)} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
-                  + Ajouter une pièce estimée
-                </button>
+                <AjoutPieces
+                  inventaire={inventaire}
+                  onAjouterLibre={() => ajouterPiece(t.id)}
+                  onAjouterInventaire={(piece) => ajouterPieceInventaire(t.id, piece)}
+                />
               </>
             )}
           </div>
@@ -424,13 +445,124 @@ export default function SoumissionForm({ clientsExistants, tauxHoraireClient, tp
   );
 }
 
-function LignePiece({ piece: p, onChange, onSupprimer }) {
+// « 3 en stock », ou pour un kit : combien le stock permet d'en faire
+function libelleStock(p) {
+  if (!p.estKit) return `${p.qte} en stock`;
+  return p.qte >= 999 ? "kit" : `kit · ${p.qte} possible${p.qte > 1 ? "s" : ""}`;
+}
+
+function LignePiece({ piece: p, inventaire, onChange, onSupprimer }) {
+  // Pièce de l'inventaire : son nom vient de la fiche ; le stock affiché
+  // n'est qu'indicatif — rien n'est réservé ni déduit avant le transfert
+  const fiche = p.pieceId ? inventaire.find((x) => x.id === p.pieceId) : null;
+  const qte = parseInt(p.qte) || 0;
+  const manque = fiche && !CLIENT.stockNegatifBons && qte > fiche.qte;
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {p.pieceId ? (
+          <div title="Pièce de l'inventaire — déduite du stock seulement quand la soumission devient un bon ou une facture" style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            📦 {p.nom}
+          </div>
+        ) : (
+          <input placeholder="Pièce" value={p.nom} onChange={(e) => onChange("nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12 }} />
+        )}
+        <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => onChange("qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
+        <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => onChange("prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 70, fontSize: 12 }} />
+        <button type="button" onClick={onSupprimer} style={boutonTexte}>✕</button>
+      </div>
+      {p.pieceId && (
+        <div style={{ fontSize: 10.5, color: manque ? "#D9822B" : "var(--text-muted)", margin: "2px 0 0 4px" }}>
+          {fiche
+            ? <>Inventaire{fiche.numero ? ` · #${fiche.numero}` : ""} · {libelleStock(fiche)}{manque ? " — pas assez pour transférer en ce moment" : ""} · déduite au transfert en bon ou en facture</>
+            : "Inventaire · pièce désactivée ou retirée — elle ne pourra pas sortir du stock"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Pièces les plus listées d'un coup dans le choix : l'inventaire peut en
+// compter des milliers, la recherche trouve les autres
+const MAX_SUGGESTIONS_PIECES = 50;
+
+// Boutons d'ajout d'une pièce : estimée en texte libre, ou choisie dans
+// l'inventaire (recherche par nom, numéro ou code-barres)
+function AjoutPieces({ inventaire, onAjouterLibre, onAjouterInventaire }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [recherche, setRecherche] = useState("");
+  const boiteRef = useRef(null);
+
+  useEffect(() => {
+    if (!ouvert) return;
+    function surClicExterieur(e) {
+      if (boiteRef.current && !boiteRef.current.contains(e.target)) setOuvert(false);
+    }
+    document.addEventListener("mousedown", surClicExterieur);
+    return () => document.removeEventListener("mousedown", surClicExterieur);
+  }, [ouvert]);
+
+  const suggestions = useMemo(() => {
+    const q = recherche.trim();
+    return q ? inventaire.filter((p) => pieceCorrespond(p, q)) : inventaire;
+  }, [recherche, inventaire]);
+
+  function choisir(piece) {
+    onAjouterInventaire(piece);
+    setOuvert(false);
+    setRecherche("");
+  }
+
   return (
     <div style={{ display: "flex", gap: 6 }}>
-      <input placeholder="Pièce" value={p.nom} onChange={(e) => onChange("nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12 }} />
-      <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => onChange("qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
-      <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => onChange("prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 70, fontSize: 12 }} />
-      <button type="button" onClick={onSupprimer} style={boutonTexte}>✕</button>
+      <button type="button" onClick={onAjouterLibre} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11, flex: 1 }}>
+        + Ajouter une pièce estimée
+      </button>
+      {inventaire.length > 0 && (
+        <div ref={boiteRef} style={{ position: "relative", flex: 1 }}>
+          <button type="button" onClick={() => { setOuvert((v) => !v); setRecherche(""); }} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
+            📦 Pièce de l'inventaire
+          </button>
+          {ouvert && (
+            <div style={{ position: "absolute", top: "100%", right: 0, width: "min(340px, calc(100vw - 32px))", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
+              <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>
+                <input
+                  autoFocus
+                  value={recherche}
+                  onChange={(e) => setRecherche(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setOuvert(false);
+                    if (e.key === "Enter") { e.preventDefault(); if (suggestions.length > 0) choisir(suggestions[0]); }
+                  }}
+                  placeholder="🔍 Rechercher (nom ou numéro)…"
+                  style={{ ...champInput, marginBottom: 0, fontSize: 12, padding: "6px 8px" }}
+                />
+                <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
+                  Le stock n'est pas touché : la pièce sera déduite quand la soumission deviendra un bon ou une facture.
+                </div>
+              </div>
+              <div style={{ maxHeight: 260, overflowY: "auto" }}>
+                {suggestions.length === 0 ? (
+                  <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>Aucune pièce trouvée</div>
+                ) : suggestions.slice(0, MAX_SUGGESTIONS_PIECES).map((p) => (
+                  <button
+                    key={p.id} type="button" onClick={() => choisir(p)}
+                    style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                  >
+                    {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{libelleStock(p)}</span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.numero ? ` · #${p.numero}` : ""} · {Number(p.prix || 0).toFixed(2)} $</span>
+                  </button>
+                ))}
+                {suggestions.length > MAX_SUGGESTIONS_PIECES && (
+                  <div style={{ padding: "8px 10px", fontSize: 11.5, color: "var(--text-muted)" }}>
+                    … et {suggestions.length - MAX_SUGGESTIONS_PIECES} autres — tape un nom ou un numéro pour préciser.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

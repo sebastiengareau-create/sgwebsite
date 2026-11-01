@@ -4,7 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
 import { CLIENT } from "@/lib/client";
 import { trouverBonsNonFactures } from "@/lib/bons";
-import { clientEtVehiculeDuBon } from "@/lib/soumissions";
+import { clientEtVehiculeDuBon, sortDuStock, manqueStockSoumission, sortirPieceSoumissionDuStock, messagePieceSoumission } from "@/lib/soumissions";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 
 export async function POST(request, props) {
@@ -16,7 +16,7 @@ export async function POST(request, props) {
 
   const soumission = await prisma.soumission.findUnique({
     where: { id: params.id },
-    include: { taches: true, vehicule: true },
+    include: { taches: { include: { pieces: true } }, vehicule: true },
   });
   if (!soumission) return NextResponse.json({ erreur: "Soumission introuvable." }, { status: 404 });
   // Profil soumissionFacturerDirect : une soumission se facture, elle ne
@@ -38,22 +38,40 @@ export async function POST(request, props) {
     }
   }
 
+  // Pièces de l'inventaire de la soumission : c'est maintenant qu'elles
+  // sortent du stock — vérifié avant de créer client, véhicule ou bon
+  const manque = await manqueStockSoumission(soumission);
+  if (manque) return NextResponse.json({ erreur: manque }, { status: 409 });
+
   // Client : réutilise celui déjà lié, sinon en crée un nouveau ; véhicule
   // du dossier, sinon le nouveau, versé au dossier du client
   const { clientId, vehiculeId, kilometrage, clientNomAffiche } = await clientEtVehiculeDuBon(soumission);
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
-    data: {
-      numero,
-      clientId,
-      vehiculeId,
-      kilometrage,
-      clientNomAffiche,
-      // Les pièces et le temps de la soumission n'étaient que des estimés —
-      // seules les descriptions des tâches sont reprises ; le vrai suivi
-      // (temps, pièces réellement utilisées) démarre à zéro sur le bon.
-      problemes: { create: soumission.taches.map((t) => ({ description: t.description })) },
-    },
+    data: { numero, clientId, vehiculeId, kilometrage, clientNomAffiche },
+    include: { client: true },
   }));
+
+  // Le temps et les pièces en texte libre de la soumission n'étaient que des
+  // estimés : seules les descriptions des tâches sont reprises, le vrai suivi
+  // (temps, pièces réellement utilisées) démarre à zéro sur le bon. Les
+  // pièces choisies dans l'inventaire, elles, passent sur leur tâche du bon
+  // au prix de la soumission, et sortent du stock.
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Une à une, pour garder l'ordre des tâches
+      for (const t of soumission.taches) {
+        const probleme = await tx.probleme.create({ data: { bonId: bon.id, description: t.description } });
+        for (const p of t.pieces.filter(sortDuStock)) {
+          await sortirPieceSoumissionDuStock(tx, { probleme: { ...probleme, bon }, pieceEstimee: p, creePar: session.nom });
+        }
+      }
+    }, { timeout: 30000 });
+  } catch (e) {
+    await prisma.bonTravail.delete({ where: { id: bon.id } });
+    const message = messagePieceSoumission(e);
+    if (message) return NextResponse.json({ erreur: message }, { status: 409 });
+    throw e;
+  }
 
   await prisma.soumission.update({
     where: { id: soumission.id },

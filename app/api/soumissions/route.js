@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { lireVehiculeSoumission, quantiteSoumission, adresseClientSoumission } from "@/lib/soumissions";
+import { lireVehiculeSoumission, adresseClientSoumission, tachesSoumissionPourPrisma } from "@/lib/soumissions";
 import { prochainNumeroSoumission, creerAvecNumero } from "@/lib/numerotation";
 
 export async function POST(request) {
@@ -18,6 +18,7 @@ export async function POST(request) {
 
   const vehiculeSoumission = await lireVehiculeSoumission({ clientId, vehiculeId, vehicule });
   if (vehiculeSoumission.erreur) return NextResponse.json({ erreur: vehiculeSoumission.erreur }, { status: 400 });
+  const tachesPrisma = await tachesSoumissionPourPrisma(taches);
 
   const soumission = await creerAvecNumero(prochainNumeroSoumission, (numero) => prisma.soumission.create({
     data: {
@@ -28,19 +29,9 @@ export async function POST(request) {
       ...adresseClientSoumission(clientId, corps),
       ...vehiculeSoumission.data,
       statut: "EN_ATTENTE",
-      taches: {
-        create: taches.map((t) => ({
-          description: t.description,
-          tempsEstime: Number(t.tempsEstime) || 0,
-          pieces: {
-            create: (t.pieces || []).map((p) => ({
-              nom: p.nom,
-              prixEstime: Number(p.prixEstime) || 0,
-              qte: quantiteSoumission(p.qte),
-            })),
-          },
-        })),
-      },
+      // Pièces de l'inventaire : liées seulement — le stock n'est touché
+      // qu'au transfert en bon ou en facture
+      taches: { create: tachesPrisma },
     },
   }));
 

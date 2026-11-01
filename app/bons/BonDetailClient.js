@@ -733,7 +733,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         <PiecesBon
           titre="Pièces du bon"
           style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}
-          bonId={bon.id} problemeId={bon.problemes[0].id} pieces={bon.problemes.flatMap((pr) => pr.pieces)}
+          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
           inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
           onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
         />

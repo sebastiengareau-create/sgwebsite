@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { lireVehiculeSoumission, quantiteSoumission, adresseClientSoumission } from "@/lib/soumissions";
+import { lireVehiculeSoumission, adresseClientSoumission, tachesSoumissionPourPrisma } from "@/lib/soumissions";
 
 export async function PUT(request, props) {
   const params = await props.params;
@@ -17,6 +17,7 @@ export async function PUT(request, props) {
 
   const vehiculeSoumission = await lireVehiculeSoumission({ clientId, vehiculeId, vehicule });
   if (vehiculeSoumission.erreur) return NextResponse.json({ erreur: vehiculeSoumission.erreur }, { status: 400 });
+  const tachesPrisma = await tachesSoumissionPourPrisma(taches);
 
   // Remplace complètement les tâches et pièces (plus simple et sûr qu'un
   // diff partiel) — les anciennes sont supprimées en cascade avec la tâche.
@@ -30,19 +31,9 @@ export async function PUT(request, props) {
       clientTelephone: clientTelephone || null,
       ...adresseClientSoumission(clientId, corps),
       ...vehiculeSoumission.data,
-      taches: {
-        create: taches.map((t) => ({
-          description: t.description,
-          tempsEstime: Number(t.tempsEstime) || 0,
-          pieces: {
-            create: (t.pieces || []).map((p) => ({
-              nom: p.nom,
-              prixEstime: Number(p.prixEstime) || 0,
-              qte: quantiteSoumission(p.qte),
-            })),
-          },
-        })),
-      },
+      // Pièces de l'inventaire : liées seulement — le stock n'est touché
+      // qu'au transfert en bon ou en facture
+      taches: { create: tachesPrisma },
     },
   });
 
