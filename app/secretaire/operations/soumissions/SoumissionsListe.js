@@ -16,6 +16,9 @@ const STATUTS = {
 const LIBELLE_STATUT = (s) => STATUTS[s]?.label || (s === "BROUILLON" || s === "ENVOYEE" ? "En attente" : s === "REFUSEE" ? "Refusée" : s);
 const COULEUR_STATUT = (s) => STATUTS[s]?.color || (s === "REFUSEE" ? "#C15B4A" : "#9C978A");
 
+// Pièces choisies dans l'inventaire (déduites du stock au transfert)
+const aDesPiecesInventaire = (s) => s.taches.some((t) => t.pieces.some((p) => p.pieceId && p.qte > 0));
+
 export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTaux, tvqTaux }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
@@ -29,7 +32,7 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
   });
 
   async function accepter(s, confirmerBonNonFacture = false) {
-    if (!confirmerBonNonFacture && !window.confirm(`Accepter la soumission #${s.numero} ? Ça va créer un vrai bon de commande avec ces tâches.`)) return;
+    if (!confirmerBonNonFacture && !window.confirm(`Accepter la soumission #${s.numero} ? Ça va créer un vrai bon de commande avec ces tâches.${aDesPiecesInventaire(s) ? " Les pièces de l'inventaire passent sur le bon et sont déduites du stock." : ""}`)) return;
     setErreurId(null);
     setEnCoursId(s.id);
     const res = await fetch(`/api/soumissions/${s.id}/accepter`, {
@@ -54,7 +57,7 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
 
   // Profil soumissionFacturerDirect : facture exactement la soumission
   async function facturer(s) {
-    if (!window.confirm(`Facturer la soumission #${s.numero} ? La facture reprend exactement ce qui a été entré (heures × taux, pièces), plus les taxes.`)) return;
+    if (!window.confirm(`Facturer la soumission #${s.numero} ? La facture reprend exactement ce qui a été entré (heures × taux, pièces), plus les taxes.${aDesPiecesInventaire(s) ? " Les pièces de l'inventaire sont déduites du stock." : ""}`)) return;
     setErreurId(null);
     setEnCoursId(s.id);
     const res = await fetch(`/api/soumissions/${s.id}/facturer`, { method: "POST" });
@@ -70,8 +73,8 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
 
   async function remettreEnAttente(s) {
     const detail = s.statut === "FACTUREE"
-      ? " Le bon et sa facture annulée restent comme historique ; la soumission pourra être facturée de nouveau."
-      : s.bonId ? " Le bon créé à partir d'elle sera supprimé (seulement s'il est encore vide)." : "";
+      ? " Le bon et sa facture annulée restent comme historique ; la soumission pourra être facturée de nouveau. Ses pièces de l'inventaire reviennent en stock."
+      : s.bonId ? " Le bon créé à partir d'elle sera supprimé (seulement s'il n'a pas de temps poinçonné) et ses pièces reviendront en stock." : "";
     if (!window.confirm(`Remettre la soumission #${s.numero} en attente ?${detail}`)) return;
     setErreurId(null);
     setEnCoursId(s.id);

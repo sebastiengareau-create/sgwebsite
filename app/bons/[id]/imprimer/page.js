@@ -201,10 +201,10 @@ export default async function ImprimerBon(props) {
         })}
 
         {/* Profil piecesEnHautDuBon : toutes les pièces du bon dans une section à part */}
-        {CLIENT.piecesEnHautDuBon && bon.problemes.some((pr) => pr.pieces.length > 0) && (
+        {CLIENT.piecesEnHautDuBon && tachesAffichees.some((pr) => pr.pieces.length > 0) && (
           <div style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>Pièces</div>
-            {bon.problemes.flatMap((pr) => pr.pieces).map((l) => <LignePiece key={l.id} l={l} />)}
+            {tachesAffichees.flatMap((pr) => pr.pieces).map((l) => <LignePiece key={l.id} l={l} />)}
           </div>
         )}
 

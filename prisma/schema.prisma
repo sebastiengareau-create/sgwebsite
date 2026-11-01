@@ -374,6 +374,7 @@ model Piece {
   fournisseurs  PieceFournisseur[] // numéro et prix de la même pièce chez chaque fournisseur
   lignesCommande LigneCommandeFournisseur[]
   piecesACommander PieceACommander[] // lignes « à commander » de bons commandées sous cette fiche
+  piecesEstimees PieceEstimee[] // lignes de soumissions qui proposent cette pièce (rien n'est réservé)
   // Kit (ex. « Changement d'huile ») : article facturé à son prix, sans stock
   // propre (qte reste à 0). L'ajouter à un bon sort ses pièces du stock ; sa
   // main-d'œuvre est comprise dans son prix. Voir lib/kits.js.
@@ -574,8 +575,15 @@ model PieceEstimee {
   nom               String
   prixEstime        Float
   qte               Int             @default(1)
+  // Pièce de l'inventaire proposée sur la soumission : le stock n'est pas
+  // touché ; elle en sort seulement quand la soumission devient un bon
+  // (acceptée) ou une facture (facturée). Vide : pièce estimée en texte libre.
+  pieceId           String?
+  piece             Piece?          @relation(fields: [pieceId], references: [id], onDelete: SetNull)
   tacheSoumissionId String
   tacheSoumission   TacheSoumission @relation(fields: [tacheSoumissionId], references: [id], onDelete: Cascade)
+
+  @@index([pieceId])
 }
 
 // ---------- RENDEZ-VOUS ----------

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroBon, prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { CLIENT } from "@/lib/client";
-import { clientEtVehiculeDuBon, totauxSoumission } from "@/lib/soumissions";
+import { clientEtVehiculeDuBon, totauxSoumission, sortDuStock, manqueStockSoumission, sortirPieceSoumissionDuStock, messagePieceSoumission } from "@/lib/soumissions";
 import { posterFactureEmise, COMPTE_MAIN_OEUVRE } from "@/lib/comptabilite";
 
 // Profil soumissionFacturerDirect : la soumission se facture telle quelle —
@@ -12,7 +12,9 @@ import { posterFactureEmise, COMPTE_MAIN_OEUVRE } from "@/lib/comptabilite";
 // (fournitures d'atelier, escompte…). La facture a besoin d'un bon : un bon
 // est créé, déjà terminé, dont les tâches portent ces montants en lignes de
 // facturation fixes (main-d'œuvre au compte 4000, pièces au compte 4010) —
-// pas de poinçon ni de sortie d'inventaire.
+// pas de poinçon. Les pièces choisies dans l'inventaire, elles, sortent du
+// stock maintenant (et seulement maintenant) : leur ligne porte la pièce du
+// bon, au prix de la soumission, pour le coût des pièces vendues.
 import { COMPTE_PIECES_SOUMISSION as COMPTE_PIECES } from "@/lib/piecesSoumission";
 
 export async function POST(request, props) {
@@ -45,9 +47,15 @@ export async function POST(request, props) {
   const tpsMontant = totalFacture * (tpsTaux / 100);
   const tvqMontant = totalFacture * (tvqTaux / 100);
 
+  // Vérifié avant de créer client, véhicule, bon ou facture
+  const manque = await manqueStockSoumission(soumission);
+  if (manque) return NextResponse.json({ erreur: manque }, { status: 409 });
+
   const { clientId, vehiculeId, kilometrage, clientNomAffiche } = await clientEtVehiculeDuBon(soumission);
 
-  // Une tâche par tâche de la soumission (ses heures), puis une par pièce
+  // Une tâche par tâche de la soumission (ses heures), puis une par pièce.
+  // Pièce de l'inventaire : la ligne ne facture rien elle-même (0 × 0) — son
+  // montant vient de la pièce du bon qu'elle porte (pieceEstimee)
   const problemes = [
     ...soumission.taches.map((t) => ({
       description: t.description,
@@ -60,16 +68,30 @@ export async function POST(request, props) {
       description: p.nom,
       categorieRevenu: COMPTE_PIECES,
       factureDescription: "Pièce",
-      facturePrixUnitaire: p.prixEstime,
-      factureQte: p.qte,
+      facturePrixUnitaire: sortDuStock(p) ? 0 : p.prixEstime,
+      factureQte: sortDuStock(p) ? 0 : p.qte,
+      pieceEstimee: sortDuStock(p) ? p : null,
     }))),
   ];
 
   const bon = await creerAvecNumero(prochainNumeroBon, (numero) => prisma.bonTravail.create({
     data: { numero, clientId, vehiculeId, kilometrage, clientNomAffiche, statut: "TERMINE", tauxHoraireOverride: tauxHoraire },
+    include: { client: true },
   }));
-  // Une à une, pour garder l'ordre des tâches sur la facture
-  for (const pr of problemes) await prisma.probleme.create({ data: { ...pr, bonId: bon.id } });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Une à une, pour garder l'ordre des tâches sur la facture
+      for (const { pieceEstimee, ...pr } of problemes) {
+        const probleme = await tx.probleme.create({ data: { ...pr, bonId: bon.id } });
+        if (pieceEstimee) await sortirPieceSoumissionDuStock(tx, { probleme: { ...probleme, bon }, pieceEstimee, creePar: session.nom });
+      }
+    }, { timeout: 30000 });
+  } catch (e) {
+    await prisma.bonTravail.delete({ where: { id: bon.id } });
+    const message = messagePieceSoumission(e);
+    if (message) return NextResponse.json({ erreur: message }, { status: 409 });
+    throw e;
+  }
 
   const facture = await creerAvecNumero(prochainNumeroFacture, (numero) => prisma.facture.create({
     data: {
