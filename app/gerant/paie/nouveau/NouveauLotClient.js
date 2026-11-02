@@ -75,11 +75,11 @@ export default function NouveauLotClient({ employes }) {
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Début</label>
-            <input type="date" value={periodeDebut} onChange={(e) => setPeriodeDebut(e.target.value)} style={champStyle} />
+            <input type="date" max="9999-12-31" value={periodeDebut} onChange={(e) => setPeriodeDebut(e.target.value)} style={champStyle} />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Fin</label>
-            <input type="date" value={periodeFin} onChange={(e) => setPeriodeFin(e.target.value)} style={champStyle} />
+            <input type="date" max="9999-12-31" value={periodeFin} onChange={(e) => setPeriodeFin(e.target.value)} style={champStyle} />
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export default function NouveauLotClient({ employes }) {
         <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: -2, marginBottom: 6 }}>
           La même pour tout le lot, même si un employé est ajouté après coup.
         </p>
-        <input type="date" value={dateVersement} onChange={(e) => setDateVersement(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={dateVersement} onChange={(e) => setDateVersement(e.target.value)} style={champStyle} />
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <label style={{ ...labelStyle, marginTop: 0 }}>Employés ({selectionnes.size}/{employes.length})</label>

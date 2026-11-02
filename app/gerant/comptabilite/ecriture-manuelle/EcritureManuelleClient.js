@@ -100,7 +100,7 @@ export default function EcritureManuelleClient({ comptes }) {
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Date</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={champStyle} required />
+              <input type="date" max="9999-12-31" value={date} onChange={(e) => setDate(e.target.value)} style={champStyle} required />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Référence (optionnel)</label>

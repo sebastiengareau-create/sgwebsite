@@ -63,9 +63,9 @@ export default async function CumulatifsPaie(props) {
       <div className="cacher-impression" style={{ padding: 16, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <BoutonFermerPage retour="/gerant/paie" />
         <form method="get" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-          <input type="date" name="debut" defaultValue={debutStr} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
+          <input type="date" max="9999-12-31" name="debut" defaultValue={debutStr} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
           <span style={{ color: "var(--text-muted)" }}>à</span>
-          <input type="date" name="fin" defaultValue={finStr} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
+          <input type="date" max="9999-12-31" name="fin" defaultValue={finStr} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} />
           <button type="submit" className="bouton-3d-sombre" style={{ padding: "9px 16px", borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
             Changer la période
           </button>

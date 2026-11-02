@@ -33,7 +33,7 @@ export default function SelecteurDatePrevue({ valeur, onChange }) {
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <input
-          type="date" value={date} required
+          type="date" max="9999-12-31" value={date} required
           onChange={(e) => e.target.value && onChange(`${e.target.value}T${heure}`)}
           style={{ ...champ, flex: 1 }}
         />

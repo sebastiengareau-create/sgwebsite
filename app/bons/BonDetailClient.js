@@ -1149,8 +1149,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
                 {entreeEnEdition === t.id ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{t.employe.nom}</span>
-                    <input type="datetime-local" value={editDebut} onChange={(e) => setEditDebut(e.target.value)} style={champPetit} />
-                    <input type="datetime-local" value={editFin} onChange={(e) => setEditFin(e.target.value)} style={champPetit} />
+                    <input type="datetime-local" max="9999-12-31T23:59" value={editDebut} onChange={(e) => setEditDebut(e.target.value)} style={champPetit} />
+                    <input type="datetime-local" max="9999-12-31T23:59" value={editFin} onChange={(e) => setEditFin(e.target.value)} style={champPetit} />
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={() => sauvegarderEditionTemps(t.id)} disabled={enCours} style={{ ...boutonTexte, color: "var(--accent)" }}>✓ Sauvegarder</button>
                       <button onClick={() => setEntreeEnEdition(null)} style={boutonTexte}>Annuler</button>
@@ -1183,8 +1183,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
                   <option value="">Choisir un employé…</option>
                   {employes.map((e) => <option key={e.id} value={e.id}>{e.nom}</option>)}
                 </select>
-                <input type="datetime-local" value={debutManuel} onChange={(e) => setDebutManuel(e.target.value)} style={champPetit} />
-                <input type="datetime-local" value={finManuel} onChange={(e) => setFinManuel(e.target.value)} style={champPetit} />
+                <input type="datetime-local" max="9999-12-31T23:59" value={debutManuel} onChange={(e) => setDebutManuel(e.target.value)} style={champPetit} />
+                <input type="datetime-local" max="9999-12-31T23:59" value={finManuel} onChange={(e) => setFinManuel(e.target.value)} style={champPetit} />
                 {erreurTempsManuel && <p style={{ fontSize: 10.5, color: "var(--danger)" }}>{erreurTempsManuel}</p>}
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={ajouterTempsManuel} disabled={enCours} style={{ ...boutonTexte, color: "var(--accent)" }}>✓ Ajouter</button>

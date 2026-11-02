@@ -103,7 +103,7 @@ export default function RapprochementClient({ comptesTresorerie, compteId, categ
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Date du relevé</label>
-            <input type="date" value={dateReleve} onChange={(e) => e.target.value && setDateReleve(e.target.value)} style={champStyle} />
+            <input type="date" max="9999-12-31" value={dateReleve} onChange={(e) => e.target.value && setDateReleve(e.target.value)} style={champStyle} />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>{estCarte ? "Solde dû selon le relevé" : "Solde selon le relevé"}</label>

@@ -67,7 +67,7 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
       <div className="carte carte-m" style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Comptabiliser l'amortissement</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <input type="month" value={moisAmortir} onChange={(e) => setMoisAmortir(e.target.value)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }} />
+          <input type="month" max="9999-12" value={moisAmortir} onChange={(e) => setMoisAmortir(e.target.value)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }} />
           <button onClick={comptabiliserAmortissement} disabled={amortissementEnCours || dejaAmorti} className="bouton-3d" style={{ padding: "0 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, opacity: dejaAmorti ? 0.5 : 1 }}>
             {amortissementEnCours ? "…" : dejaAmorti ? "Déjà fait" : "Comptabiliser"}
           </button>
@@ -152,7 +152,7 @@ function FormulaireImmobilisation({ onCree }) {
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Date d'achat</label>
-          <input type="date" value={dateAcquisition} onChange={(e) => setDateAcquisition(e.target.value)} style={champStyle} />
+          <input type="date" max="9999-12-31" value={dateAcquisition} onChange={(e) => setDateAcquisition(e.target.value)} style={champStyle} />
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Coût d'achat ($)</label>

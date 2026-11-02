@@ -320,12 +320,12 @@ function FormulaireIndisponibilite({ dateParDefaut, onCree }) {
       </label>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={styleEtiquette}>Du</span>
-        <input type="date" required value={dateDebut} onChange={(e) => { setDateDebut(e.target.value); if (e.target.value > dateFin) setDateFin(e.target.value); }} style={styleChamp} />
+        <input type="date" max="9999-12-31" required value={dateDebut} onChange={(e) => { setDateDebut(e.target.value); if (e.target.value > dateFin) setDateFin(e.target.value); }} style={styleChamp} />
         {!journeeEntiere && <input type="time" required value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} style={{ ...styleChamp, width: 100, flex: "none" }} />}
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={styleEtiquette}>Au</span>
-        <input type="date" required value={dateFin} min={dateDebut} onChange={(e) => setDateFin(e.target.value)} style={styleChamp} />
+        <input type="date" max="9999-12-31" required value={dateFin} min={dateDebut} onChange={(e) => setDateFin(e.target.value)} style={styleChamp} />
         {!journeeEntiere && <input type="time" required value={heureFin} onChange={(e) => setHeureFin(e.target.value)} style={{ ...styleChamp, width: 100, flex: "none" }} />}
       </div>
       <input placeholder="Motif (ex : Férié, formation, vacances)" value={motif} onChange={(e) => setMotif(e.target.value)} style={styleChamp} />

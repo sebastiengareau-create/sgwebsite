@@ -413,11 +413,11 @@ export function FormulaireEditionDepense({ depense, fournisseurs, categories, tp
       <div style={{ display: "flex", gap: 6 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Date de la facture</label>
-          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+          <input type="date" max="9999-12-31" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Échéance (optionnel)</label>
-          <input type="date" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+          <input type="date" max="9999-12-31" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -934,7 +934,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Date de la facture</label>
-          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
+          <input type="date" max="9999-12-31" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Conditions de paiement</label>
@@ -946,7 +946,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
       {condition === "DATE" ? (
         <>
           <label style={labelStyle}>Date d'échéance</label>
-          <input type="date" value={dateEcheancePrecise} onChange={(e) => setDateEcheancePrecise(e.target.value)} style={champStyle} />
+          <input type="date" max="9999-12-31" value={dateEcheancePrecise} onChange={(e) => setDateEcheancePrecise(e.target.value)} style={champStyle} />
         </>
       ) : dateEcheance && (
         <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "-4px 0 8px" }}>Échéance : {dateEcheance}</p>

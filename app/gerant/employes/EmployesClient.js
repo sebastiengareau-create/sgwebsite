@@ -184,7 +184,7 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
       </div>
       <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
       <label style={labelStyle}>Date d'embauche</label>
-      <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
+      <input type="date" max="9999-12-31" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
 
       <SectionTitreForm>Configuration de paie</SectionTitreForm>
       <label style={labelStyle}>Type de rémunération</label>
