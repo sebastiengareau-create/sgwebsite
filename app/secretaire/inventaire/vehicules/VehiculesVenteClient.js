@@ -160,7 +160,7 @@ export function ChampsFiche({ fiche, maj, coutantModifiable = true }) {
         </div>
         <div>
           <label style={labelStyle}>Date d'achat</label>
-          <input type="date" value={fiche.dateAchat} onChange={maj("dateAchat")} disabled={!coutantModifiable} style={champStyle} />
+          <input type="date" max="9999-12-31" value={fiche.dateAchat} onChange={maj("dateAchat")} disabled={!coutantModifiable} style={champStyle} />
         </div>
         <div>
           <label style={labelStyle}>Kilométrage</label>

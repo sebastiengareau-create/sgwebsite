@@ -525,11 +525,11 @@ function FormulaireReception({ commande, tpsTaux, tvqTaux, peutVoirDepenses, onA
         </div>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>Date de la facture</label>
-          <input type="date" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
+          <input type="date" max="9999-12-31" value={dateFacture} onChange={(e) => setDateFacture(e.target.value)} style={champStyle} />
         </div>
       </div>
       <label style={labelStyle}>Échéance de paiement — optionnelle</label>
-      <input type="date" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} style={champStyle} />
+      <input type="date" max="9999-12-31" value={dateEcheance} onChange={(e) => setDateEcheance(e.target.value)} style={champStyle} />
 
       <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8, fontSize: 13 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>Sous-total</span><span>{fmt(sousTotal)}</span></div>

@@ -163,7 +163,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           <label className="etiquette">Assignation (poste, spécialité, secteur…)</label>
           <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" className="champ" />
           <label className="etiquette">Date d'embauche</label>
-          <input type="date" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} className="champ" />
+          <input type="date" max="9999-12-31" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} className="champ" />
           {peutVoirNas && (
             <>
               <label className="etiquette">NAS — numéro d'assurance sociale (pour les T4 et RL-1)</label>

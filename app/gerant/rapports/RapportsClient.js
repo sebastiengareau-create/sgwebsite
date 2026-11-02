@@ -177,7 +177,7 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
         <button onClick={() => changerDate(decaler(dateStr, -1))} style={boutonJour}>← Veille</button>
         <input
-          type="date"
+          type="date" max="9999-12-31"
           value={dateStr}
           onChange={(e) => changerDate(e.target.value)}
           style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }}

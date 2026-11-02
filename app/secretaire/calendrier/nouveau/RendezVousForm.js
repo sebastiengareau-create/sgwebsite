@@ -167,7 +167,7 @@ export default function RendezVousForm({ clientsExistants }) {
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Rendez-vous</div>
       <div style={{ display: "flex", gap: 8 }}>
-        <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} style={{ ...champInput, flex: 1 }} />
+        <input type="date" max="9999-12-31" required value={date} onChange={(e) => setDate(e.target.value)} style={{ ...champInput, flex: 1 }} />
         <input type="time" required value={heure} onChange={(e) => setHeure(e.target.value)} style={{ ...champInput, width: 110 }} />
       </div>
       <div style={{ marginBottom: 10 }}>

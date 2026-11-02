@@ -33,8 +33,8 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
       </p>
 
       <form onSubmit={changerPeriode} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <input type="date" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
-        <input type="date" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
         <button type="submit" className="bouton-3d-sombre" style={{ padding: "0 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
           Filtrer
         </button>

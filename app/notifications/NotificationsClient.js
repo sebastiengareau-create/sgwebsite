@@ -367,7 +367,7 @@ function NotificationsCedulees({ gestion }) {
           {edition.frequence === "UNE_FOIS" && (
             <label style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
               Date
-              <input type="date" className="champ" value={edition.date} onChange={(e) => champ("date", e.target.value)} required />
+              <input type="date" max="9999-12-31" className="champ" value={edition.date} onChange={(e) => champ("date", e.target.value)} required />
             </label>
           )}
 

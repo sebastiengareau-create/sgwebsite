@@ -35,8 +35,8 @@ export default function RapportVentesClient({ lignes, totaux, ticketMoyen, debut
       </p>
 
       <form onSubmit={appliquerFiltre} style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <input type="date" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
-        <input type="date" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
         <select value={grp} onChange={(e) => setGrp(e.target.value)} style={champStyle}>
           {GROUPEMENTS.map((g) => (
             <option key={g.valeur} value={g.valeur}>{g.label}</option>

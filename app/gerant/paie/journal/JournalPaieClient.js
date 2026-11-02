@@ -21,8 +21,8 @@ export default function JournalPaieClient({ paies, sommaireEmployes, totaux, deb
       <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 12 }}>📖 Journal de paie</h1>
 
       <form onSubmit={changerPeriode} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <input type="date" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
-        <input type="date" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
+        <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
         <button type="submit" className="bouton-3d-sombre" style={{ padding: "0 14px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
           Filtrer
         </button>
