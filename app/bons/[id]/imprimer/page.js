@@ -13,6 +13,7 @@ import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import { nomClientBon } from "@/lib/nomClient";
 import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
 import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
+import { nomPieceFacture } from "@/lib/numeroPieceFacture";
 function fmtHeures(h) {
   const heures = Math.floor(h);
   const min = Math.round((h - heures) * 60);
@@ -166,7 +167,7 @@ export default async function ImprimerBon(props) {
           <div style={{ marginBottom: 14, pageBreakInside: "avoid" }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>Pièces</div>
             {piecesSoumission.map(ligneDePieceSoumission).map((l) => (
-              <LigneTravail key={l.id} description={l.nom} qte={l.qte} prix={l.prix} total={l.total} />
+              <LigneTravail key={l.id} description={nomPieceFacture(l.nom, l.numero)} qte={l.qte} prix={l.prix} total={l.total} />
             ))}
           </div>
         )}
@@ -262,7 +263,8 @@ export default async function ImprimerBon(props) {
 }
 
 function LignePiece({ l }) {
-  const description = l.bo ? `${l.piece.nom} (B/O — en commande)` : l.kit ? `${l.piece.nom} — comprend : ${libelleContenuKit(l.kit)}` : l.piece.nom;
+  const nom = nomPieceFacture(l.piece.nom, l.piece.numero);
+  const description = l.bo ? `${nom} (B/O — en commande)` : l.kit ? `${nom} — comprend : ${libelleContenuKit(l.kit)}` : nom;
   return <LigneTravail description={description} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />;
 }
 

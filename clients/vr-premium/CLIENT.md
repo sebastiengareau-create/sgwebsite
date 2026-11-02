@@ -143,6 +143,12 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   facture de vente d'un véhicule, PDF envoyé par courriel), une ligne
   **« Signature : ______ »** pour signer, au lieu de la mention « VR
   Premium — document généré le … » (`app/components/PiedFacture.js`).
+- `numeroPieceFacture: true` — sur la facture du bon (page imprimée et PDF
+  envoyé par courriel), chaque ligne de pièce montre le **numéro de la
+  pièce** devant son nom : « ABC-123 — Filtre à huile »
+  (`lib/numeroPieceFacture.js`). Vaut aussi pour les pièces d'une soumission
+  facturée choisies dans l'inventaire ; une pièce entrée en texte libre
+  (sans fiche) garde son nom seul.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
 ## Historique
