@@ -28,7 +28,8 @@ export default async function FicheDepense(props) {
 
   const [fournisseurs, categoriesBrutes, parametres, comptesTresorerie, autresImpayees] = await Promise.all([
     prisma.fournisseur.findMany({ where: { OR: [{ actif: true }, { id: depense.fournisseurId }] }, orderBy: { nom: "asc" } }),
-    prisma.categorieDepense.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
+    // Classés par numéro de poste (compte), puis par nom
+    prisma.categorieDepense.findMany({ where: { actif: true }, orderBy: [{ compteDepenseNumero: "asc" }, { nom: "asc" }] }),
     prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux"] } } }),
     obtenirComptesTresoreriePourSelection(),
     prisma.depense.findMany({
