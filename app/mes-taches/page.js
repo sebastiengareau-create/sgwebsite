@@ -7,6 +7,7 @@ import { clePubliqueVapid } from "@/lib/notifications";
 import { limitesJourQuebec, dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../components/EnTete";
 import MesTachesClient from "./MesTachesClient";
+import { TACHES_SEULEMENT } from "@/lib/piecesSoumission";
 
 // Bons envoyés à l'employé connecté (lien de la notification ou du courriel). Ouvert à tout employé,
 // peu importe ses sections : il n'y voit que ce qui lui est adressé.
@@ -33,7 +34,7 @@ export default async function MesTaches() {
           id: true, numero: true, datePrevue: true,
           client: { select: { nom: true, telephone: true, adresse: true, ville: true, codePostal: true } },
           vehicule: { select: { annee: true, marque: true, modele: true, plaque: true } },
-          problemes: { orderBy: { id: "asc" }, select: { id: true, description: true } },
+          problemes: { where: TACHES_SEULEMENT, orderBy: { id: "asc" }, select: { id: true, description: true } },
         },
       },
     },

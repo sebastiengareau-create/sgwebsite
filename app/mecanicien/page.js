@@ -10,6 +10,7 @@ import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { jobsDeplacementActif } from "@/lib/envois";
 import { CLIENT } from "@/lib/client";
 import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
+import { TACHES_SEULEMENT } from "@/lib/piecesSoumission";
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -37,7 +38,7 @@ export default async function EspaceMecanicien() {
     where: { statut: { not: "TERMINE" } },
     include: {
       client: true,
-      problemes: { orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } }, _count: { select: { photos: true } } } },
+      problemes: { where: TACHES_SEULEMENT, orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } }, _count: { select: { photos: true } } } },
     },
     orderBy: { creeLe: "desc" },
   });

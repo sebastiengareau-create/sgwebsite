@@ -662,7 +662,7 @@ function AlignementInventaire({ alignement }) {
       </div>
       {alignement.surBonsNonFactures > 0.005 && (
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, color: "var(--text-muted)" }}>
-          <span>Pièces sur bons non facturés (sorties du stock, pas encore au G/L)</span><span>{fmtMontant(alignement.surBonsNonFactures)}</span>
+          <span>Pièces sur bons non facturés (sorties du stock ou hors inventaire, pas encore au G/L)</span><span>{fmtMontant(alignement.surBonsNonFactures)}</span>
         </div>
       )}
       <p style={{ margin: "8px 0 0", fontWeight: 700 }}>

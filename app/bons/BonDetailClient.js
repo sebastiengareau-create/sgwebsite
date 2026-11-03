@@ -16,10 +16,11 @@ import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, tacheAuForfait, libelleContenuKit } from "@/lib/kits";
-import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
+import { separerPiecesSoumission, totauxLignesFixes, coutLignesPieces } from "@/lib/piecesSoumission";
 import { nomClientBon } from "@/lib/nomClient";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
+import PiecesHorsInventaire from "./PiecesHorsInventaire";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
@@ -287,16 +288,16 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // un kit a sa main-d'œuvre comprise dans le prix du kit
   const problemesMainOeuvre = bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") === "MAIN_OEUVRE" && !tacheAuForfait(pr));
   const toutesEntreesTempsMainOeuvre = problemesMainOeuvre.flatMap((pr) => pr.entreesTemps);
-  const totalPieces = bon.problemes.reduce(
+  // Pièces hors inventaire (lignes fixes au compte 4010) : avec les pièces
+  const lignesFixes = totauxLignesFixes(bon.problemes);
+  const totalPieces = lignesFixes.pieces + bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0),
     0
   );
   const totalHeuresTerminees = bon.problemes.reduce((s, pr) => s + heuresFacturablesTache(pr), 0);
   const heuresEnCours = toutesEntreesTempsMainOeuvre.some((t) => !t.fin);
   const totalMainOeuvre = totalHeuresTerminees * tauxHoraireEffectif;
-  const totalAutresRevenus = bon.problemes
-    .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
-    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1), 0);
+  const totalAutresRevenus = lignesFixes.autres;
   const totalMaterielAtelier = montantMaterielAtelier(totalHeuresTerminees);
   const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   // Ancien escompte en dollars : affiché en pourcentage équivalent
@@ -316,7 +317,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // de la main-d'œuvre (heures poinçonnées sur ce bon × vrai taux horaire de
   // chaque employé, pas le taux facturé au client) — comparé au montant
   // facturé avant taxes.
-  const coutPieces = bon.problemes.reduce(
+  const coutPieces = coutLignesPieces(bon.problemes) + bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * (l.coutant ?? l.piece?.coutant ?? 0), 0),
     0
   );
@@ -749,20 +750,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         )}
       </div>
 
-      {/* Pièces d'une soumission facturée : au début, avant les tâches */}
-      {piecesSoumission.length > 0 && (
-        <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
-          <Label>Pièces ({piecesSoumission.length})</Label>
-          {piecesSoumission.map(ligneDePieceSoumission).map((l) => (
-            <div key={l.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "4px 0", borderTop: "1px solid var(--border)" }}>
-              <span>{l.nom}</span>
-              <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>{l.qte} × {l.prix.toFixed(2)} $ = <strong style={{ color: "var(--text)" }}>{l.total.toFixed(2)} $</strong></span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Bon d'une soumission facturée : ses pièces sont dans la section ci-dessus */}
+      {/* Bon d'une soumission facturée : ses pièces sont dans la section « Pièces » ci-dessous */}
       {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
         <PiecesBon
           titre="Pièces du bon"
@@ -772,6 +760,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
         />
       )}
+
+      {/* Pièces à ligne fixe : d'une soumission facturée, ou hors inventaire
+          (achetées pour ce bon seulement) — au début, avant les tâches */}
+      <PiecesHorsInventaire bonId={bon.id} lignes={piecesSoumission} modifiable={peutModifier && !factureExiste} onRafraichir={() => router.refresh()} />
 
       {CLIENT.noteInterneBon && (
         <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />

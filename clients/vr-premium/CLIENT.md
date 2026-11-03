@@ -157,6 +157,14 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 
 ## Historique
 
+- Novembre 2026 : **pièces hors inventaire** sur le bon (demandées par VR
+  Premium, offertes à tous les clients — pas un réglage) : bouton « + Pièce
+  hors inventaire » dans la section « Pièces » du bon (description,
+  quantité, coûtant, vendant ; vendant proposé à 40 % de marge). Ligne fixe
+  au compte 4010, sans fiche ni mouvement de stock ; à la facture, le coûtant
+  va au 5000 contre le 1200. L'achat se saisit dans les comptes à payer sur
+  « Réception d'inventaire (actif) » (`lib/piecesSoumission.js`).
+
 - Octobre 2026 : les cartes compactes de l'horodateur
   (`horodateurBonsReplies`), faites pour VR Premium, sont devenues le
   comportement du modèle de base.

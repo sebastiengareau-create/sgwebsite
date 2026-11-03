@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { totauxLignesFixes } from "@/lib/piecesSoumission";
 import { appliquerDepots } from "@/lib/depots";
 import { prisma } from "@/lib/prisma";
 import { prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
@@ -55,15 +56,15 @@ export async function POST(request, props) {
   // ne détermine plus le montant facturé au client pour ces tâches-là. Même
   // chose pour une tâche dont la main-d'œuvre est comprise dans un kit.
 
-  const totalPieces = bon.problemes.reduce(
+  // Pièces hors inventaire (lignes fixes au compte 4010) : avec les pièces
+  const lignesFixes = totauxLignesFixes(bon.problemes);
+  const totalPieces = lignesFixes.pieces + bon.problemes.reduce(
     (s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0),
     0
   );
   const heuresFacturees = bon.problemes.reduce((s, pr) => s + heuresFacturablesTache(pr), 0);
   const totalMainOeuvre = heuresFacturees * tauxHoraireClient;
-  const totalAutresRevenus = bon.problemes
-    .filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE")
-    .reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1), 0);
+  const totalAutresRevenus = lignesFixes.autres;
   const totalMaterielAtelier = montantMaterielAtelier(heuresFacturees);
   const sousTotalAvantEscompte = totalPieces + totalMainOeuvre + totalAutresRevenus + totalMaterielAtelier;
   const escompte = montantEscompte(bon, sousTotalAvantEscompte);
