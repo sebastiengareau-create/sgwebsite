@@ -132,6 +132,13 @@ export async function DELETE(request, props) {
     );
   }
 
+  // Un dépôt pris sur le bon même n'aurait plus de travail à suivre ; celui
+  // d'une soumission y retourne (lien remis à vide à la suppression du bon)
+  const depotsDuBon = await prisma.depotClient.count({ where: { bonId: params.id, soumissionId: null } });
+  if (depotsDuBon > 0) {
+    return NextResponse.json({ erreur: "Ce bon a un dépôt — retire d'abord le dépôt (ou rembourse-le) avant de supprimer le bon." }, { status: 409 });
+  }
+
   await prisma.$transaction(async (tx) => {
     const problemes = await tx.probleme.findMany({ where: { bonId: params.id }, include: { pieces: true } });
 

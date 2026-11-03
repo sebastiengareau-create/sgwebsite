@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rattacherDepotsAuBon, appliquerDepots } from "@/lib/depots";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroBon, prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
@@ -115,9 +116,12 @@ export async function POST(request, props) {
     },
   }));
 
-  await prisma.soumission.update({
-    where: { id: soumission.id },
-    data: { statut: "FACTUREE", bonId: bon.id },
+  await prisma.$transaction(async (tx) => {
+    await tx.soumission.update({
+      where: { id: soumission.id },
+      data: { statut: "FACTUREE", bonId: bon.id },
+    });
+    await rattacherDepotsAuBon(tx, soumission.id, bon.id);
   });
 
   // Écriture comptable — ne fait jamais échouer la facture
@@ -134,6 +138,14 @@ export async function POST(request, props) {
     } else {
       console.error("Erreur comptabilisation facture de soumission :", e);
     }
+  }
+
+  // Dépôts reçus sur la soumission : appliqués à la facture (lib/depots.js)
+  try {
+    const { avertissementComptable: avertissementDepots } = await appliquerDepots(facture.id, { creePar: session.nom });
+    avertissementComptable = avertissementComptable || avertissementDepots;
+  } catch (e) {
+    console.error("Erreur application des dépôts :", e);
   }
 
   return NextResponse.json({ bonId: bon.id, bonNumero: bon.numero, factureNumero: facture.numero, avertissementComptable });

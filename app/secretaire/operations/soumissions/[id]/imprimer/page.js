@@ -20,7 +20,7 @@ export default async function ImprimerSoumission(props) {
   const [soumission, parametres] = await Promise.all([
     prisma.soumission.findUnique({
       where: { id: params.id },
-      include: { taches: { include: { pieces: true } }, client: true, vehicule: true },
+      include: { taches: { include: { pieces: true } }, client: true, vehicule: true, depots: { select: { montant: true } } },
     }),
     prisma.parametre.findMany(),
   ]);
@@ -42,6 +42,8 @@ export default async function ImprimerSoumission(props) {
   const tpsMontant = totalEstime * (tpsTaux / 100);
   const tvqMontant = totalEstime * (tvqTaux / 100);
   const totalAvecTaxes = totalEstime + tpsMontant + tvqMontant;
+  // Dépôts reçus (lib/depots.js) : déduits du total pour le solde
+  const totalDepots = soumission.depots.reduce((s, d) => s + d.montant, 0);
   const garantie = soumission.client?.garantieProlongee;
   const piecesEnHaut = CLIENT.piecesEnHautDuBon;
   const toutesPieces = soumission.taches.flatMap((t) => t.pieces);
@@ -148,6 +150,18 @@ export default async function ImprimerSoumission(props) {
             <span>Total estimé (taxes incl.)</span>
             <span>{totalAvecTaxes.toFixed(2)} $</span>
           </div>
+          {totalDepots > 0 && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666", marginTop: 6 }}>
+                <span>Dépôt reçu</span>
+                <span>−{totalDepots.toFixed(2)} $</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, marginTop: 4, paddingTop: 6, borderTop: "1px solid #ddd" }}>
+                <span>Solde estimé</span>
+                <span>{(totalAvecTaxes - totalDepots).toFixed(2)} $</span>
+              </div>
+            </>
+          )}
         </div>
 
         <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>

@@ -32,7 +32,12 @@ export default async function DetailBonPage(props) {
           entreesTemps: { include: { employe: true } },
         },
       },
-      facture: { include: { paiements: { include: { compteTresorerie: { select: { nom: true } } }, orderBy: { datePaiement: "asc" } } } },
+      facture: { include: { paiements: { include: { compteTresorerie: { select: { nom: true } }, depot: { select: { datePaiement: true } } }, orderBy: { datePaiement: "asc" } } } },
+      // Dépôts reçus avant la facture (lib/depots.js)
+      depots: {
+        include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } } },
+        orderBy: { datePaiement: "asc" },
+      },
       piecesACommander: {
         orderBy: { creeLe: "asc" },
         include: {

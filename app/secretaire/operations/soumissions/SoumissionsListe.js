@@ -6,6 +6,7 @@ import Link from "next/link";
 import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 import { CLIENT } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
+import SectionDepots from "../../../components/SectionDepots";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -19,7 +20,7 @@ const COULEUR_STATUT = (s) => STATUTS[s]?.color || (s === "REFUSEE" ? "#C15B4A" 
 // Pièces choisies dans l'inventaire (déduites du stock au transfert)
 const aDesPiecesInventaire = (s) => s.taches.some((t) => t.pieces.some((p) => p.pieceId && p.qte > 0));
 
-export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTaux, tvqTaux }) {
+export default function SoumissionsListe({ soumissions, comptesTresorerie = [], tauxHoraireClient, tpsTaux, tvqTaux }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [enCoursId, setEnCoursId] = useState(null);
@@ -183,6 +184,15 @@ export default function SoumissionsListe({ soumissions, tauxHoraireClient, tpsTa
                 </div>
               )}
               {erreurId?.id === s.id && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreurId.message}</p>}
+              {/* Dépôts (lib/depots.js) : une fois la soumission transformée en
+                  bon, ils le suivent — les suivants se prennent sur le bon */}
+              <SectionDepots
+                compact depots={s.depots} totalEstime={dejaTransformee ? null : totalEstime} comptesTresorerie={comptesTresorerie}
+                cible={{ soumissionId: s.id }} peutEncaisser={!dejaTransformee}
+              />
+              {dejaTransformee && s.depots.length > 0 && (
+                <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "4px 0 0" }}>Dépôts passés au bon — solde et nouveaux dépôts sur sa fiche.</p>
+              )}
             </div>
           );
         })}

@@ -65,6 +65,9 @@ export async function POST(request, props) {
       await tx.rendezVous.deleteMany({ where: { bonId: bon.id, source: "BON" } });
       await tx.bonTravail.delete({ where: { id: bon.id } }); // tâches et photos en cascade
     }
+    // Les dépôts de la soumission la suivent : détachés du bon (supprimé ou
+    // dont la facture est annulée — sans paiement, donc aucun appliqué)
+    if (bon) await tx.depotClient.updateMany({ where: { soumissionId: soumission.id, bonId: bon.id }, data: { bonId: null } });
     await tx.soumission.update({ where: { id: soumission.id }, data: { statut: "EN_ATTENTE", bonId: null } });
   });
 

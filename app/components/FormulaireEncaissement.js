@@ -11,19 +11,22 @@ let prochaineCle = 1;
 // Le total peut être plus petit que le solde : la facture reste alors
 // impayée avec le reste, à encaisser plus tard. Utilisé par
 // app/bons/BonDetailClient.js et app/secretaire/factures/FacturesClient.js.
+// Mode depot (app/components/SectionDepots.js) : dépôt avant la facture —
+// montant libre, solde = total estimé moins les dépôts déjà reçus, à titre
+// indicatif seulement (un dépôt peut le dépasser).
 // onConfirmer(paiements) retourne un message d'erreur, ou null.
-export default function FormulaireEncaissement({ comptesTresorerie, solde, onConfirmer, onAnnuler }) {
+export default function FormulaireEncaissement({ comptesTresorerie, solde, onConfirmer, onAnnuler, depot = false }) {
   const nouvelleLigne = (montant, modePaiement = "CARTE_DEBIT") => ({
     cle: prochaineCle++, montant: montant > 0 ? montant.toFixed(2) : "", modePaiement,
     compteTresorerieId: compteSuggere(comptesTresorerie, modePaiement), reference: "",
   });
-  const [lignes, setLignes] = useState(() => [nouvelleLigne(solde)]);
+  const [lignes, setLignes] = useState(() => [nouvelleLigne(depot ? 0 : solde)]);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
   const total = arrondir(lignes.reduce((s, l) => s + (Number(l.montant) || 0), 0));
   const reste = arrondir(solde - total);
-  const depasse = reste < -0.005;
+  const depasse = !depot && reste < -0.005;
 
   function modifier(cle, champs) {
     setLignes((ls) => ls.map((l) => {
@@ -39,7 +42,7 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
 
   async function confirmer() {
     if (lignes.some((l) => !l.compteTresorerieId)) { setErreur("Aucun compte de trésorerie disponible."); return; }
-    if (lignes.some((l) => !(Number(l.montant) > 0)) && solde > 0) { setErreur("Entre le montant de chaque paiement."); return; }
+    if (lignes.some((l) => !(Number(l.montant) > 0)) && (depot || solde > 0)) { setErreur("Entre le montant de chaque paiement."); return; }
     if (depasse) { setErreur(`Le total dépasse le solde de ${solde.toFixed(2)} $.`); return; }
     setErreur("");
     setEnCours(true);
@@ -81,18 +84,27 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
         </div>
       ))}
       <button
-        onClick={() => setLignes((ls) => [...ls, nouvelleLigne(reste, "CHEQUE")])}
+        onClick={() => setLignes((ls) => [...ls, nouvelleLigne(depot ? 0 : reste, "CHEQUE")])}
         style={{ alignSelf: "flex-start", background: "none", border: "none", color: "var(--accent)", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0 }}
       >
         + Ajouter un autre mode de paiement
       </button>
+      {depot ? (
+        <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between", gap: 8, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
+          <span style={{ color: "var(--text-muted)" }}>Solde estimé : {solde.toFixed(2)} $</span>
+          <span style={{ fontWeight: 700, color: "var(--accent)" }}>
+            {reste >= 0 ? `Solde après ce dépôt : ${reste.toFixed(2)} $` : `Dépasse l'estimé de ${(-reste).toFixed(2)} $`}
+          </span>
+        </div>
+      ) : (
       <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between", gap: 8, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
         <span style={{ color: "var(--text-muted)" }}>Solde de la facture : {solde.toFixed(2)} $</span>
         <span style={{ fontWeight: 700, color: depasse ? "var(--danger)" : reste > 0.005 ? "var(--accent)" : "var(--success)" }}>
           {depasse ? `${(-reste).toFixed(2)} $ de trop` : reste > 0.005 ? `Reste à payer : ${reste.toFixed(2)} $` : "Payée au complet"}
         </span>
       </div>
-      {reste > 0.005 && !depasse && (
+      )}
+      {!depot && reste > 0.005 && !depasse && (
         <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: 0 }}>
           La facture restera impayée avec un solde de {reste.toFixed(2)} $, à encaisser plus tard.
         </p>
@@ -100,7 +112,7 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
       {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={confirmer} disabled={enCours || depasse} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-          {enCours ? "…" : `✓ Encaisser ${total.toFixed(2)} $`}
+          {enCours ? "…" : depot ? `✓ Encaisser le dépôt de ${total.toFixed(2)} $` : `✓ Encaisser ${total.toFixed(2)} $`}
         </button>
         <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
           Annuler

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rattacherDepotsAuBon } from "@/lib/depots";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroBon, creerAvecNumero } from "@/lib/numerotation";
@@ -73,9 +74,13 @@ export async function POST(request, props) {
     throw e;
   }
 
-  await prisma.soumission.update({
-    where: { id: soumission.id },
-    data: { statut: "ACCEPTEE", bonId: bon.id },
+  await prisma.$transaction(async (tx) => {
+    await tx.soumission.update({
+      where: { id: soumission.id },
+      data: { statut: "ACCEPTEE", bonId: bon.id },
+    });
+    // Les dépôts de la soumission suivent le travail (lib/depots.js)
+    await rattacherDepotsAuBon(tx, soumission.id, bon.id);
   });
 
   return NextResponse.json({ bonId: bon.id, bonNumero: bon.numero });

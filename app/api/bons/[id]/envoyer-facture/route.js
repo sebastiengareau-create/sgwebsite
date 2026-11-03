@@ -23,7 +23,7 @@ export async function POST(request, props) {
     include: {
       client: true,
       vehicule: true,
-      facture: true,
+      facture: { include: { paiements: { select: { montant: true, depot: { select: { id: true } } } } } },
       problemes: {
         orderBy: { id: "asc" },
         include: { pieces: { include: { piece: true } }, entreesTemps: { include: { employe: true } } },
