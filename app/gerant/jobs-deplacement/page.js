@@ -7,6 +7,7 @@ import EnTete from "../../components/EnTete";
 import BandeauSection from "../../components/BandeauSection";
 import EnvoisClient from "./EnvoisClient";
 import CarteSuivi from "./CarteSuivi";
+import { TACHES_SEULEMENT } from "@/lib/piecesSoumission";
 
 export default async function JobsEnDeplacement(props) {
   const searchParams = await props.searchParams;
@@ -23,7 +24,7 @@ export default async function JobsEnDeplacement(props) {
         id: true, numero: true, datePrevue: true,
         client: { select: { nom: true, adresse: true, ville: true } },
         vehicule: { select: { annee: true, marque: true, modele: true } },
-        problemes: { orderBy: { id: "asc" }, select: { description: true } },
+        problemes: { where: TACHES_SEULEMENT, orderBy: { id: "asc" }, select: { description: true } },
       },
       orderBy: { creeLe: "desc" },
     }),

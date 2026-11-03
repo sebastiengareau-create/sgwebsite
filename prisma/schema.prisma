@@ -348,6 +348,10 @@ model Probleme {
   // dans la rentabilité de la facture en plus des heures poinçonnées. Vide :
   // seulement les heures poinçonnées.
   coutMainOeuvreFixe  Float?
+  // Pièce hors inventaire (lib/piecesSoumission.js, categorieRevenu "4010") :
+  // coûtant unitaire de la pièce achetée pour ce bon, figé à l'ajout — compté
+  // au coût des pièces vendues (5000) à la facture et dans la rentabilité.
+  factureCoutant      Float?
   bonId               String
   bon                 BonTravail      @relation(fields: [bonId], references: [id], onDelete: Cascade)
   photos              Photo[]

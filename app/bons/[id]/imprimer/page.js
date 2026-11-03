@@ -13,7 +13,7 @@ import { heuresFacturablesTache, libelleContenuKit } from "@/lib/kits";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import { nomClientBon } from "@/lib/nomClient";
 import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
-import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
+import { separerPiecesSoumission, ligneDePieceSoumission, totauxLignesFixes } from "@/lib/piecesSoumission";
 import { nomPieceFacture } from "@/lib/numeroPieceFacture";
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -60,13 +60,13 @@ export default async function ImprimerBon(props) {
   const estFacturee = !!bon.facture;
   const totalPieces = estFacturee
     ? bon.facture.totalPieces
-    : bon.problemes.reduce((s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0), 0);
+    : totauxLignesFixes(bon.problemes).pieces + bon.problemes.reduce((s, pr) => s + pr.pieces.reduce((s2, l) => s2 + l.qte * l.prix, 0), 0);
   const tauxHoraireClient = estFacturee ? bon.facture.tauxHoraireUtilise : (bon.tauxHoraireOverride ?? Number(dict.taux_horaire_client || 195));
   const totalHeures = estFacturee ? bon.facture.heuresFacturees : heuresPoinconnees;
   const totalMainOeuvre = estFacturee ? bon.facture.totalMainOeuvre : totalHeures * tauxHoraireClient;
   const totalAutresRevenus = estFacturee
     ? (bon.facture.totalAutresRevenus || 0)
-    : bon.problemes.filter((pr) => (pr.categorieRevenu || "MAIN_OEUVRE") !== "MAIN_OEUVRE").reduce((s, pr) => s + (pr.facturePrixUnitaire || 0) * (pr.factureQte ?? 1), 0);
+    : totauxLignesFixes(bon.problemes).autres;
   const totalMaterielAtelier = estFacturee ? (bon.facture.totalMaterielAtelier || 0) : montantMaterielAtelier(totalHeures);
   const sousTotalAvantEscompte = estFacturee
     ? bon.facture.totalFacture + (bon.facture.escompteApplique || 0)
