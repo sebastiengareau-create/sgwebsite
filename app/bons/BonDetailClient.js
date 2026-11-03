@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import SectionDepots from "../components/SectionDepots";
 import FormulaireEncaissement from "../components/FormulaireEncaissement";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
@@ -218,7 +219,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   }
 
   async function marquerFactureImpayee() {
-    if (!window.confirm("Remettre cette facture impayée ? Tous ses paiements et leurs écritures comptables seront retirés.")) return;
+    if (!window.confirm("Remettre cette facture impayée ? Ses paiements et leurs écritures comptables seront retirés (les dépôts restent appliqués).")) return;
     const err = await appelFacture(`/api/factures/${bon.facture.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ statut: "IMPAYEE" }),
     });
@@ -226,9 +227,19 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   }
 
   async function retirerPaiementFacture(p) {
-    if (!window.confirm(`Retirer le paiement de ${p.montant.toFixed(2)} $ ? Son écriture comptable sera supprimée et le montant redeviendra dû.`)) return;
+    const message = p.depot
+      ? `Retirer le dépôt de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû ; le dépôt reste au bon, non appliqué (bouton « Appliquer à la facture »).`
+      : `Retirer le paiement de ${p.montant.toFixed(2)} $ ? Son écriture comptable sera supprimée et le montant redeviendra dû.`;
+    if (!window.confirm(message)) return;
     const err = await appelFacture(`/api/factures/${bon.facture.id}/paiements/${p.id}`, { method: "DELETE" });
     if (err) setAvertissementFacture(err);
+  }
+
+  // Dépôts du bon pas encore appliqués à la facture (retirés de la facture,
+  // ou reçus quand elle était à 0) — lib/depots.js
+  const depotsNonAppliques = (bon.depots || []).filter((d) => !d.paiementFacture);
+  function appliquerDepotsFacture() {
+    return appelFacture(`/api/factures/${bon.facture.id}/appliquer-depots`, { method: "POST" }).then((err) => { if (err) setAvertissementFacture(err); });
   }
 
   async function supprimerFacture() {
@@ -555,7 +566,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 {paiementsFacture.map((p) => (
                   <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, padding: "3px 0" }}>
                     <span style={{ color: "var(--text-muted)", minWidth: 0 }}>
-                      {new Date(p.datePaiement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {LABEL_MODE_PAIEMENT[p.modePaiement] || "Paiement"}
+                      {p.depot
+                        ? <>💰 Dépôt du {new Date(p.depot.datePaiement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {LABEL_MODE_PAIEMENT[p.modePaiement] || "Paiement"}</>
+                        : <>{new Date(p.datePaiement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {LABEL_MODE_PAIEMENT[p.modePaiement] || "Paiement"}</>}
                       {p.compteTresorerie ? ` · ${p.compteTresorerie.nom}` : ""}{p.reference ? ` · réf. ${p.reference}` : ""}
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
@@ -571,6 +584,16 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                     <span>Solde à payer</span>
                     <span style={{ color: "#C9A227" }}>{soldeFacture.toFixed(2)} $</span>
                   </div>
+                )}
+              </div>
+            )}
+            {depotsNonAppliques.length > 0 && !payeeParCoutant && (
+              <div style={{ marginBottom: 10, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px dashed var(--accent)" }}>
+                <SectionDepots depots={depotsNonAppliques} compact peutModifier={peutModifier} peutEncaisser={false} />
+                {peutModifier && bon.facture.statut === "IMPAYEE" && soldeFacture > 0.005 && (
+                  <button onClick={appliquerDepotsFacture} disabled={enCours} style={{ ...boutonAjout, width: "100%", marginTop: 8, color: "var(--accent)", fontWeight: 700 }}>
+                    Appliquer à la facture
+                  </button>
                 )}
               </div>
             )}
@@ -692,6 +715,14 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{totalAvecTaxesEstime.toFixed(2)} $</span>
             </div>
             {heuresEnCours && <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>* Un poinçon est encore actif — le total augmentera une fois arrêté.</p>}
+
+            {/* Dépôts (lib/depots.js) : appliqués à la facture à son émission */}
+            {!bon.vehiculeVente && (
+              <SectionDepots
+                depots={bon.depots} totalEstime={totalAvecTaxesEstime} comptesTresorerie={comptesTresorerie}
+                cible={{ bonId: bon.id }} peutModifier={peutModifier}
+              />
+            )}
 
             {peutModifier && (
               <div style={{ marginTop: 12 }}>

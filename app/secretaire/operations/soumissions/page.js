@@ -7,6 +7,7 @@ import FacturationPeriodes from "../../../components/FacturationPeriodes";
 import ResumeOperations from "../../../components/ResumeOperations";
 import SoumissionsListe from "./SoumissionsListe";
 import { reparerEcrituresFacturesSoumissions } from "@/lib/soumissions";
+import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 
 export default async function ListeSoumissions() {
   const session = await obtenirSession();
@@ -14,7 +15,14 @@ export default async function ListeSoumissions() {
   await reparerEcrituresFacturesSoumissions(session.nom);
   const [soumissions, parametres] = await Promise.all([
     prisma.soumission.findMany({
-      include: { taches: { include: { pieces: true } } },
+      include: {
+        taches: { include: { pieces: true } },
+        // Dépôts reçus (lib/depots.js)
+        depots: {
+          include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } } },
+          orderBy: { datePaiement: "asc" },
+        },
+      },
       orderBy: { creeLe: "desc" },
     }),
     prisma.parametre.findMany(),
@@ -28,6 +36,8 @@ export default async function ListeSoumissions() {
     select: { bonId: true },
   })).map((f) => f.bonId));
   const soumissionsAvecFacture = soumissions.map((s) => ({ ...s, factureEnVigueur: s.statut === "FACTUREE" && facturesEnVigueur.has(s.bonId) }));
+  await assurerComptesTresorerie();
+  const comptesTresorerie = await obtenirComptesTresoreriePourSelection();
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
   const tpsTaux = Number(dict.tps_taux || 5);
   const tvqTaux = Number(dict.tvq_taux || 9.975);
@@ -38,7 +48,7 @@ export default async function ListeSoumissions() {
       <OperationsTabs />
       <FacturationPeriodes />
       <ResumeOperations />
-      <SoumissionsListe soumissions={soumissionsAvecFacture} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
+      <SoumissionsListe soumissions={soumissionsAvecFacture} comptesTresorerie={comptesTresorerie} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
     </div>
   );
 }

@@ -63,6 +63,10 @@ export async function DELETE(request, props) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
+  const depots = await prisma.depotClient.count({ where: { soumissionId: params.id } });
+  if (depots > 0) {
+    return NextResponse.json({ erreur: "Cette soumission a un dépôt — retire d'abord le dépôt (ou rembourse-le) avant de la supprimer." }, { status: 409 });
+  }
   await prisma.soumission.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

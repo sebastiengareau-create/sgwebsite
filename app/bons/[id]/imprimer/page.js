@@ -1,3 +1,4 @@
+import { lignesSoldeBon } from "@/lib/depots";
 import { notFound, redirect } from "next/navigation";
 import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +39,8 @@ export default async function ImprimerBon(props) {
         client: true,
         vehicule: true,
         problemes: { orderBy: { id: "asc" }, include: { photos: CLIENT.photosTachesImprimees, pieces: { include: { piece: true } }, entreesTemps: true } },
-        facture: true,
+        facture: { include: { paiements: { select: { montant: true, depot: { select: { id: true } } } } } },
+        depots: { select: { montant: true } },
       },
     }),
     prisma.parametre.findMany(),
@@ -247,13 +249,10 @@ export default async function ImprimerBon(props) {
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>Total {estFacturee ? "" : "estimé "}(taxes incl.)</span>
             <span style={{ fontSize: 20, fontWeight: 700 }}>{totalAvecTaxes.toFixed(2)} $</span>
           </div>
-          {/* Paiement partiel déjà reçu (lib/paiementsFactures.js) : le solde dû */}
-          {estFacturee && bon.facture.statut === "IMPAYEE" && bon.facture.montantPaye > 0 && (
-            <>
-              <LigneTotal label="Montant déjà payé" valeur={-bon.facture.montantPaye} petit />
-              <LigneTotal label="Solde dû" valeur={bon.facture.totalAvecTaxes - bon.facture.montantPaye} gras bordureHaut />
-            </>
-          )}
+          {/* Dépôt et paiements déjà reçus (lib/depots.js, lib/paiementsFactures.js) : le solde */}
+          {lignesSoldeBon(bon, totalAvecTaxes).map((l) => (
+            <LigneTotal key={l.label} label={l.label} valeur={l.valeur} petit={l.petit} gras={l.gras} bordureHaut={l.gras} />
+          ))}
         </div>
 
         <PiedFacture nomEntreprise={nomEntreprise} />

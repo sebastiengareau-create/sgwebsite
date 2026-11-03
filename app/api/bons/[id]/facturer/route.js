@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { appliquerDepots } from "@/lib/depots";
 import { prisma } from "@/lib/prisma";
 import { prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
@@ -114,5 +115,17 @@ export async function POST(request, props) {
     }
   }
 
-  return NextResponse.json({ ...facture, avertissementComptable });
+  // Dépôts reçus avant la facture : appliqués comme paiements (lib/depots.js)
+  let factureFinale = facture;
+  if (!vehiculeVente) {
+    try {
+      const resultat = await appliquerDepots(facture.id, { creePar: session.nom });
+      factureFinale = resultat.facture;
+      avertissementComptable = avertissementComptable || resultat.avertissementComptable;
+    } catch (e) {
+      console.error("Erreur application des dépôts :", e);
+    }
+  }
+
+  return NextResponse.json({ ...factureFinale, avertissementComptable });
 }

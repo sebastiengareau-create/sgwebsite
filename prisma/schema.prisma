@@ -138,6 +138,7 @@ model BonTravail {
   // taxes, et payé en ajoutant son montant au coûtant du véhicule
   vehiculeVenteId     String?
   vehiculeVente       VehiculeVente? @relation(fields: [vehiculeVenteId], references: [id])
+  depots              DepotClient[] // dépôts encaissés avant la facture (lib/depots.js)
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
   envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
   photosArrivee       PhotoArrivee[] // photos du véhicule à son arrivée (4 coins + tableau de bord), hors impression
@@ -296,8 +297,39 @@ model PaiementFacture {
   ecritureId         String? // écriture FACTURE_PAYEE de ce paiement — vide si la comptabilité est désactivée ou la période verrouillée
   creePar            String?
   creeLe             DateTime         @default(now())
+  depot              DepotClient? // rempli quand ce paiement est un dépôt appliqué à la facture
 
   @@index([factureId])
+}
+
+// Dépôt encaissé avant la facture, sur une soumission ou un bon de commande
+// (lib/depots.js). À la réception : débit trésorerie / crédit 2400 « Dépôts
+// de clients » (passif — l'argent appartient encore au client). Quand la
+// facture du bon est émise, le dépôt y est appliqué comme un paiement
+// (PaiementFacture, débit 2400 / crédit 1100) : le solde de la facture en
+// tient compte. Une soumission acceptée ou facturée passe ses dépôts au bon.
+model DepotClient {
+  id                 String           @id @default(cuid())
+  soumissionId       String?
+  soumission         Soumission?      @relation(fields: [soumissionId], references: [id], onDelete: SetNull)
+  bonId              String?
+  bon                BonTravail?      @relation(fields: [bonId], references: [id], onDelete: SetNull)
+  montant            Float
+  modePaiement       String? // mêmes valeurs que Facture.modePaiement (lib/modesPaiement.js)
+  compteTresorerieId String
+  compteTresorerie   CompteTresorerie @relation(fields: [compteTresorerieId], references: [id])
+  reference          String?
+  datePaiement       DateTime         @default(now())
+  ecritureId         String? // écriture DEPOT_CLIENT de la réception — vide si la comptabilité est désactivée ou la période verrouillée
+  // Paiement de facture créé en appliquant le dépôt ; vide = pas encore
+  // appliqué (le retirer de la facture remet le dépôt en attente)
+  paiementFactureId  String?          @unique
+  paiementFacture    PaiementFacture? @relation(fields: [paiementFactureId], references: [id], onDelete: SetNull)
+  creePar            String?
+  creeLe             DateTime         @default(now())
+
+  @@index([soumissionId])
+  @@index([bonId])
 }
 
 model Probleme {
@@ -561,6 +593,7 @@ model Soumission {
   statut          String            @default("EN_ATTENTE") // "EN_ATTENTE" | "ACCEPTEE" | "FACTUREE" (profil soumissionFacturerDirect)
   bonId           String?           @unique // rempli une fois transformée en vrai bon de commande
   taches          TacheSoumission[]
+  depots          DepotClient[] // dépôts encaissés sur la soumission (lib/depots.js)
   creeLe          DateTime          @default(now())
 
   @@index([statut])
@@ -702,6 +735,7 @@ model CompteTresorerie {
   creeLe         DateTime                @default(now())
   factures       Facture[]
   paiementsFactures PaiementFacture[]
+  depotsClients  DepotClient[]
   facturesVente  FactureVente[]
   depenses       Depense[]
   rapprochements RapprochementBancaire[]

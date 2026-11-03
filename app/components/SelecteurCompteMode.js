@@ -11,12 +11,12 @@ const LABEL_CATEGORIE = { CAISSE: "Caisse", BANQUE: "Banque", CARTE_CREDIT: "Car
 export default function SelecteurCompteMode({ comptes, compteTresorerieId, setCompteTresorerieId, modePaiement, setModePaiement }) {
   return (
     <div style={{ display: "flex", gap: 6 }}>
-      <select value={compteTresorerieId} onChange={(e) => setCompteTresorerieId(e.target.value)} style={{ ...champStyle, flex: 1 }}>
+      <select value={compteTresorerieId} onChange={(e) => setCompteTresorerieId(e.target.value)} style={{ ...champStyle, flex: 1, minWidth: 0 }}>
         {comptes.map((c) => (
           <option key={c.id} value={c.id}>{c.nom} ({LABEL_CATEGORIE[c.categorie] || c.categorie})</option>
         ))}
       </select>
-      <select value={modePaiement} onChange={(e) => setModePaiement(e.target.value)} style={{ ...champStyle, flex: 1 }}>
+      <select value={modePaiement} onChange={(e) => setModePaiement(e.target.value)} style={{ ...champStyle, flex: 1, minWidth: 0 }}>
         {MODES_PAIEMENT.map((m) => (
           <option key={m.valeur} value={m.valeur}>{m.label}</option>
         ))}
