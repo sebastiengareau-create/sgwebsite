@@ -1,8 +1,9 @@
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
+import { dateAujourdhuiQuebec, limitesJourQuebec, dateQuebecStr, jourSemaineQuebec, dateHeureQuebecVersUTC, FUSEAU } from "@/lib/temps";
 import { chargerReglagesDisponibilites } from "@/lib/disponibilites";
+import { estPoinconSuspect, JOURS_POINCONS_OUBLIES } from "@/lib/productivite";
 import EnTete from "../../components/EnTete";
 import RapportsClient from "./RapportsClient";
 
@@ -26,7 +27,13 @@ export default async function RapportJournalier(props) {
   // app/bons/[id]/page.js) — s'il n'était pas inclus ici, ses heures
   // facturées seraient bel et bien enregistrées mais absentes du rapport et
   // du revenu total de l'équipe.
-  const [parametres, mecaniciens, entrees, entreesInternes, reglages] = await Promise.all([
+  // Poinçons oubliés (lib/productivite.js) : tous les poinçons encore ouverts,
+  // plus ceux fermés des derniers jours — peu importe la date affichée, pour
+  // qu'ils soient corrigés avant de fausser la paie et les rapports. Un bon
+  // facturé est figé : ses poinçons ne peuvent plus se corriger ici.
+  const depuisPoinconsOublies = new Date(Date.now() - JOURS_POINCONS_OUBLIES * 86400000);
+  const filtrePoinconsOublies = { OR: [{ fin: null }, { debut: { gte: depuisPoinconsOublies } }] };
+  const [parametres, mecaniciens, entrees, entreesInternes, reglages, candidatsBon, candidatsInternes] = await Promise.all([
     prisma.parametre.findMany(),
     prisma.user.findMany({ where: { role: { in: ["MECANICIEN", "GERANT"] } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
@@ -43,7 +50,41 @@ export default async function RapportJournalier(props) {
       orderBy: { debut: "asc" },
     }),
     chargerReglagesDisponibilites(),
+    prisma.entreeTemps.findMany({
+      where: { ...filtrePoinconsOublies, probleme: { bon: { facture: { is: null } } } },
+      include: { employe: { select: { nom: true } }, probleme: { select: { description: true, bon: { select: { id: true, numero: true } } } } },
+      orderBy: { debut: "asc" },
+    }),
+    prisma.entreeTempsInterne.findMany({
+      where: filtrePoinconsOublies,
+      include: { employe: { select: { nom: true } }, tacheInterne: { select: { nom: true } } },
+      orderBy: { debut: "asc" },
+    }),
   ]);
+
+  const maintenant = new Date();
+  // Heure de fin proposée pour corriger : la fermeture du jour où le poinçon a
+  // commencé (si elle est après son début), sinon une heure après son début
+  // (jour fermé, poinçon démarré après la fermeture) — format datetime-local
+  // en heure du Québec.
+  const heureLocale = (date) => new Intl.DateTimeFormat("en-GB", { timeZone: FUSEAU, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
+  const finProposee = (debut) => {
+    const jourStr = dateQuebecStr(debut);
+    const horaire = reglages.heures[jourSemaineQuebec(debut)];
+    if (horaire && dateHeureQuebecVersUTC(jourStr, horaire.fermeture) > new Date(debut)) return `${jourStr}T${horaire.fermeture}`;
+    const uneHeureApres = new Date(Math.min(new Date(debut).getTime() + 3600000, maintenant.getTime()));
+    return `${dateQuebecStr(uneHeureApres)}T${heureLocale(uneHeureApres)}`;
+  };
+  const poinconsOublies = [
+    ...candidatsBon.filter((e) => estPoinconSuspect(e, maintenant)).map((e) => ({
+      type: "bon", id: e.id, debut: e.debut, fin: e.fin, employe: e.employe.nom,
+      libelle: `#${e.probleme.bon.numero} — ${e.probleme.description}`, bonId: e.probleme.bon.id, finProposee: finProposee(e.debut),
+    })),
+    ...candidatsInternes.filter((e) => estPoinconSuspect(e, maintenant)).map((e) => ({
+      type: "interne", id: e.id, debut: e.debut, fin: e.fin, employe: e.employe.nom,
+      libelle: `🛠️ ${e.tacheInterne.nom} (interne)`, bonId: null, finProposee: finProposee(e.debut),
+    })),
+  ].sort((a, b) => new Date(a.debut) - new Date(b.debut));
 
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const heuresAttendues = Number(dict[`heures_${jourSemaine}`] ?? 8);
@@ -91,6 +132,7 @@ export default async function RapportJournalier(props) {
         coutHoraire={coutHoraire}
         tauxHoraireClient={tauxHoraireClient}
         heuresOuverture={heuresOuverture}
+        poinconsOublies={poinconsOublies}
       />
     </div>
   );

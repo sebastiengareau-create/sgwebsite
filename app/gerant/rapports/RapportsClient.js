@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 
@@ -145,7 +146,80 @@ function FriseHoraire({ entrees, entreesInternes, couleurs, heuresOuverture }) {
   );
 }
 
-export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues, coutHoraire, tauxHoraireClient, heuresOuverture }) {
+const fmtDateHeure = (d) => new Date(d).toLocaleString("fr-CA", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+// Poinçons oubliés (lib/productivite.js) : encore ouverts depuis trop
+// longtemps, ou qui débordent sur un autre jour. Le gérant entre la vraie
+// heure de fin directement ici.
+function PoinconsOublies({ poincons }) {
+  const router = useRouter();
+  if (!poincons || poincons.length === 0) return null;
+  return (
+    <div className="carte carte-m" style={{ marginBottom: 16, border: "1px solid var(--danger)" }}>
+      <div style={{ fontWeight: 700, color: "var(--danger)", marginBottom: 4 }}>
+        ⚠ {poincons.length} poinçon{poincons.length > 1 ? "s" : ""} oublié{poincons.length > 1 ? "s" : ""} ?
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+        Encore ouvert trop longtemps ou terminé un autre jour. Corrige l'heure de fin pour que la paie et les rapports soient justes.
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {poincons.map((p) => <LignePoinconOublie key={`${p.type}-${p.id}`} p={p} onCorrige={() => router.refresh()} />)}
+      </div>
+    </div>
+  );
+}
+
+function LignePoinconOublie({ p, onCorrige }) {
+  const [fin, setFin] = useState(p.finProposee);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const duree = ((p.fin ? new Date(p.fin) : new Date()) - new Date(p.debut)) / 3600000;
+
+  async function corriger() {
+    setEnCours(true);
+    setErreur("");
+    const res = await fetch("/api/poincons-oublies", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: p.type, id: p.id, fin }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de la correction.");
+      return;
+    }
+    onCorrige();
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 6, padding: "8px 10px", fontSize: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <strong>{p.employe}</strong>
+        <span style={{ color: "var(--danger)", fontWeight: 600, whiteSpace: "nowrap" }}>{fmtHeures(duree)}{p.fin ? "" : " · en cours"}</span>
+      </div>
+      <div>
+        {p.bonId ? <Link href={`/bons/${p.bonId}`} style={{ color: "inherit" }}>{p.libelle}</Link> : p.libelle}
+      </div>
+      <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>
+        Début {fmtDateHeure(p.debut)} · {p.fin ? `fin ${fmtDateHeure(p.fin)}` : "jamais arrêté"}
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Vraie fin :</span>
+        <input
+          type="datetime-local" value={fin} onChange={(e) => setFin(e.target.value)}
+          style={{ flex: 1, minWidth: 0, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12 }}
+        />
+        <button onClick={corriger} disabled={enCours || !fin} style={{ ...boutonJour, padding: "6px 10px", color: "var(--text)" }}>
+          {enCours ? "…" : "Corriger"}
+        </button>
+      </div>
+      {erreur && <div style={{ color: "var(--danger)", fontSize: 11, marginTop: 4 }}>{erreur}</div>}
+    </div>
+  );
+}
+
+export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues, coutHoraire, tauxHoraireClient, heuresOuverture, poinconsOublies }) {
   const router = useRouter();
 
   function changerDate(nouvelleDate) {
@@ -173,6 +247,8 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
           📊 Voir la rentabilité par période →
         </Link>
       </BandeauSection>
+
+      <PoinconsOublies poincons={poinconsOublies} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
         <button onClick={() => changerDate(decaler(dateStr, -1))} style={boutonJour}>← Veille</button>
@@ -219,12 +295,30 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
           const coutJour = heuresAttendues * coutHoraire;
           const revenuJour = heuresPoinconnees * tauxHoraireClient;
           const margeJour = revenuJour - coutJour;
+          // Ratio de présence : (heures facturables + heures internes) ÷ heures
+          // prévues de la journée. Null si aucune heure n'est prévue ce jour-là.
+          const ratioPresence = heuresAttendues > 0 ? ((heuresPoinconnees + heuresInternes) / heuresAttendues) * 100 : null;
+          const couleurRatio = ratioPresence === null ? "var(--text-muted)"
+            : ratioPresence >= 90 ? "var(--success)"
+            : ratioPresence >= 75 ? "#C9A227"
+            : "var(--danger)";
 
           return (
             <div key={employe.id} className="carte carte-m">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600 }}>{employe.nom}</span>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {heuresAttendues}h</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{employe.nom}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {heuresAttendues}h</div>
+                </div>
+                <div
+                  title="Ratio de présence : (heures facturables + tâches internes) ÷ heures prévues de la journée"
+                  style={{ textAlign: "right", whiteSpace: "nowrap" }}
+                >
+                  <div style={{ fontSize: 20, fontWeight: 800, color: couleurRatio, lineHeight: 1.1 }}>
+                    {ratioPresence === null ? "—" : `${Math.round(ratioPresence)} %`}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Présence</div>
+                </div>
               </div>
 
               {tempsNonPoinconne > 0.05 && (
