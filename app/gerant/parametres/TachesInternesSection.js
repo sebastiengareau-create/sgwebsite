@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function TachesInternesSection({ tachesInitiales }) {
   const router = useRouter();
@@ -54,7 +55,12 @@ export default function TachesInternesSection({ tachesInitiales }) {
   return (
     <div className="conteneur-page-large" style={{ margin: "20px auto 0", padding: "0 16px" }}>
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Tâches internes</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Tâches internes</div>
+          <Link href="/gerant/parametres/taches-internes/historique" style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", textDecoration: "none" }}>
+            🕓 Historique
+          </Link>
+        </div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
           Pour suivre les mécaniciens même quand ils ne sont pas sur un bon client (nettoyage, formation, entretien
           de l'atelier…). Ces heures comptent comme présence, mais jamais comme facturable.
@@ -77,6 +83,13 @@ export default function TachesInternesSection({ tachesInitiales }) {
               ) : (
                 <>
                   <span style={{ flex: 1, fontSize: 13, textDecoration: t.actif ? "none" : "line-through" }}>{t.nom}</span>
+                  <Link
+                    href={`/gerant/parametres/taches-internes/historique?tache=${t.id}`}
+                    title="Historique des poinçons"
+                    style={{ fontSize: 11, color: "var(--text-muted)", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, textDecoration: "none" }}
+                  >
+                    🕓
+                  </Link>
                   <button
                     onClick={() => { setModificationId(t.id); setNomModifie(t.nom); }}
                     style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}
