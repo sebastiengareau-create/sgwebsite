@@ -163,7 +163,8 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   quantité, coûtant, vendant ; vendant proposé à 40 % de marge). Ligne fixe
   au compte 4010, sans fiche ni mouvement de stock ; à la facture, le coûtant
   va au 5000 contre le 1200. L'achat se saisit dans les comptes à payer sur
-  « Réception d'inventaire (actif) » (`lib/piecesSoumission.js`).
+  le poste « Pièces achetées pour un bon (actif) » (débite 1200), montant
+  avant taxes = coûtant entré sur le bon (`lib/piecesSoumission.js`).
 
 - Octobre 2026 : les cartes compactes de l'horodateur
   (`horodateurBonsReplies`), faites pour VR Premium, sont devenues le
