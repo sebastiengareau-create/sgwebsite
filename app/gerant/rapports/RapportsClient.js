@@ -219,12 +219,30 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
           const coutJour = heuresAttendues * coutHoraire;
           const revenuJour = heuresPoinconnees * tauxHoraireClient;
           const margeJour = revenuJour - coutJour;
+          // Ratio de présence : (heures facturables + heures internes) ÷ heures
+          // prévues de la journée. Null si aucune heure n'est prévue ce jour-là.
+          const ratioPresence = heuresAttendues > 0 ? ((heuresPoinconnees + heuresInternes) / heuresAttendues) * 100 : null;
+          const couleurRatio = ratioPresence === null ? "var(--text-muted)"
+            : ratioPresence >= 90 ? "var(--success)"
+            : ratioPresence >= 75 ? "#C9A227"
+            : "var(--danger)";
 
           return (
             <div key={employe.id} className="carte carte-m">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600 }}>{employe.nom}</span>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {heuresAttendues}h</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{employe.nom}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {heuresAttendues}h</div>
+                </div>
+                <div
+                  title="Ratio de présence : (heures facturables + tâches internes) ÷ heures prévues de la journée"
+                  style={{ textAlign: "right", whiteSpace: "nowrap" }}
+                >
+                  <div style={{ fontSize: 20, fontWeight: 800, color: couleurRatio, lineHeight: 1.1 }}>
+                    {ratioPresence === null ? "—" : `${Math.round(ratioPresence)} %`}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Présence</div>
+                </div>
               </div>
 
               {tempsNonPoinconne > 0.05 && (
