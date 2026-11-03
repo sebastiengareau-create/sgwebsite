@@ -18,7 +18,8 @@ export default async function ComptesAPayer(props) {
 
   const [fournisseurs, categoriesBrutes, comptesDepense, depenses, parametres, comptesTresorerie, pieces] = await Promise.all([
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
-    prisma.categorieDepense.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
+    // Classés par numéro de poste (compte), puis par nom
+    prisma.categorieDepense.findMany({ where: { actif: true }, orderBy: [{ compteDepenseNumero: "asc" }, { nom: "asc" }] }),
     prisma.compte.findMany({ where: { type: "DEPENSE", actif: true }, orderBy: { numero: "asc" } }),
     // Toutes les impayées (jamais tronquées — sinon le total dû serait faux),
     // plus les 50 dernières payées pour l'historique
