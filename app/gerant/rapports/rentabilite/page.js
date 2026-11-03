@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import { chargerHoraireOuverture, heuresPrevuesJoursPoinconnes } from "@/lib/paie";
+import { tauxFacturationEmploye } from "@/lib/productivite";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -26,7 +27,17 @@ export default async function RapportRentabilite(props) {
     prisma.user.findMany({ where: { actif: true, role: { in: ROLES_VALIDES } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
       where: { fin: { not: null }, debut: { gte: debut, lte: fin } },
-      include: { probleme: { include: { bon: { include: { facture: true, client: true } } } } },
+      include: {
+        probleme: {
+          include: {
+            bon: { include: { facture: true, client: true } },
+            // pour le taux de facturation (lib/productivite.js) : kits de la
+            // tâche et tous ses poinçons, pas seulement ceux de la période
+            pieces: { select: { qte: true, kit: true } },
+            entreesTemps: { select: { debut: true, fin: true } },
+          },
+        },
+      },
     }),
     prisma.entreeTempsInterne.findMany({ where: { fin: { not: null }, debut: { gte: debut, lte: fin } } }),
     prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
@@ -69,6 +80,10 @@ export default async function RapportRentabilite(props) {
     const coutReel = heuresPayees * tauxCout;
     const marge = revenuGenere - coutReel;
 
+    // Taux de facturation : heures vendues ÷ heures poinçonnées, sur les bons
+    // déjà facturés seulement
+    const facturation = tauxFacturationEmploye(siennesBon);
+
     return {
       employe: e,
       heuresTotales,
@@ -80,6 +95,8 @@ export default async function RapportRentabilite(props) {
       coutReel,
       marge,
       tauxCout,
+      heuresVendues: facturation.heuresVendues,
+      heuresPoinconneesFacturees: facturation.heuresPoinconnees,
     };
   })
     // Seulement les employés qui ont démarré l'horodateur sur un bon et ont
