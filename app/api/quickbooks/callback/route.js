@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { CLIENT } from "@/lib/client";
 import { prisma } from "@/lib/prisma";
 import { echangerCodeContreJetons } from "@/lib/quickbooks";
 
 const BASE = process.env.APP_URL || "http://localhost:3000";
 
 export async function GET(request) {
+  if (!CLIENT.quickbooks) return NextResponse.json({ erreur: "QuickBooks n'est pas offert dans cette installation." }, { status: 404 });
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const realmId = searchParams.get("realmId"); // identifiant de l'entreprise QuickBooks connectée

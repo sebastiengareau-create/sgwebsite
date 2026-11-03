@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { CLIENT } from "@/lib/client";
 
 const JOURS = [
   { cle: "lun", label: "Lundi" },
@@ -287,6 +288,7 @@ export default function ParametresClient({
         </button>
       </form>
 
+      {CLIENT.quickbooks && (
       <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>QuickBooks</div>
 
@@ -321,6 +323,7 @@ export default function ParametresClient({
           </>
         )}
       </div>
+      )}
 
       <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
         <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>Synchronisation Outlook / Google Calendar</div>

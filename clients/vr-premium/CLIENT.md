@@ -47,6 +47,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 - `partstech: false` — **pas de PartsTech** (agrégateur de pièces
   automobiles, propre au modèle de base) : ni bouton « Chercher dans
   PartsTech » dans les commandes, ni section Paramètres → PartsTech.
+- `quickbooks: false` — **pas de QuickBooks** : ni section Paramètres →
+  QuickBooks (bouton « Connecter QuickBooks »), ni connexion possible
+  (`/api/quickbooks/connect` et `callback` refusés). Les variables
+  `QUICKBOOKS_*` de Railway peuvent rester, elles ne servent pas.
 - `actionRapideInventaire: true` — dans la Vue d'ensemble du gérant, les
   **actions rapides** offrent « Inventaire » au lieu de « Employé / Paie »
   (la paie reste accessible par le menu).
