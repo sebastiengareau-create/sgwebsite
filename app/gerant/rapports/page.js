@@ -34,7 +34,7 @@ export default async function RapportJournalier(props) {
   // facturé est figé : ses poinçons ne peuvent plus se corriger ici.
   const depuisPoinconsOublies = new Date(Date.now() - JOURS_POINCONS_OUBLIES * 86400000);
   const filtrePoinconsOublies = { OR: [{ fin: null }, { debut: { gte: depuisPoinconsOublies } }] };
-  const [parametres, mecaniciens, entrees, entreesInternes, reglages, candidatsBon, candidatsInternes, heuresJour] = await Promise.all([
+  const [parametres, mecaniciens, entrees, entreesInternes, reglages, candidatsBon, candidatsInternes, heuresJour, tachesInternes] = await Promise.all([
     prisma.parametre.findMany(),
     prisma.user.findMany({ where: { role: { in: ["MECANICIEN", "GERANT"] } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
@@ -62,6 +62,8 @@ export default async function RapportJournalier(props) {
       orderBy: { debut: "asc" },
     }),
     chargerHeuresJour(dateStr, dateStr),
+    // Pour les poinçons ajoutés à la main (tâches internes seulement)
+    prisma.tacheInterne.findMany({ where: { actif: true }, select: { id: true, nom: true }, orderBy: { nom: "asc" } }),
   ]);
 
   const maintenant = new Date();
@@ -139,6 +141,7 @@ export default async function RapportJournalier(props) {
         tauxHoraireClient={tauxHoraireClient}
         heuresOuverture={heuresOuverture}
         poinconsOublies={poinconsOublies}
+        tachesInternes={tachesInternes}
       />
     </div>
   );

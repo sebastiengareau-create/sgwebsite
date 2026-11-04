@@ -181,6 +181,11 @@ export default async function HistoriqueTachesInternes(props) {
                           <span style={{ marginLeft: 8 }}>{cout(l.heures)}</span>
                         </span>
                       </div>
+                      {l.ajouteLe && (
+                        <div style={{ fontSize: 11, color: "#C9A227", marginTop: 2 }}>
+                          ✍️ Ajouté à la main{l.ajoutePar ? ` par ${l.ajoutePar}` : ""} le {fmtJourHeure(l.ajouteLe)}
+                        </div>
+                      )}
                       {l.modifieLe && (
                         <div style={{ fontSize: 11, color: "#C9A227", marginTop: 2 }}>
                           ✏️ Ajusté{l.modifiePar ? ` par ${l.modifiePar}` : ""} le {fmtJourHeure(l.modifieLe)} — à l&apos;origine{" "}
