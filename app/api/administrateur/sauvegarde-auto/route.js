@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
-import { CLE_COURRIEL } from "@/lib/planificateurSauvegarde";
+import { CLE_COURRIEL, verifierEtEnvoyerSauvegardeAuto } from "@/lib/planificateurSauvegarde";
 
 async function estAutorise(session) {
   if (!session) return false;
@@ -26,4 +26,15 @@ export async function PATCH(request) {
   });
 
   return NextResponse.json({ ok: true, courriel: valeur });
+}
+
+// « Envoyer maintenant » : envoie la sauvegarde tout de suite (même si celle
+// du jour est déjà partie) et retourne le résultat, pour vérifier le réglage.
+export async function POST() {
+  const session = await obtenirSession();
+  if (!(await estAutorise(session))) {
+    return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
+  }
+  const resultat = await verifierEtEnvoyerSauvegardeAuto({ forcer: true });
+  return NextResponse.json({ ...resultat, le: new Date().toISOString() });
 }

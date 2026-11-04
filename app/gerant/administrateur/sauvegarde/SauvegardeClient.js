@@ -3,7 +3,22 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 
-export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
+// Lit le fichier choisi : .json, ou .json.gz (sauvegarde automatique reçue
+// par courriel, compressée)
+async function lireFichierSauvegarde(fichier) {
+  const debut = new Uint8Array(await fichier.slice(0, 2).arrayBuffer());
+  if (debut[0] === 0x1f && debut[1] === 0x8b) {
+    const flux = fichier.stream().pipeThrough(new DecompressionStream("gzip"));
+    return await new Response(flux).text();
+  }
+  return await fichier.text();
+}
+
+function formaterMoment(iso) {
+  return new Date(iso).toLocaleString("fr-CA", { timeZone: "America/Toronto", dateStyle: "medium", timeStyle: "short" });
+}
+
+export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dernierResultatInit }) {
   const [telechargementEnCours, setTelechargementEnCours] = useState(false);
   const [fichierChoisi, setFichierChoisi] = useState(null);
   const [phraseConfirmation, setPhraseConfirmation] = useState("");
@@ -15,6 +30,22 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
   const [courrielAuto, setCourrielAuto] = useState(courrielAutoInit || "");
   const [courrielAutoEnCours, setCourrielAutoEnCours] = useState(false);
   const [messageCourrielAuto, setMessageCourrielAuto] = useState(null);
+  const [courrielEnregistre, setCourrielEnregistre] = useState((courrielAutoInit || "").trim());
+  const [dernierResultat, setDernierResultat] = useState(dernierResultatInit || null);
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+
+  async function envoyerMaintenant() {
+    setEnvoiEnCours(true);
+    try {
+      const res = await fetch("/api/administrateur/sauvegarde-auto", { method: "POST" });
+      const data = await res.json();
+      setDernierResultat(res.ok ? data : { le: new Date().toISOString(), ok: false, message: data.erreur || "Échec de l'envoi." });
+    } catch (e) {
+      setDernierResultat({ le: new Date().toISOString(), ok: false, message: `Échec de l'envoi (${e.message}).` });
+    } finally {
+      setEnvoiEnCours(false);
+    }
+  }
 
   async function sauvegarderCourrielAuto() {
     setCourrielAutoEnCours(true);
@@ -31,6 +62,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
     }
     const data = await res.json();
     setCourrielAuto(data.courriel);
+    setCourrielEnregistre(data.courriel);
     setMessageCourrielAuto({
       type: "succes",
       texte: data.courriel ? "Sauvegarde automatique activée ✓" : "Sauvegarde automatique désactivée — le téléchargement manuel reste disponible.",
@@ -71,7 +103,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
     setRestaurationEnCours(true);
     setMessage(null);
     try {
-      const texte = await fichierChoisi.text();
+      const texte = await lireFichierSauvegarde(fichierChoisi);
       const donnees = JSON.parse(texte);
       const res = await fetch("/api/sauvegarde/importer", {
         method: "POST",
@@ -159,6 +191,25 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
             {messageCourrielAuto.texte}
           </p>
         )}
+        {courrielEnregistre ? (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+            {dernierResultat ? (
+              <p style={{ fontSize: 12, color: dernierResultat.ok ? "var(--success)" : "var(--danger)", marginBottom: 8 }}>
+                {dernierResultat.ok ? "✓" : "⚠️"} Dernier envoi, {formaterMoment(dernierResultat.le)} : {dernierResultat.message}
+              </p>
+            ) : (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>Aucun envoi enregistré pour l'instant.</p>
+            )}
+            <button
+              onClick={envoyerMaintenant}
+              disabled={envoiEnCours}
+              className="bouton-3d"
+              style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+            >
+              {envoiEnCours ? "Envoi en cours… (peut prendre une minute)" : "📤 Envoyer la sauvegarde maintenant"}
+            </button>
+          </div>
+        ) : null}
       </div>
       )}
 
@@ -173,7 +224,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit }) {
         <input
           ref={inputFichierRef}
           type="file"
-          accept=".json,application/json"
+          accept=".json,.gz,application/json,application/gzip"
           onChange={(e) => setFichierChoisi(e.target.files?.[0] || null)}
           style={{ width: "100%", marginBottom: 10, fontSize: 12, color: "var(--text-muted)" }}
         />

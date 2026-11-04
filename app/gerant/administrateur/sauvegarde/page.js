@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { CLE_COURRIEL } from "@/lib/planificateurSauvegarde";
+import { CLE_COURRIEL, CLE_DERNIER_RESULTAT } from "@/lib/planificateurSauvegarde";
 import EnTete from "../../../components/EnTete";
 import SauvegardeClient from "./SauvegardeClient";
 
@@ -18,12 +18,21 @@ export default async function Sauvegarde() {
     peutRestaurer = utilisateur?.estSuperAdmin || false;
   }
 
-  const parametreCourriel = peutRestaurer ? await prisma.parametre.findUnique({ where: { cle: CLE_COURRIEL } }) : null;
+  const [parametreCourriel, parametreResultat] = peutRestaurer
+    ? await Promise.all([
+        prisma.parametre.findUnique({ where: { cle: CLE_COURRIEL } }),
+        prisma.parametre.findUnique({ where: { cle: CLE_DERNIER_RESULTAT } }),
+      ])
+    : [null, null];
+  let dernierResultat = null;
+  try {
+    dernierResultat = parametreResultat?.valeur ? JSON.parse(parametreResultat.valeur) : null;
+  } catch {}
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SauvegardeClient peutRestaurer={peutRestaurer} courrielAutoInit={parametreCourriel?.valeur || ""} />
+      <SauvegardeClient peutRestaurer={peutRestaurer} courrielAutoInit={parametreCourriel?.valeur || ""} dernierResultatInit={dernierResultat} />
     </div>
   );
 }
