@@ -203,6 +203,63 @@ function EditeurHeuresJour({ employeId, dateStr, heuresReelles, heuresPrevues, o
   );
 }
 
+// Ajout à la main d'un poinçon terminé (début et fin) pour la journée
+// affichée — sur une tâche interne seulement, jamais sur un bon
+function AjoutPoinconInterne({ employeId, dateStr, tachesInternes, onFini }) {
+  const [tacheId, setTacheId] = useState(tachesInternes.length === 1 ? tachesInternes[0].id : "");
+  const [debut, setDebut] = useState("");
+  const [fin, setFin] = useState("");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  async function enregistrer() {
+    setEnCours(true);
+    setErreur("");
+    const res = await fetch("/api/entrees-temps-internes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeId, tacheInterneId: tacheId, date: dateStr, debut, fin }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de l'ajout.");
+      return;
+    }
+    onFini(true);
+  }
+
+  if (tachesInternes.length === 0) {
+    return (
+      <div style={{ background: "var(--bg)", borderRadius: 6, padding: "8px 10px", marginTop: 6, fontSize: 12, color: "var(--text-muted)" }}>
+        Aucune tâche interne active — crée-en une dans Paramètres → Tâches internes.{" "}
+        <button onClick={() => onFini(false)} style={boutonPetit}>Fermer</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 6, padding: "8px 10px", marginTop: 6, fontSize: 12 }}>
+      <div style={{ color: "var(--text-muted)", marginBottom: 6 }}>🛠️ Ajouter un poinçon de tâche interne</div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <select value={tacheId} onChange={(ev) => setTacheId(ev.target.value)} style={{ ...champPetit, maxWidth: "100%" }}>
+          <option value="">Tâche interne…</option>
+          {tachesInternes.map((t) => <option key={t.id} value={t.id}>{t.nom}</option>)}
+        </select>
+        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>De</span>
+        <input type="time" value={debut} onChange={(ev) => setDebut(ev.target.value)} style={champPetit} />
+        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>à</span>
+        <input type="time" value={fin} onChange={(ev) => setFin(ev.target.value)} style={champPetit} />
+        <button onClick={enregistrer} disabled={enCours || !tacheId || !debut || !fin} style={{ ...boutonJour, padding: "5px 10px", color: "var(--text)" }}>
+          {enCours ? "…" : "✓ Ajouter"}
+        </button>
+        <button onClick={() => onFini(false)} disabled={enCours} style={boutonPetit}>Annuler</button>
+      </div>
+      {erreur && <div style={{ color: "var(--danger)", fontSize: 11, marginTop: 4 }}>{erreur}</div>}
+    </div>
+  );
+}
+
 // Ligne d'un poinçon de tâche interne, avec ajustement du début et de la fin
 // (les heures d'origine sont gardées et montrées dans l'historique des tâches
 // internes, Paramètres)
@@ -242,6 +299,7 @@ function LigneTacheInterne({ e, coutHoraire, onModifie }) {
           <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>
             {heureQuebec(e.debut)}–{e.fin ? heureQuebec(e.fin) : "en cours"}
             {duree !== null && ` · coût ${(duree * coutHoraire).toFixed(2)} $`}
+            {e.ajouteLe && <span title={`Ajouté à la main par ${e.ajoutePar || "?"}`}> · ✍️ ajouté à la main</span>}
             {e.modifieLe && <span title={`Ajusté par ${e.modifiePar || "?"}`}> · ✏️ ajusté</span>}
           </div>
         </div>
@@ -343,7 +401,7 @@ function LignePoinconOublie({ p, onCorrige }) {
   );
 }
 
-export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues, coutHoraire, tauxHoraireClient, heuresOuverture, poinconsOublies }) {
+export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues, coutHoraire, tauxHoraireClient, heuresOuverture, poinconsOublies, tachesInternes = [] }) {
   const router = useRouter();
 
   function changerDate(nouvelleDate) {
@@ -363,6 +421,7 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
   // entrées (« Coût du jour » ✏️), sinon les heures prévues de l'horaire.
   // Entrer des heures réelles compte l'employé présent même sans poinçon.
   const [editionHeures, setEditionHeures] = useState(null); // id de l'employé
+  const [ajoutPoincon, setAjoutPoincon] = useState(null); // id de l'employé
   const heuresDuJour = (m) => m.heuresReelles ?? heuresAttendues;
   const presents = parMecanicien.filter((m) => m.entrees.length > 0 || m.entreesInternes.length > 0 || m.heuresReelles !== null);
   const totalCoutEquipe = presents.reduce((s, m) => s + heuresDuJour(m) * coutHoraire, 0);
@@ -429,6 +488,16 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
               onFini={finEdition}
             />
           );
+          const ajout = ajoutPoincon === employe.id && (
+            <AjoutPoinconInterne
+              key={`ajout-${employe.id}-${dateStr}`}
+              employeId={employe.id} dateStr={dateStr} tachesInternes={tachesInternes}
+              onFini={(ajoute) => { setAjoutPoincon(null); if (ajoute) router.refresh(); }}
+            />
+          );
+          const boutonAjout = ajoutPoincon !== employe.id && (
+            <button onClick={() => setAjoutPoincon(employe.id)} title="Ajouter à la main un poinçon de tâche interne (début et fin)" style={boutonPetit}>+ Poinçon interne</button>
+          );
 
           if (absent) {
             return (
@@ -440,9 +509,11 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                     {editionHeures !== employe.id && (
                       <button onClick={() => setEditionHeures(employe.id)} title="A travaillé sans poinçonner : entrer ses heures" style={boutonPetit}>✏️ Heures</button>
                     )}
+                    {boutonAjout}
                   </span>
                 </div>
                 {editeur}
+                {ajout}
               </div>
             );
           }
@@ -545,6 +616,8 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                   ))}
                 </div>
               )}
+              <div style={{ marginTop: 8 }}>{boutonAjout}</div>
+              {ajout}
             </div>
           );
         })}

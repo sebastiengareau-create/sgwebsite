@@ -812,6 +812,10 @@ model EntreeTempsInterne {
   finOriginal    DateTime?
   modifiePar     String?
   modifieLe      DateTime?
+  // Poinçon ajouté à la main par le gérant (Productivité par employés),
+  // plutôt que poinçonné par l'employé : qui et quand
+  ajoutePar      String?
+  ajouteLe       DateTime?
 
   @@index([employeId])
 }
