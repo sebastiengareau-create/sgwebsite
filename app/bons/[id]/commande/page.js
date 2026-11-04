@@ -7,6 +7,7 @@ import BoutonImprimer from "../imprimer/BoutonImprimer";
 import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { CLIENT } from "@/lib/client";
 
 export default async function BonDeCommande(props) {
   const params = await props.params;
@@ -80,6 +81,14 @@ export default async function BonDeCommande(props) {
             </div>
           ))}
         </div>
+
+        {/* Profil signatureFacture : une ligne pour signer, comme sur la facture */}
+        {CLIENT.signatureFacture && (
+          <div style={{ marginTop: 50, display: "flex", alignItems: "flex-end", gap: 10, fontSize: 13, pageBreakInside: "avoid" }}>
+            <span style={{ fontWeight: 600 }}>Signature :</span>
+            <span style={{ flex: 1, maxWidth: 360, borderBottom: "1px solid #17150f", height: 28 }} />
+          </div>
+        )}
 
         <p style={{ fontSize: 10, color: "#999", marginTop: 40, textAlign: "center" }}>
           Document à usage interne — ne pas remettre au client
