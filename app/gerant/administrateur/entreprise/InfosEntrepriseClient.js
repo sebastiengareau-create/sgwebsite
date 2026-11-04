@@ -8,7 +8,7 @@ import SelectProvince from "../../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 
-export default function InfosEntrepriseClient({ infosInit }) {
+export default function InfosEntrepriseClient({ infosInit, modeleConditions }) {
   const router = useRouter();
   const [nomEntreprise, setNomEntreprise] = useState(infosInit.nomEntreprise);
   const [adresseLigne1, setAdresseLigne1] = useState(infosInit.adresseLigne1);
@@ -20,6 +20,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
   const [personneResponsable, setPersonneResponsable] = useState(infosInit.personneResponsable);
   const [numeroEmployeurArc, setNumeroEmployeurArc] = useState(infosInit.numeroEmployeurArc);
   const [numeroEmployeurRq, setNumeroEmployeurRq] = useState(infosInit.numeroEmployeurRq);
+  const [conditionsGenerales, setConditionsGenerales] = useState(infosInit.conditionsGenerales);
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null);
   const remplir = remplisseurAdresse({ ville, setAdresse: setAdresseLigne1, setVille, setProvince, setCodePostal });
@@ -32,7 +33,7 @@ export default function InfosEntrepriseClient({ infosInit }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nomEntreprise, adresseLigne1, ville, province, codePostal, telephone, courriel, personneResponsable,
+        nomEntreprise, adresseLigne1, ville, province, codePostal, telephone, courriel, personneResponsable, conditionsGenerales,
         numeroEmployeurArc: numeroEmployeurArc.replace(/\s+/g, "").toUpperCase(), numeroEmployeurRq: numeroEmployeurRq.replace(/\s+/g, "").toUpperCase(),
         // Ligne affichée sur les documents (voir lib/config.js)
         adresseLigne2: [ville.trim(), province].filter(Boolean).join(", "),
@@ -91,7 +92,21 @@ export default function InfosEntrepriseClient({ infosInit }) {
         <input value={numeroEmployeurArc} onChange={(e) => setNumeroEmployeurArc(e.target.value)} placeholder="Ex : 123456789RP0001" style={champStyle} />
 
         <label style={labelStyle}>Numéro d'identification Revenu Québec — dossier RS (pour les RL-1)</label>
-        <input value={numeroEmployeurRq} onChange={(e) => setNumeroEmployeurRq(e.target.value)} placeholder="Ex : 1234567890RS0001" style={{ ...champStyle, marginBottom: 12 }} />
+        <input value={numeroEmployeurRq} onChange={(e) => setNumeroEmployeurRq(e.target.value)} placeholder="Ex : 1234567890RS0001" style={champStyle} />
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 8 }}>
+          <label style={labelStyle}>Conditions générales — en petits caractères au bas de la soumission, du bon de travail et de la facture (vide = rien)</label>
+          {!conditionsGenerales.trim() && (
+            <button type="button" onClick={() => setConditionsGenerales(modeleConditions)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", cursor: "pointer", whiteSpace: "nowrap" }}>
+              Insérer le texte suggéré
+            </button>
+          )}
+        </div>
+        <textarea value={conditionsGenerales} onChange={(e) => setConditionsGenerales(e.target.value)} rows={10} placeholder="Ex : CONDITIONS GÉNÉRALES — 1. Garantie. …" style={{ ...champStyle, fontSize: 12, lineHeight: 1.4, resize: "vertical", marginBottom: 4 }} />
+        {/\[[^\]]*\]/.test(conditionsGenerales) && (
+          <p style={{ fontSize: 11, color: "var(--warning, #c47f1f)", margin: "0 0 8px" }}>⚠ Le texte contient encore des crochets [ ] à compléter (délais, montants).</p>
+        )}
+        <div style={{ marginBottom: 12 }} />
 
         {message && (
           <p style={{ fontSize: 12, marginBottom: 10, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>

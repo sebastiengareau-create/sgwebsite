@@ -8,11 +8,12 @@ import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import { CLIENT } from "@/lib/client";
+import ConditionsGenerales from "@/app/components/ConditionsGenerales";
 
 export default async function BonDeCommande(props) {
   const params = await props.params;
   const session = await obtenirSession();
-  const { nomEntreprise } = await obtenirInfosEntreprise();
+  const { nomEntreprise, conditionsGenerales } = await obtenirInfosEntreprise();
   if (!session) redirect("/login");
 
   const bon = await prisma.bonTravail.findUnique({
@@ -81,6 +82,8 @@ export default async function BonDeCommande(props) {
             </div>
           ))}
         </div>
+
+        <ConditionsGenerales texte={conditionsGenerales} />
 
         {/* Profil signatureFacture : une ligne pour signer, comme sur la facture */}
         {CLIENT.signatureFacture && (
