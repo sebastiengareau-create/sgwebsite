@@ -164,11 +164,7 @@ export default async function ImprimerSoumission(props) {
           )}
         </div>
 
-        <p style={{ fontSize: 13, fontWeight: 700, marginTop: 24, textAlign: "center" }}>
-          Prix sujet à des changements.
-        </p>
-
-        <p style={{ fontSize: 10, color: "#999", marginTop: 12, textAlign: "center" }}>
+        <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>
           Estimé sujet à changement selon les travaux réels requis — {nomEntreprise}
         </p>
       </div>
