@@ -13,6 +13,7 @@ import { heuresFacturablesTache, libelleContenuKit } from "@/lib/kits";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import { nomClientBon } from "@/lib/nomClient";
 import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
+import ConditionsGenerales from "@/app/components/ConditionsGenerales";
 import { separerPiecesSoumission, ligneDePieceSoumission, totauxLignesFixes } from "@/lib/piecesSoumission";
 import { nomPieceFacture } from "@/lib/numeroPieceFacture";
 function fmtHeures(h) {
@@ -255,6 +256,7 @@ export default async function ImprimerBon(props) {
           ))}
         </div>
 
+        <ConditionsGenerales texte={infosEntreprise.conditionsGenerales} />
         <PiedFacture nomEntreprise={nomEntreprise} />
       </div>
     </div>

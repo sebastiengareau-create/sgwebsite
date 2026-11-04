@@ -8,13 +8,14 @@ import { libelleVehicule, lignesIdentifiantsVehicule } from "@/lib/vehicules";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import { LibelleTaxe } from "@/app/components/PiedFacture";
+import ConditionsGenerales from "@/app/components/ConditionsGenerales";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", FACTUREE: "Facturée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
 export default async function ImprimerSoumission(props) {
   const params = await props.params;
   const session = await obtenirSession();
-  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone } = await obtenirInfosEntreprise();
+  const { nomEntreprise, adresseLigne1, adresseLigne2, telephone, conditionsGenerales } = await obtenirInfosEntreprise();
   if (!session) redirect("/login");
 
   const [soumission, parametres] = await Promise.all([
@@ -167,6 +168,7 @@ export default async function ImprimerSoumission(props) {
         <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>
           Estimé sujet à changement selon les travaux réels requis — {nomEntreprise}
         </p>
+        <ConditionsGenerales texte={conditionsGenerales} />
       </div>
     </div>
   );
