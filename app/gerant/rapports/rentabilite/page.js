@@ -2,7 +2,8 @@ import { obtenirSession, estGerantOuDev, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
-import { chargerHoraireOuverture, heuresPrevuesJoursPoinconnes } from "@/lib/paie";
+import { chargerHoraireOuverture } from "@/lib/paie";
+import { chargerHeuresJour, heuresJoursTravailles } from "@/lib/heuresJour";
 import { tauxFacturationEmploye } from "@/lib/productivite";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
@@ -23,7 +24,7 @@ export default async function RapportRentabilite(props) {
   const debut = new Date(`${debutStr}T00:00:00`);
   const fin = new Date(`${finStr}T23:59:59`);
 
-  const [employes, entreesBon, entreesInternes, parametreCout, parametreTauxClient, horaire] = await Promise.all([
+  const [employes, entreesBon, entreesInternes, parametreCout, parametreTauxClient, horaire, heuresJour] = await Promise.all([
     prisma.user.findMany({ where: { actif: true, role: { in: ROLES_VALIDES } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
       where: { fin: { not: null }, debut: { gte: debut, lte: fin } },
@@ -43,6 +44,7 @@ export default async function RapportRentabilite(props) {
     prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
     prisma.parametre.findUnique({ where: { cle: "taux_horaire_client" } }),
     chargerHoraireOuverture(),
+    chargerHeuresJour(debutStr, finStr),
   ]);
 
   // Coût réel : toujours le coût horaire inscrit dans les paramètres
@@ -73,11 +75,16 @@ export default async function RapportRentabilite(props) {
 
     // Heures réelles : seulement les jours où le poinçon a été enclenché,
     // chacun compté pour l'horaire prévu CE jour-là (ex. lundi + mardi
-    // poinçonnés = 16h). Même règle pour tous les rôles dans ce rapport,
-    // contrairement à la paie (où la secrétaire, le gérant et le niveau 4
-    // sont payés pour tout l'horaire d'ouverture).
-    const heuresPayees = heuresPrevuesJoursPoinconnes([...siennesBon, ...siennesInternes], debut, fin, horaire);
+    // poinçonnés = 16h) — ou pour les heures réellement travaillées si le
+    // gérant les a entrées ce jour-là (Productivité par employés, lib/heuresJour.js).
+    // Même règle pour tous les rôles dans ce rapport, contrairement à la paie
+    // (où la secrétaire, le gérant et le niveau 4 sont payés pour tout
+    // l'horaire d'ouverture).
+    const heuresPayees = heuresJoursTravailles(e.id, [...siennesBon, ...siennesInternes], debut, fin, horaire, heuresJour);
     const coutReel = heuresPayees * tauxCout;
+    // Tâches internes : heures × coût horaire du garage (comprises dans le
+    // coût réel — montrées à part)
+    const coutInternes = heuresInternes * tauxCout;
     const marge = revenuGenere - coutReel;
 
     // Taux de facturation : heures vendues ÷ heures poinçonnées, sur les bons
@@ -91,6 +98,7 @@ export default async function RapportRentabilite(props) {
       heuresFacturables,
       heuresEstimees,
       heuresInternes,
+      coutInternes,
       revenuGenere,
       coutReel,
       marge,

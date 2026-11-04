@@ -26,6 +26,8 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
   const totalFacturables = donnees.reduce((s, d) => s + d.heuresFacturables, 0);
   const totalVendues = donnees.reduce((s, d) => s + d.heuresVendues, 0);
   const totalPoinconneesFacturees = donnees.reduce((s, d) => s + d.heuresPoinconneesFacturees, 0);
+  const totalInternes = donnees.reduce((s, d) => s + d.heuresInternes, 0);
+  const totalCoutInternes = donnees.reduce((s, d) => s + d.coutInternes, 0);
 
   return (
     <div style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
@@ -62,6 +64,12 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Heures facturables / réelles</div>
           </div>
         </div>
+        {totalInternes > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, color: "var(--text-muted)", marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+            <span>🛠️ Tâches internes ({fmtHeures(totalInternes)}) — compris dans le coût réel</span>
+            <span style={{ fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{totalCoutInternes.toFixed(2)} $</span>
+          </div>
+        )}
         <TauxFacturation vendues={totalVendues} poinconnees={totalPoinconneesFacturees} libelle="Taux de facturation de l'équipe" />
       </div>
 
@@ -120,8 +128,15 @@ function CarteEmploye({ d }) {
       </div>
 
       <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
-        {fmtHeures(d.heuresTotales)} poinçonnées (heures réelles = horaire des jours poinçonnés)
+        {fmtHeures(d.heuresTotales)} poinçonnées (heures réelles = horaire des jours poinçonnés, ou heures entrées dans Productivité)
       </div>
+
+      {d.heuresInternes > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
+          <span>dont tâches internes ({fmtHeures(d.heuresInternes)} × {d.tauxCout.toFixed(2)} $/h)</span>
+          <span>{d.coutInternes.toFixed(2)} $</span>
+        </div>
+      )}
 
       <TauxFacturation vendues={d.heuresVendues} poinconnees={d.heuresPoinconneesFacturees} libelle="Taux de facturation" />
 

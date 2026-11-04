@@ -146,6 +146,130 @@ function FriseHoraire({ entrees, entreesInternes, couleurs, heuresOuverture }) {
   );
 }
 
+// Heure et jour au Québec, pour préremplir les champs d'ajustement
+const FUSEAU = "America/Toronto";
+const heureQuebec = (d) => new Intl.DateTimeFormat("en-GB", { timeZone: FUSEAU, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(d));
+const jourQuebec = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: FUSEAU, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
+
+const champPetit = { padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12 };
+const boutonPetit = { fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "3px 7px", borderRadius: 6, cursor: "pointer" };
+
+// Heures réellement travaillées par l'employé ce jour-là : remplacent les
+// heures prévues de l'horaire dans le coût, la présence et la marge (et dans
+// la rentabilité par période). Vide = retour aux heures prévues.
+function EditeurHeuresJour({ employeId, dateStr, heuresReelles, heuresPrevues, onFini }) {
+  const [valeur, setValeur] = useState(String(heuresReelles ?? heuresPrevues));
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+
+  async function enregistrer(heures) {
+    setEnCours(true);
+    setErreur("");
+    const res = await fetch("/api/heures-jour", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ employeId, date: dateStr, heures }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de l'enregistrement.");
+      return;
+    }
+    onFini(true);
+  }
+
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 6, padding: "8px 10px", marginTop: 6, fontSize: 12 }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ color: "var(--text-muted)" }}>Heures travaillées ce jour :</span>
+        <input
+          type="number" inputMode="decimal" min="0" max="24" step="0.25" value={valeur}
+          onChange={(e) => setValeur(e.target.value)}
+          style={{ ...champPetit, width: 80 }}
+        />
+        <button onClick={() => enregistrer(valeur)} disabled={enCours || valeur === ""} style={{ ...boutonJour, padding: "5px 10px", color: "var(--text)" }}>
+          {enCours ? "…" : "✓ Enregistrer"}
+        </button>
+        <button onClick={() => onFini(false)} disabled={enCours} style={boutonPetit}>Annuler</button>
+      </div>
+      {heuresReelles !== null && (
+        <button onClick={() => enregistrer(null)} disabled={enCours} style={{ ...boutonPetit, border: "none", padding: "4px 0 0", textDecoration: "underline" }}>
+          ↺ Revenir aux heures prévues ({heuresPrevues}h)
+        </button>
+      )}
+      {erreur && <div style={{ color: "var(--danger)", fontSize: 11, marginTop: 4 }}>{erreur}</div>}
+    </div>
+  );
+}
+
+// Ligne d'un poinçon de tâche interne, avec ajustement du début et de la fin
+// (les heures d'origine sont gardées et montrées dans l'historique des tâches
+// internes, Paramètres)
+function LigneTacheInterne({ e, coutHoraire, onModifie }) {
+  const [edition, setEdition] = useState(false);
+  const [debut, setDebut] = useState(heureQuebec(e.debut));
+  const [fin, setFin] = useState(e.fin ? heureQuebec(e.fin) : "");
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const duree = e.fin ? (new Date(e.fin) - new Date(e.debut)) / 3600000 : null;
+  const jourDebut = jourQuebec(e.debut);
+  const jourFin = e.fin ? jourQuebec(e.fin) : jourDebut;
+
+  async function enregistrer() {
+    setEnCours(true);
+    setErreur("");
+    const res = await fetch(`/api/entrees-temps-internes/${e.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ debut: `${jourDebut}T${debut}`, fin: fin ? `${jourFin}T${fin}` : null }),
+    });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreur(data.erreur || "Erreur lors de l'ajustement.");
+      return;
+    }
+    setEdition(false);
+    onModifie();
+  }
+
+  return (
+    <div style={{ fontSize: 12, background: "var(--bg)", borderRadius: 6, padding: "6px 8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <div>
+          <div>🛠️ {e.tacheInterne.nom} <span style={{ color: "var(--text-muted)", fontSize: 10 }}>(interne, non facturable)</span></div>
+          <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>
+            {heureQuebec(e.debut)}–{e.fin ? heureQuebec(e.fin) : "en cours"}
+            {duree !== null && ` · coût ${(duree * coutHoraire).toFixed(2)} $`}
+            {e.modifieLe && <span title={`Ajusté par ${e.modifiePar || "?"}`}> · ✏️ ajusté</span>}
+          </div>
+        </div>
+        <span style={{ display: "flex", gap: 6, alignItems: "center", whiteSpace: "nowrap" }}>
+          <span style={{ fontWeight: 600, color: e.fin ? "var(--text)" : "var(--accent)" }}>{duree !== null ? fmtHeures(duree) : "●"}</span>
+          {!edition && <button onClick={() => setEdition(true)} title="Ajuster le temps" style={boutonPetit}>✏️</button>}
+        </span>
+      </div>
+      {edition && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ color: "var(--text-muted)", fontSize: 11 }}>De</span>
+            <input type="time" value={debut} onChange={(ev) => setDebut(ev.target.value)} style={champPetit} />
+            <span style={{ color: "var(--text-muted)", fontSize: 11 }}>à</span>
+            <input type="time" value={fin} onChange={(ev) => setFin(ev.target.value)} style={champPetit} />
+            <button onClick={enregistrer} disabled={enCours || !debut || (e.fin && !fin)} style={{ ...boutonJour, padding: "5px 10px", color: "var(--text)" }}>
+              {enCours ? "…" : "✓"}
+            </button>
+            <button onClick={() => { setEdition(false); setErreur(""); }} disabled={enCours} style={boutonPetit}>Annuler</button>
+          </div>
+          {!e.fin && <div style={{ color: "var(--text-muted)", fontSize: 10.5, marginTop: 3 }}>Fin vide : le poinçon reste en cours.</div>}
+          {erreur && <div style={{ color: "var(--danger)", fontSize: 11, marginTop: 4 }}>{erreur}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const fmtDateHeure = (d) => new Date(d).toLocaleString("fr-CA", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 // Poinçons oubliés (lib/productivite.js) : encore ouverts depuis trop
@@ -229,13 +353,24 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
   const dateAfficheeBrute = new Date(`${dateStr}T12:00:00`).toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const dateAffichee = dateAfficheeBrute.charAt(0).toUpperCase() + dateAfficheeBrute.slice(1);
 
-  // Coût : sur les heures PRÉVUES, mais seulement pour les employés PRÉSENTS
-  // (au moins un poinçon démarré ce jour-là) — un employé absent (aucun
-  // poinçon) ne coûte rien dans ce calcul, pour ne pas fausser les chiffres
-  // en cas de maladie, congé, etc.
+  // Coût : sur les heures PRÉVUES (ou les heures réelles entrées par le
+  // gérant), mais seulement pour les employés PRÉSENTS (au moins un poinçon
+  // démarré ce jour-là, ou des heures réelles entrées) — un employé absent ne
+  // coûte rien dans ce calcul, pour ne pas fausser les chiffres en cas de
+  // maladie, congé, etc.
   // Revenu : seulement sur les heures RÉELLEMENT poinçonnées (facturables)
-  const presents = parMecanicien.filter((m) => m.entrees.length > 0 || m.entreesInternes.length > 0);
-  const totalCoutEquipe = presents.length * heuresAttendues * coutHoraire;
+  // Heures du jour d'un employé : ses heures réelles si le gérant les a
+  // entrées (« Coût du jour » ✏️), sinon les heures prévues de l'horaire.
+  // Entrer des heures réelles compte l'employé présent même sans poinçon.
+  const [editionHeures, setEditionHeures] = useState(null); // id de l'employé
+  const heuresDuJour = (m) => m.heuresReelles ?? heuresAttendues;
+  const presents = parMecanicien.filter((m) => m.entrees.length > 0 || m.entreesInternes.length > 0 || m.heuresReelles !== null);
+  const totalCoutEquipe = presents.reduce((s, m) => s + heuresDuJour(m) * coutHoraire, 0);
+  // Tâches internes : heures × coût horaire du garage (déjà comprises dans le
+  // coût du jour — montré à part pour voir ce que coûte le temps non facturable)
+  const totalHeuresInternes = parMecanicien.reduce((s, m) => s + m.heuresInternes, 0);
+  const totalCoutInternes = totalHeuresInternes * coutHoraire;
+  const finEdition = (modifie) => { setEditionHeures(null); if (modifie) router.refresh(); };
   const totalRevenuEquipe = parMecanicien.reduce((s, m) => s + m.heuresPoinconnees, 0) * tauxHoraireClient;
   const margeEquipe = totalRevenuEquipe - totalCoutEquipe;
   const couleurs = construireCarteCouleurs(parMecanicien);
@@ -264,40 +399,64 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
         <div className="carte carte-s">
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalCoutEquipe.toFixed(2)} $</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Coût (heures prévues)</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Coût (heures travaillées)</div>
         </div>
         <div className="carte carte-s">
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{totalRevenuEquipe.toFixed(2)} $</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Revenu (heures poinçonnées)</div>
         </div>
       </div>
+      {totalHeuresInternes > 0 && (
+        <div className="carte carte-s" style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>🛠️ Tâches internes ({fmtHeures(totalHeuresInternes)} × {coutHoraire.toFixed(2)} $) — compris dans le coût</span>
+          <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" }}>{totalCoutInternes.toFixed(2)} $</span>
+        </div>
+      )}
       <div className="carte carte-s" style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Marge du jour (équipe)</span>
         <span style={{ fontSize: 18, fontWeight: 700, color: margeEquipe >= 0 ? "var(--success)" : "var(--danger)" }}>{margeEquipe.toFixed(2)} $</span>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {parMecanicien.map(({ employe, entrees, entreesInternes, heuresPoinconnees, heuresInternes }) => {
-          const absent = entrees.length === 0 && entreesInternes.length === 0;
+        {parMecanicien.map((m) => {
+          const { employe, entrees, entreesInternes, heuresPoinconnees, heuresInternes, heuresReelles } = m;
+          const absent = entrees.length === 0 && entreesInternes.length === 0 && heuresReelles === null;
+          const editeur = editionHeures === employe.id && (
+            <EditeurHeuresJour
+              key={`${employe.id}-${dateStr}`}
+              employeId={employe.id} dateStr={dateStr}
+              heuresReelles={heuresReelles} heuresPrevues={heuresAttendues}
+              onFini={finEdition}
+            />
+          );
 
           if (absent) {
             return (
-              <div key={employe.id} className="carte carte-m" style={{ opacity: 0.6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div key={employe.id} className="carte carte-m">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, opacity: 0.6 }}>
                   <span style={{ fontWeight: 600 }}>{employe.nom}</span>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Absent — aucun poinçon</span>
+                  <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Absent — aucun poinçon</span>
+                    {editionHeures !== employe.id && (
+                      <button onClick={() => setEditionHeures(employe.id)} title="A travaillé sans poinçonner : entrer ses heures" style={boutonPetit}>✏️ Heures</button>
+                    )}
+                  </span>
                 </div>
+                {editeur}
               </div>
             );
           }
 
-          const tempsNonPoinconne = Math.max(0, heuresAttendues - heuresPoinconnees - heuresInternes);
-          const coutJour = heuresAttendues * coutHoraire;
+          const heuresJour = heuresDuJour(m);
+          const tempsNonPoinconne = Math.max(0, heuresJour - heuresPoinconnees - heuresInternes);
+          const coutJour = heuresJour * coutHoraire;
+          const coutInternes = heuresInternes * coutHoraire;
           const revenuJour = heuresPoinconnees * tauxHoraireClient;
           const margeJour = revenuJour - coutJour;
           // Ratio de présence : (heures facturables + heures internes) ÷ heures
-          // prévues de la journée. Null si aucune heure n'est prévue ce jour-là.
-          const ratioPresence = heuresAttendues > 0 ? ((heuresPoinconnees + heuresInternes) / heuresAttendues) * 100 : null;
+          // travaillées de la journée (réelles si entrées, sinon prévues). Null
+          // si aucune heure ce jour-là.
+          const ratioPresence = heuresJour > 0 ? ((heuresPoinconnees + heuresInternes) / heuresJour) * 100 : null;
           const couleurRatio = ratioPresence === null ? "var(--text-muted)"
             : ratioPresence >= 90 ? "var(--success)"
             : ratioPresence >= 75 ? "#C9A227"
@@ -308,10 +467,10 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>{employe.nom}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {heuresAttendues}h</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {fmtHeures(heuresJour)}</div>
                 </div>
                 <div
-                  title="Ratio de présence : (heures facturables + tâches internes) ÷ heures prévues de la journée"
+                  title="Ratio de présence : (heures facturables + tâches internes) ÷ heures travaillées de la journée"
                   style={{ textAlign: "right", whiteSpace: "nowrap" }}
                 >
                   <div style={{ fontSize: 20, fontWeight: 800, color: couleurRatio, lineHeight: 1.1 }}>
@@ -327,10 +486,23 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                 </div>
               )}
 
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
-                <span style={{ color: "var(--text-muted)" }}>Coût du jour ({heuresAttendues}h × {coutHoraire.toFixed(2)} $)</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+                <span style={{ color: "var(--text-muted)" }}>
+                  Coût du jour ({fmtHeures(heuresJour)} × {coutHoraire.toFixed(2)} $)
+                  {heuresReelles !== null && <span title={`Heures prévues : ${heuresAttendues}h`}> · heures réelles</span>}
+                  {editionHeures !== employe.id && (
+                    <button onClick={() => setEditionHeures(employe.id)} title="Modifier les heures travaillées de la journée" style={{ ...boutonPetit, marginLeft: 6 }}>✏️</button>
+                  )}
+                </span>
                 <span>{coutJour.toFixed(2)} $</span>
               </div>
+              {editeur}
+              {heuresInternes > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)" }}>
+                  <span>dont tâches internes ({fmtHeures(heuresInternes)} × {coutHoraire.toFixed(2)} $)</span>
+                  <span>{coutInternes.toFixed(2)} $</span>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
                 <span style={{ color: "var(--text-muted)" }}>Revenu généré ({fmtHeures(heuresPoinconnees)} × {tauxHoraireClient.toFixed(2)} $)</span>
                 <span>{revenuJour.toFixed(2)} $</span>
@@ -368,23 +540,9 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                       </Link>
                     );
                   })}
-                  {entreesInternes.map((e) => {
-                    const debut = new Date(e.debut);
-                    const heureDebut = debut.toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" });
-                    const heureFin = e.fin ? new Date(e.fin).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" }) : "en cours";
-                    const duree = e.fin ? (new Date(e.fin) - debut) / 3600000 : null;
-                    return (
-                      <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, background: "var(--bg)", borderRadius: 6, padding: "6px 8px", opacity: 0.85 }}>
-                        <div>
-                          <div>🛠️ {e.tacheInterne.nom} <span style={{ color: "var(--text-muted)", fontSize: 10 }}>(interne, non facturable)</span></div>
-                          <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>{heureDebut}–{heureFin}</div>
-                        </div>
-                        <span style={{ fontWeight: 600, alignSelf: "center", color: e.fin ? "var(--text)" : "var(--accent)" }}>
-                          {duree !== null ? fmtHeures(duree) : "●"}
-                        </span>
-                      </div>
-                    );
-                  })}
+                  {entreesInternes.map((e) => (
+                    <LigneTacheInterne key={`${e.id}-${e.debut}-${e.fin}`} e={e} coutHoraire={coutHoraire} onModifie={() => router.refresh()} />
+                  ))}
                 </div>
               )}
             </div>
