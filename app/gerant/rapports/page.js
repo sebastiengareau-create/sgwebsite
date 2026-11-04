@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec, limitesJourQuebec, dateQuebecStr, jourSemaineQuebec, dateHeureQuebecVersUTC, FUSEAU } from "@/lib/temps";
 import { chargerReglagesDisponibilites } from "@/lib/disponibilites";
 import { estPoinconSuspect, JOURS_POINCONS_OUBLIES } from "@/lib/productivite";
+import { chargerHeuresJour } from "@/lib/heuresJour";
 import EnTete from "../../components/EnTete";
 import RapportsClient from "./RapportsClient";
 
@@ -33,7 +34,7 @@ export default async function RapportJournalier(props) {
   // facturé est figé : ses poinçons ne peuvent plus se corriger ici.
   const depuisPoinconsOublies = new Date(Date.now() - JOURS_POINCONS_OUBLIES * 86400000);
   const filtrePoinconsOublies = { OR: [{ fin: null }, { debut: { gte: depuisPoinconsOublies } }] };
-  const [parametres, mecaniciens, entrees, entreesInternes, reglages, candidatsBon, candidatsInternes] = await Promise.all([
+  const [parametres, mecaniciens, entrees, entreesInternes, reglages, candidatsBon, candidatsInternes, heuresJour] = await Promise.all([
     prisma.parametre.findMany(),
     prisma.user.findMany({ where: { role: { in: ["MECANICIEN", "GERANT"] } }, orderBy: { nom: "asc" } }),
     prisma.entreeTemps.findMany({
@@ -60,6 +61,7 @@ export default async function RapportJournalier(props) {
       include: { employe: { select: { nom: true } }, tacheInterne: { select: { nom: true } } },
       orderBy: { debut: "asc" },
     }),
+    chargerHeuresJour(dateStr, dateStr),
   ]);
 
   const maintenant = new Date();
@@ -113,8 +115,12 @@ export default async function RapportJournalier(props) {
     // Présent dès qu'il y a un poinçon, facturable OU interne — les heures
     // internes ne comptent jamais dans heuresPoinconnees (qui sert au calcul
     // du revenu), seulement dans la présence et le total d'heures travaillées
+    // Heures réellement travaillées ce jour-là, si le gérant les a entrées
+    // (sinon null : les heures prévues de l'horaire s'appliquent)
+    const heuresReelles = heuresJour.get(`${m.id}|${dateStr}`) ?? null;
     return {
       employe: m,
+      heuresReelles,
       entrees: siennes,
       entreesInternes: siennesInternes,
       heuresPoinconnees: totalHeures,

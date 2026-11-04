@@ -34,7 +34,24 @@ export default async function Parametres() {
   }
   const urlFlux = `${process.env.APP_URL || "http://localhost:3000"}/api/calendrier/flux?cle=${cleFlux}`;
 
-  const tachesInternes = await prisma.tacheInterne.findMany({ orderBy: { creeLe: "asc" } });
+  const tachesInternesBrutes = await prisma.tacheInterne.findMany({ orderBy: { creeLe: "asc" } });
+  // Heures et coût de chaque tâche interne ce mois-ci (heures × coût horaire
+  // du garage) — reflète les poinçons ajustés dans Productivité par employés
+  const [anMois, moisMois] = dateAujourdhuiQuebec().split("-").map(Number);
+  const limitesMoisCourant = limitesMoisQuebec(anMois, moisMois);
+  const entreesInternesMois = await prisma.entreeTempsInterne.findMany({
+    where: { fin: { not: null }, debut: { gte: limitesMoisCourant.debut, lte: limitesMoisCourant.fin } },
+    select: { tacheInterneId: true, debut: true, fin: true },
+  });
+  const heuresParTache = new Map();
+  for (const e of entreesInternesMois) {
+    heuresParTache.set(e.tacheInterneId, (heuresParTache.get(e.tacheInterneId) || 0) + (e.fin - e.debut) / 3600000);
+  }
+  const coutHoraireGarage = Number(dict.cout_horaire_mecanicien || 95);
+  const tachesInternes = tachesInternesBrutes.map((t) => {
+    const heuresMois = heuresParTache.get(t.id) || 0;
+    return { ...t, heuresMois, coutMois: heuresMois * coutHoraireGarage };
+  });
   const reglagesDisponibilites = await chargerReglagesDisponibilites();
 
   // Coût réel selon nos résultats : dépenses du mois précédent (au dernier

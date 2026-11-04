@@ -57,6 +57,7 @@ model User {
 
   entreesTemps         EntreeTemps[]
   entreesTempsInternes EntreeTempsInterne[]
+  heuresJour           HeuresJourEmploye[]
   photosAjoutees       Photo[]
   paies                Paie[]
   envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (section « Jobs en déplacement »)
@@ -804,8 +805,31 @@ model EntreeTempsInterne {
   tacheInterne   TacheInterne @relation(fields: [tacheInterneId], references: [id])
   debut          DateTime
   fin            DateTime?
+  // Ajusté à la main par le gérant (Productivité par employés) : heures
+  // d'origine du poinçon (gardées au premier ajustement), qui et quand.
+  // Montré dans l'historique des tâches internes.
+  debutOriginal  DateTime?
+  finOriginal    DateTime?
+  modifiePar     String?
+  modifieLe      DateTime?
 
   @@index([employeId])
+}
+
+// Heures réellement travaillées par un employé une journée donnée, entrées
+// par le gérant dans Productivité par employés (« Coût du jour »). Remplace
+// les heures prévues de l'horaire pour ce jour-là dans les rapports de
+// productivité et de rentabilité (pas dans la paie).
+model HeuresJourEmploye {
+  id         String   @id @default(cuid())
+  employeId  String
+  employe    User     @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  date       String // "AAAA-MM-JJ", jour au Québec
+  heures     Float
+  modifiePar String?
+  modifieLe  DateTime @updatedAt
+
+  @@unique([employeId, date])
 }
 
 // ---------- PAIE (estimation — voir avertissements dans l'interface) ----------

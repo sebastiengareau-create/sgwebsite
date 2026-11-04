@@ -7,7 +7,9 @@ import EnTete from "../../../../components/EnTete";
 
 // Historique des poinçons sur les tâches internes (Paramètres → Tâches
 // internes → Historique). Consultation seulement : ces poinçons ne créent
-// aucune écriture comptable ni facture.
+// aucune écriture comptable ni facture. Le coût affiché = heures × coût
+// horaire du garage (cout_horaire_mecanicien). Un poinçon ajusté dans
+// Productivité par employés montre ses heures d'origine.
 
 const DATE_VALIDE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -19,6 +21,10 @@ function fmtHeures(h) {
 
 function fmtHeure(date) {
   return new Date(date).toLocaleTimeString("fr-CA", { timeZone: FUSEAU, hour: "2-digit", minute: "2-digit" });
+}
+
+function fmtJourHeure(date) {
+  return new Date(date).toLocaleString("fr-CA", { timeZone: FUSEAU, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function fmtJour(dateStr) {
@@ -40,7 +46,7 @@ export default async function HistoriqueTachesInternes(props) {
   const tacheId = searchParams.tache || "";
   const employeId = searchParams.employe || "";
 
-  const [taches, entrees] = await Promise.all([
+  const [taches, entrees, parametreCout] = await Promise.all([
     prisma.tacheInterne.findMany({ orderBy: [{ actif: "desc" }, { nom: "asc" }] }),
     prisma.entreeTempsInterne.findMany({
       where: {
@@ -51,7 +57,10 @@ export default async function HistoriqueTachesInternes(props) {
       include: { employe: { select: { id: true, nom: true } }, tacheInterne: { select: { id: true, nom: true } } },
       orderBy: { debut: "desc" },
     }),
+    prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
   ]);
+  const coutHoraire = Number(parametreCout?.valeur || 95);
+  const cout = (heures) => `${(heures * coutHoraire).toFixed(2)} $`;
 
   // Employés offerts dans le filtre : ceux qui ont déjà poinçonné une tâche
   // interne (même un ancien employé désactivé)
@@ -100,7 +109,9 @@ export default async function HistoriqueTachesInternes(props) {
         <h1 style={{ fontSize: 20, margin: "8px 0 4px" }}>🛠️ Historique des tâches internes{tacheChoisie ? ` — ${tacheChoisie.nom}` : ""}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 16 }}>
           Tous les poinçons faits sur les tâches internes. Consultation seulement : rien n&apos;est entré en
-          comptabilité ni facturé (les heures comptent seulement comme présence, pour la paie).
+          comptabilité ni facturé (les heures comptent seulement comme présence, pour la paie). Le coût est
+          calculé au coût horaire du garage ({coutHoraire.toFixed(2)} $/h, Paramètres). Pour ajuster un poinçon :
+          📈 Productivité par employés (✏️ sur la ligne).
         </p>
 
         <form method="get" className="carte carte-m" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
@@ -139,10 +150,13 @@ export default async function HistoriqueTachesInternes(props) {
               <div className="carte carte-m">
                 <div style={titreStyle}>Total</div>
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{fmtHeures(total)}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{lignes.length} poinçon{lignes.length > 1 ? "s" : ""}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>{cout(total)}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {lignes.length} poinçon{lignes.length > 1 ? "s" : ""} · coût = heures × {coutHoraire.toFixed(2)} $/h
+                </div>
               </div>
-              {!tacheId && <ListeTotaux titre="Par tâche" items={parTache} />}
-              {!employeId && <ListeTotaux titre="Par employé" items={parEmploye} />}
+              {!tacheId && <ListeTotaux titre="Par tâche" items={parTache} cout={cout} />}
+              {!employeId && <ListeTotaux titre="Par employé" items={parEmploye} cout={cout} />}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -150,18 +164,30 @@ export default async function HistoriqueTachesInternes(props) {
                 <div key={jour} className="carte carte-m">
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                     <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtJour(jour)}</span>
-                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fmtHeures(lignesJour.reduce((s, l) => s + l.heures, 0))}</span>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      {fmtHeures(lignesJour.reduce((s, l) => s + l.heures, 0))} · {cout(lignesJour.reduce((s, l) => s + l.heures, 0))}
+                    </span>
                   </div>
                   {lignesJour.map((l) => (
-                    <div key={l.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "6px 0", borderTop: "1px dashed var(--border)" }}>
-                      <span>
-                        <strong>{l.employe.nom}</strong>
-                        {!tacheId && <span style={{ color: "var(--text-muted)" }}> · {l.tacheInterne.nom}</span>}
-                      </span>
-                      <span style={{ whiteSpace: "nowrap", color: "var(--text-muted)" }}>
-                        {fmtHeure(l.debut)} – {l.fin ? fmtHeure(l.fin) : <span style={{ color: "var(--success)", fontWeight: 700 }}>en cours</span>}
-                        <strong style={{ color: "var(--text)", marginLeft: 8 }}>{fmtHeures(l.heures)}</strong>
-                      </span>
+                    <div key={l.id} style={{ fontSize: 12.5, padding: "6px 0", borderTop: "1px dashed var(--border)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span>
+                          <strong>{l.employe.nom}</strong>
+                          {!tacheId && <span style={{ color: "var(--text-muted)" }}> · {l.tacheInterne.nom}</span>}
+                        </span>
+                        <span style={{ whiteSpace: "nowrap", color: "var(--text-muted)" }}>
+                          {fmtHeure(l.debut)} – {l.fin ? fmtHeure(l.fin) : <span style={{ color: "var(--success)", fontWeight: 700 }}>en cours</span>}
+                          <strong style={{ color: "var(--text)", marginLeft: 8 }}>{fmtHeures(l.heures)}</strong>
+                          <span style={{ marginLeft: 8 }}>{cout(l.heures)}</span>
+                        </span>
+                      </div>
+                      {l.modifieLe && (
+                        <div style={{ fontSize: 11, color: "#C9A227", marginTop: 2 }}>
+                          ✏️ Ajusté{l.modifiePar ? ` par ${l.modifiePar}` : ""} le {fmtJourHeure(l.modifieLe)} — à l&apos;origine{" "}
+                          {fmtHeure(l.debutOriginal)} – {l.finOriginal ? fmtHeure(l.finOriginal) : "en cours"}
+                          {l.finOriginal && ` (${fmtHeures((new Date(l.finOriginal) - new Date(l.debutOriginal)) / 3600000)})`}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -183,14 +209,14 @@ function Champ({ libelle, children }) {
   );
 }
 
-function ListeTotaux({ titre, items }) {
+function ListeTotaux({ titre, items, cout }) {
   return (
     <div className="carte carte-m">
       <div style={titreStyle}>{titre}</div>
       {items.map((t) => (
         <div key={t.nom} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0" }}>
           <span>{t.nom} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>({t.nombre})</span></span>
-          <strong>{fmtHeures(t.heures)}</strong>
+          <span style={{ whiteSpace: "nowrap" }}><strong>{fmtHeures(t.heures)}</strong> <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{cout(t.heures)}</span></span>
         </div>
       ))}
     </div>

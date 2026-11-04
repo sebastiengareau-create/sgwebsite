@@ -4,6 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+function fmtHeures(h) {
+  const heures = Math.floor(h);
+  const min = Math.round((h - heures) * 60);
+  return min === 60 ? `${heures + 1}h00` : `${heures}h${String(min).padStart(2, "0")}`;
+}
+
 export default function TachesInternesSection({ tachesInitiales }) {
   const router = useRouter();
   const [taches, setTaches] = useState(tachesInitiales);
@@ -63,7 +69,8 @@ export default function TachesInternesSection({ tachesInitiales }) {
         </div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
           Pour suivre les mécaniciens même quand ils ne sont pas sur un bon client (nettoyage, formation, entretien
-          de l'atelier…). Ces heures comptent comme présence, mais jamais comme facturable.
+          de l'atelier…). Ces heures comptent comme présence, mais jamais comme facturable. Leur coût = heures ×
+          coût horaire du garage.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
@@ -82,7 +89,14 @@ export default function TachesInternesSection({ tachesInitiales }) {
                 </>
               ) : (
                 <>
-                  <span style={{ flex: 1, fontSize: 13, textDecoration: t.actif ? "none" : "line-through" }}>{t.nom}</span>
+                  <span style={{ flex: 1, fontSize: 13 }}>
+                    <span style={{ textDecoration: t.actif ? "none" : "line-through" }}>{t.nom}</span>
+                    {t.heuresMois > 0 && (
+                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                        Ce mois : {fmtHeures(t.heuresMois)} · coût {t.coutMois.toFixed(2)} $
+                      </span>
+                    )}
+                  </span>
                   <Link
                     href={`/gerant/parametres/taches-internes/historique?tache=${t.id}`}
                     title="Historique des poinçons"
