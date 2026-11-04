@@ -29,6 +29,7 @@ export default function NotificationsClient({ estEmploye, notificationsInitiales
       )}
       {gestion && (
         <>
+          <QuiAActive abonnes={gestion.abonnes} />
           {gestion.peutEnvoyer && <EnvoiMessage gestion={gestion} />}
           {gestion.peutEnvoyer && <NotificationsCedulees gestion={gestion} />}
           {gestion.peutRegler && <QuiRecoitQuoi gestion={gestion} />}
@@ -409,6 +410,53 @@ function NotificationsCedulees({ gestion }) {
         </form>
       )}
       {erreur && <p style={{ fontSize: 12, color: "var(--danger)", margin: "8px 0 0" }}>{erreur}</p>}
+    </div>
+  );
+}
+
+// Nom court d'un appareil à partir de ce que le navigateur a envoyé à
+// l'activation (navigator.userAgent) — ex. « iPhone · Safari »
+function nomAppareil(ua) {
+  if (!ua) return "Appareil inconnu";
+  const systeme = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Windows/.test(ua) ? "Windows" : /Macintosh|Mac OS X/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "Appareil";
+  const navigateur = /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Firefox|FxiOS/.test(ua) ? "Firefox"
+    : /Chrome|CriOS/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : null;
+  return navigateur ? `${systeme} · ${navigateur}` : systeme;
+}
+
+// Qui a accepté les notifications, et sur quels appareils. Un appareil où
+// elles ont été coupées dans les réglages du téléphone ne disparaît de la
+// liste qu'au prochain envoi qui échoue.
+function QuiAActive({ abonnes }) {
+  if (!abonnes) return null;
+  const actives = abonnes.filter((e) => e.appareils.length > 0).length;
+  const fmtDate = (d) => new Date(d).toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" });
+  return (
+    <div className="carte" style={{ marginBottom: 12 }}>
+      <div className="titre-section">📱 Qui a activé les notifications</div>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+        {actives} employé{actives > 1 ? "s" : ""} sur {abonnes.length}. Sans notifications activées, les avis restent seulement dans la cloche de l&apos;appli.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {abonnes.map((e) => (
+          <div key={e.id} style={{ background: "var(--bg)", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <strong>{e.nom}</strong>
+              <span style={{ whiteSpace: "nowrap", color: e.appareils.length > 0 ? "var(--success)" : "#C9A227" }}>
+                {e.appareils.length > 0
+                  ? `🔔 ${e.appareils.length} appareil${e.appareils.length > 1 ? "s" : ""}`
+                  : "🔕 Pas activées"}
+              </span>
+            </div>
+            {e.appareils.map((a) => (
+              <div key={a.id} style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                {nomAppareil(a.appareil)} — depuis le {fmtDate(a.creeLe)}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
