@@ -166,8 +166,10 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>📧 Sauvegarde automatique quotidienne</div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
           Le serveur n'a pas d'espace de stockage permanent où choisir un chemin — la sauvegarde du jour t'est plutôt
-          envoyée par courriel automatiquement, une fois par jour. Laisse le champ vide pour désactiver et garder
-          seulement le téléchargement manuel ci-dessus.
+          envoyée par courriel automatiquement, une fois par jour. Elle contient toutes les données{" "}
+          <strong>sauf les photos des bons</strong>, trop lourdes pour un courriel : pour une copie avec les photos,
+          utilise le téléchargement ci-dessus. Laisse le champ vide pour désactiver et garder seulement le
+          téléchargement manuel.
         </p>
         <div style={{ display: "flex", gap: 8 }}>
           <input

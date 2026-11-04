@@ -158,12 +158,15 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 ## Historique
 
 - Novembre 2026 : la **sauvegarde automatique** par courriel ne partait plus
-  après le premier jour (à cause des photos, le fichier dépassait
-  probablement la limite de 40 Mo de Resend, et l'échec restait muet).
-  Correction pour tous les clients : pièce jointe compressée (`.json.gz`,
-  que la restauration accepte telle quelle), avertissement par courriel si
-  le fichier reste trop gros, résultat du dernier envoi et bouton « Envoyer
-  la sauvegarde maintenant » sur la page Sauvegarde.
+  après le premier jour : avec les photos des bons (gardées dans la base),
+  le fichier dépassait probablement la limite de 40 Mo de Resend, et l'échec
+  restait muet. Correction pour tous les clients : le courriel quotidien
+  contient toutes les données **sauf les photos** (tables `Photo` et
+  `PhotoArrivee`), compressé (`.json.gz`, que la restauration accepte tel
+  quel) ; le téléchargement manuel garde les photos. Une restauration sans
+  photos laisse les photos en place. Avertissement par courriel si le fichier
+  reste trop gros ; résultat du dernier envoi et bouton « Envoyer la
+  sauvegarde maintenant » sur la page Sauvegarde.
 
 - Novembre 2026 : **pièces hors inventaire** sur le bon (demandées par VR
   Premium, offertes à tous les clients — pas un réglage) : bouton « + Pièce
