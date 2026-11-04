@@ -11,6 +11,7 @@ import { jobsDeplacementActif } from "@/lib/envois";
 import { CLIENT } from "@/lib/client";
 import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
 import { TACHES_SEULEMENT } from "@/lib/piecesSoumission";
+import { libelleVehicule } from "@/lib/vehicules";
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -38,6 +39,7 @@ export default async function EspaceMecanicien() {
     where: { statut: { not: "TERMINE" } },
     include: {
       client: true,
+      vehicule: true,
       problemes: { where: TACHES_SEULEMENT, orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } }, _count: { select: { photos: true } } } },
     },
     orderBy: { creeLe: "desc" },
@@ -192,7 +194,14 @@ function EnTeteBon({ b }) {
           </span>
         )}
       </div>
-      <div style={{ fontWeight: 600 }}>{b.client.nom}</div>
+      {/* Véhicule à côté du nom — année, marque, modèle, version seulement
+          (pas de NIV ni de plaque) */}
+      <div style={{ fontWeight: 600 }}>
+        {b.client.nom}
+        {libelleVehicule(b.vehicule) && (
+          <span style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: 12 }}>{libelleVehicule(b.vehicule)}</span>
+        )}
+      </div>
       <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Créé le {dateCourteQuebec(b.creeLe)}</div>
       <Link href={`/bons/${b.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>
         Voir la fiche complète →
