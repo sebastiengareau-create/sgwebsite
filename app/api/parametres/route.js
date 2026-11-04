@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, estGerantOuDev } from "@/lib/auth";
+import { oublierProchainRappelPoincons } from "@/lib/rappelPoincons";
 
 export async function GET() {
   const session = await obtenirSession();
@@ -30,5 +31,8 @@ export async function PATCH(request) {
     console.error("PATCH /api/parametres", e);
     return NextResponse.json({ erreur: `base de données — ${e.message?.split("\n").filter(Boolean).pop() || "erreur inconnue"}` }, { status: 500 });
   }
+  // Les heures d'ouverture ont pu changer : l'heure du rappel des poinçons
+  // oubliés se recalcule
+  oublierProchainRappelPoincons();
   return NextResponse.json({ ok: true });
 }

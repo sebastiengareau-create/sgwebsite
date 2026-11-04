@@ -29,11 +29,19 @@ export default async function Notifications() {
   if (peutEnvoyer || peutRegler) {
     const [rolesParType, employes, nomsRoles, cedulees] = await Promise.all([
       tousLesRolesParType(),
-      prisma.user.findMany({ where: { actif: true }, select: { id: true, nom: true, role: true }, orderBy: { nom: "asc" } }),
+      prisma.user.findMany({
+        where: { actif: true },
+        select: { id: true, nom: true, role: true, abonnementsPush: { select: { id: true, appareil: true, creeLe: true }, orderBy: { creeLe: "asc" } } },
+        orderBy: { nom: "asc" },
+      }),
       Promise.all(ROLES_VALIDES.map(async (r) => ({ cle: r, nom: await nomAffichageRole(r) }))),
       peutEnvoyer ? prisma.notificationCedulee.findMany({ orderBy: [{ heure: "asc" }, { creeLe: "asc" }] }) : [],
     ]);
-    gestion = { rolesParType, employes: employes.filter((e) => e.id !== session.id), equipe: employes, roles: nomsRoles, cedulees, peutEnvoyer, peutRegler };
+    // Appareils abonnés de chaque employé : section « Qui a activé les
+    // notifications » — gardés à part pour ne pas les envoyer ailleurs
+    const abonnes = employes.map(({ abonnementsPush, ...e }) => ({ ...e, appareils: abonnementsPush }));
+    const equipe = employes.map(({ abonnementsPush, ...e }) => e);
+    gestion = { rolesParType, employes: equipe.filter((e) => e.id !== session.id), equipe, abonnes, roles: nomsRoles, cedulees, peutEnvoyer, peutRegler };
   }
 
   return (
