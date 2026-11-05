@@ -1298,3 +1298,126 @@ model NotificationCedulee {
   dernierEnvoi String? // "YYYY-MM-DD" du dernier envoi — jamais deux fois le même jour
   creeLe       DateTime @default(now())
 }
+
+// ---------- ÉLEVAGE (module « Élevage », Administrateur → Modules) ----------
+// Suivi d'un troupeau (bœuf wagyu) de la naissance à la table : la bête, ses
+// pesées et ses frais, puis son abattage, sa découpe en paquets par coupe
+// (rendements de CoupeViande) et la vente de chaque paquet, en boutique ou
+// en ligne. Voir lib/elevage.js. Poids en kg, prix en $/kg avant taxes.
+
+model Bete {
+  id               String      @id @default(cuid())
+  numero           String      @unique // "BT-001"
+  identifiant      String? // boucle d'oreille (ATQ) ou autre identification officielle
+  nom              String?
+  sexe             String // "FEMELLE" | "TAUREAU" | "BOUVILLON" (mâle castré)
+  genetique        String? // "FULLBLOOD" | "PUREBRED" | "CROISE"
+  pourcentageWagyu Float?
+  dateNaissance    DateTime?
+  origine          String      @default("NEE_ICI") // "NEE_ICI" | "ACHETEE"
+  dateAcquisition  DateTime?
+  provenance       String? // éleveur d'origine, encan…
+  coutAcquisition  Float       @default(0) // prix payé si achetée, avant taxes
+  mereId           String?
+  mere             Bete?       @relation("MereVeaux", fields: [mereId], references: [id], onDelete: SetNull)
+  veaux            Bete[]      @relation("MereVeaux")
+  pere             String? // taureau ou semence (IA), texte libre
+  statut           String      @default("ACTIVE") // "ACTIVE" | "ABATTUE" | "VENDUE" (sur pied) | "MORTE"
+  dateSortie       DateTime? // abattage, vente sur pied ou mort
+  prixVente        Float? // vente sur pied, avant taxes
+  notes            String?
+  pesees           PeseeBete[]
+  frais            FraisBete[]
+  abattage         Abattage?
+  creePar          String?
+  creeLe           DateTime    @default(now())
+}
+
+model PeseeBete {
+  id     String   @id @default(cuid())
+  beteId String
+  bete   Bete     @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date   DateTime
+  poids  Float // kg, poids vif
+  note   String?
+
+  @@index([beteId, date])
+}
+
+// Frais propres à une bête (alimentation, vétérinaire, transport…) : ils
+// entrent dans son coût de revient
+model FraisBete {
+  id          String   @id @default(cuid())
+  beteId      String
+  bete        Bete     @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date        DateTime
+  categorie   String // "ALIMENTATION" | "VETERINAIRE" | "TRANSPORT" | "AUTRE"
+  description String?
+  montant     Float // avant taxes
+
+  @@index([beteId])
+}
+
+model Abattage {
+  id            String      @id @default(cuid())
+  beteId        String      @unique
+  bete          Bete        @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date          DateTime
+  abattoir      String?
+  poidsVif      Float? // kg, à l'arrivée à l'abattoir
+  poidsCarcasse Float // kg, carcasse froide — base des rendements de découpe
+  bms           Int? // persillage (Beef Marbling Standard, 1 à 12)
+  fraisAbattage Float       @default(0) // abattage, découpe, emballage — avant taxes
+  notes         String?
+  lots          LotViande[]
+  creePar       String?
+  creeLe        DateTime    @default(now())
+}
+
+// Catalogue des coupes : rendement en % du poids de carcasse, poids moyen
+// d'un paquet, prix au kg par canal de vente
+model CoupeViande {
+  id           String      @id @default(cuid())
+  nom          String      @unique
+  rendement    Float // % du poids de carcasse froide
+  poidsPaquet  Float // kg, poids moyen d'un paquet
+  prixBoutique Float       @default(0) // $/kg
+  prixEnLigne  Float       @default(0) // $/kg
+  enLigne      Boolean     @default(true) // offerte en ligne
+  actif        Boolean     @default(true)
+  ordre        Int         @default(0)
+  lots         LotViande[]
+}
+
+// Paquets d'une coupe tirés d'une bête — chaque paquet vendu reste relié à
+// sa bête (traçabilité)
+model LotViande {
+  id             String        @id @default(cuid())
+  abattageId     String
+  abattage       Abattage      @relation(fields: [abattageId], references: [id], onDelete: Cascade)
+  coupeId        String
+  coupe          CoupeViande   @relation(fields: [coupeId], references: [id])
+  paquetsEstimes Int           @default(0) // selon les rendements, au moment de l'abattage
+  nbPaquets      Int // réellement reçus du boucher
+  poidsTotal     Float // kg, tous les paquets reçus
+  ventes         VenteViande[]
+
+  @@unique([abattageId, coupeId])
+}
+
+model VenteViande {
+  id        String    @id @default(cuid())
+  lotId     String
+  lot       LotViande @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  date      DateTime
+  canal     String // "BOUTIQUE" | "EN_LIGNE"
+  nbPaquets Int
+  poids     Float // kg
+  montant   Float // avant taxes
+  note      String? // client, numéro de commande en ligne…
+  creePar   String?
+  creeLe    DateTime  @default(now())
+
+  @@index([lotId])
+  @@index([date])
+}
