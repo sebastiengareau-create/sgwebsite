@@ -38,6 +38,11 @@ on décide quand et à qui une modification s'applique.
   profil). Les images absentes viennent de `public/`.
 - **Nom, adresse, téléphone…** : dans l'appli (Administrateur →
   Informations de l'entreprise), donc dans la base du client.
+- **Modules** (Administrateur → Modules) : sections entières activées ou non
+  dans l'appli de chaque installation, sans changer le profil — ex. Paie,
+  Jobs en déplacement, **Élevage** (troupeau de bœuf wagyu, découpe et vente
+  de viande, `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
+  (décocher « Inventaire » dans Rôles et accès).
 - **Contexte** : `clients/<id>/CLIENT.md` — qui est le client, ce qui le
   distingue et pourquoi.
 
