@@ -13,6 +13,7 @@ import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { CLIENT } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
 import { pieceCorrespond } from "@/lib/codesBarres";
+import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
 
 // Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
 // en haut, avant les tâches. Les pièces restent enregistrées sur une tâche
@@ -233,7 +234,10 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <Link href="/secretaire/operations/soumissions" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux soumissions</Link>
         {soumissionExistante && (
-          <Link href={`/secretaire/operations/soumissions/${soumissionExistante.id}/imprimer`} target="_blank" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>🖨️ Imprimer</Link>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <BoutonEnvoiCourriel url={`/api/soumissions/${soumissionExistante.id}/envoyer`} courrielDefaut={soumissionExistante.client?.courriel} libelle="📧 Envoyer par courriel" style={{ fontSize: 12, border: "none", padding: 0, color: "var(--accent)" }} />
+            <Link href={`/secretaire/operations/soumissions/${soumissionExistante.id}/imprimer`} target="_blank" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>🖨️ Imprimer</Link>
+          </div>
         )}
       </div>
       <h1 style={{ fontSize: 20, marginBottom: 4 }}>{soumissionExistante ? "Modifier la soumission" : "Nouvelle soumission"}</h1>

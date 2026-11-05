@@ -28,6 +28,7 @@ import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
 import { correspondRecherche } from "@/lib/recherche";
+import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -367,6 +368,11 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           >
             🖨️ {bon.facture ? "Facture" : "Bon de commande"}
           </Link>
+          {/* Le bon de commande en PDF au client ; une fois facturé, l'envoi
+              de la facture se fait dans la section Facture */}
+          {peutModifier && !bon.facture && (
+            <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle="📧 Envoyer le bon" style={{ fontSize: 12, padding: "6px 12px" }} />
+          )}
           {peutEnvoyer && !factureExiste && (
             <Link
               href={`/gerant/jobs-deplacement?bon=${bon.id}`}
