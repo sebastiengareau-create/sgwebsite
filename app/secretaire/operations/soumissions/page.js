@@ -17,6 +17,7 @@ export default async function ListeSoumissions() {
     prisma.soumission.findMany({
       include: {
         taches: { include: { pieces: true } },
+        client: { select: { courriel: true } }, // envoi par courriel
         // Dépôts reçus (lib/depots.js)
         depots: {
           include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } } },

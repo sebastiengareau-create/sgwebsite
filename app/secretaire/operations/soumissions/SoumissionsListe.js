@@ -7,6 +7,7 @@ import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 import { CLIENT } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
 import SectionDepots from "../../../components/SectionDepots";
+import BoutonEnvoiCourriel from "../../../components/BoutonEnvoiCourriel";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -157,7 +158,7 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                   )}
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                   {CLIENT.soumissionFacturerDirect ? (
                     <button
                       onClick={() => facturer(s)}
@@ -178,6 +179,7 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                   <Link href={`/secretaire/operations/soumissions/${s.id}/imprimer`} target="_blank" style={{ fontSize: 11, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8 }}>
                     🖨️
                   </Link>
+                  <BoutonEnvoiCourriel url={`/api/soumissions/${s.id}/envoyer`} courrielDefaut={s.client?.courriel} libelle="📧" />
                   <button onClick={(e) => supprimer(s.id, e)} style={{ fontSize: 11, fontWeight: 600, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
                     🗑️
                   </button>
