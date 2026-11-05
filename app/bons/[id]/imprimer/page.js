@@ -120,7 +120,7 @@ export default async function ImprimerBon(props) {
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{estFacturee ? "FACTURE" : "APERÇU DE FACTURE"}</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{estFacturee ? "FACTURE" : "BON DE COMMANDE"}</div>
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace", marginTop: 2 }}>
               #{estFacturee ? bon.facture.numero : bon.numero}
             </div>
