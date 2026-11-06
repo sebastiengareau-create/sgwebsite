@@ -37,6 +37,21 @@ export default function SectionDepots({ depots = [], totalEstime = null, comptes
     return null;
   }
 
+  // Excédent d'un dépôt sur sa facture : passé au crédit du client au lieu
+  // d'être remboursé (lib/creditClient.js)
+  async function crediter(d, reste) {
+    if (!window.confirm(`Garder l'excédent de ${reste.toFixed(2)} $ en crédit au client, pour une prochaine facture ?`)) return;
+    setErreur("");
+    setAvertissement("");
+    setEnCours(true);
+    const res = await fetch(`/api/depots/${d.id}/crediter`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    if (!res.ok) { setErreur(data.erreur || "Erreur."); return; }
+    if (data.avertissementComptable) setAvertissement(`Crédit enregistré, mais aucune écriture comptable créée : ${data.avertissementComptable}.`);
+    router.refresh();
+  }
+
   async function retirer(d) {
     if (!window.confirm(`Retirer le dépôt de ${d.montant.toFixed(2)} $ ? Son écriture comptable sera supprimée (dépôt entré par erreur, ou remboursé au client).`)) return;
     setErreur("");
@@ -57,18 +72,25 @@ export default function SectionDepots({ depots = [], totalEstime = null, comptes
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.3 }}>Dépôts reçus</div>
           {depots.map((d) => {
             const applique = d.paiementFacture != null;
-            const reste = applique ? arrondir(d.montant - d.paiementFacture.montant) : 0;
+            const auCredit = d.creditClient?.montant ?? 0;
+            const reste = applique ? arrondir(d.montant - d.paiementFacture.montant - auCredit) : 0;
             return (
               <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, padding: "3px 0" }}>
                 <span style={{ color: "var(--text-muted)", minWidth: 0 }}>
                   {new Date(d.datePaiement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {LABEL_MODE_PAIEMENT[d.modePaiement] || "Paiement"}
                   {d.compteTresorerie ? ` · ${d.compteTresorerie.nom}` : ""}{d.reference ? ` · réf. ${d.reference}` : ""}
                   {applique && <span style={{ color: "var(--success)" }}> · appliqué à la facture</span>}
+                  {auCredit > 0.005 && <span style={{ color: "var(--success)" }}> · {auCredit.toFixed(2)} $ au crédit du client</span>}
                   {reste > 0.005 && <span style={{ color: "var(--danger)" }}> · {reste.toFixed(2)} $ à rembourser</span>}
+                  {reste > 0.005 && peutModifier && (
+                    <button onClick={() => crediter(d, reste)} disabled={enCours} style={{ background: "none", border: "none", color: "var(--accent)", fontWeight: 700, cursor: "pointer", fontSize: 11.5, padding: "0 0 0 6px" }}>
+                      → garder en crédit
+                    </button>
+                  )}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
                   <strong>{d.montant.toFixed(2)} $</strong>
-                  {peutModifier && !applique && (
+                  {peutModifier && !applique && !auCredit && (
                     <button onClick={() => retirer(d)} disabled={enCours} aria-label="Retirer ce dépôt" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
                   )}
                 </span>

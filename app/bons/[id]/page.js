@@ -7,6 +7,7 @@ import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import { CLIENT } from "@/lib/client";
 import { kitsDisponibles } from "@/lib/kits";
+import { soldeCredit } from "@/lib/creditClient";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -32,10 +33,16 @@ export default async function DetailBonPage(props) {
           entreesTemps: { include: { employe: true } },
         },
       },
-      facture: { include: { paiements: { include: { compteTresorerie: { select: { nom: true } }, depot: { select: { datePaiement: true } } }, orderBy: { datePaiement: "asc" } } } },
+      facture: {
+        include: {
+          paiements: { include: { compteTresorerie: { select: { nom: true } }, depot: { select: { datePaiement: true } } }, orderBy: { datePaiement: "asc" } },
+          // Excédents de paiement gardés en crédit client (lib/creditClient.js)
+          creditsTropPaye: { where: { type: "TROP_PAYE" }, include: { compteTresorerie: { select: { nom: true } } }, orderBy: { date: "asc" } },
+        },
+      },
       // Dépôts reçus avant la facture (lib/depots.js)
       depots: {
-        include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } } },
+        include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } }, creditClient: { select: { montant: true } } },
         orderBy: { datePaiement: "asc" },
       },
       piecesACommander: {
@@ -95,6 +102,8 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutModifier = await aAccesSection(session, "operations");
+  // Crédit du client disponible pour la facture (lib/creditClient.js)
+  const creditClient = bon.vehiculeVenteId ? 0 : await soldeCredit(bon.clientId);
   const peutEnvoyer = await peutGererJobsDeplacement(session);
   // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
   const peutCommander = await aAccesSection(session, "inventaire");
@@ -131,6 +140,7 @@ export default async function DetailBonPage(props) {
         estGerant={estGerantOuDev(session)}
         moi={session.id}
         clientsChoix={clientsChoix}
+        creditClient={creditClient}
       />
     </div>
   );

@@ -14,8 +14,11 @@ let prochaineCle = 1;
 // Mode depot (app/components/SectionDepots.js) : dépôt avant la facture —
 // montant libre, solde = total estimé moins les dépôts déjà reçus, à titre
 // indicatif seulement (un dépôt peut le dépasser).
+// excedentEnCredit : le total peut dépasser le solde — l'excédent est gardé
+// en crédit au client (lib/creditClient.js) ; l'appelant envoie alors
+// excedentEnCredit à l'API.
 // onConfirmer(paiements) retourne un message d'erreur, ou null.
-export default function FormulaireEncaissement({ comptesTresorerie, solde, onConfirmer, onAnnuler, depot = false }) {
+export default function FormulaireEncaissement({ comptesTresorerie, solde, onConfirmer, onAnnuler, depot = false, excedentEnCredit = false }) {
   const nouvelleLigne = (montant, modePaiement = "CARTE_DEBIT") => ({
     cle: prochaineCle++, montant: montant > 0 ? montant.toFixed(2) : "", modePaiement,
     compteTresorerieId: compteSuggere(comptesTresorerie, modePaiement), reference: "",
@@ -26,7 +29,9 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
 
   const total = arrondir(lignes.reduce((s, l) => s + (Number(l.montant) || 0), 0));
   const reste = arrondir(solde - total);
-  const depasse = !depot && reste < -0.005;
+  const trop = !depot && reste < -0.005;
+  const enCredit = trop && excedentEnCredit; // l'excédent ira au crédit du client
+  const depasse = trop && !excedentEnCredit;
 
   function modifier(cle, champs) {
     setLignes((ls) => ls.map((l) => {
@@ -100,7 +105,7 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
       <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between", gap: 8, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
         <span style={{ color: "var(--text-muted)" }}>Solde de la facture : {solde.toFixed(2)} $</span>
         <span style={{ fontWeight: 700, color: depasse ? "var(--danger)" : reste > 0.005 ? "var(--accent)" : "var(--success)" }}>
-          {depasse ? `${(-reste).toFixed(2)} $ de trop` : reste > 0.005 ? `Reste à payer : ${reste.toFixed(2)} $` : "Payée au complet"}
+          {depasse ? `${(-reste).toFixed(2)} $ de trop` : enCredit ? `${(-reste).toFixed(2)} $ en crédit` : reste > 0.005 ? `Reste à payer : ${reste.toFixed(2)} $` : "Payée au complet"}
         </span>
       </div>
       )}
@@ -109,10 +114,15 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
           La facture restera impayée avec un solde de {reste.toFixed(2)} $, à encaisser plus tard.
         </p>
       )}
+      {enCredit && (
+        <p style={{ fontSize: 11.5, color: "var(--success)", margin: 0 }}>
+          🎟️ La facture sera payée au complet ; l'excédent de {(-reste).toFixed(2)} $ sera gardé en crédit au client, pour une prochaine facture ou un remboursement.
+        </p>
+      )}
       {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={confirmer} disabled={enCours || depasse} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-          {enCours ? "…" : depot ? `✓ Encaisser le dépôt de ${total.toFixed(2)} $` : `✓ Encaisser ${total.toFixed(2)} $`}
+          {enCours ? "…" : depot ? `✓ Encaisser le dépôt de ${total.toFixed(2)} $` : enCredit ? `✓ Encaisser ${total.toFixed(2)} $ (${(-reste).toFixed(2)} $ en crédit)` : `✓ Encaisser ${total.toFixed(2)} $`}
         </button>
         <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
           Annuler

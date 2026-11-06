@@ -62,7 +62,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [] }) {
+export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -216,8 +216,20 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
   function encaisserFacture(paiements) {
     return appelFacture(`/api/factures/${bon.facture.id}/paiements`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paiements }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paiements, excedentEnCredit: true }),
     });
+  }
+
+  // Crédit client (lib/creditClient.js) : appliqué jusqu'au solde
+  const creditApplicable = Math.min(creditClient, soldeFacture);
+  function appliquerCreditFacture() {
+    return appelFacture(`/api/factures/${bon.facture.id}/appliquer-credit`, { method: "POST" }).then((err) => { if (err) setAvertissementFacture(err); });
+  }
+  const tropPayes = bon.facture?.creditsTropPaye || [];
+  async function retirerTropPaye(c) {
+    if (!window.confirm(`Retirer le crédit de ${c.montant.toFixed(2)} $ gardé sur cette facture ? Son écriture comptable sera supprimée (excédent entré par erreur).`)) return;
+    const err = await appelFacture(`/api/credits/${c.id}`, { method: "DELETE" });
+    if (err) setAvertissementFacture(err);
   }
 
   async function marquerFactureImpayee() {
@@ -231,6 +243,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   async function retirerPaiementFacture(p) {
     const message = p.depot
       ? `Retirer le dépôt de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû ; le dépôt reste au bon, non appliqué (bouton « Appliquer à la facture »).`
+      : p.modePaiement === "CREDIT_CLIENT"
+      ? `Retirer le crédit client de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû et retournera au crédit du client.`
       : `Retirer le paiement de ${p.montant.toFixed(2)} $ ? Son écriture comptable sera supprimée et le montant redeviendra dû.`;
     if (!window.confirm(message)) return;
     const err = await appelFacture(`/api/factures/${bon.facture.id}/paiements/${p.id}`, { method: "DELETE" });
@@ -586,6 +600,20 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                     </span>
                   </div>
                 ))}
+                {tropPayes.map((c) => (
+                  <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, padding: "3px 0" }}>
+                    <span style={{ color: "var(--success)", minWidth: 0 }}>
+                      🎟️ Excédent gardé en crédit client — {LABEL_MODE_PAIEMENT[c.modePaiement] || "Paiement"}
+                      {c.compteTresorerie ? ` · ${c.compteTresorerie.nom}` : ""}
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                      <strong>{c.montant.toFixed(2)} $</strong>
+                      {peutModifier && (
+                        <button onClick={() => retirerTropPaye(c)} disabled={enCours} aria-label="Retirer ce crédit" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
+                      )}
+                    </span>
+                  </div>
+                ))}
                 {bon.facture.statut === "IMPAYEE" && (
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)" }}>
                     <span>Solde à payer</span>
@@ -600,6 +628,19 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 {peutModifier && bon.facture.statut === "IMPAYEE" && soldeFacture > 0.005 && (
                   <button onClick={appliquerDepotsFacture} disabled={enCours} style={{ ...boutonAjout, width: "100%", marginTop: 8, color: "var(--accent)", fontWeight: 700 }}>
                     Appliquer à la facture
+                  </button>
+                )}
+              </div>
+            )}
+            {creditApplicable > 0.005 && bon.facture.statut === "IMPAYEE" && !payeeParCoutant && (
+              <div style={{ marginBottom: 10, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px dashed var(--success)", fontSize: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span>🎟️ Crédit client disponible</span>
+                  <strong>{creditClient.toFixed(2)} $</strong>
+                </div>
+                {peutModifier && (
+                  <button onClick={appliquerCreditFacture} disabled={enCours} style={{ ...boutonAjout, width: "100%", marginTop: 8, color: "var(--success)", fontWeight: 700 }}>
+                    Appliquer {creditApplicable.toFixed(2)} $ sur la facture
                   </button>
                 )}
               </div>
@@ -623,6 +664,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               <FormulaireEncaissement
                 comptesTresorerie={comptesTresorerie} solde={soldeFacture}
                 onConfirmer={encaisserFacture} onAnnuler={() => setAfficherPaiementFacture(false)}
+                excedentEnCredit
               />
             )}
             {avertissementFacture && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8 }}>⚠️ {avertissementFacture}</p>}

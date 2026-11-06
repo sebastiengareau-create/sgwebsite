@@ -40,7 +40,7 @@ export default async function ImprimerBon(props) {
         client: true,
         vehicule: true,
         problemes: { orderBy: { id: "asc" }, include: { photos: CLIENT.photosTachesImprimees, pieces: { include: { piece: true } }, entreesTemps: true } },
-        facture: { include: { paiements: { select: { montant: true, depot: { select: { id: true } } } } } },
+        facture: { include: { paiements: { select: { montant: true, modePaiement: true, depot: { select: { id: true } } } } } },
         depots: { select: { montant: true } },
       },
     }),

@@ -20,7 +20,7 @@ export default async function ListeSoumissions() {
         client: { select: { courriel: true } }, // envoi par courriel
         // Dépôts reçus (lib/depots.js)
         depots: {
-          include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } } },
+          include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } }, creditClient: { select: { montant: true } } },
           orderBy: { datePaiement: "asc" },
         },
       },

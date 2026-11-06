@@ -8,6 +8,7 @@ import SelectProvince from "../../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
 import DossierVehicules from "./DossierVehicules";
+import SectionCreditClient from "./SectionCreditClient";
 import { libelleVehicule } from "@/lib/vehicules";
 import { formaterTelephone } from "@/lib/telephone";
 
@@ -17,7 +18,7 @@ const JOUR_MS = 86400000;
 
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
-export default function ClientDetailClient({ client, peutRedigerLettre }) {
+export default function ClientDetailClient({ client, peutRedigerLettre, comptesTresorerie = [], peutModifierCredit = false }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -190,6 +191,8 @@ export default function ClientDetailClient({ client, peutRedigerLettre }) {
               </div>
             )}
           </div>
+
+          <SectionCreditClient clientId={client.id} credits={client.credits} comptesTresorerie={comptesTresorerie} peutModifier={peutModifierCredit} />
 
           <DossierVehicules clientId={client.id} vehicules={client.vehicules} />
 

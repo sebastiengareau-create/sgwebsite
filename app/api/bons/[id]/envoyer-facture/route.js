@@ -24,7 +24,7 @@ export async function POST(request, props) {
     include: {
       client: true,
       vehicule: true,
-      facture: { include: { paiements: { select: { montant: true, depot: { select: { id: true } } } } } },
+      facture: { include: { paiements: { select: { montant: true, modePaiement: true, depot: { select: { id: true } } } } } },
       depots: { select: { montant: true } },
       problemes: {
         orderBy: { id: "asc" },

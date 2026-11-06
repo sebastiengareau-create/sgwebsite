@@ -52,6 +52,10 @@ export async function DELETE(request, props) {
     );
   }
 
+  if (await prisma.creditClient.count({ where: { clientId: params.id } })) {
+    return NextResponse.json({ erreur: "Ce client a un historique de crédit — il ne peut pas être supprimé." }, { status: 409 });
+  }
+
   await prisma.client.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }
