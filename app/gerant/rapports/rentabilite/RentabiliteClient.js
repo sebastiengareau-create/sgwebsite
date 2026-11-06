@@ -136,7 +136,7 @@ function CarteEmploye({ d }) {
         </div>
       )}
 
-      <TauxFacturation vendues={d.heuresVendues} poinconnees={d.heuresPoinconneesFacturees} libelle="Taux de facturation" />
+      <TauxRentabilite cout={d.coutReel} revenu={d.revenuGenere} libelle="Taux de rentabilité" />
 
       {d.heuresEstimees > 0 && (
         <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>
@@ -168,34 +168,6 @@ function TauxRentabilite({ cout, revenu, libelle }) {
       <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
         {libelle}
         <span style={{ display: "block", fontSize: 10.5 }}>{revenu.toFixed(2)} $ de revenu généré pour {cout.toFixed(2)} $ de coût réel</span>
-      </span>
-      <span style={{ fontSize: 17, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
-    </div>
-  );
-}
-
-// Heures vendues au client ÷ heures poinçonnées, sur les bons déjà facturés
-// (voir lib/productivite.js). Sous 100 % : du temps passé qui n'a pas été
-// vendu (forfait trop court, soumission sous-estimée) ; au-dessus : plus
-// vendu que poinçonné.
-function TauxFacturation({ vendues, poinconnees, libelle }) {
-  if (poinconnees <= 0) {
-    return (
-      <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 8 }}>
-        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun bon facturé sur la période)</span>
-      </div>
-    );
-  }
-  const taux = (vendues / poinconnees) * 100;
-  const couleur = taux >= 100 ? "var(--success)" : taux >= 85 ? "#C9A227" : "var(--danger)";
-  return (
-    <div
-      title="Heures vendues au client ÷ heures poinçonnées, sur les bons déjà facturés"
-      style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}
-    >
-      <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
-        {libelle}
-        <span style={{ display: "block", fontSize: 10.5 }}>{fmtHeures(vendues)} vendues sur {fmtHeures(poinconnees)} poinçonnées (bons facturés)</span>
       </span>
       <span style={{ fontSize: 17, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
     </div>
