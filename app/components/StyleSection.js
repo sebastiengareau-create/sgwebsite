@@ -57,11 +57,11 @@ export const TEINTES = {
   neutre: { couleur: "var(--text-muted)", fond: "var(--surface-alt)", discret: true },
 };
 
-export function CarteChiffre({ titre, montant, couleur = "var(--text)", note, teinte, href }) {
+export function CarteChiffre({ titre, montant, couleur = "var(--text)", note, teinte, href, onClick, actif }) {
   const contenu = (
     <div style={{
-      position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)",
-      borderRadius: 18, padding: "18px 20px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)", height: "100%", boxSizing: "border-box",
+      position: "relative", overflow: "hidden", background: "var(--surface)", border: `1px solid ${actif ? "var(--accent)" : "var(--border)"}`,
+      borderRadius: 18, padding: "18px 20px", boxShadow: actif ? "0 0 0 2px rgba(232,163,61,0.25)" : "0 1px 2px rgba(0,0,0,0.04)", height: "100%", boxSizing: "border-box",
     }}>
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
       <div style={{ position: "absolute", right: -30, top: -30, width: 110, height: 110, borderRadius: "50%", background: teinte, opacity: 0.08 }} />
@@ -72,7 +72,12 @@ export function CarteChiffre({ titre, montant, couleur = "var(--text)", note, te
       <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{note}</div>
     </div>
   );
-  return href ? <Link href={href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>{contenu}</Link> : contenu;
+  if (!href && !onClick) return contenu;
+  return (
+    <LienOuBouton href={href} onClick={onClick} style={{ display: "block", width: "100%", padding: 0, border: "none", background: "none", color: "inherit" }}>
+      {contenu}
+    </LienOuBouton>
+  );
 }
 
 export function GrilleChiffres({ children }) {
