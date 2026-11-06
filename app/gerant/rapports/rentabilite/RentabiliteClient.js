@@ -147,27 +147,27 @@ function CarteEmploye({ d }) {
   );
 }
 
-// Coût réel ÷ revenu généré : la part du revenu que coûtent les employés.
-// Plus bas = plus rentable ; au-dessus de 100 %, ils coûtent plus qu'ils
-// ne rapportent.
+// Revenu généré ÷ coût réel : au-dessus de 100 %, les employés rapportent
+// plus qu'ils ne coûtent (rentable) ; en dessous, ils coûtent plus qu'ils
+// ne rapportent (perte).
 function TauxRentabilite({ cout, revenu, libelle }) {
-  if (revenu <= 0) {
+  if (cout <= 0) {
     return (
       <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 8 }}>
-        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun revenu généré sur la période)</span>
+        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun coût réel sur la période)</span>
       </div>
     );
   }
-  const taux = (cout / revenu) * 100;
-  const couleur = taux <= 60 ? "var(--success)" : taux <= 80 ? "#C9A227" : "var(--danger)";
+  const taux = (revenu / cout) * 100;
+  const couleur = taux >= 125 ? "var(--success)" : taux >= 100 ? "#C9A227" : "var(--danger)";
   return (
     <div
-      title="Coût réel ÷ revenu généré — plus bas = plus rentable"
+      title="Revenu généré ÷ coût réel — au-dessus de 100 % : rentable ; en dessous : perte"
       style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}
     >
       <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
         {libelle}
-        <span style={{ display: "block", fontSize: 10.5 }}>{cout.toFixed(2)} $ de coût réel pour {revenu.toFixed(2)} $ de revenu généré</span>
+        <span style={{ display: "block", fontSize: 10.5 }}>{revenu.toFixed(2)} $ de revenu généré pour {cout.toFixed(2)} $ de coût réel</span>
       </span>
       <span style={{ fontSize: 17, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
     </div>
