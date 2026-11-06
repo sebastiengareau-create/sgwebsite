@@ -21,6 +21,7 @@ const TYPE_MOUVEMENT = {
   RECEPTION: { label: "Réception", couleur: "var(--success)" },
   VENTE: { label: "Vente", couleur: "var(--danger)" },
   AJUSTEMENT: { label: "Ajustement", couleur: "var(--text-muted)" },
+  RETOUR: { label: "Retour client", couleur: "var(--success)" },
 };
 
 export default function PieceDetailClient({ piece, categories, fournisseurs, autresPieces }) {

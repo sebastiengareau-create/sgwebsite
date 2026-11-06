@@ -265,7 +265,9 @@ export default async function ImprimerBon(props) {
 
 function LignePiece({ l }) {
   const nom = nomPieceFacture(l.piece.nom, l.piece.numero);
-  const description = l.bo ? `${nom} (B/O — en commande)` : l.kit ? `${nom} — comprend : ${libelleContenuKit(l.kit)}` : nom;
+  const description = l.retourDeId
+    ? `↩ Retour : ${nom} (facture ${l.retourFacture})${l.defectueuse ? " — défectueuse" : ""}`
+    : l.bo ? `${nom} (B/O — en commande)` : l.kit ? `${nom} — comprend : ${libelleContenuKit(l.kit)}` : nom;
   return <LigneTravail description={description} qte={l.qte} prix={l.prix} total={l.qte * l.prix} />;
 }
 

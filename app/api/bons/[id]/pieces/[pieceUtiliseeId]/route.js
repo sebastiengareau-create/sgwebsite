@@ -25,6 +25,12 @@ export async function PATCH(request, props) {
     return NextResponse.json({ erreur: "Ligne introuvable." }, { status: 404 });
   }
 
+  // Retour de pièce (lib/retours.js) : prix et quantité suivent la vente
+  // d'origine — le retirer et le refaire au besoin
+  if (ligne.retourDeId) {
+    return NextResponse.json({ erreur: "Un retour ne se modifie pas — retire-le (✕) et refais-le." }, { status: 409 });
+  }
+
   const data = {};
   if (prix !== undefined) {
     const nouveauPrix = Number(prix);
@@ -37,6 +43,10 @@ export async function PATCH(request, props) {
   if (qte !== undefined) {
     const nouvelleQte = Number(qte);
     if (isNaN(nouvelleQte) || nouvelleQte < 1) return NextResponse.json({ erreur: "Quantité invalide." }, { status: 400 });
+    const dejaRetourne = -(await prisma.pieceUtilisee.aggregate({ where: { retourDeId: ligne.id }, _sum: { qte: true } }))._sum.qte || 0;
+    if (nouvelleQte < dejaRetourne) {
+      return NextResponse.json({ erreur: `${dejaRetourne} de ces pièces ont déjà été retournées sur un autre bon.` }, { status: 409 });
+    }
     // Kit : chacune de ses pièces sort du stock ou y revient
     if (ligne.kit) {
       try {
@@ -107,6 +117,10 @@ export async function DELETE(request, props) {
   }
   if (await bonEstVerrouille(params.id)) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
+  }
+
+  if (await prisma.pieceUtilisee.count({ where: { retourDeId: params.pieceUtiliseeId } })) {
+    return NextResponse.json({ erreur: "Cette pièce a été retournée sur un autre bon — retire d'abord ce retour." }, { status: 409 });
   }
 
   await prisma.$transaction(async (tx) => {

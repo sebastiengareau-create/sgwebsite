@@ -35,7 +35,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre, comptesT
   const [garantieProlongee, setGarantieProlongee] = useState(client.garantieProlongee || "");
 
   const facturesImpayees = client.bons
-    .filter((b) => b.facture?.statut === "IMPAYEE")
+    .filter((b) => b.facture?.statut === "IMPAYEE" && b.facture.totalAvecTaxes > 0) // un retour (négatif) n'est pas dû
     .map((b) => ({ ...b.facture, bonId: b.id }))
     .sort((a, b) => new Date(a.dateEmission) - new Date(b.dateEmission));
   const soldeDu = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes - f.montantPaye, 0);

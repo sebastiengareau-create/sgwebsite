@@ -38,6 +38,9 @@ export async function PATCH(request, props) {
     if (bon.facture) return NextResponse.json({ erreur: "Ce bon est facturé — le client ne peut plus changer." }, { status: 409 });
     if (bon.vehiculeVenteId) return NextResponse.json({ erreur: "Ce bon porte sur un véhicule à vendre — son client ne peut pas changer." }, { status: 409 });
     if (!client) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
+    if (client.id !== bon.clientId && (await prisma.pieceUtilisee.count({ where: { retourDeId: { not: null }, probleme: { bonId: bon.id } } }))) {
+      return NextResponse.json({ erreur: "Ce bon contient des retours de pièces vendues à ce client — retire-les avant de changer de client." }, { status: 409 });
+    }
     if (client.id !== bon.clientId) {
       nouveauClient = client;
       const seul = client.vehicules.length === 1 ? client.vehicules[0] : null;

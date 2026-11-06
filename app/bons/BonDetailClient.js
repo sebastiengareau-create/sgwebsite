@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SectionDepots from "../components/SectionDepots";
 import FormulaireEncaissement from "../components/FormulaireEncaissement";
+import ReglementRetour from "../components/ReglementRetour";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 import { libelleVehicule, texteKilometrage } from "@/lib/vehicules";
@@ -198,6 +199,14 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // Paiements reçus sur la facture (voir lib/paiementsFactures.js)
   const paiementsFacture = bon.facture?.paiements || [];
   const soldeFacture = bon.facture?.statut === "IMPAYEE" ? Math.max(0, bon.facture.totalAvecTaxes - bon.facture.montantPaye) : 0;
+  // Facture négative (retour de pièce, lib/retours.js) : à remettre au client
+  const aRemettre = bon.facture?.statut === "IMPAYEE" && bon.facture.totalAvecTaxes < -0.005
+    ? Math.round((bon.facture.montantPaye - bon.facture.totalAvecTaxes) * 100) / 100 : 0;
+  function reglerRetour(corps) {
+    return appelFacture(`/api/factures/${bon.facture.id}/regler-retour`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps),
+    });
+  }
 
   async function appelFacture(url, options) {
     setAvertissementFacture("");
@@ -243,6 +252,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   async function retirerPaiementFacture(p) {
     const message = p.depot
       ? `Retirer le dépôt de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû ; le dépôt reste au bon, non appliqué (bouton « Appliquer à la facture »).`
+      : p.montant < 0
+      ? `Annuler ce règlement de ${(-p.montant).toFixed(2)} $ (retour) ? ${p.modePaiement === "CREDIT_CLIENT" ? "Le crédit sera retiré au client" : "Son écriture comptable sera supprimée"} et le montant sera de nouveau à remettre.`
       : p.modePaiement === "CREDIT_CLIENT"
       ? `Retirer le crédit client de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû et retournera au crédit du client.`
       : `Retirer le paiement de ${p.montant.toFixed(2)} $ ? Son écriture comptable sera supprimée et le montant redeviendra dû.`;
@@ -518,7 +529,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{bon.facture.totalAvecTaxes.toFixed(2)} $</span>
             </div>
 
-            {estGerant && (
+            {estGerant && bon.facture.totalFacture > 0 && ( // facture de retour (négative) : pas de rentabilité
               <div style={{ marginTop: 4, marginBottom: 12, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>
                   📊 Rentabilité de cette facture
@@ -645,7 +656,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 )}
               </div>
             )}
-            {peutModifier && bon.facture.statut !== "ANNULEE" && !payeeParCoutant && (
+            {aRemettre > 0 && (
+              <ReglementRetour montant={aRemettre} comptesTresorerie={comptesTresorerie} onRegler={reglerRetour} peutModifier={peutModifier} />
+            )}
+            {peutModifier && bon.facture.statut !== "ANNULEE" && !payeeParCoutant && !aRemettre && (
               <div style={{ display: "flex", gap: 8 }}>
                 {bon.facture.statut === "IMPAYEE" ? (
                   !afficherPaiementFacture && (
@@ -1341,6 +1355,10 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
   const [confirmationPiece, setConfirmationPiece] = useState("");
   const [scannerOuvert, setScannerOuvert] = useState(false);
   const [pieceEnEdition, setPieceEnEdition] = useState(null);
+  // Retour de pièce (lib/retours.js) : null (fermé) ou la liste des pièces
+  // vendues au client encore retournables (chargée à l'ouverture)
+  const [retournables, setRetournables] = useState(null);
+  const [choixRetour, setChoixRetour] = useState({}); // id de la ligne vendue → { qte, defectueuse }
   const [editPrix, setEditPrix] = useState("");
   const [editQte, setEditQte] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -1468,17 +1486,51 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
   }
 
   async function retirerPiece(pieceUtiliseeId) {
+    setErreurPiece("");
     setEnCours(true);
-    await fetch(`/api/bons/${bonId}/pieces/${pieceUtiliseeId}`, { method: "DELETE" });
+    const res = await fetch(`/api/bons/${bonId}/pieces/${pieceUtiliseeId}`, { method: "DELETE" });
     setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setErreurPiece(data.erreur || "Erreur lors du retrait.");
+      return;
+    }
     onRafraichir();
+  }
+
+  async function ouvrirRetours() {
+    setErreurPiece("");
+    setRetournables([]);
+    setChoixRetour({});
+    const res = await fetch(`/api/bons/${bonId}/retours`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setErreurPiece(data.erreur || "Erreur."); setRetournables(null); return; }
+    setRetournables(data.pieces);
+  }
+
+  async function retourner(r) {
+    const choix = choixRetour[r.id] || {};
+    const qte = Math.min(r.qteRetournable, Math.max(1, parseInt(choix.qte) || 1));
+    setErreurPiece("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bonId}/retours`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problemeId, ligneOrigineId: r.id, qte, defectueuse: !!choix.defectueuse }),
+    });
+    setEnCours(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setErreurPiece(data.erreur || "Erreur lors du retour."); return; }
+    setRetournables(null);
+    setConfirmationPiece(choix.defectueuse ? "Retour ajouté — pièce défectueuse, pas remise en stock ✓" : "Retour ajouté — pièce remise en stock ✓");
+    onRafraichir();
+    setTimeout(() => setConfirmationPiece(""), 3000);
   }
 
   return (
     <div style={style}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>{titre}</span>
-        {totalLigne > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>{totalLigne.toFixed(2)} $</span>}
+        {Math.abs(totalLigne) > 0.005 && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>{totalLigne.toFixed(2)} $</span>}
       </div>
 
       {pieces.length > 0 && (
@@ -1502,16 +1554,20 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13 }}>
                       {l.bo && <span title="Commandée, pas encore reçue" style={{ fontSize: 10, fontWeight: 700, color: "#D9822B", border: "1px solid #D9822B", borderRadius: 4, padding: "0 4px", marginRight: 6 }}>B/O</span>}
+                      {l.retourDeId && <span title="Pièce rapportée par le client" style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", border: "1px solid var(--success)", borderRadius: 4, padding: "0 4px", marginRight: 6 }}>↩ RETOUR</span>}
                       {l.piece.nom}
                     </div>
-                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{l.qte} × {l.prix.toFixed(2)} ${l.bo ? " · en commande, pas encore reçue" : ""}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                      {l.qte} × {l.prix.toFixed(2)} ${l.bo ? " · en commande, pas encore reçue" : ""}
+                      {l.retourDeId && ` · facture ${l.retourFacture}${l.defectueuse ? " · défectueuse, pas remise en stock" : " · remise en stock"}`}
+                    </div>
                     {l.kit && <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Kit, par unité : {libelleContenuKit(l.kit)}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{(l.qte * l.prix).toFixed(2)} $</span>
                     {!verrouille && (
                       <>
-                        <button onClick={() => { setPieceEnEdition(l.id); setEditPrix(String(l.prix)); setEditQte(String(l.qte)); }} style={boutonTexte}>✏️</button>
+                        {!l.retourDeId && <button onClick={() => { setPieceEnEdition(l.id); setEditPrix(String(l.prix)); setEditQte(String(l.qte)); }} style={boutonTexte}>✏️</button>}
                         <button onClick={() => retirerPiece(l.id)} style={boutonTexte}>✕</button>
                       </>
                     )}
@@ -1587,6 +1643,56 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
           />
           <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
         </div>
+      )}
+      {!verrouille && (
+        retournables === null ? (
+          <button type="button" onClick={ouvrirRetours} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: "6px 0 0" }}>
+            ↩ Retour de pièce (échange, garantie)
+          </button>
+        ) : (
+          <div style={{ marginTop: 8, padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, background: "var(--bg)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <strong>↩ Pièce rapportée par le client</strong>
+              <button onClick={() => setRetournables(null)} aria-label="Fermer" style={boutonTexte}>✕</button>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 8px" }}>
+              Reprise au prix payé sur sa facture. Pour un échange, ajoute ensuite la pièce de remplacement ci-dessus.
+            </p>
+            {retournables.length === 0 ? (
+              <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: 0 }}>Aucune pièce vendue à ce client sur une facture (hors kits et B/O).</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                {retournables.map((r) => {
+                  const choix = choixRetour[r.id] || { qte: "1", defectueuse: false };
+                  const changer = (champs) => setChoixRetour((c) => ({ ...c, [r.id]: { ...choix, ...champs } }));
+                  return (
+                    <div key={r.id} style={{ padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ minWidth: 0 }}>{r.nom}{r.numero && <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · #{r.numero}</span>}</span>
+                        <strong style={{ whiteSpace: "nowrap" }}>{r.prix.toFixed(2)} $</strong>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                        Facture {r.factureNumero} du {new Date(r.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} · {r.qteRetournable} retournable{r.qteRetournable > 1 ? "s" : ""}{r.qteRetournable < r.qteVendue ? ` sur ${r.qteVendue}` : ""}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 5, flexWrap: "wrap" }}>
+                        <input
+                          type="number" min={1} max={r.qteRetournable} value={choix.qte}
+                          onChange={(e) => changer({ qte: e.target.value })}
+                          style={{ ...champStyle, width: 48, textAlign: "center", fontSize: 12, padding: "5px 4px" }}
+                        />
+                        <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, cursor: "pointer", flex: 1, minWidth: 0 }}>
+                          <input type="checkbox" checked={choix.defectueuse} onChange={(e) => changer({ defectueuse: e.target.checked })} />
+                          Défectueuse (pas remise en stock)
+                        </label>
+                        <button onClick={() => retourner(r)} disabled={enCours} style={{ ...boutonAjout, padding: "5px 10px", color: "var(--accent)", fontWeight: 700 }}>↩ Retourner</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )
       )}
       {!verrouille && commandeBo && pieceSelectionnee && (() => {
         const qteVoulue = Math.max(1, parseInt(qtePiece) || 1);
