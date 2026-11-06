@@ -210,7 +210,7 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
 
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="💰" titre="Comptabilité" sousTitre="Les écritures se génèrent automatiquement à partir de tes factures." />
+      <BandeauSection icone="💰" titre="Comptabilité" sousTitre="Les écritures se génèrent automatiquement à partir des factures, comptes à payer, de la paie et des mouvements d’inventaire." />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 22 }}>
         {[
