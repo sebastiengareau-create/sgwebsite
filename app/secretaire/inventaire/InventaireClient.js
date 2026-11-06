@@ -14,6 +14,7 @@ import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } fr
 import { CLIENT } from "@/lib/client";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "./FormulaireKit";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, GroupeLiens, Panneau, Pastille } from "../../components/StyleSection";
 import { argent } from "@/lib/format";
 
 const CLE_TRI = "inventaire_tri";
@@ -105,31 +106,58 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
   }
   const piecesSelectionnees = pieces.filter((p) => selection.has(p.id));
 
+  // Chiffres du haut — pièces actives seulement (pas les kits, sans stock à eux)
+  const actives = pieces.filter((p) => p.actif);
+  const valeurStock = alignement ? alignement.valeurStock : actives.reduce((s, p) => s + p.qte * (p.coutant || 0), 0);
+  const sousSeuil = actives.filter((p) => p.qte <= p.qteMin).length;
+  const nbKits = toutes.filter((p) => p.estKit && p.actif).length;
+  const nbEnCommande = Object.values(enCommande).filter((q) => q > 0).length;
+
+  const groupes = [
+    {
+      titre: "Achats", teinte: TEINTES.ambre,
+      liens: [
+        { href: "/secretaire/inventaire/commandes", icone: "panier", label: "Commandes de pièces", detail: nbEnCommande > 0 ? `${nbEnCommande} pièce${nbEnCommande > 1 ? "s" : ""} en commande` : "Commander chez les fournisseurs" },
+        ...(CLIENT.vehiculesAVendre ? [{ href: "/secretaire/inventaire/vehicules", icone: "vehicule", label: "Véhicules à vendre", detail: "Stock, coûtant et ventes" }] : []),
+        ...(sitesPieces ? [{ onClick: () => setRechercheOuverte(true), icone: "loupe", label: "Rechercher chez nos fournisseurs", detail: "Prix et disponibilité en ligne" }] : []),
+      ],
+    },
+    {
+      titre: "Rapports", teinte: TEINTES.vert,
+      liens: [
+        { href: `/gerant/comptabilite/rapports/inventaire?tri=${seulementDesactivees ? "numero" : tri}`, target: "_blank", icone: "imprimante", label: "Rapport d'inventaire", detail: "Quantités, coûtants et marges" },
+        { href: "/gerant/comptabilite/rapports/inventaire-fournisseurs", target: "_blank", icone: "immeuble", label: "Inventaire par fournisseur", detail: "Pièces regroupées par fournisseur" },
+      ],
+    },
+    ...(peutGererCategories ? [{
+      titre: "Configuration", teinte: TEINTES.neutre,
+      liens: [
+        { onClick: () => setAfficherCategories((v) => !v), icone: "reglages", label: afficherCategories ? "Fermer les catégories" : "Catégories d'inventaire", detail: "Classement et compte de revenu" },
+      ],
+    }] : []),
+  ];
+
   return (
     <div className="conteneur-page">
       <BandeauSection icone="📦" titre="Inventaire" sousTitre="Crée, ajuste ou retire des pièces. Le stock se déduit automatiquement quand une pièce est utilisée sur un bon de travail." />
 
-      {alignement && <AlignementInventaire alignement={alignement} />}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <BoutonPlein icone="camera" onClick={() => { setCodeInconnu(null); setScannerOuvert(true); }}>Scanner une pièce</BoutonPlein>
+        <BoutonContour icone="plus" actif={afficherFormulaire} onClick={() => { setAfficherFormulaire((v) => !v); setAfficherFormulaireKit(false); setCodeBarreNouvelle(""); }}>
+          {afficherFormulaire ? "Annuler" : "Nouvelle pièce"}
+        </BoutonContour>
+        <BoutonContour icone="outils" actif={afficherFormulaireKit} onClick={() => { setAfficherFormulaireKit((v) => !v); setAfficherFormulaire(false); }}>
+          {afficherFormulaireKit ? "Annuler" : "Nouveau kit"}
+        </BoutonContour>
+        <BoutonContour icone="etiquette" actif={modeEtiquettes} onClick={() => { setModeEtiquettes((v) => !v); setSelection(new Set()); }}>
+          {modeEtiquettes ? "Terminer les étiquettes" : "Étiquettes"}
+        </BoutonContour>
+        {peutImporter && <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />}
+      </div>
 
-      <button
-        onClick={() => { setCodeInconnu(null); setScannerOuvert(true); }}
-        className="bouton-3d"
-        style={{ display: "block", width: "100%", padding: 12, borderRadius: 10, fontSize: 14, fontWeight: 700, marginBottom: 12 }}
-      >
-        📷 Scanner une pièce
-      </button>
-      {sitesPieces && (
-        <button
-          onClick={() => setRechercheOuverte(true)}
-          className="bouton-3d-sombre"
-          style={{ display: "block", width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 12 }}
-        >
-          🔎 Rechercher chez nos fournisseurs
-        </button>
-      )}
       {rechercheOuverte && <RecherchePieces sites={sitesPieces} onFermer={() => setRechercheOuverte(false)} />}
       {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
-      {messageScan && <p style={{ color: "var(--danger)", fontSize: 12, margin: "0 0 12px" }}>{messageScan}</p>}
+      {messageScan && <p style={{ color: "var(--danger)", fontSize: 13, margin: "0 0 12px" }}>{messageScan}</p>}
       {codeInconnu && (
         <CodeInconnu
           code={codeInconnu}
@@ -138,113 +166,6 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
           onNouvelle={() => { setCodeBarreNouvelle(codeInconnu); setCodeInconnu(null); setAfficherFormulaire(true); }}
           onFermer={() => setCodeInconnu(null)}
         />
-      )}
-
-      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        <button
-          onClick={() => { setModeEtiquettes((v) => !v); setSelection(new Set()); }}
-          className="bouton-3d-sombre"
-          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
-        >
-          {modeEtiquettes ? "Terminer les étiquettes" : "🏷️ Étiquettes"}
-        </button>
-        {peutImporter && <BoutonImporterFichier apiUrl="/api/inventaire/importer" libelle="depuis Excel" libellePluriel="pièce" />}
-        <button
-          onClick={() => { setAfficherFormulaireKit((v) => !v); setAfficherFormulaire(false); }}
-          className="bouton-3d-sombre"
-          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
-        >
-          {afficherFormulaireKit ? "Annuler" : "🧰 Nouveau kit"}
-        </button>
-        <button
-          onClick={() => { setAfficherFormulaire((v) => !v); setAfficherFormulaireKit(false); setCodeBarreNouvelle(""); }}
-          className="bouton-3d"
-          style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
-        >
-          {afficherFormulaire ? "Annuler" : "+ Nouvelle pièce"}
-        </button>
-      </div>
-
-      <Link
-        href="/secretaire/inventaire/commandes"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-      >
-        🛒 Commandes de pièces
-      </Link>
-      {CLIENT.vehiculesAVendre && (
-        <Link
-          href="/secretaire/inventaire/vehicules"
-          className="bouton-3d-sombre"
-          style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 8 }}
-        >
-          🚐 Véhicules à vendre
-        </Link>
-      )}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <Link
-          href={`/gerant/comptabilite/rapports/inventaire?tri=${seulementDesactivees ? "numero" : tri}`}
-          target="_blank"
-          className="bouton-3d-sombre"
-          style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
-        >
-          📄 Rapport d'inventaire
-        </Link>
-        <Link
-          href="/gerant/comptabilite/rapports/inventaire-fournisseurs"
-          target="_blank"
-          className="bouton-3d-sombre"
-          style={{ flex: 1, textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
-        >
-          🏢 Inventaire par fournisseur
-        </Link>
-      </div>
-
-      {peutGererCategories && (
-        <button
-          onClick={() => setAfficherCategories((v) => !v)}
-          style={{ fontSize: 11.5, color: "var(--accent)", background: "none", border: "none", textDecoration: "underline", cursor: "pointer", marginBottom: 12, padding: 0 }}
-        >
-          {afficherCategories ? "Fermer la gestion des catégories" : "⚙️ Gérer les catégories d'inventaire"}
-        </button>
-      )}
-      {afficherCategories && (
-        <GestionCategories categories={categories} comptesRevenu={comptesRevenu} onModifie={() => window.location.reload()} />
-      )}
-
-      <input
-        value={recherche}
-        onChange={(e) => { setRecherche(e.target.value); setNombreAffiches(TRANCHE); }}
-        placeholder="🔍 Rechercher par description, numéro ou no fournisseur…"
-        style={{ ...champStyle, marginBottom: 6 }}
-      />
-      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: nombreDesactivees > 0 && !seulementDesactivees ? 6 : 16 }}>
-        Trier par
-        <select value={tri} onChange={(e) => choisirTri(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "4px 8px", fontSize: 12 }}>
-          {Object.entries(TRIS).map(([cle, t]) => <option key={cle} value={cle}>{t.libelle}</option>)}
-          <option value={DESACTIVEES}>Pièces désactivées ({nombreDesactivees})</option>
-        </select>
-      </label>
-      {nombreDesactivees > 0 && !seulementDesactivees && (
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16, cursor: "pointer" }}>
-          <input type="checkbox" checked={voirDesactivees} onChange={(e) => { setVoirDesactivees(e.target.checked); setNombreAffiches(TRANCHE); }} />
-          Afficher les pièces désactivées ({nombreDesactivees})
-        </label>
-      )}
-
-      {modeEtiquettes && (
-        <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 8, gap: 8 }}>
-            <span style={{ color: "var(--text-muted)" }}>Touche les pièces à étiqueter — {selection.size} choisie{selection.size > 1 ? "s" : ""}</span>
-            <span style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-              <button onClick={() => setSelection(new Set(piecesFiltrees.map((p) => p.id)))} style={boutonLien}>Tout ({piecesFiltrees.length})</button>
-              <button onClick={() => setSelection(new Set())} style={boutonLien}>Aucune</button>
-            </span>
-          </div>
-          {piecesSelectionnees.length > 0 && (
-            <ImpressionEtiquettes pieces={piecesSelectionnees.map((p) => ({ id: p.id, qte: p.qte }))} />
-          )}
-        </>
       )}
 
       {afficherFormulaire && (
@@ -261,89 +182,183 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
         />
       )}
 
-      {kits.length > 0 && !modeEtiquettes && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Kits ({kits.length})</div>
-          {kits.map((k) => <CarteKit key={k.id} kit={k} nomCategorie={nomCategorie} />)}
-        </div>
+      <div style={{ marginTop: 14 }} />
+      <GrilleChiffres>
+        <CarteChiffre
+          titre="Valeur du stock" montant={argent(valeurStock)} couleur="var(--text)" teinte="var(--accent)"
+          note="Quantité × coûtant, pièces actives"
+        />
+        <CarteChiffre
+          titre="Pièces en stock" montant={String(actives.length)} teinte="var(--bleu)"
+          note={nbKits > 0 ? `Pièces actives · plus ${nbKits} kit${nbKits > 1 ? "s" : ""}` : "Pièces actives"}
+        />
+        <CarteChiffre
+          titre="Sous le seuil" montant={String(sousSeuil)}
+          couleur={sousSeuil > 0 ? "var(--danger)" : "var(--success)"} teinte={sousSeuil > 0 ? "var(--danger)" : "var(--success)"}
+          note={sousSeuil > 0 ? "À son minimum ou moins — en rouge dans la liste" : "Aucune pièce sous son minimum"}
+        />
+      </GrilleChiffres>
+
+      {alignement && <AlignementInventaire alignement={alignement} />}
+
+      {groupes.map((g) => <GroupeLiens key={g.titre} {...g} />)}
+
+      {afficherCategories && (
+        <GestionCategories categories={categories} comptesRevenu={comptesRevenu} onModifie={() => window.location.reload()} />
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
-        {kits.length > 0 && !modeEtiquettes && piecesFiltrees.length > 0 && (
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Pièces</div>
+      <Panneau titre={modeEtiquettes ? "Étiquettes à imprimer" : "Pièces"}>
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+            <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+          </span>
+          <input
+            value={recherche}
+            onChange={(e) => { setRecherche(e.target.value); setNombreAffiches(TRANCHE); }}
+            placeholder="Rechercher par description, numéro ou no fournisseur…"
+            style={{ ...champStyle, marginBottom: 0, padding: "11px 12px 11px 40px", fontSize: 14, borderRadius: 12 }}
+          />
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 16px", marginBottom: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-muted)" }}>
+            Trier par
+            <select value={tri} onChange={(e) => choisirTri(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "6px 10px", fontSize: 13 }}>
+              {Object.entries(TRIS).map(([cle, t]) => <option key={cle} value={cle}>{t.libelle}</option>)}
+              <option value={DESACTIVEES}>Pièces désactivées ({nombreDesactivees})</option>
+            </select>
+          </label>
+          {nombreDesactivees > 0 && !seulementDesactivees && (
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-muted)", cursor: "pointer" }}>
+              <input type="checkbox" checked={voirDesactivees} onChange={(e) => { setVoirDesactivees(e.target.checked); setNombreAffiches(TRANCHE); }} />
+              Afficher les désactivées ({nombreDesactivees})
+            </label>
+          )}
+        </div>
+
+        {modeEtiquettes && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginBottom: 10, gap: 8 }}>
+              <span style={{ color: "var(--text-muted)" }}>Touche les pièces à étiqueter — {selection.size} choisie{selection.size > 1 ? "s" : ""}</span>
+              <span style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+                <button onClick={() => setSelection(new Set(piecesFiltrees.map((p) => p.id)))} style={boutonLien}>Tout ({piecesFiltrees.length})</button>
+                <button onClick={() => setSelection(new Set())} style={boutonLien}>Aucune</button>
+              </span>
+            </div>
+            {piecesSelectionnees.length > 0 && (
+              <ImpressionEtiquettes pieces={piecesSelectionnees.map((p) => ({ id: p.id, qte: p.qte }))} />
+            )}
+          </>
         )}
-        {piecesFiltrees.slice(0, nombreAffiches).map((p) => {
-          const carte = (
-            <div style={{ background: "var(--surface)", border: modeEtiquettes && selection.has(p.id) ? "1px solid var(--accent)" : p.actif && p.qte <= p.qteMin ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: p.actif ? 1 : 0.55 }}>
+
+        {kits.length > 0 && !modeEtiquettes && (
+          <>
+            <EnteteListe titre={`Kits (${kits.length})`} droite="Possibles" />
+            {kits.map((k, i) => <CarteKit key={k.id} kit={k} nomCategorie={nomCategorie} premier={i === 0} />)}
+            <div style={{ height: 16 }} />
+          </>
+        )}
+
+        {piecesFiltrees.length > 0 && <EnteteListe titre={kits.length > 0 && !modeEtiquettes ? `Pièces (${piecesFiltrees.length})` : `${piecesFiltrees.length} pièce${piecesFiltrees.length > 1 ? "s" : ""}`} droite="Stock" />}
+        {piecesFiltrees.slice(0, nombreAffiches).map((p, i) => {
+          const bas = p.actif && p.qte <= p.qteMin;
+          const choisie = modeEtiquettes && selection.has(p.id);
+          const ligne = (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 6px",
+              borderTop: i === 0 ? "none" : "1px solid var(--border)", opacity: p.actif ? 1 : 0.55,
+              background: choisie ? "rgba(232,163,61,0.10)" : "transparent", borderRadius: choisie ? 10 : 0,
+            }}>
               {modeEtiquettes && <input type="checkbox" checked={selection.has(p.id)} readOnly style={{ flexShrink: 0, pointerEvents: "none" }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600 }}>{p.nom}{!p.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivée)</span>}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.numero}</div>
-                {libelleNumerosFournisseurs(p) && (
-                  <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>{libelleNumerosFournisseurs(p)}</div>
-                )}
-                <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>
-                  {nomCategorie(p.categorie)}
-                  {p.emplacement && <span style={{ color: "var(--text-muted)" }}> · 📍 {p.emplacement}</span>}
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{p.nom}{!p.actif && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}> (désactivée)</span>}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                  {p.numero}{libelleNumerosFournisseurs(p) && <> · {libelleNumerosFournisseurs(p)}</>}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, marginTop: 5 }}>
+                  <Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{nomCategorie(p.categorie)}</Pastille>
+                  {p.emplacement && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11.5, color: "var(--text-muted)" }}>
+                      <Icone nom="epingle" taille={13} /> {p.emplacement}
+                    </span>
+                  )}
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontWeight: 700, color: p.actif && p.qte <= p.qteMin ? "var(--danger)" : "var(--text)" }}>{p.qte} en stock</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{argent(p.prix)} vente</div>
-                {enCommande[p.id] > 0 && <div style={{ fontSize: 10.5, color: "var(--accent)" }}>+{enCommande[p.id]} en commande</div>}
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: bas ? "var(--danger)" : "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                  {p.qte}
+                </div>
+                <div style={{ fontSize: 11.5, color: bas ? "var(--danger)" : "var(--text-muted)", fontWeight: bas ? 700 : 400 }}>{bas ? "stock bas" : "en stock"}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>{argent(p.prix)}</div>
+                {enCommande[p.id] > 0 && <div style={{ fontSize: 11.5, color: "var(--bleu)", fontWeight: 700 }}>+{enCommande[p.id]} en commande</div>}
               </div>
             </div>
           );
           return modeEtiquettes ? (
-            <div key={p.id} onClick={() => basculerSelection(p.id)} style={{ cursor: "pointer" }}>{carte}</div>
+            <div key={p.id} onClick={() => basculerSelection(p.id)} style={{ cursor: "pointer" }}>{ligne}</div>
           ) : (
-            <Link key={p.id} href={`/secretaire/inventaire/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>{carte}</Link>
+            <Link key={p.id} href={`/secretaire/inventaire/${p.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>{ligne}</Link>
           );
         })}
         {piecesFiltrees.length > nombreAffiches && (
           <button
             onClick={() => setNombreAffiches((n) => n + TRANCHE)}
-            className="bouton-3d-sombre"
-            style={{ padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700 }}
+            style={{ width: "100%", marginTop: 10, padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)" }}
           >
             Afficher plus — {piecesFiltrees.length - nombreAffiches} autre{piecesFiltrees.length - nombreAffiches > 1 ? "s" : ""}
           </button>
         )}
         {piecesFiltrees.length === 0 && pieces.length > 0 && rechercheDifferee.trim() && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce ne correspond à "{recherche}".</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucune pièce ne correspond à « {recherche} ».</p>
         )}
         {seulementDesactivees && nombreDesactivees === 0 && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce désactivée.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucune pièce désactivée.</p>
         )}
         {pieces.length === 0 && !afficherFormulaire && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune pièce dans l'inventaire — ajoute la première avec "+ Nouvelle pièce".</p>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucune pièce dans l'inventaire — ajoute la première avec « Nouvelle pièce ».</p>
         )}
-      </div>
+      </Panneau>
+    </div>
+  );
+}
+
+function EnteteListe({ titre, droite }) {
+  return (
+    <div style={{ display: "flex", padding: "0 6px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: "2px solid var(--accent)" }}>
+      <span style={{ flex: 1 }}>{titre}</span>
+      <span>{droite}</span>
     </div>
   );
 }
 
 // Kit dans la liste : son prix, son coûtant actuel et combien le stock de
 // ses pièces permet d'en faire
-function CarteKit({ kit, nomCategorie }) {
+function CarteKit({ kit, nomCategorie, premier }) {
   const cout = coutantKit(kit.composantsKit);
   const possibles = kitsDisponibles(kit.composantsKit);
+  const manque = possibles === 0 && kit.actif;
   return (
-    <Link href={`/secretaire/inventaire/${kit.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div style={{ background: "var(--surface)", border: possibles === 0 && kit.actif ? "1px solid #3a2620" : "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: kit.actif ? 1 : 0.55 }}>
+    <Link href={`/secretaire/inventaire/${kit.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 6px", borderTop: premier ? "none" : "1px solid var(--border)", opacity: kit.actif ? 1 : 0.55 }}>
+        <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: TEINTES.bleu.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icone nom="outils" taille={18} couleur={TEINTES.bleu.couleur} />
+        </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600 }}>🧰 {kit.nom}{!kit.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivé)</span>}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{kit.numero}</div>
-          <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>
-            {kit.composantsKit.length} élément{kit.composantsKit.length > 1 ? "s" : ""} · coûtant {argent(cout.total)}
+          <div style={{ fontSize: 14, fontWeight: 600 }}>{kit.nom}{!kit.actif && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}> (désactivé)</span>}</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            {kit.numero} · {kit.composantsKit.length} élément{kit.composantsKit.length > 1 ? "s" : ""} · coûtant {argent(cout.total)}
           </div>
-          <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(kit.categorie)}</div>
+          <div style={{ marginTop: 5 }}>
+            <Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{nomCategorie(kit.categorie)}</Pastille>
+          </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontWeight: 700, color: possibles === 0 && kit.actif ? "var(--danger)" : "var(--text)" }}>
-            {possibles === null ? "Kit" : `${possibles} possible${possibles > 1 ? "s" : ""}`}
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: manque ? "var(--danger)" : "var(--text)" }}>
+            {possibles === null ? "—" : possibles}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{argent(kit.prix)} vente</div>
+          <div style={{ fontSize: 11.5, color: manque ? "var(--danger)" : "var(--text-muted)", fontWeight: manque ? 700 : 400 }}>
+            {possibles === null ? "kit" : `possible${possibles > 1 ? "s" : ""}`}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{argent(kit.prix)}</div>
         </div>
       </div>
     </Link>
@@ -649,37 +664,43 @@ function AlignementInventaire({ alignement }) {
     router.refresh();
   }
 
+  const teinte = aligne ? "var(--success)" : "var(--avertissement)";
   return (
     <div style={{
-      background: aligne ? "rgba(111,169,107,0.10)" : "rgba(201,162,39,0.12)",
-      border: `1px solid ${aligne ? "var(--success)" : "#C9A227"}`,
-      borderRadius: 10, padding: 12, marginBottom: 12, fontSize: 12.5,
+      position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)",
+      borderRadius: 16, padding: "14px 16px 14px 20px", marginBottom: 24, fontSize: 13,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <span>Valeur du stock (qté × coûtant)</span><strong>{fmtMontant(alignement.valeurStock)}</strong>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: aligne ? "var(--success-fond)" : "var(--avertissement-fond)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Icone nom={aligne ? "crochet" : "alerte"} taille={18} couleur={teinte} />
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>
+          {aligne ? "Inventaire aligné avec le grand livre" : `Écart de ${fmtMontant(alignement.ecart)} avec le grand livre`}
+        </span>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2 }}>
-        <span>Grand livre — 1200 Inventaire de pièces</span><strong>{fmtMontant(alignement.soldeGL)}</strong>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <span style={{ color: "var(--text-muted)" }}>Valeur du stock (qté × coûtant)</span><strong style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMontant(alignement.valeurStock)}</strong>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 4 }}>
+        <span style={{ color: "var(--text-muted)" }}>Grand livre — 1200 Inventaire de pièces</span><strong style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMontant(alignement.soldeGL)}</strong>
       </div>
       {alignement.surBonsNonFactures > 0.005 && (
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 2, color: "var(--text-muted)" }}>
-          <span>Pièces sur bons non facturés (sorties du stock ou hors inventaire, pas encore au G/L)</span><span>{fmtMontant(alignement.surBonsNonFactures)}</span>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 4, color: "var(--text-muted)" }}>
+          <span>Pièces sur bons non facturés (sorties du stock ou hors inventaire, pas encore au G/L)</span><span style={{ fontVariantNumeric: "tabular-nums" }}>{fmtMontant(alignement.surBonsNonFactures)}</span>
         </div>
       )}
-      <p style={{ margin: "8px 0 0", fontWeight: 700 }}>
-        {aligne ? "✅ Inventaire aligné avec le grand livre" : `⚠️ Écart de ${fmtMontant(alignement.ecart)}`}
-      </p>
       {!aligne && (
         <>
-          <p style={{ margin: "4px 0 8px", color: "var(--text-muted)" }}>
+          <p style={{ margin: "10px 0", color: "var(--text-muted)", fontSize: 12.5 }}>
             L'alignement passe une écriture entre 1200 et 3010 Soldes d'ouverture, sans toucher au bénéfice. Un solde d'ouverture déjà saisi est pris en compte.
           </p>
-          <button onClick={aligner} disabled={enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-            {enCours ? "…" : "Aligner l'inventaire sur le grand livre"}
-          </button>
+          <BoutonPlein icone="balance" onClick={enCours ? undefined : aligner}>
+            {enCours ? "Alignement…" : "Aligner l'inventaire sur le grand livre"}
+          </BoutonPlein>
         </>
       )}
-      {erreur && <p style={{ color: "var(--danger)", margin: "6px 0 0" }}>{erreur}</p>}
+      {erreur && <p style={{ color: "var(--danger)", margin: "8px 0 0" }}>{erreur}</p>}
     </div>
   );
 }
