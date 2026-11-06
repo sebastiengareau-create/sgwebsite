@@ -89,6 +89,7 @@ model Client {
   soumissions       Soumission[]
   rendezVous        RendezVous[]
   facturesVente     FactureVente[]
+  credits           CreditClient[] // crédit client : trop-payés, remboursements… (lib/creditClient.js)
   creeLe            DateTime       @default(now())
 }
 
@@ -276,6 +277,7 @@ model Facture {
   // alors les paiements (modePaiement "MULTIPLE" s'ils ont été faits de plusieurs façons).
   montantPaye        Float             @default(0)
   paiements          PaiementFacture[]
+  creditsTropPaye    CreditClient[] // excédents de paiement gardés en crédit client (lib/creditClient.js)
 
   @@index([statut])
   @@index([dateEmission])
@@ -290,15 +292,18 @@ model PaiementFacture {
   factureId          String
   facture            Facture          @relation(fields: [factureId], references: [id], onDelete: Cascade)
   montant            Float
-  modePaiement       String? // mêmes valeurs que Facture.modePaiement (lib/modesPaiement.js)
-  compteTresorerieId String
-  compteTresorerie   CompteTresorerie @relation(fields: [compteTresorerieId], references: [id])
+  modePaiement       String? // mêmes valeurs que Facture.modePaiement (lib/modesPaiement.js) ; "CREDIT_CLIENT" = crédit client appliqué
+  // Compte où l'argent est entré — vide pour un crédit client appliqué
+  // (aucun argent ne bouge : débit 2410 / crédit 1100)
+  compteTresorerieId String?
+  compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id], onDelete: Restrict)
   reference          String? // numéro de chèque ou de transaction, optionnel
   datePaiement       DateTime         @default(now())
   ecritureId         String? // écriture FACTURE_PAYEE de ce paiement — vide si la comptabilité est désactivée ou la période verrouillée
   creePar            String?
   creeLe             DateTime         @default(now())
   depot              DepotClient? // rempli quand ce paiement est un dépôt appliqué à la facture
+  creditClient       CreditClient? // rempli quand ce paiement est du crédit client appliqué
 
   @@index([factureId])
 }
@@ -326,11 +331,47 @@ model DepotClient {
   // appliqué (le retirer de la facture remet le dépôt en attente)
   paiementFactureId  String?          @unique
   paiementFacture    PaiementFacture? @relation(fields: [paiementFactureId], references: [id], onDelete: SetNull)
+  creditClient       CreditClient? // excédent du dépôt passé au crédit du client
   creePar            String?
   creeLe             DateTime         @default(now())
 
   @@index([soumissionId])
   @@index([bonId])
+}
+
+// Crédit client (lib/creditClient.js) : un mouvement par ligne, le solde du
+// client = somme des montants. Argent qui appartient au client, gardé au
+// passif 2410 « Crédits de clients » jusqu'à ce qu'il serve sur une facture
+// ou lui soit remboursé. Types :
+// - TROP_PAYE (+) : excédent d'un paiement de facture (factureId) ;
+// - DEPOT (+) : excédent d'un dépôt sur sa facture (depotClientId) ;
+// - APPLIQUE (−) : crédit utilisé sur une facture (paiementFactureId) —
+//   retiré avec ce paiement ;
+// - REMBOURSE (−) : rendu au client (compte, mode, référence).
+model CreditClient {
+  id                 String            @id @default(cuid())
+  clientId           String
+  client             Client            @relation(fields: [clientId], references: [id])
+  type               String
+  montant            Float // positif : augmente le crédit ; négatif : le diminue
+  factureId          String?
+  facture            Facture?          @relation(fields: [factureId], references: [id], onDelete: SetNull)
+  paiementFactureId  String?           @unique
+  paiementFacture    PaiementFacture?  @relation(fields: [paiementFactureId], references: [id], onDelete: Cascade)
+  depotClientId      String?           @unique
+  depotClient        DepotClient?      @relation(fields: [depotClientId], references: [id], onDelete: Cascade)
+  modePaiement       String? // TROP_PAYE / REMBOURSE (lib/modesPaiement.js)
+  compteTresorerieId String? // TROP_PAYE / REMBOURSE : compte où l'argent est entré ou sorti
+  compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id], onDelete: Restrict)
+  reference          String?
+  note               String?
+  date               DateTime          @default(now())
+  ecritureId         String? // écriture CREDIT_CLIENT (APPLIQUE : celle du paiement, FACTURE_PAYEE) — vide si la comptabilité est désactivée ou la période verrouillée
+  creePar            String?
+  creeLe             DateTime          @default(now())
+
+  @@index([clientId])
+  @@index([factureId])
 }
 
 model Probleme {
@@ -741,6 +782,7 @@ model CompteTresorerie {
   factures       Facture[]
   paiementsFactures PaiementFacture[]
   depotsClients  DepotClient[]
+  creditsClients CreditClient[]
   facturesVente  FactureVente[]
   depenses       Depense[]
   rapprochements RapprochementBancaire[]

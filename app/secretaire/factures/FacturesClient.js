@@ -124,6 +124,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
               comptesTresorerie={comptesTresorerie} solde={f.totalAvecTaxes - f.montantPaye}
               onConfirmer={(paiements) => encaisser(f.id, paiements)}
               onAnnuler={() => setFactureAPayer(null)}
+              excedentEnCredit
             />
           </div>
         )}
@@ -138,7 +139,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
     const res = await fetch(`/api/factures/${id}/paiements`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paiements }),
+      body: JSON.stringify({ paiements, excedentEnCredit: true }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return data.erreur || "Erreur.";
