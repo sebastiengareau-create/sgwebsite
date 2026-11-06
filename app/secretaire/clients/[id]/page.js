@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import EnTete from "../../../components/EnTete";
@@ -42,7 +42,7 @@ export default async function DetailClientPage(props) {
       <EnTete nom={session.nom} role={session.role} />
       <ClientDetailClient
         client={client} peutRedigerLettre={await peutGererDestinataire(session, "CLIENT")}
-        comptesTresorerie={comptesTresorerie} peutModifierCredit={peutModifierCredit}
+        comptesTresorerie={comptesTresorerie} peutModifierCredit={peutModifierCredit} peutAccorderGeste={estGerantOuDev(session)}
       />
       <NavigationFiches cle="clients" idCourant={client.id} base="/secretaire/clients" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), client.id)} />
     </div>

@@ -18,7 +18,7 @@ const JOUR_MS = 86400000;
 
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
-export default function ClientDetailClient({ client, peutRedigerLettre, comptesTresorerie = [], peutModifierCredit = false }) {
+export default function ClientDetailClient({ client, peutRedigerLettre, comptesTresorerie = [], peutModifierCredit = false, peutAccorderGeste = false }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -192,7 +192,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre, comptesT
             )}
           </div>
 
-          <SectionCreditClient clientId={client.id} credits={client.credits} comptesTresorerie={comptesTresorerie} peutModifier={peutModifierCredit} />
+          <SectionCreditClient clientId={client.id} credits={client.credits} comptesTresorerie={comptesTresorerie} peutModifier={peutModifierCredit} peutAccorderGeste={peutAccorderGeste} />
 
           <DossierVehicules clientId={client.id} vehicules={client.vehicules} />
 
