@@ -29,6 +29,15 @@ const ICONES = {
   horloge: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>,
   alerte: <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></>,
   crochet: <><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></>,
+  camera: <><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" /><circle cx="12" cy="13" r="3" /></>,
+  etiquette: <><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z" /><circle cx="7.5" cy="7.5" r="1" /></>,
+  outils: <><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z" /></>,
+  panier: <><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></>,
+  vehicule: <><path d="M10 17h4V5H2v12h3" /><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1" /><circle cx="7.5" cy="17.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" /></>,
+  loupe: <><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>,
+  immeuble: <><rect x="4" y="2" width="16" height="20" rx="2" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01" /><path d="M16 6h.01" /><path d="M12 6h.01" /><path d="M12 10h.01" /><path d="M12 14h.01" /><path d="M16 10h.01" /><path d="M16 14h.01" /><path d="M8 10h.01" /><path d="M8 14h.01" /></>,
+  reglages: <><path d="M20 7h-9" /><path d="M14 17H5" /><circle cx="17" cy="17" r="3" /><circle cx="7" cy="7" r="3" /></>,
+  epingle: <><path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></>,
 };
 
 export function Icone({ nom, taille = 22, couleur = "currentColor" }) {
@@ -74,31 +83,39 @@ export function GrilleChiffres({ children }) {
   );
 }
 
+// Lien si `href`, sinon bouton (`onClick`) — même apparence.
+function LienOuBouton({ href, onClick, target, style, children, ...rest }) {
+  if (href) {
+    return <Link href={href} target={target} rel={target === "_blank" ? "noopener noreferrer" : undefined} style={{ textDecoration: "none", ...style }} {...rest}>{children}</Link>;
+  }
+  return <button type="button" onClick={onClick} style={{ cursor: "pointer", font: "inherit", textAlign: "left", ...style }} {...rest}>{children}</button>;
+}
+
 // Bouton à bordure dorée (ex. « État des résultats », « Bilan »).
-export function BoutonContour({ href, icone, children }) {
+export function BoutonContour({ href, onClick, target, icone, actif, children }) {
   return (
-    <Link href={href} style={{
+    <LienOuBouton href={href} onClick={onClick} target={target} style={{
       display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 18px", borderRadius: 12,
-      border: "1.5px solid var(--accent)", background: "var(--surface)", color: "var(--text)",
-      fontSize: 14, fontWeight: 700, textDecoration: "none",
+      border: "1.5px solid var(--accent)", background: actif ? "rgba(232,163,61,0.16)" : "var(--surface)", color: "var(--text)",
+      fontSize: 14, fontWeight: 700,
     }}>
       {icone && <Icone nom={icone} taille={18} couleur="var(--accent-ombre)" />}
       {children}
-    </Link>
+    </LienOuBouton>
   );
 }
 
 // Bouton plein doré (action principale de la page).
-export function BoutonPlein({ href, icone = "plus", children }) {
+export function BoutonPlein({ href, onClick, target, icone = "plus", children }) {
   return (
-    <Link href={href} style={{
+    <LienOuBouton href={href} onClick={onClick} target={target} style={{
       display: "inline-flex", alignItems: "center", gap: 8, padding: "11px 18px", borderRadius: 12,
       border: "1.5px solid var(--accent)", background: "var(--accent)", color: "#221f18",
-      fontSize: 14, fontWeight: 700, textDecoration: "none",
+      fontSize: 14, fontWeight: 700,
     }}>
       {icone && <Icone nom={icone} taille={18} />}
       {children}
-    </Link>
+    </LienOuBouton>
   );
 }
 
@@ -114,13 +131,13 @@ export function TitreGroupe({ couleur, children, droite }) {
   );
 }
 
-// Carte-lien : icône teintée, titre, détail, flèche.
-export function CarteLien({ href, icone, label, detail, teinte = TEINTES.ambre, droite }) {
+// Carte-lien : icône teintée, titre, détail, flèche. Bouton si `onClick` sans `href`.
+export function CarteLien({ href, onClick, target, icone, label, detail, teinte = TEINTES.ambre, droite }) {
   return (
-    <Link href={href} style={{
-      display: "flex", alignItems: "center", gap: 14, padding: 16, borderRadius: 16,
+    <LienOuBouton href={href} onClick={onClick} target={target} style={{
+      display: "flex", alignItems: "center", gap: 14, padding: 16, borderRadius: 16, width: "100%", boxSizing: "border-box",
       background: teinte.discret ? "var(--surface-alt)" : "var(--surface)", border: "1px solid var(--border)",
-      textDecoration: "none", color: "var(--text)",
+      color: "var(--text)",
     }}>
       <span style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 12, background: teinte.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Icone nom={icone} couleur={teinte.couleur} />
@@ -131,7 +148,7 @@ export function CarteLien({ href, icone, label, detail, teinte = TEINTES.ambre, 
       </span>
       {droite}
       <Icone nom="chevron" taille={18} couleur="var(--text-muted)" />
-    </Link>
+    </LienOuBouton>
   );
 }
 
@@ -141,7 +158,7 @@ export function GroupeLiens({ titre, teinte, liens }) {
     <section style={{ marginBottom: 24 }}>
       <TitreGroupe couleur={teinte.couleur}>{titre}</TitreGroupe>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-        {liens.map((l) => <CarteLien key={l.href} {...l} teinte={teinte} />)}
+        {liens.map((l) => <CarteLien key={l.href || l.label} {...l} teinte={teinte} />)}
       </div>
     </section>
   );
