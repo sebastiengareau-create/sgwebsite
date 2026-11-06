@@ -52,6 +52,7 @@ export async function POST(request, props) {
     await tx.ligneCommandeFournisseur.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
     await tx.mouvementInventaire.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
     await tx.historiquePiece.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
+    await tx.probleme.updateMany({ where: { retourPieceId: source.id }, data: { retourPieceId: cible.id } }); // retours hors inventaire (lib/retours.js)
     // Les kits qui contenaient le doublon contiennent maintenant la cible
     // (si un kit avait déjà les deux, les quantités s'additionnent)
     for (const c of await tx.composantKit.findMany({ where: { pieceId: source.id } })) {

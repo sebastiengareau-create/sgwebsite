@@ -67,10 +67,13 @@ export async function DELETE(request, props) {
 
   // Pièces de cette facture rapportées sur un autre bon (lib/retours.js) :
   // le retour s'appuie sur la vente d'origine
-  const retour = await prisma.pieceUtilisee.findFirst({
+  const retour = (await prisma.pieceUtilisee.findFirst({
     where: { retourDe: { probleme: { bonId: facture.bonId } } },
     select: { probleme: { select: { bon: { select: { numero: true } } } } },
-  });
+  })) || (await prisma.probleme.findFirst({ // pièce hors inventaire retournée
+    where: { retourDe: { bonId: facture.bonId } },
+    select: { bon: { select: { numero: true } } },
+  }).then((pr) => pr && { probleme: pr }));
   // Facture de retour gardée en crédit : le crédit partirait avec elle —
   // refusé s'il a déjà servi
   const creditRetour = await prisma.creditClient.findFirst({ where: { type: "RETOUR", paiementFacture: { factureId: facture.id } } });

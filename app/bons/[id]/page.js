@@ -29,6 +29,7 @@ export default async function DetailBonPage(props) {
         include: {
           // Sans les images : chacune se charge à part (GET …/photos/[photoId])
           photos: { select: { id: true } },
+          retourPiece: { select: { numero: true, nom: true } }, // retour d'une pièce hors inventaire (lib/retours.js)
           pieces: { include: { piece: true } },
           entreesTemps: { include: { employe: true } },
         },
