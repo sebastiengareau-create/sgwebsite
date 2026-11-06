@@ -65,6 +65,25 @@ export async function DELETE(request, props) {
     return NextResponse.json({ erreur: `Le véhicule ${facture.bon.vehiculeVente.numero} est vendu — annule d'abord sa facture de vente.` }, { status: 409 });
   }
 
+  // Pièces de cette facture rapportées sur un autre bon (lib/retours.js) :
+  // le retour s'appuie sur la vente d'origine
+  const retour = await prisma.pieceUtilisee.findFirst({
+    where: { retourDe: { probleme: { bonId: facture.bonId } } },
+    select: { probleme: { select: { bon: { select: { numero: true } } } } },
+  });
+  // Facture de retour gardée en crédit : le crédit partirait avec elle —
+  // refusé s'il a déjà servi
+  const creditRetour = await prisma.creditClient.findFirst({ where: { type: "RETOUR", paiementFacture: { factureId: facture.id } } });
+  if (creditRetour) {
+    const { soldeCredit } = await import("@/lib/creditClient");
+    if ((await soldeCredit(creditRetour.clientId)) - creditRetour.montant < -0.005) {
+      return NextResponse.json({ erreur: "Le crédit client de ce retour a déjà servi sur une autre facture — retire-le d'abord de cette facture." }, { status: 409 });
+    }
+  }
+  if (retour) {
+    return NextResponse.json({ erreur: `Des pièces de cette facture ont été retournées sur le bon #${retour.probleme.bon.numero} — retire d'abord ce retour.` }, { status: 409 });
+  }
+
   try {
     await verifierPeriodeModifiable(facture.dateEmission, { nouvellePiece: false });
   } catch (e) {

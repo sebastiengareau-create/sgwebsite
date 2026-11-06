@@ -11,7 +11,7 @@ export default async function ResumeOperations() {
     prisma.facture.findMany({ where: { statut: "IMPAYEE" }, select: { totalAvecTaxes: true, montantPaye: true } }),
     prisma.soumission.count({ where: { statut: "EN_ATTENTE" } }),
   ]);
-  const totalImpaye = facturesImpayees.reduce((s, f) => s + f.totalAvecTaxes - f.montantPaye, 0);
+  const totalImpaye = facturesImpayees.reduce((s, f) => s + Math.max(0, f.totalAvecTaxes - f.montantPaye), 0); // facture de retour (négative) : rien à encaisser
 
   const stats = [
     { valeur: planifies, label: "Planifiés", couleur: "#9A7FC7" },

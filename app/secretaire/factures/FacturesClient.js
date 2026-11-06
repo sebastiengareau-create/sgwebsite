@@ -108,7 +108,10 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalAvecTaxes.toFixed(2)} $</span>
-          {f.statut === "IMPAYEE" && factureAPayer !== f.id && (
+          {f.statut === "IMPAYEE" && f.totalAvecTaxes < 0 && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)" }}>↩ À remettre au client — sur le bon</span>
+          )}
+          {f.statut === "IMPAYEE" && f.totalAvecTaxes >= 0 && factureAPayer !== f.id && (
             <button
               onClick={(e) => { e.stopPropagation(); setFactureAPayer(f.id); }}
               className="bouton-3d"
@@ -132,7 +135,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
     );
   }
 
-  const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + f.totalAvecTaxes - f.montantPaye, 0);
+  const totalImpaye = factures.filter((f) => f.statut === "IMPAYEE").reduce((s, f) => s + Math.max(0, f.totalAvecTaxes - f.montantPaye), 0);
 
   async function encaisser(id, paiements) {
     setAvertissement("");

@@ -12,6 +12,7 @@ const LABEL_TYPE = {
   DEPOT: "Excédent de dépôt",
   APPLIQUE: "Appliqué",
   REMBOURSE: "Remboursé",
+  RETOUR: "Retour de pièce",
 };
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
@@ -84,7 +85,7 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
                 <strong style={{ color: c.montant >= 0 ? "var(--success)" : "var(--text)" }}>{c.montant >= 0 ? "+" : "−"}{Math.abs(c.montant).toFixed(2)} $</strong>
-                {peutModifier && c.type !== "APPLIQUE" && (
+                {peutModifier && !c.paiementFactureId && ( // un crédit lié à un paiement se retire sur la facture
                   <button onClick={() => retirer(c)} disabled={enCours} aria-label="Retirer ce mouvement" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
                 )}
               </span>

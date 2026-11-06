@@ -574,9 +574,20 @@ model PieceUtilisee {
   // qte (par kit), coutant (unitaire figé) }], heures (par kit) }. coutant de
   // la ligne = coût des pièces d'un kit (la main-d'œuvre n'est pas du stock).
   kit        Json?
+  // Retour de pièce (lib/retours.js) : ligne en quantité négative qui reprend
+  // une ligne vendue sur une facture précédente du même client (retourDeId),
+  // à son prix payé et à son coûtant. retourFacture : numéro de cette facture,
+  // figé pour l'affichage. defectueuse : la pièce ne revient pas en stock
+  // (garantie, retour au fournisseur) et son coût n'est pas renversé.
+  retourDeId    String?
+  retourDe      PieceUtilisee?  @relation("RetoursPiece", fields: [retourDeId], references: [id], onDelete: NoAction)
+  retours       PieceUtilisee[] @relation("RetoursPiece")
+  retourFacture String?
+  defectueuse   Boolean         @default(false)
 
   @@index([problemeId])
   @@index([pieceId])
+  @@index([retourDeId])
 }
 
 // Journal des mouvements de stock (ventes, réceptions, ajustements manuels) —
@@ -587,7 +598,7 @@ model MouvementInventaire {
   id              String   @id @default(cuid())
   pieceId         String
   piece           Piece    @relation(fields: [pieceId], references: [id], onDelete: Cascade)
-  type            String // "RECEPTION" | "VENTE" | "AJUSTEMENT"
+  type            String // "RECEPTION" | "VENTE" | "AJUSTEMENT" | "RETOUR" (pièce rapportée par un client, lib/retours.js)
   qte             Int // delta : positif pour une entrée, négatif pour une sortie
   solde           Int // solde du stock immédiatement après ce mouvement
   note            String? // ex. "Bon #1032 — Jean Tremblay" ou "Facture — Pièces XYZ"

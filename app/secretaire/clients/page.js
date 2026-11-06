@@ -22,7 +22,7 @@ export default async function ListeClients() {
     prisma.facture.findMany({ where: { statut: "IMPAYEE" }, select: { totalAvecTaxes: true, montantPaye: true, bon: { select: { clientId: true } } } }),
   ]);
   const soldeParClient = {};
-  for (const f of facturesImpayees) soldeParClient[f.bon.clientId] = (soldeParClient[f.bon.clientId] || 0) + f.totalAvecTaxes - f.montantPaye;
+  for (const f of facturesImpayees) soldeParClient[f.bon.clientId] = (soldeParClient[f.bon.clientId] || 0) + Math.max(0, f.totalAvecTaxes - f.montantPaye); // retour (négatif) : rien à encaisser
   const clients = clientsBruts.map((c) => ({ ...c, soldeDu: soldeParClient[c.id] || 0 }));
 
   return (

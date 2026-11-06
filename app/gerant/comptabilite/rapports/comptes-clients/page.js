@@ -33,6 +33,7 @@ export default async function RapportComptesClients() {
   const maintenant = new Date();
   const parClient = {};
   for (const f of factures) {
+    if (soldeFacture(f) <= 0.005) continue; // facture de retour (négative) : rien de dû
     const jours = Math.floor((maintenant - new Date(f.dateEmission)) / 86400000);
     const tranche = trancheDe(jours);
     // Regroupé par id (deux clients peuvent porter le même nom)
