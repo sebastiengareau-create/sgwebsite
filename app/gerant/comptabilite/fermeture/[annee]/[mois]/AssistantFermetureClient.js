@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 const NOMS_MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const STATUT_INFO = {
@@ -174,7 +175,7 @@ function LigneResume({ label, valeur, gras }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: gras ? 14 : 13, fontWeight: gras ? 700 : 400, marginBottom: 6 }}>
       <span style={{ color: gras ? "var(--text)" : "var(--text-muted)" }}>{label}</span>
-      <span>{valeur.toFixed(2)} $</span>
+      <span>{argent(valeur)}</span>
     </div>
   );
 }

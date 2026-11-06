@@ -16,6 +16,7 @@ import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
 import ConditionsGenerales from "@/app/components/ConditionsGenerales";
 import { separerPiecesSoumission, ligneDePieceSoumission, totauxLignesFixes } from "@/lib/piecesSoumission";
 import { nomPieceFacture } from "@/lib/numeroPieceFacture";
+import { argent } from "@/lib/format";
 function fmtHeures(h) {
   const heures = Math.floor(h);
   const min = Math.round((h - heures) * 60);
@@ -218,13 +219,13 @@ export default async function ImprimerBon(props) {
             {/* Même caractère que le titre « Pièces » ; le montant seul, sans les heures ni le taux */}
             <div style={{ display: "grid", gridTemplateColumns: COLONNES_TRAVAUX, alignItems: "baseline" }}>
               <span style={{ gridColumn: "1 / 5", fontSize: 14, fontWeight: 600 }}>{LIBELLE_MATERIEL_ATELIER}</span>
-              <span style={{ fontSize: 12, textAlign: "right", fontWeight: 600 }}>{totalMaterielAtelier.toFixed(2)} $</span>
+              <span style={{ fontSize: 12, textAlign: "right", fontWeight: 600 }}>{argent(totalMaterielAtelier)}</span>
             </div>
           </div>
         )}
 
         <div style={{ borderTop: "1px solid #ddd", marginTop: 20, paddingTop: 16 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Temps de main-d'œuvre (taux : {tauxHoraireClient.toFixed(2)} $/h)</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Temps de main-d'œuvre (taux : {argent(tauxHoraireClient)}/h)</div>
           {totalHeures > 0.005 ? (
             <div style={{ fontSize: 13 }}>{fmtHeures(totalHeures)}</div>
           ) : (
@@ -248,7 +249,7 @@ export default async function ImprimerBon(props) {
           <LigneTotal label={<LibelleTaxe libelle={`TVQ (${tvqTaux}%)`} numero={dict.tvq_numero} />} valeur={tvqMontant} petit />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "2px solid #17150f" }}>
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>Total {estFacturee ? "" : "estimé "}(taxes incl.)</span>
-            <span style={{ fontSize: 20, fontWeight: 700 }}>{totalAvecTaxes.toFixed(2)} $</span>
+            <span style={{ fontSize: 20, fontWeight: 700 }}>{argent(totalAvecTaxes)}</span>
           </div>
           {/* Dépôt et paiements déjà reçus (lib/depots.js, lib/paiementsFactures.js) : le solde */}
           {lignesSoldeBon(bon, totalAvecTaxes).map((l) => (
@@ -277,8 +278,8 @@ function LigneTravail({ description, hrs, qte, prix, total }) {
       <span style={{ color: "#444" }}>{description}</span>
       <span style={{ textAlign: "right" }}>{hrs || ""}</span>
       <span style={{ textAlign: "right" }}>{qte ?? ""}</span>
-      <span style={{ textAlign: "right" }}>{prix.toFixed(2)} $</span>
-      <span style={{ textAlign: "right", fontWeight: 600 }}>{total.toFixed(2)} $</span>
+      <span style={{ textAlign: "right" }}>{argent(prix)}</span>
+      <span style={{ textAlign: "right", fontWeight: 600 }}>{argent(total)}</span>
     </div>
   );
 }
@@ -291,7 +292,7 @@ function LigneTotal({ label, valeur, gras, petit, bordureHaut }) {
       padding: "3px 0", borderTop: bordureHaut ? "1px solid #ddd" : "none", marginTop: bordureHaut ? 4 : 0,
     }}>
       <span>{label}</span>
-      <span>{valeur.toFixed(2)} $</span>
+      <span>{argent(valeur)}</span>
     </div>
   );
 }

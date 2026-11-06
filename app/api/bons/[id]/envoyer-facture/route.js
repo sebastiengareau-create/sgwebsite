@@ -5,6 +5,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { genererPdfFacture } from "@/lib/pdfFacture";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { courrielConfigure, courrielValide, envoyerDocumentPdf } from "@/lib/courrielDocuments";
+import { argent } from "@/lib/format";
 
 // Envoie au client, en PDF joint, la facture du bon — ou, tant qu'il n'est
 // pas facturé, le bon de commande (aperçu des travaux et du total estimé,
@@ -62,7 +63,7 @@ export async function POST(request, props) {
   const envoi = f
     ? {
         sujet: `Facture ${f.numero} — ${nomEntreprise}`,
-        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${f.totalAvecTaxes.toFixed(2)} $\n\nMerci de votre confiance,\n${nomEntreprise}`,
+        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${argent(f.totalAvecTaxes)}\n\nMerci de votre confiance,\n${nomEntreprise}`,
         nomFichier: `facture-${f.numero}.pdf`,
       }
     : {

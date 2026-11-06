@@ -3,6 +3,7 @@ import { obtenirSession, estGerantOuDev, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 const NORMAL_DEBIT = ["ACTIF", "DEPENSE"];
 
@@ -33,7 +34,7 @@ export default async function GrandLivre(props) {
           {compte.nom}
         </h1>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--accent)", marginTop: 4, marginBottom: 20 }}>
-          Solde : {solde.toFixed(2)} $
+          Solde : {argent(solde)}
         </div>
 
         {lignesAvecSolde.length === 0 ? (
@@ -50,12 +51,12 @@ export default async function GrandLivre(props) {
                 {l.ecriture.creePar && <div style={{ fontSize: 10, color: "var(--text-muted)" }}>par {l.ecriture.creePar}</div>}
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 13 }}>
                   <span style={{ color: l.debit > 0 ? "var(--text)" : "var(--text-muted)" }}>
-                    Débit : {l.debit > 0 ? l.debit.toFixed(2) + " $" : "—"}
+                    Débit : {l.debit > 0 ? argent(l.debit) : "—"}
                   </span>
                   <span style={{ color: l.credit > 0 ? "var(--text)" : "var(--text-muted)" }}>
-                    Crédit : {l.credit > 0 ? l.credit.toFixed(2) + " $" : "—"}
+                    Crédit : {l.credit > 0 ? argent(l.credit) : "—"}
                   </span>
-                  <span style={{ fontWeight: 700 }}>{l.soldeApres.toFixed(2)} $</span>
+                  <span style={{ fontWeight: 700 }}>{argent(l.soldeApres)}</span>
                 </div>
               </div>
             ))}

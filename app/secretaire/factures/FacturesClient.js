@@ -7,6 +7,7 @@ import FormulaireEncaissement from "../../components/FormulaireEncaissement";
 import { regrouperParJour, cleMoisQuebec } from "@/lib/regroupementDates";
 import DossiersParMois, { DossiersParMoisACharger } from "../../components/DossiersParMois";
 import { correspondRecherche } from "@/lib/recherche";
+import { argent } from "@/lib/format";
 
 const STATUTS = {
   IMPAYEE: { label: "Impayée", color: "#C9A227" },
@@ -71,7 +72,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
     const retenus = Object.entries(statuts).filter(([statut]) => filtre === "TOUTES" || statut === filtre);
     const nombre = retenus.reduce((s, [, r]) => s + r.nombre, 0);
     const total = retenus.filter(([statut]) => statut !== "ANNULEE").reduce((s, [, r]) => s + r.total, 0);
-    return nombre > 0 ? [{ cle, nombre, resume: `${total.toFixed(2)} $` }] : [];
+    return nombre > 0 ? [{ cle, nombre, resume: `${argent(total)}` }] : [];
   });
 
   function carteFacture(f) {
@@ -103,11 +104,11 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
         )}
         {f.statut === "IMPAYEE" && f.montantPaye > 0 && (
           <div style={{ fontSize: 10.5, color: "var(--success)", marginTop: 2 }}>
-            Payé {f.montantPaye.toFixed(2)} $ · <strong style={{ color: "#C9A227" }}>solde {(f.totalAvecTaxes - f.montantPaye).toFixed(2)} $</strong>
+            Payé {argent(f.montantPaye)} · <strong style={{ color: "#C9A227" }}>solde {argent((f.totalAvecTaxes - f.montantPaye))}</strong>
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <span style={{ fontSize: 16, fontWeight: 700 }}>{f.totalAvecTaxes.toFixed(2)} $</span>
+          <span style={{ fontSize: 16, fontWeight: 700 }}>{argent(f.totalAvecTaxes)}</span>
           {f.statut === "IMPAYEE" && f.totalAvecTaxes < 0 && (
             <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)" }}>↩ À remettre au client — sur le bon</span>
           )}
@@ -166,11 +167,11 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
         <div className="carte carte-s">
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#C9A227" }}>{totalImpaye.toFixed(2)} $</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#C9A227" }}>{argent(totalImpaye)}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total impayé</div>
         </div>
         <div className="carte carte-s">
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#6FA96B" }}>{totaux.totalPaye.toFixed(2)} $</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#6FA96B" }}>{argent(totaux.totalPaye)}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Total payé</div>
         </div>
       </div>
@@ -208,7 +209,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, padding: "0 2px" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.4 }}>{g.libelle}</span>
               <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                ({g.elements.length}) · {totalSansAnnulees(g.elements).toFixed(2)} $
+                ({g.elements.length}) · {argent(totalSansAnnulees(g.elements))}
               </span>
               <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
             </div>
@@ -217,7 +218,7 @@ export default function FacturesClient({ factures, moisAnciens, totaux, comptesT
         ))}
         <DossiersParMois
           elements={anciennes} obtenirDate={(f) => f.dateEmission} carte={carteFacture}
-          ouvert={!!q} resume={(liste) => `${totalSansAnnulees(liste).toFixed(2)} $`}
+          ouvert={!!q} resume={(liste) => `${argent(totalSansAnnulees(liste))}`}
         />
         <DossiersParMoisACharger key={filtre} mois={dossiersACharger} charger={chargerMois} carte={carteFacture} version={version} />
         {serveur?.tronque && (

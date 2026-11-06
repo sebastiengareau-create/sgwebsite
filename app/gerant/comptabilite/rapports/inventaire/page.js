@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { FILTRE_PIECES_RAPPORT, INCLUDE_PIECES_RAPPORT, TRIS_PIECES, cleTri, trierPieces, libellePieceRapport, libelleNumerosFournisseurs } from "@/lib/rapportInventaire";
 import BoutonsExportInventaire from "./BoutonsExportInventaire";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent, nombre } from "@/lib/format";
 
 export default async function RapportInventaire(props) {
   const tri = cleTri((await props.searchParams)?.tri);
@@ -67,9 +68,9 @@ export default async function RapportInventaire(props) {
                     {libelleNumerosFournisseurs(p) && <div style={{ fontSize: 10, color: "#888", marginTop: 1 }}>{libelleNumerosFournisseurs(p)}</div>}
                   </td>
                   <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.qte}</td>
-                  <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.coutant.toFixed(2)} $</td>
-                  <td style={{ padding: "6px 4px", textAlign: "right" }}>{p.prix.toFixed(2)} $</td>
-                  <td style={{ padding: "6px 4px", textAlign: "right", color: marge < 0 ? "#a83232" : "#17150f" }}>{marge.toFixed(2)} $ ({margePct.toFixed(1)} %)</td>
+                  <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(p.coutant)}</td>
+                  <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(p.prix)}</td>
+                  <td style={{ padding: "6px 4px", textAlign: "right", color: marge < 0 ? "#a83232" : "#17150f" }}>{argent(marge)} ({nombre(margePct, 1)} %)</td>
                 </tr>
               );
             })}
@@ -81,9 +82,9 @@ export default async function RapportInventaire(props) {
             <tr style={{ borderTop: "2px solid #17150f" }}>
               <td style={{ padding: "8px 4px", fontWeight: 700 }} colSpan={2}>Total</td>
               <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalQte}</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalValeurCoutant.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalValeurVendant.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totalMarge.toFixed(2)} $ ({totalMargePct.toFixed(1)} %)</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totalValeurCoutant)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totalValeurVendant)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totalMarge)} ({nombre(totalMargePct, 1)} %)</td>
             </tr>
           </tfoot>
         </table>

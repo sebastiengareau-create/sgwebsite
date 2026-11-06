@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 export default function JournalClient({ ecritures, estDev }) {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function JournalClient({ ecritures, estDev }) {
               {e.lignes.map((l) => (
                 <div key={l.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                   <span style={{ color: "var(--text-muted)" }}>{l.compte.numero} — {l.compte.nom}</span>
-                  <span>{l.debit > 0 ? `${l.debit.toFixed(2)} $ (débit)` : `${l.credit.toFixed(2)} $ (crédit)`}</span>
+                  <span>{l.debit > 0 ? `${argent(l.debit)} (débit)` : `${argent(l.credit)} (crédit)`}</span>
                 </div>
               ))}
             </div>

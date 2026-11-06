@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CLIENT } from "@/lib/client";
 import { pieceExistante, prixVentePropose } from "@/lib/recherchePieces";
+import { argent } from "@/lib/format";
 
 // Ce qu'on fait d'un résultat collé dans « 🔎 Rechercher des pièces »
 // (RecherchePieces.js), selon l'endroit : bon de travail ou commande de
@@ -122,7 +123,7 @@ export function ResultatPourCommande({ lu, inventaire, commande, onAjoutee, term
       </Champ>
       {existante ? (
         <div style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "end", paddingBottom: 8 }}>
-          Fiche d'inventaire : <strong>{existante.nom}</strong> ({existante.numero}) — vendue {existante.prix.toFixed(2)} $
+          Fiche d'inventaire : <strong>{existante.nom}</strong> ({existante.numero}) — vendue {argent(existante.prix)}
         </div>
       ) : (
         <Champ libelle="Prix de vente au client ($)">

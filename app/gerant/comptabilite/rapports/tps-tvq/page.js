@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
 export default async function RapportTpsTvq(props) {
   const searchParams = await props.searchParams;
@@ -81,7 +82,7 @@ export default async function RapportTpsTvq(props) {
 
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, paddingTop: 16, borderTop: "2px solid #17150f" }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>Total à remettre</span>
-          <span style={{ fontSize: 20, fontWeight: 700, color: totalARemettre >= 0 ? "#17150f" : "#a83232" }}>{totalARemettre.toFixed(2)} $</span>
+          <span style={{ fontSize: 20, fontWeight: 700, color: totalARemettre >= 0 ? "#17150f" : "#a83232" }}>{argent(totalARemettre)}</span>
         </div>
         {totalARemettre < 0 && (
           <p style={{ fontSize: 11, color: "#a83232", marginTop: 6 }}>
@@ -107,15 +108,15 @@ function SectionTaxe({ titre, numero, data }) {
         <tbody>
           <tr>
             <td style={{ padding: "4px 0" }}>Perçue sur les ventes</td>
-            <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>{data.percue.toFixed(2)} $</td>
+            <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>{argent(data.percue)}</td>
           </tr>
           <tr>
             <td style={{ padding: "4px 0" }}>Payée sur les achats (récupérable)</td>
-            <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>−{data.payee.toFixed(2)} $</td>
+            <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>−{argent(data.payee)}</td>
           </tr>
           <tr>
             <td style={{ padding: "6px 0", fontWeight: 700, borderTop: "1px solid #ddd" }}>Net à remettre</td>
-            <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 700, borderTop: "1px solid #ddd" }}>{data.nette.toFixed(2)} $</td>
+            <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 700, borderTop: "1px solid #ddd" }}>{argent(data.nette)}</td>
           </tr>
         </tbody>
       </table>

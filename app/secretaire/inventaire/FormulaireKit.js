@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { pieceCorrespond } from "@/lib/codesBarres";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
+import { argent, nombre } from "@/lib/format";
 
 // Création ou modification d'un kit (lib/kits.js) : nom, prix de vente, et
 // son contenu — des pièces de l'inventaire et de la main-d'œuvre. Le coûtant
@@ -106,7 +107,7 @@ export default function FormulaireKit({ kit, pieces, categories, coutHoraireDefa
                   <div style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>
                     {piece?.nom || "Pièce introuvable"}
                     <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                      {piece ? `${piece.numero} · ${piece.qte} en stock · coût ${(piece.coutant || 0).toFixed(2)} $` : ""}
+                      {piece ? `${piece.numero} · ${piece.qte} en stock · coût ${argent((piece.coutant || 0))}` : ""}
                     </div>
                   </div>
                   <label style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Qté</label>
@@ -148,7 +149,7 @@ export default function FormulaireKit({ kit, pieces, categories, coutHoraireDefa
         <Ligne label="Prix de vente" valeur={prixVente} />
         <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: marge < 0 ? "var(--danger)" : "var(--accent)" }}>
           <span>Marge</span>
-          <span>{marge.toFixed(2)} ${prixVente > 0 ? ` (${((marge / prixVente) * 100).toFixed(0)} %)` : ""}</span>
+          <span>{argent(marge)}{prixVente > 0 ? ` (${nombre(((marge / prixVente) * 100), 0)} %)` : ""}</span>
         </div>
         {possibles !== null && (
           <div style={{ marginTop: 6, color: possibles === 0 ? "var(--danger)" : "var(--text-muted)" }}>
@@ -176,7 +177,7 @@ function Ligne({ label, valeur, gras }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3, fontWeight: gras ? 700 : 400 }}>
       <span style={{ color: gras ? "var(--text)" : "var(--text-muted)" }}>{label}</span>
-      <span>{valeur.toFixed(2)} $</span>
+      <span>{argent(valeur)}</span>
     </div>
   );
 }

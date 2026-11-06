@@ -9,6 +9,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { ligneVille } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { formaterNas, masquerNas } from "@/lib/nas";
+import { argent } from "@/lib/format";
 
 export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre, peutVoirNas, activite }) {
   const router = useRouter();
@@ -299,9 +300,9 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <TitreSection>Rémunération</TitreSection>
             <LigneInfo label="Type" valeur={employe.typeRemuneration === "SALAIRE" ? "Salarié (montant fixe)" : "Payé à l'heure"} />
             {employe.typeRemuneration === "SALAIRE" ? (
-              <LigneInfo label="Salaire annuel" valeur={employe.salaireAnnuel ? `${employe.salaireAnnuel.toFixed(2)} $` : null} />
+              <LigneInfo label="Salaire annuel" valeur={employe.salaireAnnuel ? `${argent(employe.salaireAnnuel)}` : null} />
             ) : (
-              <LigneInfo label="Taux horaire" valeur={employe.tauxHoraireEmploye ? `${employe.tauxHoraireEmploye.toFixed(2)} $/h (spécifique)` : "Taux global des Paramètres"} />
+              <LigneInfo label="Taux horaire" valeur={employe.tauxHoraireEmploye ? `${argent(employe.tauxHoraireEmploye)}/h (spécifique)` : "Taux global des Paramètres"} />
             )}
             <LigneInfo label="Fréquence de paie" valeur={{ HEBDOMADAIRE: "Chaque semaine", BIHEBDOMADAIRE: "Aux 2 semaines", BIMENSUEL: "2 fois par mois", MENSUEL: "Chaque mois" }[employe.frequencePaie]} />
             <LigneInfo label="Taux de vacances" valeur={`${employe.tauxVacances}%`} />
@@ -310,7 +311,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
           {paieActif && (
             <div className="carte" style={{ marginBottom: 12 }}>
               <TitreSection>Vacances</TitreSection>
-              <LigneInfo label="Solde accumulé à ce jour" valeur={`${soldeVacances.toFixed(2)} $`} />
+              <LigneInfo label="Solde accumulé à ce jour" valeur={`${argent(soldeVacances)}`} />
             </div>
           )}
 
@@ -325,7 +326,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
                       {p.typePaie === "VACANCES" && " — vacances"}
                       {p.statut === "CORRIGEE" && " — corrigée"}
                     </span>
-                    <span style={{ fontWeight: 600, textDecoration: p.statut === "CORRIGEE" ? "line-through" : "none" }}>{p.salaireNet.toFixed(2)} $ ›</span>
+                    <span style={{ fontWeight: 600, textDecoration: p.statut === "CORRIGEE" ? "line-through" : "none" }}>{argent(p.salaireNet)} ›</span>
                   </Link>
                 ))}
               </div>

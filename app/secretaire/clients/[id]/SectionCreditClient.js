@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TitreSection } from "../../../components/ui";
 import SelecteurCompteMode, { compteParDefaut } from "../../../components/SelecteurCompteMode";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
+import { argent } from "@/lib/format";
 
 const LABEL_TYPE = {
   TROP_PAYE: "Trop-payé",
@@ -65,7 +66,7 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
   async function rembourser() {
     const m = Number(montant);
     if (!(m > 0)) { setErreur("Entre le montant remboursé."); return; }
-    if (m > solde + 0.005) { setErreur(`Le client n'a que ${solde.toFixed(2)} $ de crédit.`); return; }
+    if (m > solde + 0.005) { setErreur(`Le client n'a que ${argent(solde)} de crédit.`); return; }
     const ok = await appel(`/api/clients/${clientId}/credit`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ montant: m, modePaiement, compteTresorerieId, reference }),
@@ -74,14 +75,14 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
   }
 
   async function retirer(c) {
-    if (!window.confirm(`Retirer ce mouvement de ${Math.abs(c.montant).toFixed(2)} $ ? Son écriture comptable sera supprimée (entré par erreur).`)) return;
+    if (!window.confirm(`Retirer ce mouvement de ${argent(Math.abs(c.montant))} ? Son écriture comptable sera supprimée (entré par erreur).`)) return;
     await appel(`/api/credits/${c.id}`, { method: "DELETE" });
   }
 
   return (
     <div className="carte" style={{ marginBottom: 12 }}>
       <TitreSection>🎟️ Crédit client</TitreSection>
-      <div style={{ fontSize: 18, fontWeight: 700, color: solde > 0.005 ? "var(--success)" : "var(--text-muted)" }}>{solde.toFixed(2)} $</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: solde > 0.005 ? "var(--success)" : "var(--text-muted)" }}>{argent(solde)}</div>
       <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "2px 0 8px" }}>
         {solde > 0.005 ? "À appliquer sur une prochaine facture (bouton sur la facture du bon), ou à rembourser." : "Aucun crédit disponible."}
       </p>
@@ -100,7 +101,7 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
                 {c.note && <> · <em>{c.note}</em></>}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-                <strong style={{ color: c.montant >= 0 ? "var(--success)" : "var(--text)" }}>{c.montant >= 0 ? "+" : "−"}{Math.abs(c.montant).toFixed(2)} $</strong>
+                <strong style={{ color: c.montant >= 0 ? "var(--success)" : "var(--text)" }}>{c.montant >= 0 ? "+" : "−"}{argent(Math.abs(c.montant))}</strong>
                 {peutModifier && !c.paiementFactureId && ( // un crédit lié à un paiement se retire sur la facture
                   <button onClick={() => retirer(c)} disabled={enCours} aria-label="Retirer ce mouvement" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
                 )}
@@ -128,7 +129,7 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
             />
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={rembourser} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-                {enCours ? "…" : `✓ Rembourser ${(Number(montant) || 0).toFixed(2)} $`}
+                {enCours ? "…" : `✓ Rembourser ${argent((Number(montant) || 0))}`}
               </button>
               <button onClick={() => setOuvert(false)} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
                 Annuler
@@ -163,7 +164,7 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
             </p>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={accorderGeste} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-                {enCours ? "…" : `✓ Accorder ${(Number(gesteMontant) || 0).toFixed(2)} $`}
+                {enCours ? "…" : `✓ Accorder ${argent((Number(gesteMontant) || 0))}`}
               </button>
               <button onClick={() => setGesteOuvert(false)} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
                 Annuler

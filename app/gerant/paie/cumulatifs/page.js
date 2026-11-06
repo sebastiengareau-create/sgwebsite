@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import BoutonImprimerRapport from "../../comptabilite/rapports/BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
 export default async function CumulatifsPaie(props) {
   const searchParams = await props.searchParams;
@@ -100,13 +101,13 @@ export default async function CumulatifsPaie(props) {
             {lignes.map(([nom, d]) => (
               <tr key={nom} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "6px 4px" }}>{nom} <span style={{ color: "#999", fontSize: 10 }}>({d.nbPaies})</span></td>
-                <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: 600 }}>{d.brut.toFixed(2)} $</td>
-                <td style={{ padding: "6px 4px", textAlign: "right" }}>{d.rrq.toFixed(2)} $</td>
-                <td style={{ padding: "6px 4px", textAlign: "right" }}>{d.rqap.toFixed(2)} $</td>
-                <td style={{ padding: "6px 4px", textAlign: "right" }}>{d.ae.toFixed(2)} $</td>
-                <td style={{ padding: "6px 4px", textAlign: "right" }}>{d.impotFederal.toFixed(2)} $</td>
-                <td style={{ padding: "6px 4px", textAlign: "right" }}>{d.impotQuebec.toFixed(2)} $</td>
-                <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: 700 }}>{d.net.toFixed(2)} $</td>
+                <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: 600 }}>{argent(d.brut)}</td>
+                <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(d.rrq)}</td>
+                <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(d.rqap)}</td>
+                <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(d.ae)}</td>
+                <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(d.impotFederal)}</td>
+                <td style={{ padding: "6px 4px", textAlign: "right" }}>{argent(d.impotQuebec)}</td>
+                <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: 700 }}>{argent(d.net)}</td>
               </tr>
             ))}
             {lignes.length === 0 && (
@@ -116,13 +117,13 @@ export default async function CumulatifsPaie(props) {
           <tfoot>
             <tr style={{ borderTop: "2px solid #17150f" }}>
               <td style={{ padding: "8px 4px", fontWeight: 700 }}>Total</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.brut.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.rrq.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.rqap.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.ae.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.impotFederal.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.impotQuebec.toFixed(2)} $</td>
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totaux.net.toFixed(2)} $</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.brut)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.rrq)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.rqap)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.ae)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.impotFederal)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.impotQuebec)}</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totaux.net)}</td>
             </tr>
           </tfoot>
         </table>

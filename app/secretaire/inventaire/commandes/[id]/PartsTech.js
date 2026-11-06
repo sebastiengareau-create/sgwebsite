@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { pieceExistante, prixVentePropose } from "@/lib/recherchePieces";
+import { argent } from "@/lib/format";
 
-const fmt = (n) => `${n.toFixed(2)} $`;
+const fmt = (n) => `${argent(n)}`;
 const CREER = "__creer";
 
 // « 🔌 Chercher dans PartsTech » d'une commande en brouillon : ouvre la

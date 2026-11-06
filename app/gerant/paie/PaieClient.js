@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
+import { argent, nombre } from "@/lib/format";
 
 const STATUT_INFO = {
   BROUILLON: { icone: "🟡", label: "Brouillon", couleur: "#C9A227" },
@@ -20,7 +21,7 @@ const MOIS_LABEL = [
 ];
 
 function fmt(montant) {
-  return `${montant.toFixed(2)} $`;
+  return `${argent(montant)}`;
 }
 
 function fmtDate(dateVal) {
@@ -100,7 +101,7 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nom}</div>
                     <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                      {p.assignation || "—"} · {p.typeRemuneration === "SALAIRE" ? `${p.salaireBrut.toFixed(2)} $ brut` : `${p.heuresTravaillees.toFixed(2)} h`}
+                      {p.assignation || "—"} · {p.typeRemuneration === "SALAIRE" ? `${argent(p.salaireBrut)} brut` : `${nombre(p.heuresTravaillees)} h`}
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -180,7 +181,7 @@ function CarteKpi({ icone, label, valeur, sousLabel, variation, inverserCouleur,
       <div style={{ fontSize: 17, fontWeight: 700 }}>{valeur}</div>
       {variation !== undefined && variation !== null && (
         <div style={{ fontSize: 11, fontWeight: 700, color: positif ? "var(--success)" : "var(--danger)", marginTop: 2 }}>
-          {variation >= 0 ? "↑" : "↓"} {Math.abs(variation).toFixed(1)} % <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs lot préc.</span>
+          {variation >= 0 ? "↑" : "↓"} {nombre(Math.abs(variation), 1)} % <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs lot préc.</span>
         </div>
       )}
       {sousLabel && <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 600, marginTop: 2 }}>{sousLabel}</div>}
@@ -229,7 +230,7 @@ function CarteLot({ lot }) {
         {lot.typePaie === "VACANCES" && " · 🏖️ Vacances"}
       </div>
       <div style={{ fontSize: 12.5, marginTop: 6 }}>
-        {lot.nbEmployes} employé{lot.nbEmployes !== 1 ? "s" : ""} · {lot.totalBrut.toFixed(2)} $ brut · {lot.totalDeductions.toFixed(2)} $ retenues · <strong>{lot.totalNet.toFixed(2)} $ net</strong>
+        {lot.nbEmployes} employé{lot.nbEmployes !== 1 ? "s" : ""} · {argent(lot.totalBrut)} brut · {argent(lot.totalDeductions)} retenues · <strong>{argent(lot.totalNet)} net</strong>
       </div>
       {lot.statut === "BROUILLON" && lot.paies?.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
@@ -238,7 +239,7 @@ function CarteLot({ lot }) {
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {p.nom}{p.assignation ? <span style={{ color: "var(--text-muted)" }}> · {p.assignation}</span> : null}
               </span>
-              <span style={{ fontWeight: 700, flexShrink: 0 }}>{p.salaireNet.toFixed(2)} $</span>
+              <span style={{ fontWeight: 700, flexShrink: 0 }}>{argent(p.salaireNet)}</span>
             </div>
           ))}
         </div>

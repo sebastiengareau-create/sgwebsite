@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 export default function PrevisionsClient({ prevision }) {
   const {
@@ -28,7 +29,7 @@ export default function PrevisionsClient({ prevision }) {
         <div style={{ borderTop: "1px solid var(--border)", marginTop: 8, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontWeight: 700, fontSize: 14 }}>Liquidités projetées</span>
           <span style={{ fontWeight: 700, fontSize: 20, color: liquiditesProjetees >= 0 ? "var(--success)" : "var(--danger)" }}>
-            {liquiditesProjetees.toFixed(2)} $
+            {argent(liquiditesProjetees)}
           </span>
         </div>
       </div>
@@ -52,7 +53,7 @@ function LigneMontant({ label, montant, signe, href }) {
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0" }}>
       <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{label}</span>
       <span style={{ fontSize: 14, fontWeight: 600 }}>
-        {signe && `${signe} `}{montant.toFixed(2)} $
+        {signe && `${signe} `}{argent(montant)}
       </span>
     </div>
   );

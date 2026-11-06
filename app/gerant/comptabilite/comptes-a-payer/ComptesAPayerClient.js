@@ -10,6 +10,7 @@ import SelectProvince from "../../../components/SelectProvince";
 import { PROVINCE_DEFAUT, adresseComplete } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
+import { argent } from "@/lib/format";
 
 const STATUTS_DEPENSE = {
   IMPAYEE: { label: "Impayées", color: "#C9A227" },
@@ -135,7 +136,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
                 }}
               >
                 <span>{f.nom} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>({f.nombre})</span></span>
-                <span style={{ fontWeight: 700 }}>{f.total.toFixed(2)} $</span>
+                <span style={{ fontWeight: 700 }}>{argent(f.total)}</span>
               </button>
             ))}
           </div>
@@ -175,7 +176,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
       )}
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
         <span>{depensesFiltrees.length} facture{depensesFiltrees.length !== 1 ? "s" : ""} — touche une facture pour la voir</span>
-        <span style={{ fontWeight: 700 }}>{totalFiltre.toFixed(2)} $</span>
+        <span style={{ fontWeight: 700 }}>{argent(totalFiltre)}</span>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -202,7 +203,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
                 {d.statut === "PAYEE" && d.referenceVersement && ` · réf. ${d.referenceVersement}`}
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>{d.montant.toFixed(2)} $</span>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>{argent(d.montant)}</span>
                 <div style={{ display: "flex", gap: 8 }} onClick={arreter}>
                   {d.statut === "IMPAYEE" && depenseAPayer !== d.id && depenseEnEdition !== d.id && (
                     <button onClick={() => setDepenseAPayer(d.id)} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
@@ -276,7 +277,7 @@ function CarteResume({ valeur, libelle, couleur, actif, onClick }) {
       className="carte carte-s"
       style={{ textAlign: "left", cursor: "pointer", border: actif ? "1px solid var(--accent)" : undefined, color: "var(--text)", minWidth: 0 }}
     >
-      <div style={{ fontSize: 15, fontWeight: 700, color: couleur }}>{valeur.toFixed(2)} $</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: couleur }}>{argent(valeur)}</div>
       <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{libelle}</div>
     </button>
   );
@@ -435,7 +436,7 @@ export function FormulaireEditionDepense({ depense, fournisseurs, categories, tp
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
         <span style={{ color: "var(--text-muted)" }}>Total (lignes + taxes)</span>
-        <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)} $</span>
+        <span style={{ fontWeight: 700 }}>{argent(grandTotal)}</span>
       </div>
       {depense.statut === "PAYEE" && (
         <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: 0 }}>
@@ -968,7 +969,7 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
         <span style={{ color: "var(--text-muted)" }}>Total dû au fournisseur</span>
-        <span style={{ fontWeight: 700 }}>{grandTotal.toFixed(2)} $</span>
+        <span style={{ fontWeight: 700 }}>{argent(grandTotal)}</span>
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>

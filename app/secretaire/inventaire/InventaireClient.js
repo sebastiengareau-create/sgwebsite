@@ -14,6 +14,7 @@ import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } fr
 import { CLIENT } from "@/lib/client";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "./FormulaireKit";
+import { argent } from "@/lib/format";
 
 const CLE_TRI = "inventaire_tri";
 // Choix « Pièces désactivées » du menu Trier par : seulement celles-là, par
@@ -288,7 +289,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontWeight: 700, color: p.actif && p.qte <= p.qteMin ? "var(--danger)" : "var(--text)" }}>{p.qte} en stock</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.prix.toFixed(2)} $ vente</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{argent(p.prix)} vente</div>
                 {enCommande[p.id] > 0 && <div style={{ fontSize: 10.5, color: "var(--accent)" }}>+{enCommande[p.id]} en commande</div>}
               </div>
             </div>
@@ -334,7 +335,7 @@ function CarteKit({ kit, nomCategorie }) {
           <div style={{ fontWeight: 600 }}>🧰 {kit.nom}{!kit.actif && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}> (désactivé)</span>}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{kit.numero}</div>
           <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 1 }}>
-            {kit.composantsKit.length} élément{kit.composantsKit.length > 1 ? "s" : ""} · coûtant {cout.total.toFixed(2)} $
+            {kit.composantsKit.length} élément{kit.composantsKit.length > 1 ? "s" : ""} · coûtant {argent(cout.total)}
           </div>
           <div style={{ fontSize: 10.5, color: "var(--accent)", marginTop: 2 }}>{nomCategorie(kit.categorie)}</div>
         </div>
@@ -342,7 +343,7 @@ function CarteKit({ kit, nomCategorie }) {
           <div style={{ fontWeight: 700, color: possibles === 0 && kit.actif ? "var(--danger)" : "var(--text)" }}>
             {possibles === null ? "Kit" : `${possibles} possible${possibles > 1 ? "s" : ""}`}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{kit.prix.toFixed(2)} $ vente</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{argent(kit.prix)} vente</div>
         </div>
       </div>
     </Link>
@@ -627,7 +628,7 @@ const boutonSecondaire = {
   color: "var(--text-muted)", cursor: "pointer", fontSize: 11.5, fontWeight: 600,
 };
 
-const fmtMontant = (n) => `${n.toFixed(2)} $`;
+const fmtMontant = (n) => `${argent(n)}`;
 
 function AlignementInventaire({ alignement }) {
   const router = useRouter();

@@ -11,6 +11,7 @@ import DossierVehicules from "./DossierVehicules";
 import SectionCreditClient from "./SectionCreditClient";
 import { libelleVehicule } from "@/lib/vehicules";
 import { formaterTelephone } from "@/lib/telephone";
+import { argent } from "@/lib/format";
 
 const STATUTS_BON = { EN_ATTENTE: "En attente", EN_COURS: "En cours", TERMINE: "Facturé" };
 const STATUTS_SOUMISSION = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", FACTUREE: "✓ Facturée" };
@@ -170,7 +171,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre, comptesT
 
           <div className="carte" style={{ marginBottom: 12 }}>
             <TitreSection>Solde dû</TitreSection>
-            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0.005 ? "var(--danger)" : "var(--success)" }}>{soldeDu.toFixed(2)} $</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0.005 ? "var(--danger)" : "var(--success)" }}>{argent(soldeDu)}</div>
             {facturesImpayees.length === 0 ? (
               <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "2px 0 0" }}>À jour — aucune facture impayée.</p>
             ) : (
@@ -184,7 +185,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre, comptesT
                         <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>{dateCourte(f.dateEmission)}</span>
                         {jours > 30 && <span style={{ color: "var(--danger)", fontWeight: 700, fontSize: 10.5, marginLeft: 6 }}>{jours} j</span>}
                       </span>
-                      <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{(f.totalAvecTaxes - f.montantPaye).toFixed(2)} $ ›</span>
+                      <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{argent((f.totalAvecTaxes - f.montantPaye))} ›</span>
                     </Link>
                   );
                 })}
@@ -211,7 +212,7 @@ export default function ClientDetailClient({ client, peutRedigerLettre, comptesT
                         {b.vehicule && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>🚗 {libelleVehicule(b.vehicule) || b.vehicule.plaque}</div>}
                       </span>
                       <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
-                        {b.facture && <span style={{ fontWeight: 700, fontSize: 12.5 }}>{b.facture.totalAvecTaxes.toFixed(2)} $</span>}
+                        {b.facture && <span style={{ fontWeight: 700, fontSize: 12.5 }}>{argent(b.facture.totalAvecTaxes)}</span>}
                         <span style={{ fontSize: 11, color: b.facture?.statut === "IMPAYEE" ? "var(--danger)" : "var(--text-muted)" }}>
                           {b.facture?.statut === "IMPAYEE" ? "Facturé — impayé" : b.facture?.statut === "PAYEE" ? "Facturé — payé" : STATUTS_BON[b.statut]}
                         </span>

@@ -9,6 +9,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { ligneVille } from "@/lib/adresse";
 import { etatEcheance } from "@/lib/echeance";
 import { formaterTelephone } from "@/lib/telephone";
+import { argent } from "@/lib/format";
 
 export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpayees }) {
   const router = useRouter();
@@ -140,7 +141,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
 
           <div className="carte" style={{ marginBottom: 12 }}>
             <TitreSection>Solde dû</TitreSection>
-            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0 ? "var(--danger)" : "var(--success)" }}>{soldeDu.toFixed(2)} $</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0 ? "var(--danger)" : "var(--success)" }}>{argent(soldeDu)}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>
               {nbImpayees > 0 ? `${nbImpayees} facture${nbImpayees > 1 ? "s" : ""} impayée${nbImpayees > 1 ? "s" : ""}` : "À jour — aucune facture impayée"}
             </div>
@@ -171,7 +172,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
                           {d.statut === "PAYEE" ? "Payée" : (etat?.texte || "Impayée")}
                         </span>
                       </span>
-                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{d.montant.toFixed(2)} $ ›</span>
+                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{argent(d.montant)} ›</span>
                     </Link>
                   );
                 })}

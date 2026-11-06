@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 const LABELS_TYPE = { ACTIF: "Actif", PASSIF: "Passif", CAPITAUX_PROPRES: "Capitaux propres", REVENU: "Revenus", DEPENSE: "Dépenses" };
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
@@ -90,15 +91,15 @@ export default function OuvertureClient({ comptes }) {
         <div className="carte carte-s" style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
             <span style={{ color: "var(--text-muted)" }}>Total débit (actif + dépenses)</span>
-            <span>{totalDebit.toFixed(2)} $</span>
+            <span>{argent(totalDebit)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
             <span style={{ color: "var(--text-muted)" }}>Total crédit (passif + capitaux + revenus)</span>
-            <span>{totalCredit.toFixed(2)} $</span>
+            <span>{argent(totalCredit)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 4, paddingTop: 4, borderTop: "1px solid var(--border)" }}>
             <span style={{ color: "var(--text-muted)" }}>Contrepartie automatique (Soldes d'ouverture)</span>
-            <span style={{ fontWeight: 700 }}>{Math.abs(difference).toFixed(2)} $</span>
+            <span style={{ fontWeight: 700 }}>{argent(Math.abs(difference))}</span>
           </div>
         </div>
 

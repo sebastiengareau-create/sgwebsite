@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -93,7 +94,7 @@ export default function TachesInternesSection({ tachesInitiales }) {
                     <span style={{ textDecoration: t.actif ? "none" : "line-through" }}>{t.nom}</span>
                     {t.heuresMois > 0 && (
                       <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                        Ce mois : {fmtHeures(t.heuresMois)} · coût {t.coutMois.toFixed(2)} $
+                        Ce mois : {fmtHeures(t.heuresMois)} · coût {argent(t.coutMois)}
                       </span>
                     )}
                   </span>

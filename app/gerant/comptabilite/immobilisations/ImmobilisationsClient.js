@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 export default function ImmobilisationsClient({ immobilisations, amortissements }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
       setMessage({ type: "erreur", texte: data.erreur });
       return;
     }
-    setMessage({ type: "succes", texte: `Amortissement de ${data.montant.toFixed(2)} $ comptabilisé ✓` });
+    setMessage({ type: "succes", texte: `Amortissement de ${argent(data.montant)} comptabilisé ✓` });
     router.refresh();
   }
 
@@ -58,7 +59,7 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
       </p>
 
       <div className="carte carte-s" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>{valeurNetteTotale.toFixed(2)} $</div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>{argent(valeurNetteTotale)}</div>
         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Valeur nette totale (après amortissement à ce jour)</div>
       </div>
 
@@ -83,12 +84,12 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
           <div key={im.id} className="carte carte-s" style={{ opacity: im.actif ? 1 : 0.5 }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontWeight: 600, fontSize: 13 }}>{im.nom}</span>
-              <span style={{ fontWeight: 700, fontSize: 13 }}>{im.valeurNette.toFixed(2)} $</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{argent(im.valeurNette)}</span>
             </div>
             {im.description && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{im.description}</div>}
             <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
-              Acheté {new Date(im.dateAcquisition).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} à {im.coutAcquisition.toFixed(2)} $ ·
-              Durée de vie {im.dureeVieAns} ans · Amortissement {im.amortissementMensuel.toFixed(2)} $/mois
+              Acheté {new Date(im.dateAcquisition).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} à {argent(im.coutAcquisition)} ·
+              Durée de vie {im.dureeVieAns} ans · Amortissement {argent(im.amortissementMensuel)}/mois
             </div>
             {im.actif && (
               <button onClick={() => retirer(im.id)} style={{ marginTop: 6, fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
@@ -107,7 +108,7 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
             {amortissements.map((a) => (
               <div key={a.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px" }}>
                 <span style={{ color: "var(--text-muted)" }}>{a.mois}</span>
-                <span style={{ fontWeight: 700 }}>{a.montant.toFixed(2)} $</span>
+                <span style={{ fontWeight: 700 }}>{argent(a.montant)}</span>
               </div>
             ))}
           </div>

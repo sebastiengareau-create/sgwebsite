@@ -5,6 +5,7 @@ import { assurerPlanComptable } from "@/lib/comptabilite";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
 export default async function EtatResultatsImprimable() {
   const session = await obtenirSession();
@@ -56,7 +57,7 @@ export default async function EtatResultatsImprimable() {
 
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, paddingTop: 16, borderTop: "2px solid #17150f" }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>Profit net</span>
-          <span style={{ fontSize: 20, fontWeight: 700 }}>{profitNet.toFixed(2)} $</span>
+          <span style={{ fontSize: 20, fontWeight: 700 }}>{argent(profitNet)}</span>
         </div>
       </div>
     </div>
@@ -73,7 +74,7 @@ function SectionTable({ titre, lignes, total }) {
             <tr key={l.numero}>
               <td style={{ padding: "4px 0", color: "#444", fontFamily: "monospace", width: 60 }}>{l.numero}</td>
               <td style={{ padding: "4px 0" }}>{l.nom}</td>
-              <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>{l.solde.toFixed(2)} $</td>
+              <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>{argent(l.solde)}</td>
             </tr>
           ))}
           {lignes.length === 0 && (
@@ -81,7 +82,7 @@ function SectionTable({ titre, lignes, total }) {
           )}
           <tr>
             <td colSpan={2} style={{ padding: "6px 0", fontWeight: 700, borderTop: "1px solid #ddd" }}>Total {titre.toLowerCase()}</td>
-            <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 700, borderTop: "1px solid #ddd" }}>{total.toFixed(2)} $</td>
+            <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 700, borderTop: "1px solid #ddd" }}>{argent(total)}</td>
           </tr>
         </tbody>
       </table>

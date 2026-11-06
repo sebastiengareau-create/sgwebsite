@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
+import { argent } from "@/lib/format";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -298,7 +299,7 @@ function LigneTacheInterne({ e, coutHoraire, onModifie }) {
           <div>🛠️ {e.tacheInterne.nom} <span style={{ color: "var(--text-muted)", fontSize: 10 }}>(interne, non facturable)</span></div>
           <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>
             {heureQuebec(e.debut)}–{e.fin ? heureQuebec(e.fin) : "en cours"}
-            {duree !== null && ` · coût ${(duree * coutHoraire).toFixed(2)} $`}
+            {duree !== null && ` · coût ${argent((duree * coutHoraire))}`}
             {e.ajouteLe && <span title={`Ajouté à la main par ${e.ajoutePar || "?"}`}> · ✍️ ajouté à la main</span>}
             {e.modifieLe && <span title={`Ajusté par ${e.modifiePar || "?"}`}> · ✏️ ajusté</span>}
           </div>
@@ -457,23 +458,23 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
         <div className="carte carte-s">
-          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalCoutEquipe.toFixed(2)} $</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{argent(totalCoutEquipe)}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Coût (heures travaillées)</div>
         </div>
         <div className="carte carte-s">
-          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{totalRevenuEquipe.toFixed(2)} $</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{argent(totalRevenuEquipe)}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Revenu (heures poinçonnées)</div>
         </div>
       </div>
       {totalHeuresInternes > 0 && (
         <div className="carte carte-s" style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>🛠️ Tâches internes ({fmtHeures(totalHeuresInternes)} × {coutHoraire.toFixed(2)} $) — compris dans le coût</span>
-          <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" }}>{totalCoutInternes.toFixed(2)} $</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>🛠️ Tâches internes ({fmtHeures(totalHeuresInternes)} × {argent(coutHoraire)}) — compris dans le coût</span>
+          <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" }}>{argent(totalCoutInternes)}</span>
         </div>
       )}
       <div className="carte carte-s" style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Marge du jour (équipe)</span>
-        <span style={{ fontSize: 18, fontWeight: 700, color: margeEquipe >= 0 ? "var(--success)" : "var(--danger)" }}>{margeEquipe.toFixed(2)} $</span>
+        <span style={{ fontSize: 18, fontWeight: 700, color: margeEquipe >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(margeEquipe)}</span>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -553,34 +554,34 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
 
               {tempsNonPoinconne > 0.05 && (
                 <div style={{ fontSize: 11, color: "#C9A227", marginTop: 2 }}>
-                  ⚠ {fmtHeures(tempsNonPoinconne)} non poinçonnées du tout — coûte {(tempsNonPoinconne * coutHoraire).toFixed(2)} $ sans revenu associé
+                  ⚠ {fmtHeures(tempsNonPoinconne)} non poinçonnées du tout — coûte {argent((tempsNonPoinconne * coutHoraire))} sans revenu associé
                 </div>
               )}
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
                 <span style={{ color: "var(--text-muted)" }}>
-                  Coût du jour ({fmtHeures(heuresJour)} × {coutHoraire.toFixed(2)} $)
+                  Coût du jour ({fmtHeures(heuresJour)} × {argent(coutHoraire)})
                   {heuresReelles !== null && <span title={`Heures prévues : ${heuresAttendues}h`}> · heures réelles</span>}
                   {editionHeures !== employe.id && (
                     <button onClick={() => setEditionHeures(employe.id)} title="Modifier les heures travaillées de la journée" style={{ ...boutonPetit, marginLeft: 6 }}>✏️</button>
                   )}
                 </span>
-                <span>{coutJour.toFixed(2)} $</span>
+                <span>{argent(coutJour)}</span>
               </div>
               {editeur}
               {heuresInternes > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)" }}>
-                  <span>dont tâches internes ({fmtHeures(heuresInternes)} × {coutHoraire.toFixed(2)} $)</span>
-                  <span>{coutInternes.toFixed(2)} $</span>
+                  <span>dont tâches internes ({fmtHeures(heuresInternes)} × {argent(coutHoraire)})</span>
+                  <span>{argent(coutInternes)}</span>
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6 }}>
-                <span style={{ color: "var(--text-muted)" }}>Revenu généré ({fmtHeures(heuresPoinconnees)} × {tauxHoraireClient.toFixed(2)} $)</span>
-                <span>{revenuJour.toFixed(2)} $</span>
+                <span style={{ color: "var(--text-muted)" }}>Revenu généré ({fmtHeures(heuresPoinconnees)} × {argent(tauxHoraireClient)})</span>
+                <span>{argent(revenuJour)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700 }}>
                 <span>Marge</span>
-                <span style={{ color: margeJour >= 0 ? "var(--success)" : "var(--danger)" }}>{margeJour.toFixed(2)} $</span>
+                <span style={{ color: margeJour >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(margeJour)}</span>
               </div>
 
               {(entrees.length > 0 || entreesInternes.length > 0) && <FriseHoraire entrees={entrees} entreesInternes={entreesInternes} couleurs={couleurs} heuresOuverture={heuresOuverture} />}

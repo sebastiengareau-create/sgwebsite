@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SelecteurCompteMode, { compteParDefaut } from "./SelecteurCompteMode";
+import { argent } from "@/lib/format";
 
 const arrondir = (n) => Math.round(n * 100) / 100;
 let prochaineCle = 1;
@@ -48,7 +49,7 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
   async function confirmer() {
     if (lignes.some((l) => !l.compteTresorerieId)) { setErreur("Aucun compte de trésorerie disponible."); return; }
     if (lignes.some((l) => !(Number(l.montant) > 0)) && (depot || solde > 0)) { setErreur("Entre le montant de chaque paiement."); return; }
-    if (depasse) { setErreur(`Le total dépasse le solde de ${solde.toFixed(2)} $.`); return; }
+    if (depasse) { setErreur(`Le total dépasse le solde de ${argent(solde)}.`); return; }
     setErreur("");
     setEnCours(true);
     const erreurRes = await onConfirmer(lignes.map(({ cle, ...l }) => ({ ...l, montant: Number(l.montant) || 0 })));
@@ -96,33 +97,33 @@ export default function FormulaireEncaissement({ comptesTresorerie, solde, onCon
       </button>
       {depot ? (
         <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between", gap: 8, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
-          <span style={{ color: "var(--text-muted)" }}>Solde estimé : {solde.toFixed(2)} $</span>
+          <span style={{ color: "var(--text-muted)" }}>Solde estimé : {argent(solde)}</span>
           <span style={{ fontWeight: 700, color: "var(--accent)" }}>
-            {reste >= 0 ? `Solde après ce dépôt : ${reste.toFixed(2)} $` : `Dépasse l'estimé de ${(-reste).toFixed(2)} $`}
+            {reste >= 0 ? `Solde après ce dépôt : ${argent(reste)}` : `Dépasse l'estimé de ${argent((-reste))}`}
           </span>
         </div>
       ) : (
       <div style={{ fontSize: 12, display: "flex", justifyContent: "space-between", gap: 8, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
-        <span style={{ color: "var(--text-muted)" }}>Solde de la facture : {solde.toFixed(2)} $</span>
+        <span style={{ color: "var(--text-muted)" }}>Solde de la facture : {argent(solde)}</span>
         <span style={{ fontWeight: 700, color: depasse ? "var(--danger)" : reste > 0.005 ? "var(--accent)" : "var(--success)" }}>
-          {depasse ? `${(-reste).toFixed(2)} $ de trop` : enCredit ? `${(-reste).toFixed(2)} $ en crédit` : reste > 0.005 ? `Reste à payer : ${reste.toFixed(2)} $` : "Payée au complet"}
+          {depasse ? `${argent((-reste))} de trop` : enCredit ? `${argent((-reste))} en crédit` : reste > 0.005 ? `Reste à payer : ${argent(reste)}` : "Payée au complet"}
         </span>
       </div>
       )}
       {!depot && reste > 0.005 && !depasse && (
         <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: 0 }}>
-          La facture restera impayée avec un solde de {reste.toFixed(2)} $, à encaisser plus tard.
+          La facture restera impayée avec un solde de {argent(reste)}, à encaisser plus tard.
         </p>
       )}
       {enCredit && (
         <p style={{ fontSize: 11.5, color: "var(--success)", margin: 0 }}>
-          🎟️ La facture sera payée au complet ; l'excédent de {(-reste).toFixed(2)} $ sera gardé en crédit au client, pour une prochaine facture ou un remboursement.
+          🎟️ La facture sera payée au complet ; l'excédent de {argent((-reste))} sera gardé en crédit au client, pour une prochaine facture ou un remboursement.
         </p>
       )}
       {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={confirmer} disabled={enCours || depasse} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-          {enCours ? "…" : depot ? `✓ Encaisser le dépôt de ${total.toFixed(2)} $` : enCredit ? `✓ Encaisser ${total.toFixed(2)} $ (${(-reste).toFixed(2)} $ en crédit)` : `✓ Encaisser ${total.toFixed(2)} $`}
+          {enCours ? "…" : depot ? `✓ Encaisser le dépôt de ${argent(total)}` : enCredit ? `✓ Encaisser ${argent(total)} (${argent((-reste))} en crédit)` : `✓ Encaisser ${argent(total)}`}
         </button>
         <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
           Annuler

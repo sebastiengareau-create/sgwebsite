@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import { pieceExistante, fournisseurPropose, prixVentePropose } from "@/lib/recherchePieces";
+import { argent } from "@/lib/format";
 
 // Pièces trouvées chez un fournisseur et notées à commander pour ce bon
 // (collées dans « 🔎 Rechercher des pièces »). « 🛒 Commander » les met dans
@@ -65,7 +66,7 @@ export default function PiecesACommander({ bon, lignes, inventaire, fournisseurs
                   <div style={{ fontSize: 11, color: "var(--text-muted)", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                     {l.fournisseur && <span>{l.fournisseur}</span>}
                     {l.numero && <span style={{ fontFamily: "monospace", userSelect: "all" }}>N° {l.numero}</span>}
-                    {l.prix != null && <span>{l.prix.toFixed(2)} $</span>}
+                    {l.prix != null && <span>{argent(l.prix)}</span>}
                     {l.lien && <a href={l.lien} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>↗ Voir sur le site</a>}
                   </div>
                 </div>
@@ -156,7 +157,7 @@ function FormulaireCommande({ bonId, ligne, problemes, inventaire, fournisseurs,
       </Champ>
       {existante ? (
         <div style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "end", paddingBottom: 8 }}>
-          Fiche d'inventaire : <strong>{existante.nom}</strong> ({existante.numero}) — vendue {existante.prix.toFixed(2)} $
+          Fiche d'inventaire : <strong>{existante.nom}</strong> ({existante.numero}) — vendue {argent(existante.prix)}
         </div>
       ) : (
         <Champ libelle="Prix de vente au client ($)">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import { useOrdreFiches } from "../../../components/NavigationFiches";
+import { argent } from "@/lib/format";
 
 const FILTRES = [
   { code: "encours", label: "En cours", statuts: ["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"] },
@@ -96,7 +97,7 @@ export default function CommandesClient({ commandes, fournisseurs, suggestions, 
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: statut.couleur }}>{statut.label}</div>
-                  <div style={{ fontSize: 12 }}>{total.toFixed(2)} $</div>
+                  <div style={{ fontSize: 12 }}>{argent(total)}</div>
                 </div>
               </div>
             </Link>

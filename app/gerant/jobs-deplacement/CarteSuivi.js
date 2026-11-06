@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { nombre } from "@/lib/format";
 
 // Carte Leaflet (fonds OpenStreetMap), chargée à la demande depuis unpkg :
 // rien à installer, et rien de chargé pour qui n'ouvre pas cet onglet.
@@ -155,7 +156,7 @@ export default function CarteSuivi({ employes }) {
           {!employeId && (dernieres.length === 0 ? "Personne n'a partagé sa position dans les dernières 24 h." : `${dernieres.length} employé(s) sur la carte · rafraîchi aux 30 s`)}
           {employeId && trajet && (trajet.length === 0
             ? "Aucune position enregistrée cette journée-là."
-            : `${trajet.length} positions · de ${heure(trajet[0].enregistreLe)} à ${heure(trajet[trajet.length - 1].enregistreLe)} · ≈ ${km.toFixed(1)} km parcourus${bonsVisites.length ? ` · bons : ${bonsVisites.map((n) => `#${n}`).join(", ")}` : ""}`)}
+            : `${trajet.length} positions · de ${heure(trajet[0].enregistreLe)} à ${heure(trajet[trajet.length - 1].enregistreLe)} · ≈ ${nombre(km, 1)} km parcourus${bonsVisites.length ? ` · bons : ${bonsVisites.map((n) => `#${n}`).join(", ")}` : ""}`)}
         </div>
       </div>
     </div>

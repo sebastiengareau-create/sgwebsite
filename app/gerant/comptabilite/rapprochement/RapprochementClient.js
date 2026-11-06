@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 const aujourdhuiQuebec = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -118,7 +119,7 @@ export default function RapprochementClient({ comptesTresorerie, compteId, categ
         {soldeReleve !== "" && (
           <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: concorde ? "rgba(111,169,107,0.12)" : "rgba(193,91,74,0.12)" }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: concorde ? "var(--success)" : "var(--danger)" }}>
-              {concorde ? "✓ Ça concorde avec le relevé" : `Écart avec le relevé : ${ecart.toFixed(2)} $`}
+              {concorde ? "✓ Ça concorde avec le relevé" : `Écart avec le relevé : ${argent(ecart)}`}
             </div>
             {!concorde && (
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
@@ -153,7 +154,7 @@ export default function RapprochementClient({ comptesTresorerie, compteId, categ
               <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{l.dateStr} · {l.numero}</div>
             </div>
             <span style={{ fontWeight: 700, fontSize: 13, color: l.montant >= 0 ? "var(--success)" : "var(--danger)" }}>
-              {l.montant >= 0 ? "+" : "−"}{Math.abs(l.montant).toFixed(2)} $
+              {l.montant >= 0 ? "+" : "−"}{argent(Math.abs(l.montant))}
             </span>
           </label>
         ))}
@@ -172,14 +173,14 @@ export default function RapprochementClient({ comptesTresorerie, compteId, categ
             {historique.map((h, i) => (
               <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px" }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{new Date(h.dateRapprochement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} · {h.soldeReleve.toFixed(2)} $</div>
+                  <div style={{ fontWeight: 600 }}>{new Date(h.dateRapprochement).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} · {argent(h.soldeReleve)}</div>
                   <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
                     {h._count.lignes > 0 ? `${h._count.lignes} ligne(s) verrouillée(s)` : "Ancienne conciliation (lignes non verrouillées)"}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontWeight: 700, color: Math.abs(h.ecart) < 0.01 ? "var(--success)" : "var(--danger)" }}>
-                    {Math.abs(h.ecart) < 0.01 ? "✓ Concordant" : `Écart ${h.ecart.toFixed(2)} $`}
+                    {Math.abs(h.ecart) < 0.01 ? "✓ Concordant" : `Écart ${argent(h.ecart)}`}
                   </span>
                   {i === 0 && (
                     <button onClick={() => annuler(h.id)} style={{ fontSize: 11, background: "none", border: "none", color: "var(--danger)", cursor: "pointer", padding: 0 }}>
@@ -200,7 +201,7 @@ function LigneSolde({ label, montant, gras, discret }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: discret ? 12 : 13, marginBottom: 4 }}>
       <span style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontWeight: gras ? 700 : discret ? 500 : 600, color: discret ? "var(--text-muted)" : "var(--text)" }}>{montant.toFixed(2)} $</span>
+      <span style={{ fontWeight: gras ? 700 : discret ? 500 : 600, color: discret ? "var(--text-muted)" : "var(--text)" }}>{argent(montant)}</span>
     </div>
   );
 }

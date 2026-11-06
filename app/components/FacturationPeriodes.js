@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { dateAujourdhuiQuebec, limitesJourQuebec, limitesMoisQuebec } from "@/lib/temps";
+import { argent, nombre } from "@/lib/format";
 
 function decalerJours(dateStr, delta) {
   const [an, mois, jour] = dateStr.split("-").map(Number);
@@ -90,7 +91,7 @@ export default async function FacturationPeriodes() {
           } else {
             const variation = ((c.valeur - c.precedent) / c.precedent) * 100;
             const hausse = variation >= 0;
-            compTexte = `${hausse ? "▲" : "▼"} ${Math.abs(variation).toFixed(0)}% vs ${c.comparaison}`;
+            compTexte = `${hausse ? "▲" : "▼"} ${nombre(Math.abs(variation), 0)} % vs ${c.comparaison}`;
             compCouleur = hausse ? "#d7f5d3" : "#f7d6ce";
           }
           return (
@@ -98,7 +99,7 @@ export default async function FacturationPeriodes() {
               <div style={{ fontSize: 10.5, fontWeight: 700, color: "rgba(242,238,228,0.85)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
                 {c.label}
               </div>
-              <div style={{ fontSize: 23, fontWeight: 800, marginTop: 4, color: "var(--text)" }}>{c.valeur.toFixed(0)} $</div>
+              <div style={{ fontSize: 23, fontWeight: 800, marginTop: 4, color: "var(--text)" }}>{argent(c.valeur, 0)}</div>
               <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: compCouleur }}>{compTexte}</div>
             </div>
           );

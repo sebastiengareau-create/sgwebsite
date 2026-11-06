@@ -10,11 +10,12 @@ import { BoutonPartsTech, PanierPartsTech, AttentePanierPartsTech } from "./Part
 import { STATUTS_COMMANDE, resteARecevoir, quantiteSuggeree } from "@/lib/commandesFournisseurs";
 import { trouverPieceParScan, pieceCorrespond } from "@/lib/codesBarres";
 import { fournisseurPropose } from "@/lib/recherchePieces";
+import { argent } from "@/lib/format";
 
 const dateFr = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 const aujourdhui = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
 const arrondi = (n) => Math.round(n * 100) / 100;
-const fmt = (n) => `${n.toFixed(2)} $`;
+const fmt = (n) => `${argent(n)}`;
 
 export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces, partstech = null, paniersPartsTech = [], attentePanierPartsTech = false }) {
   const router = useRouter();

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 export default function JournalPaieClient({ paies, sommaireEmployes, totaux, debutStr, finStr }) {
   const router = useRouter();
@@ -31,23 +32,23 @@ export default function JournalPaieClient({ paies, sommaireEmployes, totaux, deb
       <div className="carte carte-s" style={{ marginBottom: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{totaux.brut.toFixed(2)} $</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{argent(totaux.brut)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Total brut</div>
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{totaux.net.toFixed(2)} $</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{argent(totaux.net)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Total net versé</div>
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--danger)" }}>{(totaux.deductions + totaux.chargesEmployeur).toFixed(2)} $</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--danger)" }}>{argent((totaux.deductions + totaux.chargesEmployeur))}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Retenues + charges employeur</div>
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{totaux.vacancesAccumulees.toFixed(2)} $</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{argent(totaux.vacancesAccumulees)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Vacances accumulées</div>
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--accent)" }}>{totaux.vacancesVersees.toFixed(2)} $</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--accent)" }}>{argent(totaux.vacancesVersees)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Vacances versées</div>
           </div>
         </div>
@@ -91,8 +92,8 @@ export default function JournalPaieClient({ paies, sommaireEmployes, totaux, deb
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{p.salaireNet.toFixed(2)} $</div>
-                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>brut {p.salaireBrut.toFixed(2)} $</div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{argent(p.salaireNet)}</div>
+                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>brut {argent(p.salaireBrut)}</div>
               </div>
             </div>
           ))}
@@ -107,7 +108,7 @@ function Ligne({ label, valeur, gras, negatif, accent }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: gras ? 13 : 12, fontWeight: gras ? 700 : accent ? 600 : 400, color: accent ? "var(--accent)" : gras ? "var(--text)" : "var(--text-muted)", marginBottom: 3 }}>
       <span>{label}</span>
-      <span>{negatif ? "−" : ""}{valeur.toFixed(2)} $</span>
+      <span>{negatif ? "−" : ""}{argent(valeur)}</span>
     </div>
   );
 }

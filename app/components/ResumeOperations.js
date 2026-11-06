@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
+import { argent } from "@/lib/format";
 
 export default async function ResumeOperations() {
   // Un bon en attente dont la date prévue est après aujourd'hui est « planifié »
@@ -17,7 +18,7 @@ export default async function ResumeOperations() {
     { valeur: planifies, label: "Planifiés", couleur: "#9A7FC7" },
     { valeur: enAttente, label: "En attente", couleur: "#C9A227" },
     { valeur: enCours, label: "En cours", couleur: "var(--bleu)" },
-    { valeur: `${totalImpaye.toFixed(0)} $`, label: "Impayé", couleur: "var(--danger)" },
+    { valeur: `${argent(totalImpaye, 0)}`, label: "Impayé", couleur: "var(--danger)" },
     { valeur: soumissionsEnAttente, label: "Soumissions", couleur: "var(--accent)" },
   ];
 

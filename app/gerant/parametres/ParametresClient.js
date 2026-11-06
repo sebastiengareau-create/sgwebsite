@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CLIENT } from "@/lib/client";
+import { argent } from "@/lib/format";
 
 const JOURS = [
   { cle: "lun", label: "Lundi" },
@@ -176,7 +177,7 @@ export default function ParametresClient({
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Dépenses au dernier jour du mois</div>
-            <div style={{ ...champInput, fontWeight: 700 }}>{depensesMoisPrecedent.toFixed(2)} $</div>
+            <div style={{ ...champInput, fontWeight: 700 }}>{argent(depensesMoisPrecedent)}</div>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Employés facturables</div>
@@ -184,13 +185,13 @@ export default function ParametresClient({
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Taux réel</div>
-            <div style={{ ...champInput, fontWeight: 700 }}>{tauxReel === null ? "—" : `${tauxReel.toFixed(2)} $/h`}</div>
+            <div style={{ ...champInput, fontWeight: 700 }}>{tauxReel === null ? "—" : `${argent(tauxReel)}/h`}</div>
           </div>
         </div>
 
         <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "var(--bg)", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
           <span style={{ color: "var(--text-muted)" }}>Marge par heure réellement facturée</span>
-          <span style={{ fontWeight: 700, color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>{marge.toFixed(2)} $</span>
+          <span style={{ fontWeight: 700, color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(marge)}</span>
         </div>
 
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
