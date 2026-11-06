@@ -214,7 +214,14 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
 
   return (
     <form onSubmit={creer} className="conteneur-page">
-      <h1 style={{ fontSize: 20, marginBottom: 16 }}>Nouveau bon de travail</h1>
+      <button
+        type="button"
+        onClick={() => (window.history.length > 1 ? router.back() : router.push("/secretaire"))}
+        style={{ background: "none", border: "none", padding: 0, color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}
+      >
+        ← Retour
+      </button>
+      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 16 }}>Nouveau bon de travail</h1>
 
       <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 4, marginBottom: 4 }}>Client</div>
 
