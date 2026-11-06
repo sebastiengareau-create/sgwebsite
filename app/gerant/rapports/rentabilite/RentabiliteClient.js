@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { argent, nombre } from "@/lib/format";
+import Link from "next/link";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -30,7 +31,8 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
 
   return (
     <div style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 20, marginBottom: 4 }}>📈 Rentabilité par employé</h1>
+      <Link href="/gerant/rapports" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux rapports</Link>
+      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>📈 Rentabilité par employé</h1>
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
         Ce que chaque employé a vraiment généré comme revenu, contre son coût réel pour le garage.
       </p>

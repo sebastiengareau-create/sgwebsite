@@ -88,7 +88,8 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <Link href="/gerant/fournisseurs" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux fournisseurs</Link>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 }}>
         <h1 style={{ fontSize: 20 }}>💳 Comptes à payer</h1>
         <button onClick={() => setAfficherFormulaire((v) => !v)} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
           {afficherFormulaire ? "Annuler" : "+ Dépense"}
