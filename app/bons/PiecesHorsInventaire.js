@@ -89,8 +89,14 @@ export default function PiecesHorsInventaire({ bonId, lignes, modifiable, onRafr
         return (
           <div key={pr.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12.5, padding: "4px 0", borderTop: "1px solid var(--border)" }}>
             <span style={{ minWidth: 0 }}>
-              {l.nom}
-              {modifiable && horsInventaire && l.coutant != null && (
+              {pr.retourDeProblemeId && <span title="Pièce rapportée par le client" style={{ fontSize: 10, fontWeight: 700, color: "var(--success)", border: "1px solid var(--success)", borderRadius: 4, padding: "0 4px", marginRight: 6 }}>↩ RETOUR</span>}
+              {pr.retourDeProblemeId ? pr.description : l.nom}
+              {pr.retourDeProblemeId && (
+                <span style={{ display: "block", fontSize: 10.5, color: "var(--text-muted)" }}>
+                  Facture {pr.retourFacture} · {pr.defectueuse ? "défectueuse, pas mise en inventaire" : `mise en inventaire${pr.retourPiece ? ` : ${pr.retourPiece.numero} — ${pr.retourPiece.nom}` : ""}`}
+                </span>
+              )}
+              {modifiable && horsInventaire && !pr.retourDeProblemeId && l.coutant != null && (
                 <span style={{ display: "block", fontSize: 10.5, color: "var(--text-muted)" }}>Coûtant {l.coutant.toFixed(2)} $ / unité</span>
               )}
             </span>
@@ -98,7 +104,7 @@ export default function PiecesHorsInventaire({ bonId, lignes, modifiable, onRafr
               <span>{l.qte} × {l.prix.toFixed(2)} $ = <strong style={{ color: "var(--text)" }}>{l.total.toFixed(2)} $</strong></span>
               {modifiable && horsInventaire && (
                 <>
-                  <button onClick={() => ouvrir(pr)} disabled={enCours} title="Modifier" style={boutonIcone}>✏️</button>
+                  {!pr.retourDeProblemeId && <button onClick={() => ouvrir(pr)} disabled={enCours} title="Modifier" style={boutonIcone}>✏️</button>}
                   <button onClick={() => retirer(pr)} disabled={enCours} title="Retirer" style={boutonIcone}>🗑</button>
                 </>
               )}

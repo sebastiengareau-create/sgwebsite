@@ -5,6 +5,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { lireKilometrage } from "@/lib/vehicules";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreLigneEnStock } from "@/lib/bons";
+import { annulerRetourHorsInventaire } from "@/lib/retours";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -38,7 +39,8 @@ export async function PATCH(request, props) {
     if (bon.facture) return NextResponse.json({ erreur: "Ce bon est facturé — le client ne peut plus changer." }, { status: 409 });
     if (bon.vehiculeVenteId) return NextResponse.json({ erreur: "Ce bon porte sur un véhicule à vendre — son client ne peut pas changer." }, { status: 409 });
     if (!client) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
-    if (client.id !== bon.clientId && (await prisma.pieceUtilisee.count({ where: { retourDeId: { not: null }, probleme: { bonId: bon.id } } }))) {
+    if (client.id !== bon.clientId && ((await prisma.pieceUtilisee.count({ where: { retourDeId: { not: null }, probleme: { bonId: bon.id } } }))
+      || (await prisma.probleme.count({ where: { bonId: bon.id, retourDeProblemeId: { not: null } } })))) {
       return NextResponse.json({ erreur: "Ce bon contient des retours de pièces vendues à ce client — retire-les avant de changer de client." }, { status: 409 });
     }
     if (client.id !== bon.clientId) {
@@ -150,6 +152,8 @@ export async function DELETE(request, props) {
       for (const ligne of pr.pieces) {
         await remettreLigneEnStock(tx, ligne, { note: `Bon #${bon.numero} supprimé`, creePar: session.nom });
       }
+      // Retour d'une pièce hors inventaire : elle ressort de sa fiche (lib/retours.js)
+      if (pr.retourDeProblemeId) await annulerRetourHorsInventaire(tx, pr, { note: `Bon #${bon.numero} supprimé`, creePar: session.nom });
     }
 
     // Les entrées de temps sont maintenant rattachées à chaque tâche (Probleme),

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, remettreBonEnAttenteSiSansTemps, remettreLigneEnStock } from "@/lib/bons";
+import { annulerRetourHorsInventaire } from "@/lib/retours";
 
 export async function PATCH(request, props) {
   const params = await props.params;
@@ -66,14 +67,21 @@ export async function DELETE(request, props) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 
-  const probleme = await prisma.probleme.findUnique({ where: { id: params.problemeId }, include: { pieces: true, bon: { include: { client: true } } } });
+  const probleme = await prisma.probleme.findUnique({ where: { id: params.problemeId }, include: { pieces: true, _count: { select: { retours: true } }, bon: { include: { client: true } } } });
   if (!probleme || probleme.bonId !== params.id) {
     return NextResponse.json({ erreur: "Tâche introuvable." }, { status: 404 });
+  }
+  if (probleme._count.retours > 0) {
+    return NextResponse.json({ erreur: "Cette pièce a été retournée sur un autre bon — retire d'abord ce retour." }, { status: 409 });
   }
   // Les pièces de la tâche n'ont pas été utilisées : elles reviennent en stock
   await prisma.$transaction(async (tx) => {
     for (const ligne of probleme.pieces) {
       await remettreLigneEnStock(tx, ligne, { note: `Tâche retirée — Bon #${probleme.bon.numero} — ${probleme.bon.client.nom}`, creePar: session.nom });
+    }
+    // Retour d'une pièce hors inventaire : elle ressort de sa fiche (lib/retours.js)
+    if (probleme.retourDeProblemeId) {
+      await annulerRetourHorsInventaire(tx, probleme, { note: `Retour retiré — Bon #${probleme.bon.numero} — ${probleme.bon.client.nom}`, creePar: session.nom });
     }
     await tx.probleme.delete({ where: { id: probleme.id } });
   });

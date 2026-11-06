@@ -141,6 +141,14 @@ export async function DELETE(request, props) {
     );
   }
 
+  // Pièce hors inventaire rapportée par un client et mise sur cette fiche (lib/retours.js)
+  if (await prisma.probleme.count({ where: { retourPieceId: params.id } })) {
+    return NextResponse.json(
+      { erreur: "Cette fiche a reçu une pièce rapportée par un client (retour) — elle ne peut pas être supprimée. Tu peux la désactiver à la place." },
+      { status: 409 }
+    );
+  }
+
   const commandee = await prisma.ligneCommandeFournisseur.count({ where: { pieceId: params.id } });
   if (commandee > 0) {
     return NextResponse.json(

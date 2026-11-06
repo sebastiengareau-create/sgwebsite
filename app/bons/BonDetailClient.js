@@ -1513,15 +1513,20 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     const qte = Math.min(r.qteRetournable, Math.max(1, parseInt(choix.qte) || 1));
     setErreurPiece("");
     setEnCours(true);
+    // Pièce hors inventaire : elle va sur une fiche d'inventaire (nouvelle ou existante)
+    const horsInventaire = r.type === "HORS_INVENTAIRE";
+    const fiche = choix.pieceId ? { pieceId: choix.pieceId } : { nouvelle: { nom: choix.nom ?? r.nom, numero: choix.numero || "" } };
     const res = await fetch(`/api/bons/${bonId}/retours`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problemeId, ligneOrigineId: r.id, qte, defectueuse: !!choix.defectueuse }),
+      body: JSON.stringify(horsInventaire
+        ? { type: "HORS_INVENTAIRE", ligneOrigineId: r.id, qte, defectueuse: !!choix.defectueuse, fiche }
+        : { problemeId, ligneOrigineId: r.id, qte, defectueuse: !!choix.defectueuse }),
     });
     setEnCours(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) { setErreurPiece(data.erreur || "Erreur lors du retour."); return; }
     setRetournables(null);
-    setConfirmationPiece(choix.defectueuse ? "Retour ajouté — pièce défectueuse, pas remise en stock ✓" : "Retour ajouté — pièce remise en stock ✓");
+    setConfirmationPiece(choix.defectueuse ? "Retour ajouté — pièce défectueuse, pas remise en stock ✓" : horsInventaire ? "Retour ajouté — pièce mise en inventaire ✓ (section Pièces)" : "Retour ajouté — pièce remise en stock ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 3000);
   }
@@ -1666,9 +1671,12 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                   const choix = choixRetour[r.id] || { qte: "1", defectueuse: false };
                   const changer = (champs) => setChoixRetour((c) => ({ ...c, [r.id]: { ...choix, ...champs } }));
                   return (
-                    <div key={r.id} style={{ padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)" }}>
+                    <div key={`${r.type}-${r.id}`} style={{ padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ minWidth: 0 }}>{r.nom}{r.numero && <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · #{r.numero}</span>}</span>
+                        <span style={{ minWidth: 0 }}>
+                          {r.nom}{r.numero && <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · #{r.numero}</span>}
+                          {r.type === "HORS_INVENTAIRE" && <span style={{ color: "var(--text-muted)", fontSize: 10.5 }}> · hors inventaire</span>}
+                        </span>
                         <strong style={{ whiteSpace: "nowrap" }}>{r.prix.toFixed(2)} $</strong>
                       </div>
                       <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
@@ -1686,6 +1694,34 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                         </label>
                         <button onClick={() => retourner(r)} disabled={enCours} style={{ ...boutonAjout, padding: "5px 10px", color: "var(--accent)", fontWeight: 700 }}>↩ Retourner</button>
                       </div>
+                      {r.type === "HORS_INVENTAIRE" && !choix.defectueuse && (
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 5 }}>
+                          <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                            Pièce gardée : elle va en inventaire au coûtant de {(r.coutant || 0).toFixed(2)} $.
+                          </span>
+                          <select
+                            value={choix.pieceId || ""} onChange={(e) => changer({ pieceId: e.target.value })}
+                            style={{ ...champStyle, fontSize: 12, padding: "5px 6px" }}
+                          >
+                            <option value="">Nouvelle fiche d&apos;inventaire</option>
+                            {inventaire.filter((p) => !p.estKit).map((p) => (
+                              <option key={p.id} value={p.id}>{p.numero} — {p.nom}</option>
+                            ))}
+                          </select>
+                          {!choix.pieceId && (
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <input
+                                placeholder="Numéro (requis)" value={choix.numero || ""} onChange={(e) => changer({ numero: e.target.value })}
+                                style={{ ...champStyle, width: 120, fontSize: 12, padding: "5px 6px" }}
+                              />
+                              <input
+                                placeholder="Nom" value={choix.nom ?? r.nom} onChange={(e) => changer({ nom: e.target.value })}
+                                style={{ ...champStyle, flex: 1, minWidth: 0, fontSize: 12, padding: "5px 6px" }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

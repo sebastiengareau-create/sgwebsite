@@ -394,6 +394,19 @@ model Probleme {
   // coûtant unitaire de la pièce achetée pour ce bon, figé à l'ajout — compté
   // au coût des pièces vendues (5000) à la facture et dans la rentabilité.
   factureCoutant      Float?
+  // Retour d'une pièce hors inventaire (lib/retours.js) : ligne en quantité
+  // négative qui reprend la ligne vendue sur une facture précédente du même
+  // client (retourDeProblemeId), au prix payé. La pièce rapportée va sur une
+  // fiche d'inventaire (retourPieceId : stock + quantité au coûtant), sauf si
+  // elle est défectueuse (coûtant 0, rien en stock). retourFacture : numéro
+  // de la facture d'origine, figé pour l'affichage.
+  retourDeProblemeId  String?
+  retourDe            Probleme?       @relation("RetoursHorsInventaire", fields: [retourDeProblemeId], references: [id], onDelete: NoAction)
+  retours             Probleme[]      @relation("RetoursHorsInventaire")
+  retourFacture       String?
+  defectueuse         Boolean         @default(false)
+  retourPieceId       String?
+  retourPiece         Piece?          @relation("RetoursHorsInventaire", fields: [retourPieceId], references: [id], onDelete: NoAction)
   bonId               String
   bon                 BonTravail      @relation(fields: [bonId], references: [id], onDelete: Cascade)
   photos              Photo[]
@@ -401,6 +414,7 @@ model Probleme {
   entreesTemps        EntreeTemps[]
 
   @@index([bonId])
+  @@index([retourDeProblemeId])
 }
 
 model Photo {
@@ -458,6 +472,7 @@ model Piece {
   lignesCommande LigneCommandeFournisseur[]
   piecesACommander PieceACommander[] // lignes « à commander » de bons commandées sous cette fiche
   piecesEstimees PieceEstimee[] // lignes de soumissions qui proposent cette pièce (rien n'est réservé)
+  retoursHorsInventaire Probleme[] @relation("RetoursHorsInventaire") // pièces hors inventaire rapportées et mises sur cette fiche (lib/retours.js)
   // Kit (ex. « Changement d'huile ») : article facturé à son prix, sans stock
   // propre (qte reste à 0). L'ajouter à un bon sort ses pièces du stock ; sa
   // main-d'œuvre est comprise dans son prix. Voir lib/kits.js.
