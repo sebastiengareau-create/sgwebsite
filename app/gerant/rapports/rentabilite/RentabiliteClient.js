@@ -24,8 +24,6 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
   const totalMarge = totalRevenu - totalCout;
   const totalHeures = donnees.reduce((s, d) => s + d.heuresPayees, 0);
   const totalFacturables = donnees.reduce((s, d) => s + d.heuresFacturables, 0);
-  const totalVendues = donnees.reduce((s, d) => s + d.heuresVendues, 0);
-  const totalPoinconneesFacturees = donnees.reduce((s, d) => s + d.heuresPoinconneesFacturees, 0);
   const totalInternes = donnees.reduce((s, d) => s + d.heuresInternes, 0);
   const totalCoutInternes = donnees.reduce((s, d) => s + d.coutInternes, 0);
 
@@ -70,7 +68,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
             <span style={{ fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{totalCoutInternes.toFixed(2)} $</span>
           </div>
         )}
-        <TauxFacturation vendues={totalVendues} poinconnees={totalPoinconneesFacturees} libelle="Taux de facturation de l'équipe" />
+        <TauxRentabilite cout={totalCout} revenu={totalRevenu} libelle="Taux de rentabilité de l'équipe" />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -138,7 +136,7 @@ function CarteEmploye({ d }) {
         </div>
       )}
 
-      <TauxFacturation vendues={d.heuresVendues} poinconnees={d.heuresPoinconneesFacturees} libelle="Taux de facturation" />
+      <TauxRentabilite cout={d.coutReel} revenu={d.revenuGenere} libelle="Taux de rentabilité" />
 
       {d.heuresEstimees > 0 && (
         <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>
@@ -149,28 +147,27 @@ function CarteEmploye({ d }) {
   );
 }
 
-// Heures vendues au client ÷ heures poinçonnées, sur les bons déjà facturés
-// (voir lib/productivite.js). Sous 100 % : du temps passé qui n'a pas été
-// vendu (forfait trop court, soumission sous-estimée) ; au-dessus : plus
-// vendu que poinçonné.
-function TauxFacturation({ vendues, poinconnees, libelle }) {
-  if (poinconnees <= 0) {
+// Revenu généré ÷ coût réel : au-dessus de 100 %, les employés rapportent
+// plus qu'ils ne coûtent (rentable) ; en dessous, ils coûtent plus qu'ils
+// ne rapportent (perte).
+function TauxRentabilite({ cout, revenu, libelle }) {
+  if (cout <= 0) {
     return (
       <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 8 }}>
-        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun bon facturé sur la période)</span>
+        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun coût réel sur la période)</span>
       </div>
     );
   }
-  const taux = (vendues / poinconnees) * 100;
-  const couleur = taux >= 100 ? "var(--success)" : taux >= 85 ? "#C9A227" : "var(--danger)";
+  const taux = (revenu / cout) * 100;
+  const couleur = taux >= 125 ? "var(--success)" : taux >= 100 ? "#C9A227" : "var(--danger)";
   return (
     <div
-      title="Heures vendues au client ÷ heures poinçonnées, sur les bons déjà facturés"
+      title="Revenu généré ÷ coût réel — au-dessus de 100 % : rentable ; en dessous : perte"
       style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}
     >
       <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
         {libelle}
-        <span style={{ display: "block", fontSize: 10.5 }}>{fmtHeures(vendues)} vendues sur {fmtHeures(poinconnees)} poinçonnées (bons facturés)</span>
+        <span style={{ display: "block", fontSize: 10.5 }}>{revenu.toFixed(2)} $ de revenu généré pour {cout.toFixed(2)} $ de coût réel</span>
       </span>
       <span style={{ fontSize: 17, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
     </div>

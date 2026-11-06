@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import { chargerHoraireOuverture } from "@/lib/paie";
 import { chargerHeuresJour, heuresJoursTravailles } from "@/lib/heuresJour";
-import { tauxFacturationEmploye } from "@/lib/productivite";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -32,10 +31,6 @@ export default async function RapportRentabilite(props) {
         probleme: {
           include: {
             bon: { include: { facture: true, client: true } },
-            // pour le taux de facturation (lib/productivite.js) : kits de la
-            // tâche et tous ses poinçons, pas seulement ceux de la période
-            pieces: { select: { qte: true, kit: true } },
-            entreesTemps: { select: { debut: true, fin: true } },
           },
         },
       },
@@ -87,10 +82,6 @@ export default async function RapportRentabilite(props) {
     const coutInternes = heuresInternes * tauxCout;
     const marge = revenuGenere - coutReel;
 
-    // Taux de facturation : heures vendues ÷ heures poinçonnées, sur les bons
-    // déjà facturés seulement
-    const facturation = tauxFacturationEmploye(siennesBon);
-
     return {
       employe: e,
       heuresTotales,
@@ -103,8 +94,6 @@ export default async function RapportRentabilite(props) {
       coutReel,
       marge,
       tauxCout,
-      heuresVendues: facturation.heuresVendues,
-      heuresPoinconneesFacturees: facturation.heuresPoinconnees,
     };
   })
     // Seulement les employés qui ont démarré l'horodateur sur un bon et ont
