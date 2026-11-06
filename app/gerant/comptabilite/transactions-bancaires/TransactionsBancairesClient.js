@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 const TAILLE_PAGE = 50;
 const LABEL_CREE = {
@@ -19,7 +20,7 @@ const LABEL_JOURNAL = {
   DETACHEE: "Remise à examiner : l'écriture reliée a été supprimée ailleurs",
 };
 
-const formaterMontant = (m) => `${m < 0 ? "−" : "+"}${Math.abs(m).toFixed(2)} $`;
+const formaterMontant = (m) => `${m < 0 ? "−" : "+"}${argent(Math.abs(m))}`;
 const formaterDateHeure = (iso) => new Date(iso).toLocaleString("fr-CA", { timeZone: "America/Toronto", dateStyle: "short", timeStyle: "short" });
 const normaliser = (texte) => String(texte || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
 
@@ -121,12 +122,12 @@ export default function TransactionsBancairesClient({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
           <div>
             <div className="titre-section" style={{ marginBottom: 2 }}>{estCarte ? "Solde dû selon la banque" : "Solde selon la banque"}</div>
-            <div style={{ fontSize: 17, fontWeight: 700 }}>{compte.soldeReleve !== null ? `${compte.soldeReleve.toFixed(2)} $` : "—"}</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{compte.soldeReleve !== null ? `${argent(compte.soldeReleve)}` : "—"}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{compte.soldeReleveLe ? `au ${compte.soldeReleveLe}` : "importe un fichier OFX pour l'obtenir"}</div>
           </div>
           <div>
             <div className="titre-section" style={{ marginBottom: 2 }}>Solde aux livres</div>
-            <div style={{ fontSize: 17, fontWeight: 700 }}>{compte.soldeLivres.toFixed(2)} $</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{argent(compte.soldeLivres)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>toutes dates confondues</div>
           </div>
         </div>
@@ -607,7 +608,7 @@ function PanneauAjouter({ t, fournisseurs, categories, comptesGl, dernierPostePa
         <input value={description} onChange={(e) => setDescription(e.target.value)} className="champ" />
       </div>
       <button onClick={enregistrer} disabled={!pret || enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12.5, fontWeight: 700 }}>
-        {enCours ? "Enregistrement…" : mode === "depense" ? `Ajouter la dépense de ${Math.abs(t.montant).toFixed(2)} $` : "Ajouter l'écriture"}
+        {enCours ? "Enregistrement…" : mode === "depense" ? `Ajouter la dépense de ${argent(Math.abs(t.montant))}` : "Ajouter l'écriture"}
       </button>
     </div>
   );

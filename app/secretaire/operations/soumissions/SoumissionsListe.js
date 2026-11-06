@@ -8,6 +8,7 @@ import { CLIENT } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
 import SectionDepots from "../../../components/SectionDepots";
 import BoutonEnvoiCourriel from "../../../components/BoutonEnvoiCourriel";
+import { argent } from "@/lib/format";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -136,7 +137,7 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                   {s.taches.length} tâche(s) · {totalTemps}h
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--accent)", marginTop: 4 }}>
-                  {totalEstime.toFixed(2)} $ estimé (taxes incl.)
+                  {argent(totalEstime)} estimé (taxes incl.)
                 </div>
               </Link>
 

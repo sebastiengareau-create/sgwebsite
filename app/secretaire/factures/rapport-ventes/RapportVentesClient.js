@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { argent } from "@/lib/format";
 
 const GROUPEMENTS = [
   { valeur: "jour", label: "Jour" },
@@ -10,7 +11,7 @@ const GROUPEMENTS = [
 ];
 
 function fmt(montant) {
-  return `${montant.toFixed(2)} $`;
+  return `${argent(montant)}`;
 }
 
 export default function RapportVentesClient({ lignes, totaux, ticketMoyen, debutStr, finStr, groupement, nombreAnnulees }) {

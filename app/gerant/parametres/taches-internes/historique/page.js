@@ -4,6 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dateAujourdhuiQuebec, limitesJourQuebec, dateQuebecStr, FUSEAU } from "@/lib/temps";
 import EnTete from "../../../../components/EnTete";
+import { argent } from "@/lib/format";
 
 // Historique des poinçons sur les tâches internes (Paramètres → Tâches
 // internes → Historique). Consultation seulement : ces poinçons ne créent
@@ -60,7 +61,7 @@ export default async function HistoriqueTachesInternes(props) {
     prisma.parametre.findUnique({ where: { cle: "cout_horaire_mecanicien" } }),
   ]);
   const coutHoraire = Number(parametreCout?.valeur || 95);
-  const cout = (heures) => `${(heures * coutHoraire).toFixed(2)} $`;
+  const cout = (heures) => `${argent((heures * coutHoraire))}`;
 
   // Employés offerts dans le filtre : ceux qui ont déjà poinçonné une tâche
   // interne (même un ancien employé désactivé)
@@ -110,7 +111,7 @@ export default async function HistoriqueTachesInternes(props) {
         <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 16 }}>
           Tous les poinçons faits sur les tâches internes. Consultation seulement : rien n&apos;est entré en
           comptabilité ni facturé (les heures comptent seulement comme présence, pour la paie). Le coût est
-          calculé au coût horaire du garage ({coutHoraire.toFixed(2)} $/h, Paramètres). Pour ajuster un poinçon :
+          calculé au coût horaire du garage ({argent(coutHoraire)}/h, Paramètres). Pour ajuster un poinçon :
           📈 Productivité par employés (✏️ sur la ligne).
         </p>
 
@@ -152,7 +153,7 @@ export default async function HistoriqueTachesInternes(props) {
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{fmtHeures(total)}</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>{cout(total)}</div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  {lignes.length} poinçon{lignes.length > 1 ? "s" : ""} · coût = heures × {coutHoraire.toFixed(2)} $/h
+                  {lignes.length} poinçon{lignes.length > 1 ? "s" : ""} · coût = heures × {argent(coutHoraire)}/h
                 </div>
               </div>
               {!tacheId && <ListeTotaux titre="Par tâche" items={parTache} cout={cout} />}

@@ -5,8 +5,9 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { construireRapportParFournisseur } from "@/lib/rapportInventaire";
 import ChoixFournisseurRapport from "./ChoixFournisseurRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
-const fmt = (n) => `${n.toFixed(2)} $`;
+const fmt = (n) => `${argent(n)}`;
 const th = (align = "left") => ({ textAlign: align, padding: "6px 4px", fontSize: 10, textTransform: "uppercase", color: "#888" });
 const td = (align = "left") => ({ textAlign: align, padding: "5px 4px" });
 

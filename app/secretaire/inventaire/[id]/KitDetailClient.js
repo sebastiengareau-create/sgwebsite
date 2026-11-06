@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TitreSection } from "../../../components/ui";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "../FormulaireKit";
+import { argent, nombre } from "@/lib/format";
 
 // Fiche d'un kit (lib/kits.js) : son contenu, son coûtant et sa marge, ce
 // que le stock permet d'en faire, et ses ventes sur les bons.
@@ -98,15 +99,15 @@ export default function KitDetailClient({ kit, pieces, categories, coutHoraireDe
                         {c.piece.numero} · {c.piece.qte} en stock{!c.piece.actif ? " · désactivée" : ""}
                       </span>
                     </span>
-                    <span style={{ fontWeight: 700 }}>{(c.qte * c.piece.coutant).toFixed(2)} $</span>
+                    <span style={{ fontWeight: 700 }}>{argent((c.qte * c.piece.coutant))}</span>
                   </>
                 ) : (
                   <>
                     <span>
                       {c.description || "Main-d'œuvre"}
-                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>{String(c.qte).replace(".", ",")} h × {(c.coutHoraire || 0).toFixed(2)} $/h</span>
+                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>{String(c.qte).replace(".", ",")} h × {argent((c.coutHoraire || 0))}/h</span>
                     </span>
-                    <span style={{ fontWeight: 700 }}>{(c.qte * (c.coutHoraire || 0)).toFixed(2)} $</span>
+                    <span style={{ fontWeight: 700 }}>{argent((c.qte * (c.coutHoraire || 0)))}</span>
                   </>
                 )}
               </div>
@@ -115,12 +116,12 @@ export default function KitDetailClient({ kit, pieces, categories, coutHoraireDe
 
           <div className="carte" style={{ marginBottom: 12 }}>
             <TitreSection>Prix et marge</TitreSection>
-            <Champ label="Coûtant des pièces" valeur={`${cout.pieces.toFixed(2)} $`} />
-            <Champ label="Coûtant de la main-d'œuvre" valeur={`${cout.mainOeuvre.toFixed(2)} $`} />
-            <Champ label="Coûtant total" valeur={`${cout.total.toFixed(2)} $`} />
-            <Champ label="Prix de vente" valeur={`${kit.prix.toFixed(2)} $`} />
+            <Champ label="Coûtant des pièces" valeur={`${argent(cout.pieces)}`} />
+            <Champ label="Coûtant de la main-d'œuvre" valeur={`${argent(cout.mainOeuvre)}`} />
+            <Champ label="Coûtant total" valeur={`${argent(cout.total)}`} />
+            <Champ label="Prix de vente" valeur={`${argent(kit.prix)}`} />
             <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
-              <Champ label="Marge par kit" valeur={`${marge.toFixed(2)} $${kit.prix > 0 ? ` (${((marge / kit.prix) * 100).toFixed(0)} %)` : ""}`} accent />
+              <Champ label="Marge par kit" valeur={`${argent(marge)}${kit.prix > 0 ? ` (${nombre(((marge / kit.prix) * 100), 0)} %)` : ""}`} accent />
             </div>
             <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 0" }}>
               Coûtant des pièces au coût moyen actuel. Sur un bon, la main-d'œuvre est comprise dans le prix du kit : les heures poinçonnées sur la tâche ne sont pas facturées en plus.
@@ -149,7 +150,7 @@ export default function KitDetailClient({ kit, pieces, categories, coutHoraireDe
               <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
                   <span style={{ color: "var(--text-muted)" }}>#{u.probleme.bon.numero} — {u.probleme.bon.client.nom}</span>
-                  <span>{u.qte} × {u.prix.toFixed(2)} $</span>
+                  <span>{u.qte} × {argent(u.prix)}</span>
                 </div>
               </Link>
             ))}

@@ -8,6 +8,7 @@ import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicul
 import { libelleVehicule } from "@/lib/vehicules";
 import { useOrdreFiches } from "../../../components/NavigationFiches";
 import { correspondRecherche } from "@/lib/recherche";
+import { argent } from "@/lib/format";
 
 const FILTRES = [
   { code: "EN_STOCK", label: "En stock" },
@@ -15,7 +16,6 @@ const FILTRES = [
   { code: "TOUS", label: "Tous" },
 ];
 
-const argent = (n) => `${(n || 0).toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 
 export default function VehiculesVenteClient({ vehicules, alignement = null }) {
   const router = useRouter();

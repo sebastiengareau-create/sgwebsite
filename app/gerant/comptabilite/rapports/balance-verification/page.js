@@ -5,6 +5,7 @@ import { assurerPlanComptable } from "@/lib/comptabilite";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
 const NORMAL_DEBIT = ["ACTIF", "DEPENSE"];
 const LABELS_TYPE = { ACTIF: "Actif", PASSIF: "Passif", CAPITAUX_PROPRES: "Capitaux propres", REVENU: "Revenus", DEPENSE: "Dépenses" };
@@ -67,22 +68,22 @@ export default async function BalanceVerificationImprimable() {
               <tr key={l.numero} style={{ borderBottom: "1px solid #eee" }}>
                 <td style={{ padding: "5px 0", fontFamily: "monospace", color: "#444" }}>{l.numero}</td>
                 <td style={{ padding: "5px 0" }}>{l.nom}</td>
-                <td style={{ padding: "5px 0", textAlign: "right" }}>{l.debit > 0 ? l.debit.toFixed(2) + " $" : ""}</td>
-                <td style={{ padding: "5px 0", textAlign: "right" }}>{l.credit > 0 ? l.credit.toFixed(2) + " $" : ""}</td>
+                <td style={{ padding: "5px 0", textAlign: "right" }}>{l.debit > 0 ? argent(l.debit) : ""}</td>
+                <td style={{ padding: "5px 0", textAlign: "right" }}>{l.credit > 0 ? argent(l.credit) : ""}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr style={{ borderTop: "2px solid #17150f" }}>
               <td colSpan={2} style={{ padding: "8px 0", fontWeight: 700 }}>Total</td>
-              <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 700 }}>{totalDebit.toFixed(2)} $</td>
-              <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 700 }}>{totalCredit.toFixed(2)} $</td>
+              <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 700 }}>{argent(totalDebit)}</td>
+              <td style={{ padding: "8px 0", textAlign: "right", fontWeight: 700 }}>{argent(totalCredit)}</td>
             </tr>
           </tfoot>
         </table>
 
         <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: equilibre ? "#3d7a3d" : "#a83232" }}>
-          {equilibre ? "✓ La balance est équilibrée" : `⚠ Écart de ${Math.abs(totalDebit - totalCredit).toFixed(2)} $`}
+          {equilibre ? "✓ La balance est équilibrée" : `⚠ Écart de ${argent(Math.abs(totalDebit - totalCredit))}`}
         </div>
       </div>
     </div>

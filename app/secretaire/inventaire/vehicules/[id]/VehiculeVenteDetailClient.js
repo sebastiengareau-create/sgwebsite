@@ -13,8 +13,8 @@ import { ChampsFiche } from "../VehiculesVenteClient";
 import { libelleVehicule, descriptionVehicule } from "@/lib/vehicules";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { correspondRecherche } from "@/lib/recherche";
+import { argent, nombre } from "@/lib/format";
 
-const argent = (n) => `${(n || 0).toLocaleString("fr-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 const dateFr = (d) => (d ? new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : "");
 const versChamp = (n) => (n ? String(n) : "");
 
@@ -77,7 +77,7 @@ export default function VehiculeVenteDetailClient({ vv, coutant, clients, compte
         <Ligne label={vente ? `Vendu (facture ${vente.numero}, avant taxes)` : "Prix demandé"} valeur={argent(prix)} />
         {prix > 0 && (
           <Ligne
-            label={`${vente ? "Profit réel" : "Profit prévu"} (${margePct.toFixed(0)} % du prix)`}
+            label={`${vente ? "Profit réel" : "Profit prévu"} (${nombre(margePct, 0)} % du prix)`}
             valeur={<span style={{ color: profit >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(profit)}</span>}
             gras
           />

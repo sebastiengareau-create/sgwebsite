@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { enregistrerEcriture } from "@/lib/comptabilite";
+import { argent } from "@/lib/format";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -29,7 +30,7 @@ export async function POST(request) {
   const totalDebit = lignesValidees.reduce((s, l) => s + l.debit, 0);
   const totalCredit = lignesValidees.reduce((s, l) => s + l.credit, 0);
   if (Math.abs(totalDebit - totalCredit) > 0.02) {
-    return NextResponse.json({ erreur: `Écriture déséquilibrée : débit ${totalDebit.toFixed(2)} $ ≠ crédit ${totalCredit.toFixed(2)} $.` }, { status: 400 });
+    return NextResponse.json({ erreur: `Écriture déséquilibrée : débit ${argent(totalDebit)} ≠ crédit ${argent(totalCredit)}.` }, { status: 400 });
   }
 
   try {

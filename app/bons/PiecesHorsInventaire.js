@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CLIENT } from "@/lib/client";
 import { ligneDePieceSoumission } from "@/lib/piecesSoumission";
+import { argent } from "@/lib/format";
 
 // Section « Pièces » du bon : lignes de pièces à ligne fixe (compte 4010,
 // lib/piecesSoumission.js) — pièces d'une soumission facturée, et pièces hors
@@ -97,11 +98,11 @@ export default function PiecesHorsInventaire({ bonId, lignes, modifiable, onRafr
                 </span>
               )}
               {modifiable && horsInventaire && !pr.retourDeProblemeId && l.coutant != null && (
-                <span style={{ display: "block", fontSize: 10.5, color: "var(--text-muted)" }}>Coûtant {l.coutant.toFixed(2)} $ / unité</span>
+                <span style={{ display: "block", fontSize: 10.5, color: "var(--text-muted)" }}>Coûtant {argent(l.coutant)} / unité</span>
               )}
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-              <span>{l.qte} × {l.prix.toFixed(2)} $ = <strong style={{ color: "var(--text)" }}>{l.total.toFixed(2)} $</strong></span>
+              <span>{l.qte} × {argent(l.prix)} = <strong style={{ color: "var(--text)" }}>{argent(l.total)}</strong></span>
               {modifiable && horsInventaire && (
                 <>
                   {!pr.retourDeProblemeId && <button onClick={() => ouvrir(pr)} disabled={enCours} title="Modifier" style={boutonIcone}>✏️</button>}
@@ -142,7 +143,7 @@ export default function PiecesHorsInventaire({ bonId, lignes, modifiable, onRafr
               <input inputMode="decimal" value={formulaire.prix} onChange={(e) => setFormulaire({ ...formulaire, prix: e.target.value, prixManuel: e.target.value !== "" })} required placeholder="0,00" style={champ} />
             </label>
           </div>
-          {apercu != null && <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: 0 }}>Total facturé : <strong style={{ color: "var(--text)" }}>{apercu.toFixed(2)} $</strong> (avant taxes)</p>}
+          {apercu != null && <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: 0 }}>Total facturé : <strong style={{ color: "var(--text)" }}>{argent(apercu)}</strong> (avant taxes)</p>}
           <div style={{ display: "flex", gap: 8 }}>
             <button type="submit" disabled={enCours} style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
               {formulaire.id ? "Enregistrer" : "Ajouter au bon"}

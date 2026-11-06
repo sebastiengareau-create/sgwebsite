@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
+import BandeauSection from "../../components/BandeauSection";
 
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
@@ -69,8 +71,6 @@ const GROUPES = [
   },
 ];
 
-const FORMAT_ARGENT = new Intl.NumberFormat("fr-CA", { style: "currency", currency: "CAD" });
-const argent = (n) => FORMAT_ARGENT.format(n).replace("-", "−");
 
 function CarteChiffre({ titre, montant, couleur, note, teinte }) {
   return (
@@ -210,12 +210,7 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
 
   return (
     <div className="conteneur-page">
-      <div style={{ marginBottom: 18 }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-0.02em" }}>Comptabilité</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 14, margin: "6px 0 0" }}>
-          Les écritures se génèrent automatiquement à partir de tes factures.
-        </p>
-      </div>
+      <BandeauSection icone="💰" titre="Comptabilité" sousTitre="Les écritures se génèrent automatiquement à partir de tes factures." />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 22 }}>
         {[

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
+import { argent } from "@/lib/format";
 
 const TYPES_ORDRE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const LABEL_TYPE = {
@@ -150,14 +151,14 @@ export default function EcritureManuelleClient({ comptes }) {
 
           <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", fontSize: 13 }}>
             <span style={{ color: "var(--text-muted)" }}>Total débits</span>
-            <span style={{ fontWeight: 700 }}>{totalDebit.toFixed(2)} $</span>
+            <span style={{ fontWeight: 700 }}>{argent(totalDebit)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
             <span style={{ color: "var(--text-muted)" }}>Total crédits</span>
-            <span style={{ fontWeight: 700 }}>{totalCredit.toFixed(2)} $</span>
+            <span style={{ fontWeight: 700 }}>{argent(totalCredit)}</span>
           </div>
           <div style={{ fontSize: 12, fontWeight: 700, color: equilibree ? "var(--success)" : "var(--danger)" }}>
-            {equilibree ? "🟢 Écriture équilibrée" : `🔴 Déséquilibrée — écart de ${Math.abs(totalDebit - totalCredit).toFixed(2)} $`}
+            {equilibree ? "🟢 Écriture équilibrée" : `🔴 Déséquilibrée — écart de ${argent(Math.abs(totalDebit - totalCredit))}`}
           </div>
         </div>
 

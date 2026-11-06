@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { argent, nombre } from "@/lib/format";
 
 const COULEURS_ACTIF = ["#4F82C0", "#5AC8C8", "#7BA7D9", "#3E6A9E"];
 const COULEURS_PASSIF = ["#C9A227", "#D4B24D", "#B8901A"];
@@ -41,10 +42,10 @@ export default function BilanClient({ lignes, resultatNetCumule }) {
         }}
       >
         <div style={{ fontSize: 22, fontWeight: 800, color: equilibre ? "var(--success)" : "var(--danger)" }}>
-          {equilibre ? "✓ Le bilan s'équilibre" : `Écart de ${Math.abs(ecart).toFixed(2)} $`}
+          {equilibre ? "✓ Le bilan s'équilibre" : `Écart de ${argent(Math.abs(ecart))}`}
         </div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-          Actif {totalActif.toFixed(2)} $ = Passif {totalPassif.toFixed(2)} $ + Capitaux propres {totalCapitauxPropres.toFixed(2)} $
+          Actif {argent(totalActif)} = Passif {argent(totalPassif)} + Capitaux propres {argent(totalCapitauxPropres)}
         </div>
       </div>
 
@@ -69,7 +70,7 @@ function SectionBarres({ titre, total, lignes, couleurs }) {
     <div style={{ marginBottom: 26 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{titre}</span>
-        <span style={{ fontSize: 16, fontWeight: 800 }}>{total.toFixed(2)} $</span>
+        <span style={{ fontSize: 16, fontWeight: 800 }}>{argent(total)}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {lignes.map((l, i) => {
@@ -80,7 +81,7 @@ function SectionBarres({ titre, total, lignes, couleurs }) {
             <div key={l.numero}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
                 <span>{l.nom}</span>
-                <span style={{ fontWeight: 700 }}>{l.solde.toFixed(2)} $ <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({part.toFixed(0)}%)</span></span>
+                <span style={{ fontWeight: 700 }}>{argent(l.solde)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({nombre(part, 0)} %)</span></span>
               </div>
               <div style={{ height: 10, background: "var(--surface)", borderRadius: 999, overflow: "hidden", border: "1px solid var(--border)" }}>
                 <div style={{ width: `${largeur}%`, height: "100%", background: couleur, borderRadius: 999 }} />

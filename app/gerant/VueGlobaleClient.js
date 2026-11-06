@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { NIVEAUX } from "./niveaux";
+import { argent, nombre } from "@/lib/format";
 
 function fmt(montant) {
-  return `${montant.toFixed(2)} $`;
+  return `${argent(montant)}`;
 }
 
 function fmtNombre(n, decimales = 1) {
@@ -176,7 +177,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
             label="Comptes à payer" cible="Rien d'échu ni dû cette semaine" valeur={fmt(kpis.fournisseursAPayer)}
             {...(kpis.depensesAPayerBientotCount > 0 ? { niveau: "avertissement", etat: "À payer" } : { niveau: "bon", etat: "OK" })}
           />
-          <LigneSante label="Ratio d'endettement" cible="Cible < 25 %" valeur={`${sante.ratioEndettement.toFixed(0)} %`} {...(sante.aucuneDonnee ? neutre : niveauEndettement(sante.ratioEndettement))} />
+          <LigneSante label="Ratio d'endettement" cible="Cible < 25 %" valeur={`${nombre(sante.ratioEndettement, 0)} %`} {...(sante.aucuneDonnee ? neutre : niveauEndettement(sante.ratioEndettement))} />
         </div>
       </div>
 

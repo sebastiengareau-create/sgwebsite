@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec, limitesJourQuebec } from "@/lib/temps";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
 export default async function RapportDas(props) {
   const searchParams = await props.searchParams;
@@ -94,7 +95,7 @@ export default async function RapportDas(props) {
 
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, paddingTop: 16, borderTop: "2px solid #17150f" }}>
           <span style={{ fontSize: 16, fontWeight: 700 }}>Total DAS à remettre</span>
-          <span style={{ fontSize: 20, fontWeight: 700 }}>{totalGeneral.toFixed(2)} $</span>
+          <span style={{ fontSize: 20, fontWeight: 700 }}>{argent(totalGeneral)}</span>
         </div>
 
         <p style={{ fontSize: 10, color: "#999", marginTop: 30, textAlign: "center" }}>
@@ -115,12 +116,12 @@ function SectionRemise({ titre, lignes, total }) {
           {lignes.map((l) => (
             <tr key={l.label}>
               <td style={{ padding: "4px 0" }}>{l.label}</td>
-              <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>{l.valeur.toFixed(2)} $</td>
+              <td style={{ padding: "4px 0", textAlign: "right", fontWeight: 600 }}>{argent(l.valeur)}</td>
             </tr>
           ))}
           <tr>
             <td style={{ padding: "6px 0", fontWeight: 700, borderTop: "1px solid #ddd" }}>Sous-total {titre.split(" ")[0]}</td>
-            <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 700, borderTop: "1px solid #ddd" }}>{total.toFixed(2)} $</td>
+            <td style={{ padding: "6px 0", textAlign: "right", fontWeight: 700, borderTop: "1px solid #ddd" }}>{argent(total)}</td>
           </tr>
         </tbody>
       </table>

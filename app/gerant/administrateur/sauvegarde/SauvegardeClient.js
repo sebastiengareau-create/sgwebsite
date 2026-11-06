@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { nombre } from "@/lib/format";
 
 // Lit le fichier choisi : .json, ou .json.gz (sauvegarde automatique reçue
 // par courriel, compressée)
@@ -83,7 +84,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
       a.click();
       // Libéré plus tard : Safari (iPhone) annule le téléchargement si le lien disparaît tout de suite
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-      setMessageTelechargement({ type: "succes", texte: `Sauvegarde téléchargée ✓ (${(blob.size / 1048576).toFixed(1)} Mo)` });
+      setMessageTelechargement({ type: "succes", texte: `Sauvegarde téléchargée ✓ (${nombre((blob.size / 1048576), 1)} Mo)` });
     } catch (e) {
       setMessageTelechargement({ type: "erreur", texte: `Échec du téléchargement (${e.message}). Réessaie, idéalement depuis un ordinateur.` });
     } finally {

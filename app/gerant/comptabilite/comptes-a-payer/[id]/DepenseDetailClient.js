@@ -7,6 +7,7 @@ import { TitreSection, LigneInfo } from "../../../../components/ui";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { etatEcheance } from "@/lib/echeance";
 import { FormulairePaiementDepense, FormulaireEditionDepense, formaterDate, lienDepense } from "../ComptesAPayerClient";
+import { argent } from "@/lib/format";
 
 export default function DepenseDetailClient({ depense, fournisseurs, categories, comptesTresorerie, tpsTaux, tvqTaux, autresImpayees }) {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
           </Link>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 10, gap: 8 }}>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>{depense.montant.toFixed(2)} $</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>{argent(depense.montant)}</div>
           <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "#C9A227", color: payee || echeance?.enRetard ? "white" : "#17150f" }}>
             {payee ? "✓ Payée" : (echeance?.texte || "Impayée")}
           </span>
@@ -110,13 +111,13 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
               {l.piece ? `📦 ${l.piece.nom} (${l.piece.numero}) × ${l.qteRecue}` : l.categorieDepense.nom}
               {l.description ? ` — ${l.description}` : ""}
             </span>
-            <span>{l.montant.toFixed(2)} $</span>
+            <span>{argent(l.montant)}</span>
           </div>
         ))}
-        <LigneInfo label="Sous-total" valeur={`${sousTotal.toFixed(2)} $`} />
-        <LigneInfo label="TPS (récupérable)" valeur={`${depense.tpsPayee.toFixed(2)} $`} />
-        <LigneInfo label="TVQ (récupérable)" valeur={`${depense.tvqPayee.toFixed(2)} $`} />
-        <LigneInfo label="Total" valeur={`${depense.montant.toFixed(2)} $`} />
+        <LigneInfo label="Sous-total" valeur={`${argent(sousTotal)}`} />
+        <LigneInfo label="TPS (récupérable)" valeur={`${argent(depense.tpsPayee)}`} />
+        <LigneInfo label="TVQ (récupérable)" valeur={`${argent(depense.tvqPayee)}`} />
+        <LigneInfo label="Total" valeur={`${argent(depense.montant)}`} />
       </div>
 
       {payee && (
@@ -132,7 +133,7 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
       <div className="carte" style={{ marginBottom: 12 }}>
         <TitreSection>Solde dû à {depense.fournisseur.nom}</TitreSection>
         <div style={{ fontSize: 18, fontWeight: 700, color: soldeFournisseur > 0 ? "var(--danger)" : "var(--success)", marginBottom: 6 }}>
-          {soldeFournisseur.toFixed(2)} $
+          {argent(soldeFournisseur)}
         </div>
         {autresImpayees.length === 0 ? (
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
@@ -149,7 +150,7 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
                     {formaterDate(d.dateFacture)} — {d.description}
                     {etat && <span style={{ color: etat.couleur, marginLeft: 6, fontSize: 10.5, fontWeight: 700 }}>{etat.texte}</span>}
                   </span>
-                  <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{d.montant.toFixed(2)} $ ›</span>
+                  <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{argent(d.montant)} ›</span>
                 </Link>
               );
             })}

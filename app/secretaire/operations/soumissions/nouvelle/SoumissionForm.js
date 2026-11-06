@@ -14,6 +14,7 @@ import { CLIENT } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
 import { pieceCorrespond } from "@/lib/codesBarres";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
+import { argent } from "@/lib/format";
 
 // Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
 // en haut, avant les tâches. Les pièces restent enregistrées sur une tâche
@@ -382,7 +383,7 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
                 style={{ ...champInput, marginBottom: 0, width: 70, textAlign: "center" }}
               />
               <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                h {t.tempsEstime ? `≈ ${(Number(t.tempsEstime) * tauxHoraireClient).toFixed(2)} $` : ""}
+                h {t.tempsEstime ? `≈ ${argent((Number(t.tempsEstime) * tauxHoraireClient))}` : ""}
               </span>
             </div>
 
@@ -411,28 +412,28 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
 
       <div style={{ marginTop: 16, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-          <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({totalTemps}h × {tauxHoraireClient.toFixed(2)} $)</span>
-          <span style={{ fontWeight: 600 }}>{totalMainOeuvre.toFixed(2)} $</span>
+          <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({totalTemps}h × {argent(tauxHoraireClient)})</span>
+          <span style={{ fontWeight: 600 }}>{argent(totalMainOeuvre)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
           <span style={{ color: "var(--text-muted)" }}>Pièces estimées</span>
-          <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
+          <span style={{ fontWeight: 600 }}>{argent(totalPieces)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
           <span>Sous-total</span>
-          <span>{totalEstime.toFixed(2)} $</span>
+          <span>{argent(totalEstime)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
           <span style={{ color: "var(--text-muted)" }}>TPS ({tpsTaux}%){tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
-          <span>{tpsMontant.toFixed(2)} $</span>
+          <span>{argent(tpsMontant)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
           <span style={{ color: "var(--text-muted)" }}>TVQ ({tvqTaux}%){tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
-          <span>{tvqMontant.toFixed(2)} $</span>
+          <span>{argent(tvqMontant)}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
           <span>Total estimé (taxes incl.)</span>
-          <span style={{ color: "var(--accent)" }}>{totalAvecTaxes.toFixed(2)} $</span>
+          <span style={{ color: "var(--accent)" }}>{argent(totalAvecTaxes)}</span>
         </div>
       </div>
 
@@ -554,7 +555,7 @@ function AjoutPieces({ inventaire, onAjouterLibre, onAjouterInventaire }) {
                     style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
                   >
                     {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{libelleStock(p)}</span>
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.numero ? ` · #${p.numero}` : ""} · {Number(p.prix || 0).toFixed(2)} $</span>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.numero ? ` · #${p.numero}` : ""} · {argent(Number(p.prix || 0))}</span>
                   </button>
                 ))}
                 {suggestions.length > MAX_SUGGESTIONS_PIECES && (

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SelecteurCompteMode, { compteParDefaut } from "./SelecteurCompteMode";
+import { argent } from "@/lib/format";
 
 // Facture négative (retour de pièce, lib/retours.js) : le montant dû au
 // client est gardé en crédit client ou lui est remboursé
@@ -27,7 +28,7 @@ export default function ReglementRetour({ montant, comptesTresorerie, onRegler, 
     <div style={{ marginBottom: 10, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px dashed var(--accent)", fontSize: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontWeight: 700 }}>
         <span>↩ À remettre au client</span>
-        <span style={{ color: "var(--accent)" }}>{montant.toFixed(2)} $</span>
+        <span style={{ color: "var(--accent)" }}>{argent(montant)}</span>
       </div>
       <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 8px" }}>
         Le retour vaut plus que ce qui a été ajouté : garde la différence en crédit pour une prochaine facture, ou rembourse le client.
@@ -45,7 +46,7 @@ export default function ReglementRetour({ montant, comptesTresorerie, onRegler, 
               onClick={() => regler({ mode: "REMBOURSEMENT", compteTresorerieId, modePaiement, reference })} disabled={enCours}
               className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}
             >
-              {enCours ? "…" : `✓ Rembourser ${montant.toFixed(2)} $`}
+              {enCours ? "…" : `✓ Rembourser ${argent(montant)}`}
             </button>
             <button onClick={() => setRembourser(false)} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
               Annuler

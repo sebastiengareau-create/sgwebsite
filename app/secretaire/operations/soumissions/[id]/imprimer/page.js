@@ -9,6 +9,7 @@ import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import { LibelleTaxe } from "@/app/components/PiedFacture";
 import ConditionsGenerales from "@/app/components/ConditionsGenerales";
+import { argent } from "@/lib/format";
 
 const STATUTS = { EN_ATTENTE: "En attente", ACCEPTEE: "Acceptée", FACTUREE: "Facturée", BROUILLON: "En attente", ENVOYEE: "En attente", REFUSEE: "Refusée" };
 
@@ -120,7 +121,7 @@ export default async function ImprimerSoumission(props) {
           <div key={t.id} style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 600 }}>
               <span>{idx + 1}. {t.description}</span>
-              <span style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>{t.tempsEstime}h × {tauxHoraireClient.toFixed(2)} $ = {(t.tempsEstime * tauxHoraireClient).toFixed(2)} $</span>
+              <span style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>{t.tempsEstime}h × {argent(tauxHoraireClient)} = {argent((t.tempsEstime * tauxHoraireClient))}</span>
             </div>
             {!piecesEnHaut && t.pieces.length > 0 && <TablePieces pieces={t.pieces} />}
           </div>
@@ -128,38 +129,38 @@ export default async function ImprimerSoumission(props) {
 
         <div style={{ marginTop: 20, marginLeft: "auto", width: 280, borderTop: "2px solid #17150f", paddingTop: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-            <span>Main-d'œuvre ({totalTemps}h × {tauxHoraireClient.toFixed(2)} $)</span>
-            <span style={{ fontWeight: 600 }}>{totalMainOeuvre.toFixed(2)} $</span>
+            <span>Main-d'œuvre ({totalTemps}h × {argent(tauxHoraireClient)})</span>
+            <span style={{ fontWeight: 600 }}>{argent(totalMainOeuvre)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
             <span>Pièces estimées</span>
-            <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
+            <span style={{ fontWeight: 600 }}>{argent(totalPieces)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid #ddd" }}>
             <span>Sous-total</span>
-            <span>{totalEstime.toFixed(2)} $</span>
+            <span>{argent(totalEstime)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666" }}>
             <LibelleTaxe libelle={`TPS (${tpsTaux}%)`} numero={dict.tps_numero} />
-            <span>{tpsMontant.toFixed(2)} $</span>
+            <span>{argent(tpsMontant)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666" }}>
             <LibelleTaxe libelle={`TVQ (${tvqTaux}%)`} numero={dict.tvq_numero} />
-            <span>{tvqMontant.toFixed(2)} $</span>
+            <span>{argent(tvqMontant)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: "1px solid #ddd" }}>
             <span>Total estimé (taxes incl.)</span>
-            <span>{totalAvecTaxes.toFixed(2)} $</span>
+            <span>{argent(totalAvecTaxes)}</span>
           </div>
           {totalDepots > 0 && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#666", marginTop: 6 }}>
                 <span>Dépôt reçu</span>
-                <span>−{totalDepots.toFixed(2)} $</span>
+                <span>−{argent(totalDepots)}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, marginTop: 4, paddingTop: 6, borderTop: "1px solid #ddd" }}>
                 <span>Solde estimé</span>
-                <span>{(totalAvecTaxes - totalDepots).toFixed(2)} $</span>
+                <span>{argent((totalAvecTaxes - totalDepots))}</span>
               </div>
             </>
           )}
@@ -182,8 +183,8 @@ function TablePieces({ pieces }) {
           <tr key={p.id}>
             <td style={{ padding: "2px 0", color: "#444" }}>{p.nom}</td>
             <td style={{ padding: "2px 0", textAlign: "center", width: 50 }}>{p.qte} ×</td>
-            <td style={{ padding: "2px 0", textAlign: "right", width: 70 }}>{p.prixEstime.toFixed(2)} $</td>
-            <td style={{ padding: "2px 0", textAlign: "right", width: 80, fontWeight: 600 }}>{(p.qte * p.prixEstime).toFixed(2)} $</td>
+            <td style={{ padding: "2px 0", textAlign: "right", width: 70 }}>{argent(p.prixEstime)}</td>
+            <td style={{ padding: "2px 0", textAlign: "right", width: 80, fontWeight: 600 }}>{argent((p.qte * p.prixEstime))}</td>
           </tr>
         ))}
       </tbody>

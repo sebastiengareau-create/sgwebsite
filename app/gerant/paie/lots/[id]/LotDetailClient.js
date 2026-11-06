@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent, nombre } from "@/lib/format";
 
 export default function LotDetailClient({ lot, checklist, employesDisponibles }) {
   const router = useRouter();
@@ -79,7 +80,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
   }
 
   async function traiterLaPaie() {
-    if (!window.confirm(`Traiter la paie pour ${lot.paies.length} employé(s) — total net ${totalNet.toFixed(2)} $ ? Cette action comptabilise chaque paie et ne peut plus être annulée d'un coup (seulement employé par employé, ensuite).`)) return;
+    if (!window.confirm(`Traiter la paie pour ${lot.paies.length} employé(s) — total net ${argent(totalNet)} ? Cette action comptabilise chaque paie et ne peut plus être annulée d'un coup (seulement employé par employé, ensuite).`)) return;
     setErreur("");
     setEnCours(true);
     const res = await fetch(`/api/paie/lots/${lot.id}/comptabiliser`, { method: "POST" });
@@ -150,7 +151,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
       <div className="carte carte-m" style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 18, fontWeight: 700 }}>{lot.paies.length} employé{lot.paies.length !== 1 ? "s" : ""}</div>
         <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
-          {totalBrut.toFixed(2)} $ brut · {totalDeductions.toFixed(2)} $ retenues · <strong style={{ color: "var(--text)" }}>{totalNet.toFixed(2)} $ net</strong>
+          {argent(totalBrut)} brut · {argent(totalDeductions)} retenues · <strong style={{ color: "var(--text)" }}>{argent(totalNet)} net</strong>
         </div>
       </div>
 
@@ -219,8 +220,8 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
   const modifiable = estBrouillon && paie.employe.typeRemuneration !== "SALAIRE";
 
   const infoRemuneration = paie.employe.typeRemuneration === "SALAIRE"
-    ? `Salarié — ${(paie.employe.salaireAnnuel || 0).toFixed(2)} $/an`
-    : `${(paie.employe.tauxHoraireEmploye || 0).toFixed(2)} $/h`;
+    ? `Salarié — ${argent((paie.employe.salaireAnnuel || 0))}/an`
+    : `${argent((paie.employe.tauxHoraireEmploye || 0))}/h`;
 
   function recalculer() {
     onAjuster(paie.id, estVacances ? { montantVacances: montantValeur } : { heuresManuelles: heuresValeur, boni: boniValeur });
@@ -237,18 +238,18 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{infoRemuneration}</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Brut {paie.salaireBrut.toFixed(2)} $</div>
-          <span style={{ fontWeight: 700, fontSize: 13, textDecoration: paie.statut === "CORRIGEE" ? "line-through" : "none" }}>{paie.salaireNet.toFixed(2)} $</span>
+          <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Brut {argent(paie.salaireBrut)}</div>
+          <span style={{ fontWeight: 700, fontSize: 13, textDecoration: paie.statut === "CORRIGEE" ? "line-through" : "none" }}>{argent(paie.salaireNet)}</span>
           <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{ouvert ? "▲ replier" : "▼ détails"}</div>
         </div>
       </div>
 
       {!ouvert && (
         <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-          Retenues {paie.totalDeductions.toFixed(2)} $
-          {!estVacances && ` · ${paie.heuresTravaillees.toFixed(2)} h`}
-          {!estVacances && paie.heuresHorodateur != null && paie.heuresHorodateur !== paie.heuresTravaillees && ` (${paie.heuresHorodateur.toFixed(2)} h réelles)`}
-          {paie.boni > 0 && ` · +${paie.boni.toFixed(2)} $ boni`}
+          Retenues {argent(paie.totalDeductions)}
+          {!estVacances && ` · ${nombre(paie.heuresTravaillees)} h`}
+          {!estVacances && paie.heuresHorodateur != null && paie.heuresHorodateur !== paie.heuresTravaillees && ` (${nombre(paie.heuresHorodateur)} h réelles)`}
+          {paie.boni > 0 && ` · +${argent(paie.boni)} boni`}
         </div>
       )}
 
@@ -269,7 +270,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 }}>
                       Heures
-                      {paie.heuresHorodateur != null && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> ({paie.heuresHorodateur.toFixed(2)} h réelles)</span>}
+                      {paie.heuresHorodateur != null && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> ({nombre(paie.heuresHorodateur)} h réelles)</span>}
                     </label>
                     <input
                       type="number" min={0} step="0.01" value={heuresValeur} onChange={(e) => setHeuresValeur(e.target.value)}
@@ -295,7 +296,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
               </div>
             </>
           ) : (
-            !estVacances && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{paie.heuresTravaillees.toFixed(2)} h{paie.boni > 0 && ` · +${paie.boni.toFixed(2)} $ boni`}</div>
+            !estVacances && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{nombre(paie.heuresTravaillees)} h{paie.boni > 0 && ` · +${argent(paie.boni)} boni`}</div>
           )}
 
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 6 }}>Retenues détaillées</div>
@@ -307,7 +308,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           <LigneDetail label="Impôt Québec" valeur={paie.impotQuebec} />
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginTop: 4, paddingTop: 4, borderTop: "1px solid var(--border)" }}>
             <span>Total retenues</span>
-            <span>{paie.totalDeductions.toFixed(2)} $</span>
+            <span>{argent(paie.totalDeductions)}</span>
           </div>
 
           {paie.statut === "VERSEE" && (
@@ -388,7 +389,7 @@ function LigneDetail({ label, valeur }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 3 }}>
       <span>{label}</span>
-      <span>{valeur.toFixed(2)} $</span>
+      <span>{argent(valeur)}</span>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { argent } from "@/lib/format";
 
 export default function RemiseGouvernementaleClient({ soldes }) {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
       setMessage({ type: "erreur", texte: data.erreur });
       return;
     }
-    setMessage({ type: "succes", texte: `Remise ${libelleGroupe(groupe)} de ${data.total.toFixed(2)} $ enregistrée ✓` });
+    setMessage({ type: "succes", texte: `Remise ${libelleGroupe(groupe)} de ${argent(data.total)} enregistrée ✓` });
     setMontants((prev) => {
       const copie = { ...prev };
       soldes.filter((c) => c.groupe === groupe).forEach((c) => (copie[c.numero] = ""));
@@ -83,7 +84,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
           {soldes.filter((c) => c.groupe === groupe).map((c) => (
             <div key={c.numero} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <span style={{ flex: 1, fontSize: 13 }}>{c.nom}</span>
-              <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>solde {c.solde.toFixed(2)} $</span>
+              <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>solde {argent(c.solde)}</span>
               <input
                 type="number" min={0} step="0.01" value={montants[c.numero]}
                 onChange={(e) => changer(c.numero, e.target.value)}
@@ -94,7 +95,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
           ))}
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{totalGroupe(groupe).toFixed(2)} $</span>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>{argent(totalGroupe(groupe))}</span>
             {groupeAPayer !== groupe && (
               <button
                 onClick={() => setGroupeAPayer(groupe)}

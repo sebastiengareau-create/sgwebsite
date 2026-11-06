@@ -13,6 +13,7 @@ import { libelleVehicule } from "@/lib/vehicules";
 import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
+import { argent } from "@/lib/format";
 
 // Clients affichés d'un coup, puis par tranche avec « Afficher plus » : des
 // milliers de fiches à l'écran alourdissent la page, surtout sur cellulaire.
@@ -81,7 +82,7 @@ export default function ClientsClient({ clients, peutImporter }) {
           className="carte carte-s"
           style={{ width: "100%", textAlign: "left", cursor: "pointer", color: "var(--text)", marginBottom: 12, border: seulementSolde ? "1px solid var(--accent)" : undefined }}
         >
-          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--danger)" }}>{totalARecevoir.toFixed(2)} $</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "var(--danger)" }}>{argent(totalARecevoir)}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
             À recevoir de {avecSolde.length} client{avecSolde.length > 1 ? "s" : ""} — {seulementSolde ? "touche pour voir tous les clients" : "touche pour ne voir qu'eux"}
           </div>
@@ -129,7 +130,7 @@ export default function ClientsClient({ clients, peutImporter }) {
                 </div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-                {c.soldeDu > 0.005 && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--danger)" }}>{c.soldeDu.toFixed(2)} $ dû</span>}
+                {c.soldeDu > 0.005 && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--danger)" }}>{argent(c.soldeDu)} dû</span>}
                 {c.garantieProlongee && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--accent)" }}>🛡️ Garantie</span>}
                 {c.vehicules.length > 0 && <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>🚗 {c.vehicules.length}</span>}
                 <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{c._count.bons} bon{c._count.bons !== 1 ? "s" : ""}</span>

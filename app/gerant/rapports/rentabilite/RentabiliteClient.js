@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { argent, nombre } from "@/lib/format";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -46,15 +47,15 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
       <div className="carte" style={{ marginBottom: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{totalRevenu.toFixed(2)} $</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{argent(totalRevenu)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Revenu généré</div>
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{totalCout.toFixed(2)} $</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{argent(totalCout)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Coût réel</div>
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: totalMarge >= 0 ? "var(--accent)" : "var(--danger)" }}>{totalMarge.toFixed(2)} $</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: totalMarge >= 0 ? "var(--accent)" : "var(--danger)" }}>{argent(totalMarge)}</div>
             <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Marge totale</div>
           </div>
           <div>
@@ -65,7 +66,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
         {totalInternes > 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, color: "var(--text-muted)", marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
             <span>🛠️ Tâches internes ({fmtHeures(totalInternes)}) — compris dans le coût réel</span>
-            <span style={{ fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{totalCoutInternes.toFixed(2)} $</span>
+            <span style={{ fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{argent(totalCoutInternes)}</span>
           </div>
         )}
         <TauxRentabilite cout={totalCout} revenu={totalRevenu} libelle="Taux de rentabilité de l'équipe" />
@@ -96,14 +97,14 @@ function CarteEmploye({ d }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
         <span style={{ fontWeight: 700, fontSize: 14 }}>{d.employe.nom}</span>
         <span style={{ fontSize: 15, fontWeight: 800, color: d.marge >= 0 ? "var(--success)" : "var(--danger)" }}>
-          {d.marge >= 0 ? "+" : ""}{d.marge.toFixed(2)} $
+          {d.marge >= 0 ? "+" : ""}{argent(d.marge)}
         </span>
       </div>
 
       <div style={{ marginBottom: 6 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
           <span style={{ color: "var(--text-muted)" }}>Revenu généré</span>
-          <span style={{ fontWeight: 600 }}>{d.revenuGenere.toFixed(2)} $</span>
+          <span style={{ fontWeight: 600 }}>{argent(d.revenuGenere)}</span>
         </div>
         <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
           <div style={{ width: `${largeurRevenu}%`, height: "100%", background: "var(--success)", borderRadius: 999 }} />
@@ -112,8 +113,8 @@ function CarteEmploye({ d }) {
 
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
-          <span style={{ color: "var(--text-muted)" }}>Coût réel ({fmtHeures(d.heuresPayees)} × {d.tauxCout.toFixed(2)} $/h)</span>
-          <span style={{ fontWeight: 600 }}>{d.coutReel.toFixed(2)} $</span>
+          <span style={{ color: "var(--text-muted)" }}>Coût réel ({fmtHeures(d.heuresPayees)} × {argent(d.tauxCout)}/h)</span>
+          <span style={{ fontWeight: 600 }}>{argent(d.coutReel)}</span>
         </div>
         <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
           <div style={{ width: `${largeurCout}%`, height: "100%", background: "var(--danger)", borderRadius: 999 }} />
@@ -122,7 +123,7 @@ function CarteEmploye({ d }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
         <span>{fmtHeures(d.heuresFacturables)} facturables sur {fmtHeures(d.heuresPayees)} réelles</span>
-        {margePct !== null && <span>Marge {margePct.toFixed(0)}%</span>}
+        {margePct !== null && <span>Marge {nombre(margePct, 0)} %</span>}
       </div>
 
       <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
@@ -131,8 +132,8 @@ function CarteEmploye({ d }) {
 
       {d.heuresInternes > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
-          <span>dont tâches internes ({fmtHeures(d.heuresInternes)} × {d.tauxCout.toFixed(2)} $/h)</span>
-          <span>{d.coutInternes.toFixed(2)} $</span>
+          <span>dont tâches internes ({fmtHeures(d.heuresInternes)} × {argent(d.tauxCout)}/h)</span>
+          <span>{argent(d.coutInternes)}</span>
         </div>
       )}
 
@@ -167,7 +168,7 @@ function TauxRentabilite({ cout, revenu, libelle }) {
     >
       <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
         {libelle}
-        <span style={{ display: "block", fontSize: 10.5 }}>{revenu.toFixed(2)} $ de revenu généré pour {cout.toFixed(2)} $ de coût réel</span>
+        <span style={{ display: "block", fontSize: 10.5 }}>{argent(revenu)} de revenu généré pour {argent(cout)} de coût réel</span>
       </span>
       <span style={{ fontSize: 17, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
     </div>

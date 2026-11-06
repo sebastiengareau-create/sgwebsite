@@ -30,6 +30,7 @@ import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
 import { correspondRecherche } from "@/lib/recherche";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
+import { argent, nombre } from "@/lib/format";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -236,7 +237,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   }
   const tropPayes = bon.facture?.creditsTropPaye || [];
   async function retirerTropPaye(c) {
-    if (!window.confirm(`Retirer le crédit de ${c.montant.toFixed(2)} $ gardé sur cette facture ? Son écriture comptable sera supprimée (excédent entré par erreur).`)) return;
+    if (!window.confirm(`Retirer le crédit de ${argent(c.montant)} gardé sur cette facture ? Son écriture comptable sera supprimée (excédent entré par erreur).`)) return;
     const err = await appelFacture(`/api/credits/${c.id}`, { method: "DELETE" });
     if (err) setAvertissementFacture(err);
   }
@@ -251,12 +252,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
   async function retirerPaiementFacture(p) {
     const message = p.depot
-      ? `Retirer le dépôt de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû ; le dépôt reste au bon, non appliqué (bouton « Appliquer à la facture »).`
+      ? `Retirer le dépôt de ${argent(p.montant)} de la facture ? Le montant redeviendra dû ; le dépôt reste au bon, non appliqué (bouton « Appliquer à la facture »).`
       : p.montant < 0
-      ? `Annuler ce règlement de ${(-p.montant).toFixed(2)} $ (retour) ? ${p.modePaiement === "CREDIT_CLIENT" ? "Le crédit sera retiré au client" : "Son écriture comptable sera supprimée"} et le montant sera de nouveau à remettre.`
+      ? `Annuler ce règlement de ${argent((-p.montant))} (retour) ? ${p.modePaiement === "CREDIT_CLIENT" ? "Le crédit sera retiré au client" : "Son écriture comptable sera supprimée"} et le montant sera de nouveau à remettre.`
       : p.modePaiement === "CREDIT_CLIENT"
-      ? `Retirer le crédit client de ${p.montant.toFixed(2)} $ de la facture ? Le montant redeviendra dû et retournera au crédit du client.`
-      : `Retirer le paiement de ${p.montant.toFixed(2)} $ ? Son écriture comptable sera supprimée et le montant redeviendra dû.`;
+      ? `Retirer le crédit client de ${argent(p.montant)} de la facture ? Le montant redeviendra dû et retournera au crédit du client.`
+      : `Retirer le paiement de ${argent(p.montant)} ? Son écriture comptable sera supprimée et le montant redeviendra dû.`;
     if (!window.confirm(message)) return;
     const err = await appelFacture(`/api/factures/${bon.facture.id}/paiements/${p.id}`, { method: "DELETE" });
     if (err) setAvertissementFacture(err);
@@ -487,46 +488,46 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               <StatutFacturePill statut={bon.facture.statut} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-              <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {bon.facture.tauxHoraireUtilise.toFixed(2)} $/h)</span>
-              <span style={{ fontWeight: 600 }}>{bon.facture.totalMainOeuvre.toFixed(2)} $</span>
+              <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {argent(bon.facture.tauxHoraireUtilise)}/h)</span>
+              <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalMainOeuvre)}</span>
             </div>
             {bon.facture.totalAutresRevenus > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                 <span style={{ color: "var(--text-muted)" }}>Autres services</span>
-                <span style={{ fontWeight: 600 }}>{bon.facture.totalAutresRevenus.toFixed(2)} $</span>
+                <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalAutresRevenus)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: bon.facture.totalMaterielAtelier > 0 ? 4 : 8 }}>
               <span style={{ color: "var(--text-muted)" }}>Pièces</span>
-              <span style={{ fontWeight: 600 }}>{bon.facture.totalPieces.toFixed(2)} $</span>
+              <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalPieces)}</span>
             </div>
             {bon.facture.totalMaterielAtelier > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
                 <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER}</span>
-                <span style={{ fontWeight: 600 }}>{bon.facture.totalMaterielAtelier.toFixed(2)} $</span>
+                <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalMaterielAtelier)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>Sous-total</span>
-              <span style={{ fontWeight: 600 }}>{(bon.facture.totalFacture + (bon.facture.escompteApplique || 0)).toFixed(2)} $</span>
+              <span style={{ fontWeight: 600 }}>{argent((bon.facture.totalFacture + (bon.facture.escompteApplique || 0)))}</span>
             </div>
             {bon.facture.escompteApplique > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--danger)", marginBottom: 4 }}>
                 <span>Escompte</span>
-                <span>−{bon.facture.escompteApplique.toFixed(2)} $</span>
+                <span>−{argent(bon.facture.escompteApplique)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>
               <span>TPS{tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
-              <span>{bon.facture.tpsMontant.toFixed(2)} $</span>
+              <span>{argent(bon.facture.tpsMontant)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
               <span>TVQ{tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
-              <span>{bon.facture.tvqMontant.toFixed(2)} $</span>
+              <span>{argent(bon.facture.tvqMontant)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 12 }}>
               <span style={{ fontWeight: 700 }}>Total (taxes incluses)</span>
-              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{bon.facture.totalAvecTaxes.toFixed(2)} $</span>
+              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{argent(bon.facture.totalAvecTaxes)}</span>
             </div>
 
             {estGerant && bon.facture.totalFacture > 0 && ( // facture de retour (négative) : pas de rentabilité
@@ -536,22 +537,22 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                   <span style={{ color: "var(--text-muted)" }}>Coûtant des pièces vendues</span>
-                  <span>{coutPieces.toFixed(2)} $</span>
+                  <span>{argent(coutPieces)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
                   <span style={{ color: "var(--text-muted)" }}>{coutMainOeuvreFixe > 0 ? "Coût main-d'œuvre (heures estimées × coûtant horaire)" : "Coût réel main-d'œuvre (taux employés)"}</span>
-                  <span>{coutMainOeuvre.toFixed(2)} $</span>
+                  <span>{argent(coutMainOeuvre)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)", marginBottom: 6 }}>
                   <span style={{ color: "var(--text-muted)" }}>Total des dépenses</span>
-                  <span style={{ fontWeight: 600 }}>{totalDepensesFacture.toFixed(2)} $</span>
+                  <span style={{ fontWeight: 600 }}>{argent(totalDepensesFacture)}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    Rentabilité (dépenses = {ratioDepenses.toFixed(0)}% de la facture avant taxes)
+                    Rentabilité (dépenses = {nombre(ratioDepenses, 0)} % de la facture avant taxes)
                   </span>
                   <span style={{ fontWeight: 700, fontSize: 14, color: rentabilitePourcent >= 0 ? "var(--success)" : "var(--danger)" }}>
-                    {rentabilitePourcent.toFixed(0)} %
+                    {nombre(rentabilitePourcent, 0)} %
                   </span>
                 </div>
               </div>
@@ -604,7 +605,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                       {p.compteTresorerie ? ` · ${p.compteTresorerie.nom}` : ""}{p.reference ? ` · réf. ${p.reference}` : ""}
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-                      <strong>{p.montant.toFixed(2)} $</strong>
+                      <strong>{argent(p.montant)}</strong>
                       {peutModifier && (
                         <button onClick={() => retirerPaiementFacture(p)} disabled={enCours} aria-label="Retirer ce paiement" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
                       )}
@@ -618,7 +619,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                       {c.compteTresorerie ? ` · ${c.compteTresorerie.nom}` : ""}
                     </span>
                     <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-                      <strong>{c.montant.toFixed(2)} $</strong>
+                      <strong>{argent(c.montant)}</strong>
                       {peutModifier && (
                         <button onClick={() => retirerTropPaye(c)} disabled={enCours} aria-label="Retirer ce crédit" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
                       )}
@@ -628,7 +629,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 {bon.facture.statut === "IMPAYEE" && (
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)" }}>
                     <span>Solde à payer</span>
-                    <span style={{ color: "#C9A227" }}>{soldeFacture.toFixed(2)} $</span>
+                    <span style={{ color: "#C9A227" }}>{argent(soldeFacture)}</span>
                   </div>
                 )}
               </div>
@@ -647,11 +648,11 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               <div style={{ marginBottom: 10, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px dashed var(--success)", fontSize: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                   <span>🎟️ Crédit client disponible</span>
-                  <strong>{creditClient.toFixed(2)} $</strong>
+                  <strong>{argent(creditClient)}</strong>
                 </div>
                 {peutModifier && (
                   <button onClick={appliquerCreditFacture} disabled={enCours} style={{ ...boutonAjout, width: "100%", marginTop: 8, color: "var(--success)", fontWeight: 700 }}>
-                    Appliquer {creditApplicable.toFixed(2)} $ sur la facture
+                    Appliquer {argent(creditApplicable)} sur la facture
                   </button>
                 )}
               </div>
@@ -696,12 +697,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           <>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>
-                Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {tauxHoraireEffectif.toFixed(2)} $/h){heuresEnCours ? " *" : ""}
+                Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {argent(tauxHoraireEffectif)}/h){heuresEnCours ? " *" : ""}
                 {peutModifier && (
                   <button onClick={() => setAfficherTauxHoraire((v) => !v)} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", marginLeft: 4, padding: 0 }}>✏️</button>
                 )}
               </span>
-              <span style={{ fontWeight: 600 }}>{totalMainOeuvre.toFixed(2)} $</span>
+              <span style={{ fontWeight: 600 }}>{argent(totalMainOeuvre)}</span>
             </div>
             {afficherTauxHoraire && (
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
@@ -714,7 +715,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 <button onClick={sauvegarderTauxHoraire} disabled={enCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>✓</button>
                 {bon.tauxHoraireOverride != null && (
                   <button onClick={reinitialiserTauxHoraire} disabled={enCours} style={{ fontSize: 10.5, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-                    Revenir au défaut ({tauxHoraireClient.toFixed(2)} $)
+                    Revenir au défaut ({argent(tauxHoraireClient)})
                   </button>
                 )}
               </div>
@@ -723,22 +724,22 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             {totalAutresRevenus > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                 <span style={{ color: "var(--text-muted)" }}>Autres services</span>
-                <span style={{ fontWeight: 600 }}>{totalAutresRevenus.toFixed(2)} $</span>
+                <span style={{ fontWeight: 600 }}>{argent(totalAutresRevenus)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: TAUX_MATERIEL_ATELIER ? 4 : 8 }}>
               <span style={{ color: "var(--text-muted)" }}>Pièces</span>
-              <span style={{ fontWeight: 600 }}>{totalPieces.toFixed(2)} $</span>
+              <span style={{ fontWeight: 600 }}>{argent(totalPieces)}</span>
             </div>
             {TAUX_MATERIEL_ATELIER > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
                 <span style={{ color: "var(--text-muted)" }}>{LIBELLE_MATERIEL_ATELIER}</span>
-                <span style={{ fontWeight: 600 }}>{totalMaterielAtelier.toFixed(2)} $</span>
+                <span style={{ fontWeight: 600 }}>{argent(totalMaterielAtelier)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>Sous-total</span>
-              <span style={{ fontWeight: 600 }}>{sousTotalAvantEscompte.toFixed(2)} $</span>
+              <span style={{ fontWeight: 600 }}>{argent(sousTotalAvantEscompte)}</span>
             </div>
 
             {peutModifier && (
@@ -762,20 +763,20 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             {escompteApplique > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--danger)", marginBottom: 8 }}>
                 <span>{libelleEscompte(bon)}</span>
-                <span>−{escompteApplique.toFixed(2)} $</span>
+                <span>−{argent(escompteApplique)}</span>
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 2 }}>
               <span>TPS ({tpsTaux}%){tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
-              <span>{tpsEstime.toFixed(2)} $</span>
+              <span>{argent(tpsEstime)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
               <span>TVQ ({tvqTaux}%){tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
-              <span>{tvqEstime.toFixed(2)} $</span>
+              <span>{argent(tvqEstime)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
               <span style={{ fontWeight: 700 }}>Total estimé (taxes incluses)</span>
-              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{totalAvecTaxesEstime.toFixed(2)} $</span>
+              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{argent(totalAvecTaxesEstime)}</span>
             </div>
             {heuresEnCours && <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>* Un poinçon est encore actif — le total augmentera une fois arrêté.</p>}
 
@@ -1171,7 +1172,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
             <div style={{ marginLeft: "auto", textAlign: "right" }}>
               <label style={etiquetteChamp}>Total</label>
               <div style={{ fontSize: 15, fontWeight: 700, paddingBottom: 4 }}>
-                {((parseFloat(String(editPrixFacturation).replace(",", ".")) || 0) * (parseFloat(String(editQteFacturation).replace(",", ".")) || 0)).toFixed(2)} $
+                {argent(((parseFloat(String(editPrixFacturation).replace(",", ".")) || 0) * (parseFloat(String(editQteFacturation).replace(",", ".")) || 0)))}
               </div>
             </div>
           </div>
@@ -1189,8 +1190,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
           <div style={{ fontSize: 10, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>💵 Facturation de cette tâche</div>
           {probleme.factureDescription && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{probleme.factureDescription}</div>}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-            <span style={{ color: "var(--text-muted)" }}>{probleme.factureQte ?? 1} × {(probleme.facturePrixUnitaire || 0).toFixed(2)} $</span>
-            <span style={{ fontWeight: 700 }}>{((probleme.facturePrixUnitaire || 0) * (probleme.factureQte ?? 1)).toFixed(2)} $</span>
+            <span style={{ color: "var(--text-muted)" }}>{probleme.factureQte ?? 1} × {argent((probleme.facturePrixUnitaire || 0))}</span>
+            <span style={{ fontWeight: 700 }}>{argent(((probleme.facturePrixUnitaire || 0) * (probleme.factureQte ?? 1)))}</span>
           </div>
         </div>
       )}
@@ -1535,7 +1536,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     <div style={style}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>{titre}</span>
-        {Math.abs(totalLigne) > 0.005 && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>{totalLigne.toFixed(2)} $</span>}
+        {Math.abs(totalLigne) > 0.005 && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>{argent(totalLigne)}</span>}
       </div>
 
       {pieces.length > 0 && (
@@ -1563,13 +1564,13 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                       {l.piece.nom}
                     </div>
                     <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                      {l.qte} × {l.prix.toFixed(2)} ${l.bo ? " · en commande, pas encore reçue" : ""}
+                      {l.qte} × {argent(l.prix)}{l.bo ? " · en commande, pas encore reçue" : ""}
                       {l.retourDeId && ` · facture ${l.retourFacture}${l.defectueuse ? " · défectueuse, pas remise en stock" : " · remise en stock"}`}
                     </div>
                     {l.kit && <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Kit, par unité : {libelleContenuKit(l.kit)}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>{(l.qte * l.prix).toFixed(2)} $</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{argent((l.qte * l.prix))}</span>
                     {!verrouille && (
                       <>
                         {!l.retourDeId && <button onClick={() => { setPieceEnEdition(l.id); setEditPrix(String(l.prix)); setEditQte(String(l.qte)); }} style={boutonTexte}>✏️</button>}
@@ -1677,7 +1678,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                           {r.nom}{r.numero && <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · #{r.numero}</span>}
                           {r.type === "HORS_INVENTAIRE" && <span style={{ color: "var(--text-muted)", fontSize: 10.5 }}> · hors inventaire</span>}
                         </span>
-                        <strong style={{ whiteSpace: "nowrap" }}>{r.prix.toFixed(2)} $</strong>
+                        <strong style={{ whiteSpace: "nowrap" }}>{argent(r.prix)}</strong>
                       </div>
                       <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
                         Facture {r.factureNumero} du {new Date(r.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} · {r.qteRetournable} retournable{r.qteRetournable > 1 ? "s" : ""}{r.qteRetournable < r.qteVendue ? ` sur ${r.qteVendue}` : ""}
@@ -1697,7 +1698,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                       {r.type === "HORS_INVENTAIRE" && !choix.defectueuse && (
                         <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 5 }}>
                           <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                            Pièce gardée : elle va en inventaire au coûtant de {(r.coutant || 0).toFixed(2)} $.
+                            Pièce gardée : elle va en inventaire au coûtant de {argent((r.coutant || 0))}.
                           </span>
                           <select
                             value={choix.pieceId || ""} onChange={(e) => changer({ pieceId: e.target.value })}

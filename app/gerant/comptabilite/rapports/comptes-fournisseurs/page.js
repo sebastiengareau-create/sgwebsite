@@ -5,6 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import Link from "next/link";
 import BoutonImprimerRapport from "../BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
+import { argent } from "@/lib/format";
 
 const TRANCHES = [
   { cle: "0-30", label: "0-30 jours", max: 30 },
@@ -82,10 +83,10 @@ export default async function RapportComptesFournisseurs() {
                 </td>
                 {TRANCHES.map((t) => (
                   <td key={t.cle} style={{ padding: "6px 4px", textAlign: "right", color: d[t.cle] > 0 && t.cle === "90+" ? "#a83232" : "#17150f" }}>
-                    {d[t.cle] > 0 ? d[t.cle].toFixed(2) + " $" : ""}
+                    {d[t.cle] > 0 ? argent(d[t.cle]) : ""}
                   </td>
                 ))}
-                <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: 700 }}>{d.total.toFixed(2)} $</td>
+                <td style={{ padding: "6px 4px", textAlign: "right", fontWeight: 700 }}>{argent(d.total)}</td>
               </tr>
             ))}
             {lignesFournisseurs.length === 0 && (
@@ -96,9 +97,9 @@ export default async function RapportComptesFournisseurs() {
             <tr style={{ borderTop: "2px solid #17150f" }}>
               <td style={{ padding: "8px 4px", fontWeight: 700 }}>Total</td>
               {TRANCHES.map((t) => (
-                <td key={t.cle} style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{totauxTranches[t.cle].toFixed(2)} $</td>
+                <td key={t.cle} style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(totauxTranches[t.cle])}</td>
               ))}
-              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{grandTotal.toFixed(2)} $</td>
+              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{argent(grandTotal)}</td>
             </tr>
           </tfoot>
         </table>

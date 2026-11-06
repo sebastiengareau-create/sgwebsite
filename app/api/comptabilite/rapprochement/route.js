@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { limitesJourQuebec } from "@/lib/temps";
 import { sensCompte, montantLigne, obtenirSoldeOuverture, obtenirLignesNonVerrouillees } from "@/lib/rapprochement";
+import { argent } from "@/lib/format";
 
 // Enregistre une conciliation : tout est recalculé ici (pas de confiance aux
 // soldes envoyés par le navigateur), refusé s'il reste un écart, puis les
@@ -43,7 +44,7 @@ export async function POST(request) {
   const soldeLivres = soldeOuverture + lignesPeriode.reduce((s, l) => s + montantLigne(l, sens), 0);
   const ecart = releve - soldePointe;
   if (Math.abs(ecart) >= 0.01) {
-    return NextResponse.json({ erreur: `Il reste un écart de ${ecart.toFixed(2)} $ entre le relevé et les lignes pointées.` }, { status: 400 });
+    return NextResponse.json({ erreur: `Il reste un écart de ${argent(ecart)} entre le relevé et les lignes pointées.` }, { status: 400 });
   }
 
   const rapprochement = await prisma.$transaction(async (tx) => {

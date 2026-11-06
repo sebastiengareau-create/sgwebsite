@@ -7,6 +7,7 @@ import { TitreSection } from "../../../components/ui";
 import ScannerCodeBarres from "../../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../../components/ImpressionEtiquettes";
 import { extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
+import { argent, nombre } from "@/lib/format";
 
 const ONGLETS = [
   { code: "resume", label: "Résumé" },
@@ -290,10 +291,10 @@ function OngletResume({ piece, marge, margePct }) {
 
       <div className="carte" style={{ marginBottom: 12 }}>
         <TitreSection>Prix et marge</TitreSection>
-        <Champ label="Coût moyen" valeur={`${(piece.coutant || 0).toFixed(2)} $`} />
-        <Champ label="Prix de vente" valeur={`${piece.prix.toFixed(2)} $`} />
+        <Champ label="Coût moyen" valeur={`${argent((piece.coutant || 0))}`} />
+        <Champ label="Prix de vente" valeur={`${argent(piece.prix)}`} />
         <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
-          <Champ label="Marge par unité" valeur={`${marge.toFixed(2)} $ (${margePct.toFixed(0)} %)`} accent />
+          <Champ label="Marge par unité" valeur={`${argent(marge)} (${nombre(margePct, 0)} %)`} accent />
         </div>
       </div>
 
@@ -369,7 +370,7 @@ function OngletAchats({ lignesDepense }) {
             </div>
             <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>+{l.qteRecue}</div>
-              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{(l.montant / l.qteRecue).toFixed(2)} $ / unité</div>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{argent((l.montant / l.qteRecue))} / unité</div>
             </div>
           </div>
         ))}
@@ -390,7 +391,7 @@ function OngletVentes({ utilisee }) {
           <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
               <span style={{ color: "var(--text-muted)" }}>#{u.probleme.bon.numero} — {u.probleme.bon.client.nom}</span>
-              <span>{u.qte} × {u.prix.toFixed(2)} $</span>
+              <span>{u.qte} × {argent(u.prix)}</span>
             </div>
           </Link>
         ))}
@@ -501,7 +502,7 @@ function OngletFournisseurs({ piece, fournisseurs }) {
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: moinsCher && l.id === moinsCher.id && liens.length > 1 ? "var(--success)" : "var(--text)" }}>
-                        {l.coutant != null ? `${l.coutant.toFixed(2)} $` : "—"}
+                        {l.coutant != null ? `${argent(l.coutant)}` : "—"}
                       </div>
                       {moinsCher && l.id === moinsCher.id && liens.length > 1 && <div style={{ fontSize: 10, color: "var(--success)" }}>le moins cher</div>}
                     </div>

@@ -8,6 +8,7 @@ import BoutonImprimer from "../../../../../bons/[id]/imprimer/BoutonImprimer";
 import { lignesAdresse } from "@/lib/adresse";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 import PiedFacture, { LibelleTaxe } from "@/app/components/PiedFacture";
+import { argent } from "@/lib/format";
 
 // Facture de vente d'un véhicule à vendre, à imprimer — même présentation
 // que la facture d'un bon (app/bons/[id]/imprimer).
@@ -74,7 +75,7 @@ export default async function ImprimerFactureVente(props) {
             </div>
             {vv.description && <div style={{ fontSize: 12, color: "#444", whiteSpace: "pre-wrap", marginTop: 6 }}>{vv.description}</div>}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>{fv.prixVente.toFixed(2)} $</div>
+          <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>{argent(fv.prixVente)}</div>
         </div>
 
         <div style={{ marginTop: 16, marginLeft: "auto", width: 320, maxWidth: "100%" }}>
@@ -83,7 +84,7 @@ export default async function ImprimerFactureVente(props) {
           <LigneTotal label={<LibelleTaxe libelle="TVQ" numero={dict.tvq_numero} />} valeur={fv.tvqMontant} petit />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, paddingTop: 10, borderTop: "2px solid #17150f" }}>
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase" }}>Total (taxes incl.)</span>
-            <span style={{ fontSize: 20, fontWeight: 700 }}>{fv.totalAvecTaxes.toFixed(2)} $</span>
+            <span style={{ fontSize: 20, fontWeight: 700 }}>{argent(fv.totalAvecTaxes)}</span>
           </div>
         </div>
 
@@ -99,7 +100,7 @@ function LigneTotal({ label, valeur, petit }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", fontSize: petit ? 12 : 13, color: petit ? "#666" : "#17150f", padding: "3px 0" }}>
       <span>{label}</span>
-      <span>{valeur.toFixed(2)} $</span>
+      <span>{argent(valeur)}</span>
     </div>
   );
 }
