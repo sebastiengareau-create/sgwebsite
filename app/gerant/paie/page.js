@@ -91,7 +91,7 @@ export default async function Paie() {
   const brouillons = lotsAvecTotaux.filter((l) => l.statut === "BROUILLON");
   if (brouillons.length > 0) {
     alertes.push({
-      icone: "🟡",
+      icone: "presse",
       texte: `${brouillons.length} lot${brouillons.length !== 1 ? "s" : ""} de paie en brouillon à traiter`,
       niveau: "avertissement",
       href: `/gerant/paie/lots/${brouillons[0].id}`,
@@ -103,7 +103,7 @@ export default async function Paie() {
     );
     if (ecarts.length > 0) {
       alertes.push({
-        icone: "🕒",
+        icone: "horloge",
         texte: `${ecarts.length} employé${ecarts.length !== 1 ? "s" : ""} avec un écart entre heures poinçonnées et heures payées sur le dernier lot`,
         niveau: "avertissement",
         href: `/gerant/paie/lots/${dernierLotDetail.id}`,

@@ -5,41 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent } from "@/lib/format";
 import BandeauSection from "../../components/BandeauSection";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonContour, GroupeLiens } from "../../components/StyleSection";
 
 const ORDRE_TYPE = ["ACTIF", "PASSIF", "CAPITAUX_PROPRES", "REVENU", "DEPENSE"];
 const COULEUR_TYPE = { ACTIF: "#4F82C0", PASSIF: "#C9A227", CAPITAUX_PROPRES: "#9C978A", REVENU: "#6FA96B", DEPENSE: "#C15B4A" };
 
-// Icônes au trait (style uniforme), dessinées en ligne pour éviter toute dépendance.
-const ICONES = {
-  echange: <><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="m16 21 4-4-4-4" /><path d="M20 17H4" /></>,
-  liste: <><path d="m3 7 2 2 4-4" /><path d="m3 17 2 2 4-4" /><path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" /></>,
-  crayon: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,
-  livre: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z" /><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5" /></>,
-  presse: <><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="m9 14 2 2 4-4" /></>,
-  cadenas: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
-  banque: <><path d="m3 9 9-6 9 6" /><path d="M5 9h14" /><path d="M6 13v5" /><path d="M10 13v5" /><path d="M14 13v5" /><path d="M18 13v5" /><path d="M3 21h18" /></>,
-  imprimante: <><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></>,
-  tendance: <><path d="m22 7-8.5 8.5-5-5L2 17" /><path d="M16 7h6v6" /></>,
-  boite: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><path d="M3.3 7 12 12l8.7-5" /><path d="M12 22V12" /></>,
-  drapeau: <><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><path d="M4 22v-7" /></>,
-  graphique: <><path d="M3 3v18h18" /><path d="M8 17v-4" /><path d="M12 17V9" /><path d="M16 17v-6" /></>,
-  balance: <><path d="M12 3v18" /><path d="M7 21h10" /><path d="M3 7h18" /><path d="m6 7-3 7a3 3 0 0 0 6 0Z" /><path d="m18 7-3 7a3 3 0 0 0 6 0Z" /></>,
-  chevron: <path d="m9 18 6-6-6-6" />,
-  plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
-};
-
-function Icone({ nom, taille = 22, couleur = "currentColor" }) {
-  return (
-    <svg width={taille} height={taille} viewBox="0 0 24 24" fill="none" stroke={couleur} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {ICONES[nom]}
-    </svg>
-  );
-}
-
 // Chaque groupe a sa teinte, pour se repérer d'un coup d'œil.
 const GROUPES = [
   {
-    titre: "Au quotidien", couleur: "var(--accent-ombre)", fond: "rgba(232,163,61,0.16)",
+    titre: "Au quotidien", teinte: TEINTES.ambre,
     liens: [
       { href: "/gerant/comptabilite/transactions-bancaires", icone: "echange", label: "Transactions bancaires", detail: "Importer et classer les mouvements" },
       { href: "/gerant/comptabilite/rapprochement", icone: "liste", label: "Conciliation bancaire", detail: "Rapprocher le relevé et les livres" },
@@ -48,7 +22,7 @@ const GROUPES = [
     ],
   },
   {
-    titre: "Fin de période", couleur: "var(--bleu)", fond: "var(--bleu-fond)",
+    titre: "Fin de période", teinte: TEINTES.bleu,
     liens: [
       { href: "/gerant/comptabilite/procedure", icone: "presse", label: "Procédure de fermeture", detail: "Liste des étapes à compléter" },
       { href: "/gerant/comptabilite/fermeture", icone: "cadenas", label: "Fermeture de période", detail: "Verrouiller les écritures" },
@@ -56,14 +30,14 @@ const GROUPES = [
     ],
   },
   {
-    titre: "Rapports", couleur: "var(--success)", fond: "var(--success-fond)",
+    titre: "Rapports", teinte: TEINTES.vert,
     liens: [
       { href: "/gerant/comptabilite/rapports", icone: "imprimante", label: "Rapports imprimables", detail: "Exporter en PDF ou imprimer" },
       { href: "/gerant/comptabilite/previsions", icone: "tendance", label: "Prévisions de trésorerie", detail: "Entrées et sorties à venir" },
     ],
   },
   {
-    titre: "Configuration", couleur: "var(--text-muted)", fond: "var(--surface-alt)", discret: true,
+    titre: "Configuration", teinte: TEINTES.neutre,
     liens: [
       { href: "/gerant/comptabilite/immobilisations", icone: "boite", label: "Immobilisations", detail: "Actifs et amortissement" },
       { href: "/gerant/comptabilite/ouverture", icone: "drapeau", label: "Soldes d’ouverture", detail: "Montants au début de l’exercice" },
@@ -71,23 +45,6 @@ const GROUPES = [
   },
 ];
 
-
-function CarteChiffre({ titre, montant, couleur, note, teinte }) {
-  return (
-    <div style={{
-      position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)",
-      borderRadius: 18, padding: "18px 20px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-    }}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
-      <div style={{ position: "absolute", right: -30, top: -30, width: 110, height: 110, borderRadius: "50%", background: teinte, opacity: 0.08 }} />
-      <div style={{ fontSize: 13, color: "var(--text-muted)", fontWeight: 600 }}>{titre}</div>
-      <div style={{ fontSize: 30, fontWeight: 800, color: couleur, letterSpacing: "-0.02em", margin: "6px 0 4px", fontVariantNumeric: "tabular-nums" }}>
-        {montant}
-      </div>
-      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{note}</div>
-    </div>
-  );
-}
 
 export default function PlanComptableClient({ comptes, labelsType, estDeveloppeur, dateLabel, tresorerie }) {
   const router = useRouter();
@@ -213,22 +170,11 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
       <BandeauSection icone="💰" titre="Comptabilité" sousTitre="Les écritures se génèrent automatiquement à partir des factures, comptes à payer, de la paie et des mouvements d’inventaire." />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 22 }}>
-        {[
-          { href: "/gerant/comptabilite/etat-resultats", icone: "graphique", label: "État des résultats" },
-          { href: "/gerant/comptabilite/bilan", icone: "balance", label: "Bilan" },
-        ].map((b) => (
-          <Link key={b.href} href={b.href} style={{
-            display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 18px", borderRadius: 12,
-            border: "1.5px solid var(--accent)", background: "var(--surface)", color: "var(--text)",
-            fontSize: 14, fontWeight: 700, textDecoration: "none",
-          }}>
-            <Icone nom={b.icone} taille={18} couleur="var(--accent-ombre)" />
-            {b.label}
-          </Link>
-        ))}
+        <BoutonContour href="/gerant/comptabilite/etat-resultats" icone="graphique">État des résultats</BoutonContour>
+        <BoutonContour href="/gerant/comptabilite/bilan" icone="balance">Bilan</BoutonContour>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginBottom: 28 }}>
+      <GrilleChiffres>
         <CarteChiffre
           titre="Revenus totaux" montant={argent(totalRevenu)} couleur="var(--success)" teinte="var(--success)"
           note={`Cumul à ce jour · au ${dateLabel}`}
@@ -244,34 +190,9 @@ export default function PlanComptableClient({ comptes, labelsType, estDeveloppeu
             note={tresorerie.dateConciliation ? `Solde bancaire · dernière conciliation ${tresorerie.dateConciliation}` : "Solde bancaire · aucune conciliation encore"}
           />
         )}
-      </div>
+      </GrilleChiffres>
 
-      {GROUPES.map((g) => (
-        <section key={g.titre} style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 10 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: g.couleur }} />
-            {g.titre}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-            {g.liens.map((l) => (
-              <Link key={l.href} href={l.href} style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "16px 16px", borderRadius: 16,
-                background: g.discret ? "var(--surface-alt)" : "var(--surface)", border: "1px solid var(--border)",
-                textDecoration: "none", color: "var(--text)",
-              }}>
-                <span style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 12, background: g.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Icone nom={l.icone} couleur={g.couleur} />
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 15, fontWeight: 700 }}>{l.label}</span>
-                  <span style={{ display: "block", fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{l.detail}</span>
-                </span>
-                <Icone nom="chevron" taille={18} couleur="var(--text-muted)" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
+      {GROUPES.map((g) => <GroupeLiens key={g.titre} {...g} />)}
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 }}>
