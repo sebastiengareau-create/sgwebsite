@@ -31,6 +31,7 @@ import { compresserImage } from "@/lib/images";
 import { correspondRecherche } from "@/lib/recherche";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
 import { argent, nombre } from "@/lib/format";
+import { Icone, TEINTES, Pastille, TitreGroupe } from "../components/StyleSection";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
 // ici : ce module charge Prisma) — affiché devant le poste « Main-d'œuvre ».
@@ -375,108 +376,126 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
   return (
     <div className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <button onClick={() => router.back()} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}>
-          ← Retour
-        </button>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <Link
-            href={`/bons/${bon.id}/commande`}
-            target="_blank"
-            style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}
-          >
-            🖨️ Imprimer bon de travail
-          </Link>
-          <Link
-            href={`/bons/${bon.id}/imprimer`}
-            target="_blank"
-            style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}
-          >
-            🖨️ {bon.facture ? "Facture" : "Bon de commande"}
-          </Link>
-          {/* Le bon de commande en PDF au client ; une fois facturé, l'envoi
-              de la facture se fait dans la section Facture */}
-          {peutModifier && !bon.facture && (
-            <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle="📧 Envoyer le bon" style={{ fontSize: 12, padding: "6px 12px" }} />
-          )}
-          {peutEnvoyer && !factureExiste && (
-            <Link
-              href={`/gerant/jobs-deplacement?bon=${bon.id}`}
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}
-            >
-              🚐 Envoyer en déplacement
-            </Link>
-          )}
-          {peutModifier && !factureExiste && (
-            <button
-              onClick={supprimerBon}
-              disabled={enCours}
-              style={{ fontSize: 12, fontWeight: 600, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8, cursor: "pointer" }}
-            >
-              🗑️ Supprimer
-            </button>
-          )}
+      <button onClick={() => router.back()} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 10 }}>
+        ← Retour
+      </button>
+
+      {/* En-tête du bon : numéro, statut, date, client, véhicule */}
+      <div style={{
+        position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 18, padding: "16px 18px 16px 22px", marginBottom: 14,
+      }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: STATUTS[bon.statut].color }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>Bon #{bon.numero}</span>
+          <StatusPill statut={bon.statut} />
         </div>
+        <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
+
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+          <span style={tuileIcone(TEINTES.ambre)}><Icone nom="utilisateurs" taille={20} couleur={TEINTES.ambre.couleur} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <ClientBon bon={bon} clients={clientsChoix} peutModifierNom={peutModifier && !factureExiste} />
+            {(bon.client.adresse || bon.client.ville) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
+                <Icone nom="epingle" taille={14} /> {adresseComplete(bon.client)}
+              </div>
+            )}
+            {bon.client.telephone && (
+              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
+                <a href={`tel:${bon.client.telephone}`} style={{ color: "inherit", textDecoration: "none" }}>📞 {bon.client.telephone}</a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+          <span style={tuileIcone(TEINTES.bleu)}><Icone nom="vehicule" taille={20} couleur={TEINTES.bleu.couleur} /></span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
+            {CLIENT.photosArrivee && <PhotosArriveeBon bonId={bon.id} photos={bon.photosArrivee || []} modifiable={!factureExiste} />}
+            {vehiculeRecherchable && CLIENT.rechercheSousVehicule && (
+              <button
+                type="button"
+                onClick={() => setRechercheWeb("")}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)", background: "rgba(232,163,61,0.14)", border: "none", borderRadius: 999, padding: "5px 12px", cursor: "pointer" }}
+              >
+                <Icone nom="loupe" taille={14} /> Rechercher des pièces
+              </button>
+            )}
+          </div>
+        </div>
+        {rechercheWeb !== null && (
+          <RecherchePieces
+            vehicule={bon.vehicule}
+            sites={sitesPieces}
+            pieceInitiale={rechercheWeb}
+            resultat={peutModifier ? {
+              explication: "elle s'ajoute aux pièces à commander du bon.",
+              rendre: (r) => <ResultatPourBon bonId={bon.id} sites={sitesPieces} {...r} />,
+            } : null}
+            onFermer={() => setRechercheWeb(null)}
+          />
+        )}
+        {bon.vehiculeVente && (
+          <div style={{ marginTop: 12, background: "var(--avertissement-fond)", borderRadius: 12, padding: "10px 12px", fontSize: 12.5, color: "var(--text-muted)" }}>
+            🚐 Bon interne sur le véhicule à vendre{" "}
+            <Link href={`/secretaire/inventaire/vehicules/${bon.vehiculeVente.id}`} style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>{bon.vehiculeVente.numero}</Link>
+            {" "}— facturé sans taxes ; la facture se paie en ajoutant son montant au coûtant du véhicule.
+          </div>
+        )}
+        <FichiersRendezVous fichiers={bon.rendezVous?.fichiers} style={{ marginTop: 10 }} />
+        <BanderoleBo bon={bon} style={{ marginTop: 10, whiteSpace: "normal" }} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{bon.numero}</span>
-        <StatusPill statut={bon.statut} />
+      {/* Actions : boutons de même largeur, sur une ou deux rangées */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+        <Link href={`/bons/${bon.id}/commande`} target="_blank" style={boutonActionBon}>
+          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Bon de travail
+        </Link>
+        <Link href={`/bons/${bon.id}/imprimer`} target="_blank" style={boutonActionBon}>
+          <Icone nom="document" taille={17} couleur="var(--accent-ombre)" /> {bon.facture ? "Facture" : "Bon de commande"}
+        </Link>
+        {/* Le bon de commande en PDF au client ; une fois facturé, l'envoi
+            de la facture se fait dans la section Facture */}
+        {peutModifier && !bon.facture && (
+          <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle="📧 Envoyer le bon" style={boutonActionBon} />
+        )}
+        {peutEnvoyer && !factureExiste && (
+          <Link href={`/gerant/jobs-deplacement?bon=${bon.id}`} style={boutonActionBon}>
+            <Icone nom="vehicule" taille={17} couleur="var(--accent-ombre)" /> En déplacement
+          </Link>
+        )}
+        {peutModifier && !factureExiste && (
+          <button onClick={supprimerBon} disabled={enCours} style={{ ...boutonActionBon, color: "var(--danger)" }}>
+            <Icone nom="poubelle" taille={17} /> Supprimer
+          </button>
+        )}
       </div>
-      <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
-      <ClientBon bon={bon} clients={clientsChoix} peutModifierNom={peutModifier && !factureExiste} />
-      {(bon.client.adresse || bon.client.ville) && (
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-          {adresseComplete(bon.client)}
-        </div>
-      )}
-      {bon.client.telephone && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{bon.client.telephone}</div>}
-      <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
-      {CLIENT.photosArrivee && <PhotosArriveeBon bonId={bon.id} photos={bon.photosArrivee || []} modifiable={!factureExiste} />}
-      {vehiculeRecherchable && CLIENT.rechercheSousVehicule && (
-        <button
-          type="button"
-          onClick={() => setRechercheWeb("")}
-          style={{ marginTop: 6, fontSize: 12, fontWeight: 600, color: "var(--accent)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 999, padding: "4px 11px", cursor: "pointer" }}
-        >
-          🔎 Rechercher des pièces
-        </button>
-      )}
-      {rechercheWeb !== null && (
-        <RecherchePieces
-          vehicule={bon.vehicule}
-          sites={sitesPieces}
-          pieceInitiale={rechercheWeb}
-          resultat={peutModifier ? {
-            explication: "elle s'ajoute aux pièces à commander du bon.",
-            rendre: (r) => <ResultatPourBon bonId={bon.id} sites={sitesPieces} {...r} />,
-          } : null}
-          onFermer={() => setRechercheWeb(null)}
-        />
-      )}
-      {bon.vehiculeVente && (
-        <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid #C9A227", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
-          🚐 Bon interne sur le véhicule à vendre{" "}
-          <Link href={`/secretaire/inventaire/vehicules/${bon.vehiculeVente.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>{bon.vehiculeVente.numero}</Link>
-          {" "}— facturé sans taxes ; la facture se paie en ajoutant son montant au coûtant du véhicule.
-        </div>
-      )}
-      <FichiersRendezVous fichiers={bon.rendezVous?.fichiers} style={{ marginTop: 8 }} />
-      <BanderoleBo bon={bon} style={{ marginTop: 10, whiteSpace: "normal" }} />
 
       {factureExiste && (
-        <div style={{ marginTop: 10, background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, fontSize: 12, color: "var(--text-muted)" }}>
-          🔒 Ce bon est facturé — plus aucune modification possible (tâches, pièces, temps, photos). Il reste entièrement consultable.
-          {estGerant && " Pour le corriger, annule la facture ci-dessous."}
+        <div style={{
+          position: "relative", overflow: "hidden", display: "flex", gap: 12, alignItems: "center",
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "12px 14px 12px 18px", marginBottom: 14, fontSize: 13, color: "var(--text-muted)",
+        }}>
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
+          <span style={tuileIcone(TEINTES.ambre)}><Icone nom="cadenas" taille={18} couleur={TEINTES.ambre.couleur} /></span>
+          <span>
+            Ce bon est facturé — plus aucune modification possible (tâches, pièces, temps, photos). Il reste entièrement consultable.
+            {estGerant && " Pour le corriger, annule la facture ci-dessous."}
+          </span>
         </div>
       )}
 
-      <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-muted)" }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
         Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise.
       </div>
 
-      <div style={{ marginTop: 16, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
-        <Label>{bon.facture ? "💰 Facture" : "💰 Résumé de facturation (estimé)"}</Label>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <span style={tuileIcone(TEINTES.vert)}><Icone nom="banque" taille={18} couleur={TEINTES.vert.couleur} /></span>
+          <span style={{ fontSize: 19, fontWeight: 800, letterSpacing: "-0.01em" }}>{bon.facture ? "Facture" : "Facturation (estimé)"}</span>
+        </div>
 
         {bon.facture ? (
           <>
@@ -527,7 +546,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)", marginBottom: 12 }}>
               <span style={{ fontWeight: 700 }}>Total (taxes incluses)</span>
-              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{argent(bon.facture.totalAvecTaxes)}</span>
+              <span style={{ fontWeight: 800, fontSize: 20, color: "var(--accent-ombre)", fontVariantNumeric: "tabular-nums" }}>{argent(bon.facture.totalAvecTaxes)}</span>
             </div>
 
             {estGerant && bon.facture.totalFacture > 0 && ( // facture de retour (négative) : pas de rentabilité
@@ -776,7 +795,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
               <span style={{ fontWeight: 700 }}>Total estimé (taxes incluses)</span>
-              <span style={{ fontWeight: 700, fontSize: 16, color: "var(--accent)" }}>{argent(totalAvecTaxesEstime)}</span>
+              <span style={{ fontWeight: 800, fontSize: 20, color: "var(--accent-ombre)", fontVariantNumeric: "tabular-nums" }}>{argent(totalAvecTaxesEstime)}</span>
             </div>
             {heuresEnCours && <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>* Un poinçon est encore actif — le total augmentera une fois arrêté.</p>}
 
@@ -794,11 +813,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                   onClick={creerFacture}
                   disabled={enCours || aDesPiecesBo}
                   style={{
-                    width: "100%", padding: 10, borderRadius: 8, border: "none", fontWeight: 700, cursor: aDesPiecesBo ? "default" : "pointer",
-                    background: "var(--accent)", color: "#17150f", opacity: aDesPiecesBo ? 0.5 : 1,
+                    width: "100%", padding: 13, borderRadius: 12, border: "none", fontWeight: 700, fontSize: 15, cursor: aDesPiecesBo ? "default" : "pointer",
+                    background: "var(--accent)", color: "#221f18", opacity: aDesPiecesBo ? 0.5 : 1,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   }}
                 >
-                  📄 Émettre la facture officielle
+                  <Icone nom="document" taille={18} /> Émettre la facture officielle
                 </button>
                 <p style={{ fontSize: 10.5, color: aDesPiecesBo ? "#D9822B" : "var(--text-muted)", marginTop: 6 }}>
                   {aDesPiecesBo
@@ -817,7 +837,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
         <PiecesBon
           titre="Pièces du bon"
-          style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}
+          style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
           bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
           inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
           onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
@@ -832,8 +852,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <Label>Tâches ({tachesAffichees.length})</Label>
+      <div style={{ marginTop: 24 }}>
+        <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{tachesAffichees.length} tâche{tachesAffichees.length > 1 ? "s" : ""}</Pastille>}>
+          Tâches
+        </TitreGroupe>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -870,9 +892,11 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             value={nouveauProbleme}
             onChange={(e) => setNouveauProbleme(e.target.value)}
             placeholder="Ajouter une tâche…"
-            style={champStyle}
+            style={{ ...champStyle, padding: "11px 12px", borderRadius: 12, fontSize: 14 }}
           />
-          <button onClick={ajouterProbleme} disabled={enCours} style={boutonAjout}>+</button>
+          <button onClick={ajouterProbleme} disabled={enCours} aria-label="Ajouter la tâche" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
+            <Icone nom="plus" taille={20} />
+          </button>
         </div>
       )}
 
@@ -1075,7 +1099,8 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
   }
 
   return (
-    <div className="carte carte-s">
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
         {editionNom ? (
           <div style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -1090,11 +1115,13 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
             <button onClick={() => { setEditionNom(false); setNomEnEdition(probleme.description); setErreurNom(""); }} style={boutonTexte}>Annuler</button>
           </div>
         ) : (
-          <span style={{ fontSize: 14 }}>
-            <strong style={{ color: "var(--text-muted)" }}>{index + 1}.</strong> {probleme.description}
+          <span style={{ fontSize: 15, fontWeight: 700, display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <span style={{ flexShrink: 0, minWidth: 24, height: 24, borderRadius: 999, background: "rgba(232,163,61,0.16)", color: "var(--accent-ombre)", fontSize: 12.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{index + 1}</span>
+            <span>{probleme.description}
             {peutModifier && !verrouille && (
               <button onClick={() => { setNomEnEdition(probleme.description); setEditionNom(true); }} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 11, cursor: "pointer", marginLeft: 6, padding: 0 }}>✏️</button>
             )}
+            </span>
           </span>
         )}
         {peutSupprimer && <button onClick={onSupprimer} style={boutonTexte}>✕</button>}
@@ -1974,7 +2001,7 @@ function ClientBon({ bon, clients, peutModifierNom }) {
             <button onClick={() => { setEditionNom(false); setNom(nomClientBon(bon)); }} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Annuler</button>
           </span>
         ) : (
-          <h1 style={{ fontSize: 20, margin: "4px 0" }}>{nomClientBon(bon)}</h1>
+          <h1 style={{ fontSize: 19, margin: 0, lineHeight: 1.3 }}>{nomClientBon(bon)}</h1>
         )}
         {peutModifierNom && !editionNom && !edition && (
           <button onClick={() => { setNom(nomClientBon(bon)); setEditionNom(true); }} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
@@ -2072,7 +2099,7 @@ function VehiculeBon({ bon, modifiable }) {
   if (!v && !modifiable) return null;
 
   return (
-    <div style={{ marginTop: 6, fontSize: 12 }}>
+    <div style={{ fontSize: 13 }}>
       {edition ? (
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
           <select
@@ -2092,7 +2119,7 @@ function VehiculeBon({ bon, modifiable }) {
         </div>
       ) : (
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontWeight: 700 }}>🚗 {v ? libelleVehicule(v) || "Véhicule" : <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>Véhicule non précisé</span>}</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>{v ? libelleVehicule(v) || "Véhicule" : <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>Véhicule non précisé</span>}</span>
           {v?.plaque && <span style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>Plaque {v.plaque}</span>}
           {v?.niv && <span style={{ fontFamily: "monospace", color: "var(--text-muted)", overflowWrap: "anywhere" }}>NIV {v.niv}</span>}
           {v && (km !== null ? (
@@ -2280,11 +2307,7 @@ function AvisVehiculePret({ bon, boutonCourriel }) {
 
 function StatusPill({ statut }) {
   const s = STATUTS[statut];
-  return (
-    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: `${s.color}22`, color: s.color }}>
-      {s.label}
-    </span>
-  );
+  return <Pastille couleur={s.color} fond={`${s.color}22`}>{s.label}</Pastille>;
 }
 
 // Note interne du bon (profil noteInterneBon) : texte libre pour l'équipe,
@@ -2314,7 +2337,7 @@ function NoteInterne({ bonId, note, modifiable, onRafraichir }) {
 
   if (!modifiable && !note) return null;
   return (
-    <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14 }}>
+    <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}>
       <Label>Note interne</Label>
       {modifiable ? (
         <>
@@ -2345,7 +2368,7 @@ function NoteInterne({ bonId, note, modifiable, onRafraichir }) {
 }
 
 function Label({ children }) {
-  return <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.03em", color: "var(--text-muted)", marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", marginBottom: 10 }}>{children}</div>;
 }
 
 function BoutonPhoto({ onFichiers, enCours }) {
@@ -2364,6 +2387,18 @@ function BoutonPhoto({ onFichiers, enCours }) {
     </>
   );
 }
+
+// Petite tuile carrée teintée qui porte une icône (client, véhicule…)
+function tuileIcone(teinte) {
+  return { flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: teinte.fond, display: "inline-flex", alignItems: "center", justifyContent: "center" };
+}
+
+// Bouton d'action du haut de la fiche : tous de même largeur
+const boutonActionBon = {
+  flex: "1 1 140px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+  padding: "11px 10px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)",
+  color: "var(--text)", fontSize: 13, fontWeight: 700, textDecoration: "none", cursor: "pointer", boxSizing: "border-box", whiteSpace: "nowrap",
+};
 
 const champStyle = {
   flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
