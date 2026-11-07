@@ -8,10 +8,17 @@ export default async function GestionFournisseurs() {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "fournisseurs"))) redirect("/gerant");
 
-  const fournisseurs = await prisma.fournisseur.findMany({
-    include: { _count: { select: { depenses: true } } },
-    orderBy: { nom: "asc" },
-  });
+  const [fournisseursBruts, impayees] = await Promise.all([
+    prisma.fournisseur.findMany({
+      include: { _count: { select: { depenses: true } } },
+      orderBy: { nom: "asc" },
+    }),
+    // Factures fournisseurs impayées — même source que la procédure de
+    // fermeture (lib/checklistFermeture.js), pour l'affichage seulement
+    prisma.depense.groupBy({ by: ["fournisseurId"], where: { statut: "IMPAYEE" }, _sum: { montant: true } }),
+  ]);
+  const aPayerPar = Object.fromEntries(impayees.map((d) => [d.fournisseurId, d._sum.montant || 0]));
+  const fournisseurs = fournisseursBruts.map((f) => ({ ...f, aPayer: aPayerPar[f.id] || 0 }));
 
   return (
     <div>
