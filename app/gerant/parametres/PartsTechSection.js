@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TitrePanneau, stylePanneau, TEINTES } from "../../components/StyleSection";
 
 // Compte PartsTech du garage : « 🔌 Chercher dans PartsTech » des commandes
 // de pièces en brouillon. Voir lib/partstech.js.
@@ -35,9 +36,9 @@ export default function PartsTechSection({ configInitiale }) {
   const champ = { padding: "7px 9px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, minWidth: 0, flex: "1 1 180px" };
 
   return (
-    <div className="conteneur-page-large" style={{ margin: "20px auto 0", padding: "0 16px" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>PartsTech</div>
+    <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "0 16px" }}>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="panier" teinte={TEINTES.bleu} titre="PartsTech" />
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
           Compare les prix et le stock de tes fournisseurs branchés à PartsTech, depuis une commande de pièces en brouillon
           (« 🔌 Chercher dans PartsTech ») : le panier soumis revient dans la commande. L'utilisateur et la clé API se trouvent

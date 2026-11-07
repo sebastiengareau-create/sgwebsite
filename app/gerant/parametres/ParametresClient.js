@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { argent } from "@/lib/format";
+import BandeauSection from "../../components/BandeauSection";
+import { TEINTES, TitrePanneau, stylePanneau, Pastille, CarteLien } from "../../components/StyleSection";
 
 const JOURS = [
   { cle: "lun", label: "Lundi" },
@@ -156,12 +158,11 @@ export default function ParametresClient({
 
   return (
     <div className="conteneur-page">
-      <h1 style={{ fontSize: 20, marginBottom: 4 }}>Paramètres</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
-        Valeurs clés utilisées dans tout le logiciel.
-      </p>
+      <BandeauSection icone="🛠️" titre="Paramètres" sousTitre="Valeurs clés utilisées dans tout le logiciel." />
 
-      <form onSubmit={sauvegarder} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
+      <form onSubmit={sauvegarder}>
+        <div style={stylePanneau}>
+        <TitrePanneau icone="calculatrice" teinte={TEINTES.ambre} titre="Taux horaires" sousTitre="Ce qui est facturé au client et ce que ça coûte au garage" />
         <label style={labelStyle}>Taux horaire facturé au client ($/h)</label>
         <p style={sousTexte}>Utilisé pour calculer le revenu de main-d'œuvre sur les bons de travail.</p>
         <ChampMontant valeur={tauxHoraire} onChange={setTauxHoraire} />
@@ -189,13 +190,14 @@ export default function ParametresClient({
           </div>
         </div>
 
-        <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "var(--bg)", display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-          <span style={{ color: "var(--text-muted)" }}>Marge par heure réellement facturée</span>
-          <span style={{ fontWeight: 700, color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(marge)}</span>
+        <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: 12, background: "var(--bg)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>Marge par heure réellement facturée</span>
+          <span style={{ fontSize: 20, fontWeight: 800, color: marge >= 0 ? "var(--success)" : "var(--danger)", fontVariantNumeric: "tabular-nums" }}>{argent(marge)}</span>
+        </div>
         </div>
 
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Horaire de travail attendu</div>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="horloge" teinte={TEINTES.bleu} titre="Horaire de travail attendu" droite={<Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>{totalHeuresSemaine} h / semaine</Pastille>} />
           <p style={sousTexte}>Heures prévues par jour — sert de référence dans le rapport journalier pour comparer au temps réellement poinçonné. Le coûtant s'applique à ces heures prévues, poinçonnées ou non.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {JOURS.map((j) => (
@@ -211,13 +213,10 @@ export default function ParametresClient({
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)", textAlign: "right" }}>
-            Total semaine : <strong style={{ color: "var(--text)" }}>{totalHeuresSemaine}h</strong>
-          </div>
         </div>
 
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Heures d'ouverture</div>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="calendrier" teinte={TEINTES.vert} titre="Heures d'ouverture" />
           <p style={sousTexte}>Plages où le calendrier et le site de réservation offrent des rendez-vous. Indépendant de l'horaire de paie ci-dessus.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {JOURS.map((j) => (
@@ -262,8 +261,8 @@ export default function ParametresClient({
           </p>
         </div>
 
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>Numéros de taxes</div>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="banque" teinte={TEINTES.neutre} titre="Taxes" sousTitre="Numéros et taux imprimés sur les factures" />
 
           <label style={labelStyle}>Numéro TPS</label>
           <input value={tpsNumero} onChange={(e) => setTpsNumero(e.target.value)} placeholder="Ex : 784958142RT0001" style={{ ...champInput, fontFamily: "monospace" }} />
@@ -278,20 +277,23 @@ export default function ParametresClient({
           <input type="number" min={0} step="0.001" value={tvqTaux} onChange={(e) => setTvqTaux(e.target.value)} style={champInput} />
         </div>
 
-        {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 10 }}>{erreur}</p>}
-        {confirmation && <p style={{ color: "var(--success)", fontSize: 12, marginTop: 10 }}>{confirmation}</p>}
+        {erreur && <p style={{ color: "var(--danger)", fontSize: 13, margin: "0 0 10px" }}>{erreur}</p>}
+        {confirmation && <p style={{ color: "var(--success)", fontSize: 13, margin: "0 0 10px", fontWeight: 700 }}>{confirmation}</p>}
 
         <button
           type="submit" disabled={enCours}
-          style={{ width: "100%", marginTop: 16, padding: 10, borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, cursor: "pointer" }}
+          style={{
+            position: "sticky", bottom: 12, zIndex: 5, width: "100%", marginBottom: 24, padding: 13, borderRadius: 12, border: "none",
+            background: "var(--accent)", color: "#221f18", fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
+          }}
         >
           {enCours ? "Sauvegarde…" : "Sauvegarder"}
         </button>
       </form>
 
       {CLIENT.quickbooks && (
-      <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>QuickBooks</div>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="echange" teinte={TEINTES.vert} titre="QuickBooks" />
 
         {qbConnecte && <p style={{ color: "var(--success)", fontSize: 12, marginBottom: 10 }}>Connexion réussie ✓</p>}
         {qbErreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>Erreur de connexion : {qbErreur}</p>}
@@ -326,9 +328,9 @@ export default function ParametresClient({
       </div>
       )}
 
-      <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10 }}>Synchronisation Outlook / Google Calendar</div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="calendrier" teinte={TEINTES.bleu} titre="Outlook / Google Calendar" sousTitre="Synchronisation des rendez-vous" />
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
           Ajoute cette adresse une seule fois comme "calendrier abonné" — les rendez-vous se mettent à jour
           automatiquement par la suite (environ une fois par heure), sans rien faire de plus.
         </p>
@@ -341,8 +343,7 @@ export default function ParametresClient({
           />
           <button
             onClick={copierUrlFlux}
-            className="bouton-3d"
-            style={{ padding: "9px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}
+            style={{ padding: "9px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}
           >
             {copie ? "Copié ✓" : "Copier"}
           </button>
@@ -360,19 +361,13 @@ export default function ParametresClient({
         <button
           onClick={regenererFlux}
           disabled={regenerationEnCours}
-          style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px dashed var(--danger)", background: "none", color: "var(--danger)", fontWeight: 600, cursor: "pointer", fontSize: 12 }}
+          style={{ width: "100%", padding: 11, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--danger)", fontWeight: 700, cursor: "pointer", fontSize: 13 }}
         >
           {regenerationEnCours ? "Régénération…" : "🔄 Régénérer le lien (si compromis)"}
         </button>
       </div>
 
-      <Link
-        href="/gerant/administrateur/sauvegarde"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", marginTop: 20, padding: 14, borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700 }}
-      >
-        💾 Sauvegarde des données
-      </Link>
+      <CarteLien href="/gerant/administrateur/sauvegarde" icone="boite" teinte={TEINTES.bleu} label="Sauvegarde des données" detail="Télécharger ou recevoir une copie" />
     </div>
   );
 }
@@ -387,9 +382,9 @@ function ChampMontant({ valeur, onChange }) {
   );
 }
 
-const labelStyle = { fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 };
-const sousTexte = { fontSize: 11.5, color: "var(--text-muted)", marginBottom: 8 };
+const labelStyle = { fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 };
+const sousTexte = { fontSize: 12.5, color: "var(--text-muted)", marginBottom: 8 };
 const champInput = {
-  flex: 1, width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)",
+  flex: 1, width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 14, boxSizing: "border-box",
 };
