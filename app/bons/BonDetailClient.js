@@ -451,10 +451,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       {/* Actions : boutons de même largeur, sur une ou deux rangées */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
         <Link href={`/bons/${bon.id}/commande`} target="_blank" style={boutonActionBon}>
-          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Bon de travail
+          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer bon de travail
         </Link>
         <Link href={`/bons/${bon.id}/imprimer`} target="_blank" style={boutonActionBon}>
-          <Icone nom="document" taille={17} couleur="var(--accent-ombre)" /> {bon.facture ? "Facture" : "Bon de commande"}
+          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> {bon.facture ? "Imprimer facture" : "Imprimer bon de commande"}
         </Link>
         {/* Le bon de commande en PDF au client ; une fois facturé, l'envoi
             de la facture se fait dans la section Facture */}
@@ -2397,7 +2397,7 @@ function tuileIcone(teinte) {
 const boutonActionBon = {
   flex: "1 1 140px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
   padding: "11px 10px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)",
-  color: "var(--text)", fontSize: 13, fontWeight: 700, textDecoration: "none", cursor: "pointer", boxSizing: "border-box", whiteSpace: "nowrap",
+  color: "var(--text)", fontSize: 13, fontWeight: 700, textDecoration: "none", cursor: "pointer", boxSizing: "border-box", textAlign: "center", lineHeight: 1.25,
 };
 
 const champStyle = {
