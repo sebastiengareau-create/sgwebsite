@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../components/BandeauSection";
 import { correspondRecherche } from "@/lib/recherche";
+import { nombre } from "@/lib/format";
+import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, libelle, age, dernierePesee, gainMoyenQuotidien, coutBete, revenusBete,
   carcasseDepuisVif, argent, kg, dateCourte,
@@ -40,19 +42,26 @@ export default function TroupeauClient({ betes, rendementCarcasse }) {
       <BandeauSection icone="🐂" titre="Élevage" sousTitre="Le troupeau de la naissance à la table : pesées, coûts, abattage, découpe et vente de la viande." />
       <NavElevage actif="/elevage" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 12 }}>
-        <Statistique valeur={actives.length} label="Bêtes au troupeau" />
-        <Statistique valeur={kg(poidsVif, 0)} label="Poids vif (dernières pesées)" />
-        <Statistique valeur={kg(carcasseDepuisVif(poidsVif, rendementCarcasse), 0)} label={`Carcasse estimée (${rendementCarcasse} %)`} />
-        <Statistique valeur={argent(investi)} label="Coût investi au troupeau" />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>
+          {formulaire ? "Annuler" : "Nouvelle bête"}
+        </BoutonPlein>
       </div>
-
-      <button onClick={() => setFormulaire((v) => !v)} className="bouton-3d" style={{ ...boutonPrincipal, padding: 11, borderRadius: 10, marginBottom: 12 }}>
-        {formulaire ? "Annuler" : "+ Nouvelle bête"}
-      </button>
       {formulaire && <NouvelleBete femelles={femelles} onCree={(id) => router.push(`/elevage/${id}`)} />}
 
-      <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="🔍 Rechercher (numéro, nom, boucle, mère)…" style={{ ...champStyle, marginBottom: 10 }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
+        <Statistique valeur={actives.length} label="Bêtes au troupeau" teinte="var(--success)" />
+        <Statistique valeur={kg(poidsVif, 0)} label="Poids vif (dernières pesées)" teinte="var(--bleu)" />
+        <Statistique valeur={kg(carcasseDepuisVif(poidsVif, rendementCarcasse), 0)} label={`Carcasse estimée (${rendementCarcasse} %)`} teinte="var(--accent)" />
+        <Statistique valeur={argent(investi)} label="Coût investi au troupeau" teinte="var(--danger)" />
+      </div>
+
+      <div style={{ position: "relative", marginBottom: 12 }}>
+        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+          <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+        </span>
+        <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Numéro, nom, boucle, mère…" style={{ ...champStyle, marginBottom: 0, padding: "11px 12px 11px 40px", fontSize: 14, borderRadius: 12, background: "var(--surface)" }} />
+      </div>
       <Onglets options={FILTRES} valeur={filtre} onChange={setFiltre} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -70,11 +79,12 @@ function CarteBete({ bete: b }) {
   const cout = coutBete(b);
   const revenus = revenusBete(b);
   return (
-    <Link href={`/elevage/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, display: "flex", justifyContent: "space-between", gap: 10 }}>
+    <Link href={`/elevage/${b.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px", display: "flex", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: statut?.couleur || "var(--border)" }} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700 }}>{b.numero}{b.nom && ` — ${b.nom}`}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          <div style={{ fontWeight: 800, fontSize: 15 }}>{b.numero}{b.nom && <span style={{ fontWeight: 600 }}> — {b.nom}</span>}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
             {libelle(SEXES, b.sexe).split(" (")[0]}
             {b.genetique && ` · ${libelle(GENETIQUES, b.genetique).split(" (")[0]}`}
             {b.pourcentageWagyu != null && ` ${b.pourcentageWagyu} %`}
@@ -82,15 +92,15 @@ function CarteBete({ bete: b }) {
             {b.identifiant && ` · 🏷️ ${b.identifiant}`}
             {b.mere && ` · mère ${b.mere.numero}${b.mere.nom ? ` (${b.mere.nom})` : ""}`}
           </div>
+          {statut && <div style={{ marginTop: 6 }}><Pastille couleur={statut.couleur} fond={`${statut.couleur}22`}>{statut.label}</Pastille></div>}
         </div>
-        <div style={{ textAlign: "right", flexShrink: 0, fontSize: 12 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: statut?.couleur }}>{statut?.label}</div>
+        <div style={{ textAlign: "right", flexShrink: 0, fontSize: 12.5 }}>
           {b.abattage ? (
-            <div>Carcasse {kg(b.abattage.poidsCarcasse, 0)}{b.abattage.bms && ` · BMS ${b.abattage.bms}`}</div>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>{kg(b.abattage.poidsCarcasse, 0)}<span style={{ display: "block", fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>carcasse{b.abattage.bms && ` · BMS ${b.abattage.bms}`}</span></div>
           ) : (
-            pesee && <div>{kg(pesee.poids, 0)} <span style={{ color: "var(--text-muted)" }}>le {dateCourte(pesee.date)}</span></div>
+            pesee && <div style={{ fontSize: 15, fontWeight: 800 }}>{kg(pesee.poids, 0)}<span style={{ display: "block", fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>le {dateCourte(pesee.date)}</span></div>
           )}
-          {gmq != null && !b.abattage && <div style={{ color: "var(--text-muted)" }}>{gmq.toFixed(2).replace(".", ",")} kg/jour</div>}
+          {gmq != null && !b.abattage && <div style={{ color: "var(--text-muted)" }}>{nombre(gmq)} kg/jour</div>}
           <div style={{ color: "var(--text-muted)" }}>Coût {argent(cout)}</div>
           {revenus > 0 && <div style={{ fontWeight: 700, color: revenus - cout >= 0 ? "var(--success)" : "var(--danger)" }}>Ventes {argent(revenus)}</div>}
         </div>
@@ -115,7 +125,7 @@ function NouvelleBete({ femelles, onCree }) {
   }
 
   return (
-    <div className="carte carte-m" style={{ marginBottom: 14 }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 16, padding: 16, marginBottom: 16 }}>
       <ChampsBete fiche={fiche} maj={maj} femelles={femelles} />
       <Champ label={fiche.origine === "ACHETEE" ? "Poids à l'arrivée (kg, facultatif)" : "Poids à la naissance (kg, facultatif)"}>
         <input inputMode="decimal" value={fiche.poidsInitial} onChange={maj("poidsInitial")} style={champStyle} />

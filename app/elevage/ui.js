@@ -8,11 +8,11 @@ import Link from "next/link";
 import { argent, kg } from "@/lib/elevageCalculs";
 
 export const champStyle = {
-  width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)",
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
-export const labelStyle = { display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 3 };
-export const boutonPrincipal = { width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 };
+export const labelStyle = { display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 4 };
+export const boutonPrincipal = { width: "100%", padding: 11, borderRadius: 12, fontSize: 14, fontWeight: 700 };
 export const boutonLien = { background: "none", border: "none", cursor: "pointer", fontSize: 12, padding: 0 };
 export const grille2 = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 };
 
@@ -56,25 +56,34 @@ export function Champ({ label, children }) {
 
 export function Onglets({ options, valeur, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 4, marginBottom: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
-      {options.map((o) => (
-        <button
-          key={o.code}
-          onClick={() => onChange(o.code)}
-          style={{ flex: 1, fontSize: 11.5, fontWeight: 700, padding: "7px 6px", borderRadius: 7, border: "none", cursor: "pointer", background: valeur === o.code ? "var(--accent)" : "none", color: valeur === o.code ? "#17150f" : "var(--text-muted)" }}
-        >
-          {o.label}
-        </button>
-      ))}
+    // Grille de cases égales : 2 × 2 pour quatre choix sur cellulaire, jamais une case seule en bas
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${options.length > 3 ? 120 : 90}px, 1fr))`, gap: 4, marginBottom: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 4 }}>
+      {options.map((o) => {
+        const actif = valeur === o.code;
+        return (
+          <button
+            key={o.code}
+            onClick={() => onChange(o.code)}
+            style={{
+              fontSize: 13, fontWeight: 700, padding: "8px 10px", borderRadius: 9, border: "none", cursor: "pointer", whiteSpace: "nowrap",
+              background: actif ? "var(--accent)" : "transparent", color: actif ? "#221f18" : "var(--text-muted)",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-export function Statistique({ valeur, label }) {
+// Petite carte de chiffre : bande de couleur à gauche, comme les autres sections
+export function Statistique({ valeur, label, teinte = "var(--accent)" }) {
   return (
-    <div className="carte carte-s">
-      <div style={{ fontSize: 19, fontWeight: 700 }}>{valeur}</div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</div>
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 14px 14px 18px" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
+      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{valeur}</div>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{label}</div>
     </div>
   );
 }
@@ -86,22 +95,30 @@ export function NavElevage({ actif }) {
     { href: "/elevage/viande", label: "🥩 Viande" },
     { href: "/elevage/coupes", label: "📐 Coupes et rendements" },
   ];
+  // Onglets de même largeur, comme dans la section Opérations
   return (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-      {liens.map((l) => (
-        <Link
-          key={l.href}
-          href={l.href}
-          style={{
-            fontSize: 12, fontWeight: 700, padding: "6px 10px", borderRadius: 8, textDecoration: "none",
-            border: "1px solid var(--border)", background: l.href === actif ? "var(--accent)" : "var(--surface)",
-            color: l.href === actif ? "#17150f" : "var(--text)",
-          }}
-        >
-          {l.label}
-        </Link>
-      ))}
-    </div>
+    <nav style={{
+      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 4, marginBottom: 16,
+      padding: 4, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)",
+    }}>
+      {liens.map((l) => {
+        const estActif = l.href === actif;
+        return (
+          <Link
+            key={l.href}
+            href={l.href}
+            aria-current={estActif ? "page" : undefined}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",
+              fontSize: 14, fontWeight: 700, padding: "10px 8px", borderRadius: 10, textDecoration: "none",
+              background: estActif ? "var(--accent)" : "transparent", color: estActif ? "#221f18" : "var(--text-muted)",
+            }}
+          >
+            {l.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -114,11 +131,11 @@ export function aujourdhui() {
 export function Tableau({ entetes, children, alignDroite = [] }) {
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
         <thead>
           <tr>
             {entetes.map((e, i) => (
-              <th key={i} style={{ textAlign: alignDroite.includes(i) ? "right" : "left", fontSize: 10.5, color: "var(--text-muted)", fontWeight: 700, padding: "4px 6px", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{e}</th>
+              <th key={i} style={{ textAlign: alignDroite.includes(i) ? "right" : "left", fontSize: 12, color: "var(--text-muted)", fontWeight: 700, padding: "6px 8px", borderBottom: "2px solid var(--accent)", whiteSpace: "nowrap" }}>{e}</th>
             ))}
           </tr>
         </thead>
@@ -128,7 +145,7 @@ export function Tableau({ entetes, children, alignDroite = [] }) {
   );
 }
 
-export const cellule = { padding: "6px 6px", borderBottom: "1px solid var(--border)", verticalAlign: "top" };
+export const cellule = { padding: "9px 8px", borderBottom: "1px solid var(--border)", verticalAlign: "top" };
 export const celluleDroite = { ...cellule, textAlign: "right", whiteSpace: "nowrap" };
 
 // Paquets attendus par coupe (estimerDecoupe de lib/elevageCalculs.js)
