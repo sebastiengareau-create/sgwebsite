@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { argent, nombre } from "@/lib/format";
 import Link from "next/link";
+import BandeauSection from "../../../components/BandeauSection";
+import { CarteChiffre, GrilleChiffres, TitreGroupe } from "../../../components/StyleSection";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -29,51 +31,51 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
   const totalInternes = donnees.reduce((s, d) => s + d.heuresInternes, 0);
   const totalCoutInternes = donnees.reduce((s, d) => s + d.coutInternes, 0);
 
-  return (
-    <div style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
-      <Link href="/gerant/rapports" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux rapports</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>📈 Rentabilité par employé</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Ce que chaque employé a vraiment généré comme revenu, contre son coût réel pour le garage.
-      </p>
+  const tauxEquipe = totalCout > 0 ? (totalRevenu / totalCout) * 100 : null;
 
-      <form onSubmit={changerPeriode} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
-        <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
-        <button type="submit" className="bouton-3d-sombre" style={{ padding: "0 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+  return (
+    <div className="conteneur-page">
+      <Link href="/gerant/rapports" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux rapports</Link>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="📊" titre="Rentabilité par employé" sousTitre="Ce que chaque employé a vraiment généré comme revenu, contre son coût réel pour le garage." />
+      </div>
+
+      <form onSubmit={changerPeriode} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginBottom: 18, padding: 6, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <label style={champPeriode}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>Du</span>
+          <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
+        </label>
+        <label style={champPeriode}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>Au</span>
+          <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
+        </label>
+        <button type="submit" style={{ flex: "1 1 100px", padding: "10px 16px", borderRadius: 10, fontSize: 14, fontWeight: 700, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
           Filtrer
         </button>
       </form>
 
-      {/* Résumé global */}
-      <div className="carte" style={{ marginBottom: 20 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{argent(totalRevenu)}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Revenu généré</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{argent(totalCout)}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Coût réel</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: totalMarge >= 0 ? "var(--accent)" : "var(--danger)" }}>{argent(totalMarge)}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Marge totale</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{fmtHeures(totalFacturables)} <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 400 }}>/ {fmtHeures(totalHeures)}</span></div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Heures facturables / réelles</div>
-          </div>
-        </div>
-        {totalInternes > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 11.5, color: "var(--text-muted)", marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
-            <span>🛠️ Tâches internes ({fmtHeures(totalInternes)}) — compris dans le coût réel</span>
-            <span style={{ fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{argent(totalCoutInternes)}</span>
-          </div>
-        )}
-        <TauxRentabilite cout={totalCout} revenu={totalRevenu} libelle="Taux de rentabilité de l'équipe" />
-      </div>
+      <GrilleChiffres>
+        <CarteChiffre
+          titre="Revenu généré" montant={argent(totalRevenu)} couleur="var(--success)" teinte="var(--success)"
+          note={`${fmtHeures(totalFacturables)} facturables`}
+        />
+        <CarteChiffre
+          titre="Coût réel" montant={argent(totalCout)} couleur="var(--danger)" teinte="var(--danger)"
+          note={totalInternes > 0 ? `${fmtHeures(totalHeures)} réelles · dont internes ${argent(totalCoutInternes)}` : `${fmtHeures(totalHeures)} réelles`}
+        />
+        <CarteChiffre
+          titre="Marge totale" montant={argent(totalMarge)}
+          couleur={totalMarge >= 0 ? "var(--success)" : "var(--danger)"} teinte={totalMarge >= 0 ? "var(--success)" : "var(--danger)"}
+          note="Revenu généré − coût réel"
+        />
+        <CarteChiffre
+          titre="Taux de rentabilité" montant={tauxEquipe === null ? "—" : `${Math.round(tauxEquipe)} %`}
+          couleur={couleurTaux(tauxEquipe)} teinte={couleurTaux(tauxEquipe)}
+          note="Revenu ÷ coût · rentable au-dessus de 100 %"
+        />
+      </GrilleChiffres>
 
+      <TitreGroupe couleur="var(--accent)">Par employé</TitreGroupe>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {donnees.map((d) => (
           <CarteEmploye key={d.employe.id} d={d} />
@@ -88,6 +90,11 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
   );
 }
 
+function couleurTaux(taux) {
+  if (taux === null) return "var(--text-muted)";
+  return taux >= 125 ? "var(--success)" : taux >= 100 ? "var(--avertissement)" : "var(--danger)";
+}
+
 function CarteEmploye({ d }) {
   const max = Math.max(d.revenuGenere, d.coutReel, 1);
   const largeurRevenu = Math.max(2, (d.revenuGenere / max) * 100);
@@ -95,45 +102,54 @@ function CarteEmploye({ d }) {
   const margePct = d.revenuGenere > 0 ? (d.marge / d.revenuGenere) * 100 : null;
 
   return (
-    <div className="carte">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ fontWeight: 700, fontSize: 14 }}>{d.employe.nom}</span>
-        <span style={{ fontSize: 15, fontWeight: 800, color: d.marge >= 0 ? "var(--success)" : "var(--danger)" }}>
-          {d.marge >= 0 ? "+" : ""}{argent(d.marge)}
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleurTaux(d.coutReel > 0 ? (d.revenuGenere / d.coutReel) * 100 : null) }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "50%", background: "rgba(232,163,61,0.16)", color: "var(--accent-ombre)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>
+            {d.employe.nom.charAt(0).toUpperCase()}
+          </span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>{d.employe.nom}</span>
+        </span>
+        <span style={{ textAlign: "right" }}>
+          <span style={{ display: "block", fontSize: 20, fontWeight: 800, color: d.marge >= 0 ? "var(--success)" : "var(--danger)", fontVariantNumeric: "tabular-nums" }}>
+            {d.marge >= 0 ? "+" : ""}{argent(d.marge)}
+          </span>
+          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>marge</span>
         </span>
       </div>
 
       <div style={{ marginBottom: 6 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
           <span style={{ color: "var(--text-muted)" }}>Revenu généré</span>
           <span style={{ fontWeight: 600 }}>{argent(d.revenuGenere)}</span>
         </div>
-        <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
+        <div style={{ height: 10, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
           <div style={{ width: `${largeurRevenu}%`, height: "100%", background: "var(--success)", borderRadius: 999 }} />
         </div>
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
           <span style={{ color: "var(--text-muted)" }}>Coût réel ({fmtHeures(d.heuresPayees)} × {argent(d.tauxCout)}/h)</span>
           <span style={{ fontWeight: 600 }}>{argent(d.coutReel)}</span>
         </div>
-        <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
+        <div style={{ height: 10, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
           <div style={{ width: `${largeurCout}%`, height: "100%", background: "var(--danger)", borderRadius: 999 }} />
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", paddingTop: 8, borderTop: "1px dashed var(--border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 12.5, color: "var(--text-muted)", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
         <span>{fmtHeures(d.heuresFacturables)} facturables sur {fmtHeures(d.heuresPayees)} réelles</span>
         {margePct !== null && <span>Marge {nombre(margePct, 0)} %</span>}
       </div>
 
-      <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
+      <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>
         {fmtHeures(d.heuresTotales)} poinçonnées (heures réelles = horaire des jours poinçonnés, ou heures entrées dans Productivité)
       </div>
 
       {d.heuresInternes > 0 && (
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>
           <span>dont tâches internes ({fmtHeures(d.heuresInternes)} × {argent(d.tauxCout)}/h)</span>
           <span>{argent(d.coutInternes)}</span>
         </div>
@@ -162,22 +178,23 @@ function TauxRentabilite({ cout, revenu, libelle }) {
     );
   }
   const taux = (revenu / cout) * 100;
-  const couleur = taux >= 125 ? "var(--success)" : taux >= 100 ? "#C9A227" : "var(--danger)";
+  const couleur = couleurTaux(taux);
   return (
     <div
       title="Revenu généré ÷ coût réel — au-dessus de 100 % : rentable ; en dessous : perte"
-      style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border)" }}
+      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 10, padding: "8px 12px", borderRadius: 12, background: "var(--bg)" }}
     >
-      <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-muted)" }}>
         {libelle}
-        <span style={{ display: "block", fontSize: 10.5 }}>{argent(revenu)} de revenu généré pour {argent(cout)} de coût réel</span>
+        <span style={{ display: "block", fontSize: 11.5, fontWeight: 400 }}>{argent(revenu)} de revenu généré pour {argent(cout)} de coût réel</span>
       </span>
-      <span style={{ fontSize: 17, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
+      <span style={{ fontSize: 20, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
     </div>
   );
 }
 
 const champStyle = {
-  flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--surface)", color: "var(--text)", fontSize: 13,
+  flex: 1, minWidth: 0, padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 14,
 };
+const champPeriode = { flex: "1 1 150px", display: "flex", alignItems: "center", gap: 6 };
