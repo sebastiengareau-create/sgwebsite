@@ -5,7 +5,7 @@ import { provinceDuCodePostal } from "@/lib/adresse";
 
 // Champs d'adresse avec suggestions :
 // - ChampAdresse : adresses réelles (Google Places, si une clé est configurée
-//   dans Paramètres) ; un choix remplit tout le formulaire via onChoisir ;
+//   dans Administrateur) ; un choix remplit tout le formulaire via onChoisir ;
 // - ChampVille : municipalités du secteur postal puis du Québec (local) ;
 // - ChampCodePostal : à la saisie du secteur (« J7Y »), onSecteur reçoit la
 //   province et les villes du secteur.

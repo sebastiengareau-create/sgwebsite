@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { lireCle, suggerer } from "@/lib/googlePlaces";
 
 // « Tester » : une recherche d'adresse, pour confirmer que la clé est valide
 // et que « Places API (New) » est activée dans le projet Google.
 export async function POST() {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "parametres"))) {
+  if (!estGerantOuDev(session)) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
   const cle = await lireCle();

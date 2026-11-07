@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, estGerantOuDev } from "@/lib/auth";
 import { CLE, lireConfig } from "@/lib/googlePlaces";
 
-// Clé Google Places de l'installation (Paramètres → Google Places). Elle
+// Clé Google Places de l'installation (Administrateur → Google — adresses). Elle
 // n'est jamais renvoyée au navigateur.
 export async function PUT(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "parametres"))) {
+  if (!estGerantOuDev(session)) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
   const corps = await request.json().catch(() => ({}));
