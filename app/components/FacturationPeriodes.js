@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { dateAujourdhuiQuebec, limitesJourQuebec, limitesMoisQuebec } from "@/lib/temps";
 import { argent, nombre } from "@/lib/format";
+import { CarteChiffre } from "./StyleSection";
 
 function decalerJours(dateStr, delta) {
   const [an, mois, jour] = dateStr.split("-").map(Number);
@@ -72,37 +73,33 @@ export default async function FacturationPeriodes() {
   ]);
 
   const cartes = [
-    { label: "Facturation du jour", valeur: jourActuel, precedent: jourPrecedent, couleur: "var(--bleu)", comparaison: "hier" },
-    { label: "Facturation de la semaine", valeur: semaineActuelle, precedent: semainePrecedente, couleur: "var(--accent-ombre)", comparaison: "semaine dernière" },
-    { label: "Facturation du mois", valeur: moisActuel, precedent: moisPrecedent, couleur: "var(--success)", comparaison: "mois dernier" },
+    { label: "Facturation du jour", valeur: jourActuel, precedent: jourPrecedent, teinte: "var(--bleu)", comparaison: "hier" },
+    { label: "Facturation de la semaine", valeur: semaineActuelle, precedent: semainePrecedente, teinte: "var(--accent)", comparaison: "semaine dernière" },
+    { label: "Facturation du mois", valeur: moisActuel, precedent: moisPrecedent, teinte: "var(--success)", comparaison: "mois dernier" },
   ];
 
   return (
     <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "16px 16px 0" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
         {cartes.map((c) => {
-          let compTexte, compCouleur;
+          let note;
           if (c.precedent === 0 && c.valeur === 0) {
-            compTexte = `— vs ${c.comparaison}`;
-            compCouleur = "rgba(242,238,228,0.65)";
+            note = `— vs ${c.comparaison}`;
           } else if (c.precedent === 0) {
-            compTexte = `▲ nouveau vs ${c.comparaison}`;
-            compCouleur = "#d7f5d3";
+            note = <><span style={{ fontWeight: 700, color: "var(--success)" }}>▲ nouveau</span> vs {c.comparaison}</>;
           } else {
             const variation = ((c.valeur - c.precedent) / c.precedent) * 100;
             const hausse = variation >= 0;
-            compTexte = `${hausse ? "▲" : "▼"} ${nombre(Math.abs(variation), 0)} % vs ${c.comparaison}`;
-            compCouleur = hausse ? "#d7f5d3" : "#f7d6ce";
+            note = (
+              <>
+                <span style={{ fontWeight: 700, color: hausse ? "var(--success)" : "var(--danger)" }}>
+                  {hausse ? "▲" : "▼"} {nombre(Math.abs(variation), 0)} %
+                </span>{" "}
+                vs {c.comparaison}
+              </>
+            );
           }
-          return (
-            <div key={c.label} style={{ background: c.couleur, borderRadius: 14, padding: "14px 16px" }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "rgba(242,238,228,0.85)", textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                {c.label}
-              </div>
-              <div style={{ fontSize: 23, fontWeight: 800, marginTop: 4, color: "var(--text)" }}>{argent(c.valeur, 0)}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4, color: compCouleur }}>{compTexte}</div>
-            </div>
-          );
+          return <CarteChiffre key={c.label} titre={c.label} montant={argent(c.valeur, 0)} teinte={c.teinte} note={note} />;
         })}
       </div>
     </div>

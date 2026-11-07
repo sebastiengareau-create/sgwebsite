@@ -16,19 +16,23 @@ export default async function ResumeOperations() {
 
   const stats = [
     { valeur: planifies, label: "Planifiés", couleur: "#9A7FC7" },
-    { valeur: enAttente, label: "En attente", couleur: "#C9A227" },
+    { valeur: enAttente, label: "En attente", couleur: "var(--avertissement)" },
     { valeur: enCours, label: "En cours", couleur: "var(--bleu)" },
-    { valeur: `${argent(totalImpaye, 0)}`, label: "Impayé", couleur: "var(--danger)" },
-    { valeur: soumissionsEnAttente, label: "Soumissions", couleur: "var(--accent)" },
+    { valeur: argent(totalImpaye, 0), label: "Impayé", couleur: "var(--danger)" },
+    { valeur: soumissionsEnAttente, label: "Soumissions", couleur: "var(--accent-ombre)" },
   ];
 
   return (
-    <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "0 16px 14px" }}>
-      <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+    <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "12px 16px 4px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8 }}>
         {stats.map((s) => (
-          <div key={s.label} style={{ flex: "1 0 auto", minWidth: 80, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 12px" }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: s.couleur }}>{s.valeur}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{s.label}</div>
+          <div key={s.label} style={{
+            position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 14, padding: "10px 12px 10px 16px",
+          }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: s.couleur }} />
+            <div style={{ fontSize: 20, fontWeight: 800, color: s.couleur, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{s.valeur}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>{s.label}</div>
           </div>
         ))}
       </div>
