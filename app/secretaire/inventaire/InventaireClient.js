@@ -26,7 +26,7 @@ const DESACTIVEES = "desactivees";
 // La recherche, le tri et les étiquettes portent toujours sur toutes les pièces.
 const TRANCHE = 100;
 
-export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, sitesPieces = null }) {
+export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, enCommande = {}, categories, comptesRevenu, fournisseurs, alignement, peutGererCategories, peutImporter, scanInitial, nouvelleInitiale, sitesPieces = null }) {
   const router = useRouter();
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [afficherFormulaireKit, setAfficherFormulaireKit] = useState(false);
@@ -96,6 +96,17 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
     scanDetecte(scanInitial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanInitial]);
+
+  // « Nouvelle pièce » du bouton « + » (?nouveau=1) : ouvre le formulaire,
+  // puis retire le paramètre de l'adresse.
+  useEffect(() => {
+    if (!nouvelleInitiale) return;
+    router.replace("/secretaire/inventaire");
+    setAfficherFormulaireKit(false);
+    setCodeBarreNouvelle("");
+    setAfficherFormulaire(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nouvelleInitiale]);
 
   function basculerSelection(id) {
     setSelection((s) => {

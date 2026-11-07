@@ -39,7 +39,7 @@ export default async function GestionInventaire(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <InventaireClient pieces={pieces} coutHoraireDefaut={Number(coutHoraire?.valeur || 95)} enCommande={enCommande} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} scanInitial={typeof searchParams?.scan === "string" ? searchParams.scan : ""} sitesPieces={CLIENT.rechercheFournisseursInventaire ? lireSites(parametreSites?.valeur) : null} />
+      <InventaireClient pieces={pieces} coutHoraireDefaut={Number(coutHoraire?.valeur || 95)} enCommande={enCommande} categories={categories} comptesRevenu={comptesRevenu} fournisseurs={fournisseurs} alignement={alignement} peutGererCategories={estGerantOuDev(session)} peutImporter={estDeveloppeur(session)} scanInitial={typeof searchParams?.scan === "string" ? searchParams.scan : ""} nouvelleInitiale={searchParams?.nouveau === "1"} sitesPieces={CLIENT.rechercheFournisseursInventaire ? lireSites(parametreSites?.valeur) : null} />
     </div>
   );
 }

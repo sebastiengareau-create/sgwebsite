@@ -76,10 +76,10 @@ export default async function RootLayout({ children }) {
 
   const { theme, tailleTexte } = await obtenirPreferencesAffichage(session);
 
-  // Sections permises pour le bouton « + » (nouveau bon, rendez-vous, scan)
+  // Sections permises pour le bouton « + » (soumission, bon, pièce, client)
   const sectionsBouton = [];
   if (session && !verrouille) {
-    for (const section of ["operations", "calendrier", "inventaire"]) {
+    for (const section of ["operations", "inventaire", "clients"]) {
       if (await aAccesSection(session, section)) sectionsBouton.push(section);
     }
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
@@ -21,12 +21,20 @@ import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, GroupeLiens,
 // La recherche et les filtres portent toujours sur tous les clients.
 const TRANCHE = 100;
 
-export default function ClientsClient({ clients, peutImporter }) {
+export default function ClientsClient({ clients, peutImporter, nouveauInitial }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [nombreAffiches, setNombreAffiches] = useState(TRANCHE);
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
   const [seulementSolde, setSeulementSolde] = useState(false);
+
+  // « Nouveau client » du bouton « + » (?nouveau=1) : ouvre le formulaire,
+  // puis retire le paramètre de l'adresse.
+  useEffect(() => {
+    if (!nouveauInitial) return;
+    router.replace("/secretaire/clients");
+    setAfficherFormulaire(true);
+  }, [nouveauInitial, router]);
   const [filtre, setFiltre] = useState("TOUS");
 
   const avecSolde = clients.filter((c) => c.soldeDu > 0.005);

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import EnTete from "../../components/EnTete";
 import ClientsClient from "./ClientsClient";
 
-export default async function ListeClients() {
+export default async function ListeClients(props) {
+  const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "clients"))) redirect("/mecanicien");
 
@@ -28,7 +29,7 @@ export default async function ListeClients() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <ClientsClient clients={clients} peutImporter={estDeveloppeur(session)} />
+      <ClientsClient clients={clients} peutImporter={estDeveloppeur(session)} nouveauInitial={searchParams?.nouveau === "1"} />
     </div>
   );
 }
