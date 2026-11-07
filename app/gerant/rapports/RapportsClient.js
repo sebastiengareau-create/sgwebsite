@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import { argent } from "@/lib/format";
+import { Icone, CarteChiffre, GrilleChiffres, BoutonContour, TitreGroupe } from "../../components/StyleSection";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -153,7 +154,7 @@ const heureQuebec = (d) => new Intl.DateTimeFormat("en-GB", { timeZone: FUSEAU, 
 const jourQuebec = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: FUSEAU, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d));
 
 const champPetit = { padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12 };
-const boutonPetit = { fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "3px 7px", borderRadius: 6, cursor: "pointer" };
+const boutonPetit = { fontSize: 12, fontWeight: 600, color: "var(--text-muted)", background: "var(--bg)", border: "1px solid var(--border)", padding: "5px 10px", borderRadius: 8, cursor: "pointer", whiteSpace: "nowrap" };
 
 // Heures réellement travaillées par l'employé ce jour-là : remplacent les
 // heures prévues de l'horaire dans le coût, la présence et la marge (et dans
@@ -338,11 +339,17 @@ function PoinconsOublies({ poincons }) {
   const router = useRouter();
   if (!poincons || poincons.length === 0) return null;
   return (
-    <div className="carte carte-m" style={{ marginBottom: 16, border: "1px solid var(--danger)" }}>
-      <div style={{ fontWeight: 700, color: "var(--danger)", marginBottom: 4 }}>
-        ⚠ {poincons.length} poinçon{poincons.length > 1 ? "s" : ""} oublié{poincons.length > 1 ? "s" : ""} ?
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--danger)", borderRadius: 16, padding: "14px 16px 14px 20px", marginBottom: 20 }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--danger)" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: "var(--danger-fond)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Icone nom="alerte" taille={18} couleur="var(--danger)" />
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>
+          {poincons.length} poinçon{poincons.length > 1 ? "s" : ""} oublié{poincons.length > 1 ? "s" : ""} ?
+        </span>
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+      <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 10 }}>
         Encore ouvert trop longtemps ou terminé un autre jour. Corrige l'heure de fin pour que la paie et les rapports soient justes.
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -376,7 +383,7 @@ function LignePoinconOublie({ p, onCorrige }) {
   }
 
   return (
-    <div style={{ background: "var(--bg)", borderRadius: 6, padding: "8px 10px", fontSize: 12 }}>
+    <div style={{ background: "var(--bg)", borderRadius: 12, padding: "10px 12px", fontSize: 13 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
         <strong>{p.employe}</strong>
         <span style={{ color: "var(--danger)", fontWeight: 600, whiteSpace: "nowrap" }}>{fmtHeures(duree)}{p.fin ? "" : " · en cours"}</span>
@@ -437,46 +444,48 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
 
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="📈" titre="Rapport journalier" sousTitre={`${dateAffichee} · ${heuresAttendues}h prévues`}>
-        <Link href="/gerant/rapports/rentabilite" style={{ display: "inline-block", marginTop: 12, fontSize: 12, fontWeight: 600, color: "#fff", textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)", padding: "6px 12px", borderRadius: 8 }}>
-          📊 Voir la rentabilité par période →
-        </Link>
-      </BandeauSection>
+      <BandeauSection icone="📈" titre="Rapport journalier" sousTitre={`${dateAffichee} · ${heuresAttendues} h prévues`} />
 
-      <PoinconsOublies poincons={poinconsOublies} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <BoutonContour href="/gerant/rapports/rentabilite" icone="graphique">Rentabilité par période</BoutonContour>
+      </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
-        <button onClick={() => changerDate(decaler(dateStr, -1))} style={boutonJour}>← Veille</button>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 18, padding: 6, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <button onClick={() => changerDate(decaler(dateStr, -1))} aria-label="Jour précédent" style={boutonJour}>
+          <Icone nom="chevronGauche" taille={18} /> <span>Veille</span>
+        </button>
         <input
           type="date" max="9999-12-31"
           value={dateStr}
           onChange={(e) => changerDate(e.target.value)}
-          style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }}
+          style={{ flex: 1, minWidth: 0, padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, textAlign: "center" }}
         />
-        <button onClick={() => changerDate(decaler(dateStr, 1))} style={boutonJour}>Lendemain →</button>
+        <button onClick={() => changerDate(decaler(dateStr, 1))} aria-label="Jour suivant" style={boutonJour}>
+          <span>Lendemain</span> <Icone nom="chevron" taille={18} />
+        </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-        <div className="carte carte-s">
-          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--danger)" }}>{argent(totalCoutEquipe)}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Coût (heures travaillées)</div>
-        </div>
-        <div className="carte carte-s">
-          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--success)" }}>{argent(totalRevenuEquipe)}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Revenu (heures poinçonnées)</div>
-        </div>
-      </div>
-      {totalHeuresInternes > 0 && (
-        <div className="carte carte-s" style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>🛠️ Tâches internes ({fmtHeures(totalHeuresInternes)} × {argent(coutHoraire)}) — compris dans le coût</span>
-          <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" }}>{argent(totalCoutInternes)}</span>
-        </div>
-      )}
-      <div className="carte carte-s" style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Marge du jour (équipe)</span>
-        <span style={{ fontSize: 18, fontWeight: 700, color: margeEquipe >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(margeEquipe)}</span>
-      </div>
+      <PoinconsOublies poincons={poinconsOublies} />
 
+      <GrilleChiffres>
+        <CarteChiffre
+          titre="Revenu du jour" montant={argent(totalRevenuEquipe)} couleur="var(--success)" teinte="var(--success)"
+          note="Heures poinçonnées × taux client"
+        />
+        <CarteChiffre
+          titre="Coût du jour" montant={argent(totalCoutEquipe)} couleur="var(--danger)" teinte="var(--danger)"
+          note={totalHeuresInternes > 0
+            ? `Dont tâches internes ${argent(totalCoutInternes)} (${fmtHeures(totalHeuresInternes)})`
+            : `Heures travaillées des ${presents.length} présent${presents.length > 1 ? "s" : ""}`}
+        />
+        <CarteChiffre
+          titre="Marge de l'équipe" montant={argent(margeEquipe)}
+          couleur={margeEquipe >= 0 ? "var(--success)" : "var(--danger)"} teinte={margeEquipe >= 0 ? "var(--success)" : "var(--danger)"}
+          note="Revenu − coût"
+        />
+      </GrilleChiffres>
+
+      <TitreGroupe couleur="var(--accent)">Équipe</TitreGroupe>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {parMecanicien.map((m) => {
           const { employe, entrees, entreesInternes, heuresPoinconnees, heuresInternes, heuresReelles } = m;
@@ -502,11 +511,15 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
 
           if (absent) {
             return (
-              <div key={employe.id} className="carte carte-m">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, opacity: 0.6 }}>
-                  <span style={{ fontWeight: 600 }}>{employe.nom}</span>
-                  <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Absent — aucun poinçon</span>
+              <div key={employe.id} style={{ ...carteEmploye, background: "var(--surface-alt)" }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--border)" }} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 10, opacity: 0.7 }}>
+                    <Initiale nom={employe.nom} couleur="var(--text-muted)" fond="var(--bg)" />
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>{employe.nom}</span>
+                  </span>
+                  <span style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Absent — aucun poinçon</span>
                     {editionHeures !== employe.id && (
                       <button onClick={() => setEditionHeures(employe.id)} title="A travaillé sans poinçonner : entrer ses heures" style={boutonPetit}>✏️ Heures</button>
                     )}
@@ -535,25 +548,29 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
             : "var(--danger)";
 
           return (
-            <div key={employe.id} className="carte carte-m">
+            <div key={employe.id} style={carteEmploye}>
+              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleurRatio }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{employe.nom}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {fmtHeures(heuresJour)}</div>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0 }}>
+                <Initiale nom={employe.nom} couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.16)" />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{employe.nom}</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{fmtHeures(heuresPoinconnees)} facturables{heuresInternes > 0 ? ` + ${fmtHeures(heuresInternes)} internes` : ""} / {fmtHeures(heuresJour)}</div>
+                </div>
                 </div>
                 <div
                   title="Ratio de présence : (heures facturables + tâches internes) ÷ heures travaillées de la journée"
                   style={{ textAlign: "right", whiteSpace: "nowrap" }}
                 >
-                  <div style={{ fontSize: 20, fontWeight: 800, color: couleurRatio, lineHeight: 1.1 }}>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: couleurRatio, lineHeight: 1.1 }}>
                     {ratioPresence === null ? "—" : `${Math.round(ratioPresence)} %`}
                   </div>
-                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>Présence</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Présence</div>
                 </div>
               </div>
 
               {tempsNonPoinconne > 0.05 && (
-                <div style={{ fontSize: 11, color: "#C9A227", marginTop: 2 }}>
+                <div style={{ fontSize: 12.5, color: "var(--avertissement)", marginTop: 8, background: "var(--avertissement-fond)", borderRadius: 10, padding: "6px 10px" }}>
                   ⚠ {fmtHeures(tempsNonPoinconne)} non poinçonnées du tout — coûte {argent((tempsNonPoinconne * coutHoraire))} sans revenu associé
                 </div>
               )}
@@ -579,9 +596,9 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                 <span style={{ color: "var(--text-muted)" }}>Revenu généré ({fmtHeures(heuresPoinconnees)} × {argent(tauxHoraireClient)})</span>
                 <span>{argent(revenuJour)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 700 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 800, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
                 <span>Marge</span>
-                <span style={{ color: margeJour >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(margeJour)}</span>
+                <span style={{ color: margeJour >= 0 ? "var(--success)" : "var(--danger)", fontVariantNumeric: "tabular-nums" }}>{argent(margeJour)}</span>
               </div>
 
               {(entrees.length > 0 || entreesInternes.length > 0) && <FriseHoraire entrees={entrees} entreesInternes={entreesInternes} couleurs={couleurs} heuresOuverture={heuresOuverture} />}
@@ -598,11 +615,11 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
                         key={e.id}
                         href={`/bons/${e.probleme.bon.id}`}
                         title={`Ouvrir le bon #${e.probleme.bon.numero}`}
-                        style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, background: "var(--bg)", borderRadius: 6, padding: "6px 8px", textDecoration: "none", color: "inherit" }}
+                        style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, background: "var(--bg)", borderRadius: 10, padding: "8px 10px", textDecoration: "none", color: "inherit" }}
                       >
                         <div>
                           <div><strong style={{ color: "var(--text-muted)" }}>{numeroTache(e)}.</strong> {e.probleme.description}</div>
-                          <div style={{ color: "var(--text-muted)", fontSize: 10.5 }}>
+                          <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
                             #{e.probleme.bon.numero} · {e.probleme.bon.client.nom} · {heureDebut}–{heureFin}
                           </div>
                         </div>
@@ -639,6 +656,19 @@ function decaler(dateStr, jours) {
 }
 
 const boutonJour = {
-  fontSize: 12, fontWeight: 600, padding: "8px 10px", borderRadius: 8, whiteSpace: "nowrap",
-  background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)", cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 4, fontSize: 13, fontWeight: 700, padding: "9px 12px", borderRadius: 10, whiteSpace: "nowrap",
+  background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)", cursor: "pointer",
 };
+
+const carteEmploye = {
+  position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)",
+  borderRadius: 16, padding: "14px 16px 14px 20px",
+};
+
+function Initiale({ nom, couleur, fond }) {
+  return (
+    <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "50%", background: fond, color: couleur, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>
+      {nom.charAt(0).toUpperCase()}
+    </span>
+  );
+}
