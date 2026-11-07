@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import BandeauSection from "../../../components/BandeauSection";
+import { Icone, TEINTES, TitrePanneau, stylePanneau, BoutonContour, TitreGroupe, Pastille } from "../../../components/StyleSection";
 
 const NOMS_MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const STATUT_INFO = {
-  OUVERTE: { icone: "🟢", label: "Ouverte", couleur: "var(--success)" },
-  VERROUILLEE: { icone: "🟡", label: "Verrouillée", couleur: "#C9A227" },
-  FERMEE: { icone: "🔴", label: "Fermée", couleur: "var(--danger)" },
+  OUVERTE: { icone: "🟢", label: "Ouverte", couleur: "var(--success)", fond: "var(--success-fond)" },
+  VERROUILLEE: { icone: "🟡", label: "Verrouillée", couleur: "var(--avertissement)", fond: "var(--avertissement-fond)" },
+  FERMEE: { icone: "🔴", label: "Fermée", couleur: "var(--danger)", fond: "var(--danger-fond)" },
 };
 
 const TRIMESTRES = [
@@ -38,76 +40,90 @@ export default function FermetureClient({ periodes, annee }) {
     router.refresh();
   }
 
+  const compte = (statut) => periodes.filter((p) => p.statut === statut).length;
+
   return (
     <div className="conteneur-page">
       <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>Fermeture de période</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link href="/gerant/comptabilite/procedure" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
-            📋 Procédure
-          </Link>
-          <Link href="/gerant/comptabilite/fermeture/historique" style={{ fontSize: 12, fontWeight: 600, color: "var(--accent)", textDecoration: "none", border: "1px solid var(--border)", padding: "6px 12px", borderRadius: 8 }}>
-            📜 Journal
-          </Link>
-        </div>
-      </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Ferme les livres d'un mois pour empêcher toute modification comptable accidentelle une fois vérifié.
-      </p>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16 }}>
-        <Link href={`/gerant/comptabilite/fermeture?annee=${annee - 1}`} className="bouton-3d-sombre" style={{ padding: "6px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13 }}>◀</Link>
-        <span style={{ fontSize: 16, fontWeight: 700, flex: 1, textAlign: "center" }}>{annee}</span>
-        <Link href={`/gerant/comptabilite/fermeture?annee=${annee + 1}`} className="bouton-3d-sombre" style={{ padding: "6px 12px", borderRadius: 8, textDecoration: "none", fontSize: 13 }}>▶</Link>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="🔒" titre="Fermeture de période" sousTitre="Ferme les livres d'un mois pour empêcher toute modification accidentelle une fois vérifié." />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+        <BoutonContour href="/gerant/comptabilite/procedure" icone="presse" style={boutonEgal}>Procédure de fermeture</BoutonContour>
+        <BoutonContour href="/gerant/comptabilite/fermeture/historique" icone="livre" style={boutonEgal}>Journal des fermetures</BoutonContour>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, padding: 6, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <Link href={`/gerant/comptabilite/fermeture?annee=${annee - 1}`} aria-label="Année précédente" style={boutonAnnee}>
+          <Icone nom="chevronGauche" taille={18} /> {annee - 1}
+        </Link>
+        <span style={{ fontSize: 20, fontWeight: 800, flex: 1, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{annee}</span>
+        <Link href={`/gerant/comptabilite/fermeture?annee=${annee + 1}`} aria-label="Année suivante" style={boutonAnnee}>
+          {annee + 1} <Icone nom="chevron" taille={18} />
+        </Link>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+        {Object.entries(STATUT_INFO).map(([cle, info]) => (
+          <div key={cle} style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 10px 10px 14px" }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: info.couleur }} />
+            <div style={{ fontSize: 22, fontWeight: 800, color: info.couleur }}>{compte(cle)}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{info.label}{compte(cle) > 1 ? "s" : ""}</div>
+          </div>
+        ))}
+      </div>
+
+      <TitreGroupe couleur="var(--accent)">Mois de {annee}</TitreGroupe>
+      {/* 3 colonnes sur ordinateur, 2 sur cellulaire : 12 mois = rangées complètes */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(max(140px, 30%), 1fr))", gap: 8, marginBottom: 24 }}>
         {periodes.map((p) => {
           const info = STATUT_INFO[p.statut];
           return (
-            <Link
-              key={p.mois}
-              href={`/gerant/comptabilite/fermeture/${annee}/${p.mois}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div style={{ background: "var(--surface)", border: `1px solid ${info.couleur}`, borderRadius: 10, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{NOMS_MOIS[p.mois - 1]}</span>
-                <span style={{ fontSize: 12 }}>{info.icone} {info.label}</span>
+            <Link key={p.mois} href={`/gerant/comptabilite/fermeture/${annee}/${p.mois}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 12px 12px 16px", display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: info.couleur }} />
+                <span style={{ fontSize: 15, fontWeight: 700 }}>{NOMS_MOIS[p.mois - 1]}</span>
+                <span><Pastille couleur={info.couleur} fond={info.fond}>{info.label}</Pastille></span>
               </div>
             </Link>
           );
         })}
       </div>
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Fermer une plage</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-        {TRIMESTRES.map((t) => (
-          <button
-            key={t.label}
-            onClick={() => fermerPlage(t.mois, t.label)}
-            disabled={enCours}
-            className="bouton-3d-sombre"
-            style={{ padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700 }}
-          >
-            Fermer {t.label}
-          </button>
-        ))}
-      </div>
-      <button
-        onClick={() => fermerPlage(Array.from({ length: 12 }, (_, i) => i + 1), `l'année`)}
-        disabled={enCours}
-        className="bouton-3d-sombre"
-        style={{ width: "100%", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, marginBottom: 16 }}
-      >
-        Fermer l'année {annee} au complet
-      </button>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="cadenas" teinte={TEINTES.rouge} titre="Fermer une plage" sousTitre="Chaque mois est fermé un à la suite de l'autre" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 8 }}>
+          {TRIMESTRES.map((t) => (
+            <button key={t.label} onClick={() => fermerPlage(t.mois, t.label)} disabled={enCours} style={boutonPlage}>
+              Fermer {t.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => fermerPlage(Array.from({ length: 12 }, (_, i) => i + 1), `l'année`)}
+          disabled={enCours}
+          style={{ ...boutonPlage, width: "100%", borderColor: "var(--danger)", color: "var(--danger)" }}
+        >
+          Fermer l'année {annee} au complet
+        </button>
 
-      {rapport && (
-        <pre style={{ fontSize: 11.5, whiteSpace: "pre-wrap", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-          {rapport}
-        </pre>
-      )}
+        {rapport && (
+          <pre style={{ fontSize: 13, whiteSpace: "pre-wrap", background: "var(--bg)", borderRadius: 12, padding: 12, margin: "12px 0 0", fontFamily: "inherit" }}>
+            {rapport}
+          </pre>
+        )}
+      </div>
     </div>
   );
 }
+
+const boutonEgal = { flex: "1 1 180px", justifyContent: "center", padding: "11px 12px" };
+const boutonAnnee = {
+  display: "inline-flex", alignItems: "center", gap: 4, padding: "9px 12px", borderRadius: 10, textDecoration: "none",
+  fontSize: 13, fontWeight: 700, color: "var(--text)", background: "var(--bg)", border: "1px solid var(--border)",
+};
+const boutonPlage = {
+  padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer",
+  background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)",
+};
