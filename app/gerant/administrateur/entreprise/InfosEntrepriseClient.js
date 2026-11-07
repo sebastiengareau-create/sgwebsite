@@ -7,6 +7,8 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import SelectProvince from "../../../components/SelectProvince";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
+import BandeauSection from "../../../components/BandeauSection";
+import { TEINTES, TitrePanneau, stylePanneau } from "../../../components/StyleSection";
 
 export default function InfosEntrepriseClient({ infosInit, modeleConditions }) {
   const router = useRouter();
@@ -52,14 +54,14 @@ export default function InfosEntrepriseClient({ infosInit, modeleConditions }) {
   return (
     <div className="conteneur-page">
       <Link href="/gerant/administrateur" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Administrateur</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>🏢 Informations de l'entreprise</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
-        Ces informations apparaissent partout dans le logiciel — factures, courriels, documents imprimés. Change-les
-        ici pour adapter l'installation à un nouveau garage, sans toucher au code.
-      </p>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="🏢" titre="Informations de l'entreprise" sousTitre="Elles apparaissent partout — factures, courriels, documents imprimés. À changer ici pour un nouveau garage, sans toucher au code." />
+      </div>
 
-      <form onSubmit={sauvegarder} className="carte">
-        <label style={labelStyle}>Nom de l'entreprise</label>
+      <form onSubmit={sauvegarder}>
+        <div style={stylePanneau}>
+        <TitrePanneau icone="immeuble" teinte={TEINTES.ambre} titre="Coordonnées" sousTitre="Nom, adresse et moyens de joindre l'entreprise" />
+        <label style={{ ...labelStyle, marginTop: 0 }}>Nom de l'entreprise</label>
         <input required value={nomEntreprise} onChange={(e) => setNomEntreprise(e.target.value)} style={champStyle} />
 
         <label style={labelStyle}>Adresse</label>
@@ -85,7 +87,11 @@ export default function InfosEntrepriseClient({ infosInit, modeleConditions }) {
         <label style={labelStyle}>Courriel (optionnel — affiché sur certains documents)</label>
         <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} placeholder="Ex : info@garage.com" style={champStyle} />
 
-        <label style={labelStyle}>Personne responsable (signe les lettres de la section Documents)</label>
+        </div>
+
+        <div style={stylePanneau}>
+        <TitrePanneau icone="document" teinte={TEINTES.bleu} titre="Signature et numéros d'employeur" sousTitre="Lettres de la section Documents, feuillets T4 et RL-1" />
+        <label style={{ ...labelStyle, marginTop: 0 }}>Personne responsable (signe les lettres de la section Documents)</label>
         <input value={personneResponsable} onChange={(e) => setPersonneResponsable(e.target.value)} placeholder="Ex : Marc Tremblay, propriétaire" style={champStyle} />
 
         <label style={labelStyle}>Numéro d'employeur ARC — compte de retenues sur la paie (pour les T4)</label>
@@ -94,25 +100,35 @@ export default function InfosEntrepriseClient({ infosInit, modeleConditions }) {
         <label style={labelStyle}>Numéro d'identification Revenu Québec — dossier RS (pour les RL-1)</label>
         <input value={numeroEmployeurRq} onChange={(e) => setNumeroEmployeurRq(e.target.value)} placeholder="Ex : 1234567890RS0001" style={champStyle} />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 8 }}>
-          <label style={labelStyle}>Conditions générales — en petits caractères au bas de la soumission, du bon de travail et de la facture (vide = rien)</label>
-          {!conditionsGenerales.trim() && (
-            <button type="button" onClick={() => setConditionsGenerales(modeleConditions)} style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", cursor: "pointer", whiteSpace: "nowrap" }}>
-              Insérer le texte suggéré
-            </button>
-          )}
         </div>
-        <textarea value={conditionsGenerales} onChange={(e) => setConditionsGenerales(e.target.value)} rows={10} placeholder="Ex : CONDITIONS GÉNÉRALES — 1. Garantie. …" style={{ ...champStyle, fontSize: 12, lineHeight: 1.4, resize: "vertical", marginBottom: 4 }} />
-        {/\[[^\]]*\]/.test(conditionsGenerales) && (
-          <p style={{ fontSize: 11, color: "var(--warning, #c47f1f)", margin: "0 0 8px" }}>⚠ Le texte contient encore des crochets [ ] à compléter (délais, montants).</p>
+
+        <div style={stylePanneau}>
+        <TitrePanneau
+          icone="presse" teinte={TEINTES.neutre} titre="Conditions générales"
+          sousTitre="En petits caractères au bas de la soumission, du bon de travail et de la facture (vide = rien)"
+        />
+        {!conditionsGenerales.trim() && (
+          <button type="button" onClick={() => setConditionsGenerales(modeleConditions)} style={{ display: "block", width: "100%", marginBottom: 10, fontSize: 13, fontWeight: 700, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--accent)", background: "rgba(232,163,61,0.12)", color: "var(--text)", cursor: "pointer" }}>
+            Insérer le texte suggéré
+          </button>
         )}
-        <div style={{ marginBottom: 12 }} />
+        <textarea value={conditionsGenerales} onChange={(e) => setConditionsGenerales(e.target.value)} rows={10} placeholder="Ex : CONDITIONS GÉNÉRALES — 1. Garantie. …" style={{ ...champStyle, fontSize: 13, lineHeight: 1.45, resize: "vertical", marginBottom: 4, fontFamily: "inherit" }} />
+        {/\[[^\]]*\]/.test(conditionsGenerales) && (
+          <p style={{ fontSize: 12.5, color: "var(--avertissement)", background: "var(--avertissement-fond)", borderRadius: 10, padding: "8px 10px", margin: "6px 0 0" }}>⚠ Le texte contient encore des crochets [ ] à compléter (délais, montants).</p>
+        )}
+        </div>
 
         {message && (
-          <p style={{ fontSize: 12, marginBottom: 10, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
+          <p style={{ fontSize: 13, fontWeight: 700, margin: "0 0 10px", color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
         )}
 
-        <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 11, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+        <button
+          type="submit" disabled={enCours}
+          style={{
+            position: "sticky", bottom: 12, zIndex: 5, width: "100%", marginBottom: 24, padding: 13, borderRadius: 12, border: "none",
+            background: "var(--accent)", color: "#221f18", fontWeight: 700, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
+          }}
+        >
           {enCours ? "Enregistrement…" : "Sauvegarder"}
         </button>
       </form>
@@ -120,8 +136,8 @@ export default function InfosEntrepriseClient({ infosInit, modeleConditions }) {
   );
 }
 
-const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4, marginTop: 8 };
+const labelStyle = { fontSize: 13, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4, marginTop: 12 };
 const champStyle = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box",
+  width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 14, boxSizing: "border-box",
 };
