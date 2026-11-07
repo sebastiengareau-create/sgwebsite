@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NB_MAX_SITES } from "@/lib/recherchePieces";
+import { TitrePanneau, stylePanneau, TEINTES } from "../../components/StyleSection";
 
 // Sites des fournisseurs offerts dans « 🔎 Rechercher des pièces » (bons, commandes de pièces en brouillon)
 export default function SitesPiecesSection({ sitesInitiaux }) {
@@ -37,9 +38,9 @@ export default function SitesPiecesSection({ sitesInitiaux }) {
   const champ = { padding: "7px 9px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, minWidth: 0 };
 
   return (
-    <div className="conteneur-page-large" style={{ margin: "20px auto 0", padding: "0 16px" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Sites de pièces</div>
+    <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "0 16px" }}>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="loupe" teinte={TEINTES.vert} titre="Sites de pièces" />
         <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
           Fournisseurs offerts dans « 🔎 Rechercher des pièces » des bons et des commandes de pièces en brouillon. Mets l'adresse de recherche du site, avec
           entre accolades ce qu'il faut y mettre : {"{piece}"} (la pièce), {"{q}"} (la pièce et le véhicule),

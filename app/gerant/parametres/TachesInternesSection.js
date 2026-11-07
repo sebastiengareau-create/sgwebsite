@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent } from "@/lib/format";
+import { TitrePanneau, stylePanneau, TEINTES } from "../../components/StyleSection";
 
 function fmtHeures(h) {
   const heures = Math.floor(h);
@@ -60,10 +61,10 @@ export default function TachesInternesSection({ tachesInitiales }) {
   }
 
   return (
-    <div className="conteneur-page-large" style={{ margin: "20px auto 0", padding: "0 16px" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16 }}>
+    <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "0 16px" }}>
+      <div style={stylePanneau}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Tâches internes</div>
+          <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Tâches internes" />
           <Link href="/gerant/parametres/taches-internes/historique" style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", textDecoration: "none" }}>
             🕓 Historique
           </Link>

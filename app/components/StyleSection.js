@@ -198,3 +198,22 @@ export function Pastille({ couleur, fond, children }) {
     </span>
   );
 }
+
+// Titre d'un panneau avec sa tuile d'icône teintée (ex. sections de Paramètres)
+export function TitrePanneau({ icone, teinte = TEINTES.ambre, titre, sousTitre, droite }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+      <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: teinte.fond, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <Icone nom={icone} taille={20} couleur={teinte.couleur} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em", lineHeight: 1.25 }}>{titre}</div>
+        {sousTitre && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>{sousTitre}</div>}
+      </div>
+      {droite}
+    </div>
+  );
+}
+
+// Style d'un panneau blanc (à étaler sur un <div> ou un <form>)
+export const stylePanneau = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18, marginBottom: 16 };
