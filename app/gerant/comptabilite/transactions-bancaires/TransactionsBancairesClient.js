@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent } from "@/lib/format";
+import BandeauSection from "../../../components/BandeauSection";
+import { TEINTES, TitrePanneau, stylePanneau, BoutonContour } from "../../../components/StyleSection";
 
 const TAILLE_PAGE = 50;
 const LABEL_CREE = {
@@ -106,42 +108,47 @@ export default function TransactionsBancairesClient({
   return (
     <div className="conteneur-page">
       <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>📥 Transactions bancaires</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>
-        Importe le fichier des transactions de ta banque en ligne, puis relie chacune à tes livres : associe-la à ce qui est déjà
-        saisi, ajoute ce qui manque, ou exclus-la. Ce que tu ajoutes est retenu pour reconnaître les transactions semblables.
-        Tout ce qui est relié est coché d'avance dans la conciliation bancaire.
-      </p>
-
-      <select value={compte.id} onChange={(e) => router.push(`/gerant/comptabilite/transactions-bancaires?compte=${e.target.value}`)} className="champ" style={{ marginBottom: 4, fontWeight: 700 }}>
-        {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-      </select>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", marginBottom: 16 }}>Compte comptable : {compte.compteGl}</p>
-
-      <div className="carte carte-m" style={{ marginBottom: 12 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <div>
-            <div className="titre-section" style={{ marginBottom: 2 }}>{estCarte ? "Solde dû selon la banque" : "Solde selon la banque"}</div>
-            <div style={{ fontSize: 17, fontWeight: 700 }}>{compte.soldeReleve !== null ? `${argent(compte.soldeReleve)}` : "—"}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{compte.soldeReleveLe ? `au ${compte.soldeReleveLe}` : "importe un fichier OFX pour l'obtenir"}</div>
-          </div>
-          <div>
-            <div className="titre-section" style={{ marginBottom: 2 }}>Solde aux livres</div>
-            <div style={{ fontSize: 17, fontWeight: 700 }}>{argent(compte.soldeLivres)}</div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>toutes dates confondues</div>
-          </div>
-        </div>
-        <Importation compte={compte} />
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="📥" titre="Transactions bancaires" sousTitre="Importe le fichier de ta banque, puis relie chaque transaction à tes livres." />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 12 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+        <BoutonContour href={`/gerant/comptabilite/rapprochement?compte=${compte.id}`} icone="liste" style={{ flex: "1 1 200px", justifyContent: "center" }}>
+          Passer à la conciliation bancaire
+        </BoutonContour>
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="banque" teinte={TEINTES.bleu} titre="Compte"
+          sousTitre={`Compte comptable : ${compte.compteGl}`}
+        />
+        <select value={compte.id} onChange={(e) => router.push(`/gerant/comptabilite/transactions-bancaires?compte=${e.target.value}`)} className="champ" style={{ marginBottom: 14, fontWeight: 700, fontSize: 15 }}>
+          {comptesTresorerie.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+        </select>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
+          <BlocSolde
+            titre={estCarte ? "Solde dû selon la banque" : "Solde selon la banque"} teinte="var(--bleu)"
+            montant={compte.soldeReleve !== null ? argent(compte.soldeReleve) : "—"}
+            note={compte.soldeReleveLe ? `au ${compte.soldeReleveLe}` : "importe un fichier OFX pour l'obtenir"}
+          />
+          <BlocSolde titre="Solde aux livres" teinte="var(--accent)" montant={argent(compte.soldeLivres)} note="toutes dates confondues" />
+        </div>
+        <Importation compte={compte} />
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "12px 0 0" }}>
+          Associe chaque transaction à ce qui est déjà saisi, ajoute ce qui manque, ou exclus-la. Ce que tu ajoutes est retenu pour
+          reconnaître les transactions semblables. Tout ce qui est relié est coché d'avance dans la conciliation bancaire.
+        </p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 14 }}>
         <Tuile valeur={aExaminer.length - nbReconnues} libelle="À classifier" couleur={aExaminer.length - nbReconnues > 0 ? "var(--danger)" : "var(--text-muted)"} />
         <Tuile valeur={nbReconnues} libelle="Reconnues, à confirmer" couleur={nbReconnues > 0 ? "var(--success)" : "var(--text-muted)"} />
         <Tuile valeur={nbExaminees} libelle="Examinées" couleur="var(--text)" />
         <Tuile valeur={totalDoublons} libelle="Doublons ignorés" couleur="var(--text-muted)" />
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 14 }}>
         {[
           ["examiner", `À examiner (${aExaminer.length})`],
           ["examinees", "Examinées"],
@@ -149,8 +156,10 @@ export default function TransactionsBancairesClient({
         ].map(([cle, label]) => (
           <button
             key={cle} onClick={() => setOnglet(cle)}
-            className={onglet === cle ? "bouton-3d" : "bouton-3d-sombre"}
-            style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+            style={{
+              flex: 1, padding: "9px 6px", borderRadius: 9, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer",
+              background: onglet === cle ? "var(--accent)" : "transparent", color: onglet === cle ? "#221f18" : "var(--text-muted)",
+            }}
           >
             {label}
           </button>
@@ -166,7 +175,7 @@ export default function TransactionsBancairesClient({
               {sures.length > 0 && (
                 <button
                   onClick={() => confirmerGroupe(sures, `Associer les ${sures.length} correspondance(s) trouvée(s) à leur écriture ?`)}
-                  disabled={enCours === "tout"} className="bouton-3d" style={{ padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                  disabled={enCours === "tout"} style={{ padding: 12, borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", background: "var(--success)", color: "#fff", cursor: "pointer" }}
                 >
                   {enCours === "tout" ? "Confirmation…" : `✓ Associer les ${sures.length} correspondance(s) trouvée(s)`}
                 </button>
@@ -174,7 +183,7 @@ export default function TransactionsBancairesClient({
               {apprises.length > 0 && (
                 <button
                   onClick={() => confirmerGroupe(apprises, `Confirmer les ${apprises.length} classement(s) appris ? Une dépense ou une écriture sera ajoutée pour chacune, comme la dernière fois.`)}
-                  disabled={enCours === "tout"} className="bouton-3d-sombre" style={{ padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+                  disabled={enCours === "tout"} style={{ padding: 12, borderRadius: 12, fontSize: 14, fontWeight: 700, border: "1px solid var(--bleu)", background: "var(--bleu-fond)", color: "var(--text)", cursor: "pointer" }}
                 >
                   {enCours === "tout" ? "Confirmation…" : `🧠 Confirmer les ${apprises.length} classement(s) appris`}
                 </button>
@@ -183,12 +192,13 @@ export default function TransactionsBancairesClient({
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {aExaminer.slice(0, limite).map((t) => (
-              <div key={t.id} className="carte carte-s" style={{ opacity: enCours === t.id ? 0.6 : 1 }}>
+              <div key={t.id} style={{ ...carteTransaction(t), opacity: enCours === t.id ? 0.6 : 1 }}>
+                <BandeMontant t={t} />
                 <EnteteTransaction t={t} />
                 {t.suggestion
                   ? <Suggestion t={t} enCours={enCours === t.id} onAccepter={(corps) => envoyer(t.id, corps)} />
-                  : <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>Aucune correspondance — à classifier</div>}
-                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                  : <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>Aucune correspondance — à classifier</div>}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(72px, 1fr))", gap: 6, marginTop: 10 }}>
                   <BoutonAction actif={ouvert?.id === t.id && ouvert.mode === "ajouter"} onClick={() => basculer(t.id, "ajouter")}>➕ Ajouter</BoutonAction>
                   {autresComptes.length > 0 && <BoutonAction actif={ouvert?.id === t.id && ouvert.mode === "transfert"} onClick={() => basculer(t.id, "transfert")}>⇄ Transfert</BoutonAction>}
                   <BoutonAction actif={ouvert?.id === t.id && ouvert.mode === "trouver"} onClick={() => basculer(t.id, "trouver")}>🔍 Trouver</BoutonAction>
@@ -217,7 +227,7 @@ export default function TransactionsBancairesClient({
               </p>
             )}
             {aExaminer.length > limite && (
-              <button onClick={() => setLimite((l) => l + TAILLE_PAGE)} className="bouton-3d-sombre" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+              <button onClick={() => setLimite((l) => l + TAILLE_PAGE)} style={{ padding: 11, borderRadius: 12, fontSize: 13, fontWeight: 700, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", cursor: "pointer" }}>
                 Afficher plus ({aExaminer.length - limite} de plus)
               </button>
             )}
@@ -228,9 +238,10 @@ export default function TransactionsBancairesClient({
       {onglet === "examinees" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {examinees.map((t) => (
-            <div key={t.id} className="carte carte-s" style={{ opacity: enCours === t.id ? 0.6 : 1 }}>
+            <div key={t.id} style={{ ...carteTransaction(t), opacity: enCours === t.id ? 0.6 : 1 }}>
+              <BandeMontant t={t} />
               <EnteteTransaction t={t} />
-              <div style={{ fontSize: 11.5, marginTop: 6, color: "var(--success)", fontWeight: 600 }}>
+              <div style={{ fontSize: 12.5, marginTop: 6, color: "var(--success)", fontWeight: 700 }}>
                 ✓ {t.creeType ? LABEL_CREE[t.creeType] : "Associée"}{t.examinePar ? ` · par ${t.examinePar}` : ""}
               </div>
               {t.liens.map((l, i) => (
@@ -260,7 +271,8 @@ export default function TransactionsBancairesClient({
       {onglet === "exclues" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {exclues.map((t) => (
-            <div key={t.id} className="carte carte-s" style={{ opacity: enCours === t.id ? 0.6 : 1 }}>
+            <div key={t.id} style={{ ...carteTransaction(t), opacity: enCours === t.id ? 0.6 : 1 }}>
+              <BandeMontant t={t} />
               <EnteteTransaction t={t} />
               <button
                 onClick={() => envoyer(t.id, { action: "annuler" })} disabled={enCours === t.id}
@@ -275,9 +287,6 @@ export default function TransactionsBancairesClient({
         </div>
       )}
 
-      <Link href={`/gerant/comptabilite/rapprochement?compte=${compte.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", marginTop: 20, padding: 10, borderRadius: 8, fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>
-        🏦 Passer à la conciliation bancaire
-      </Link>
 
       <HistoriqueImports imports={imports} />
       <ClassementsAppris regles={regles} />
@@ -285,11 +294,31 @@ export default function TransactionsBancairesClient({
   );
 }
 
+// Carte d'une transaction : bande verte (entrée) ou rouge (sortie)
+function carteTransaction(t) {
+  return { position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" };
+}
+function BandeMontant({ t }) {
+  return <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: t.montant >= 0 ? "var(--success)" : "var(--danger)" }} />;
+}
+
+function BlocSolde({ titre, montant, note, teinte }) {
+  return (
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--bg)", borderRadius: 12, padding: "10px 12px 10px 16px" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
+      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>{titre}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{montant}</div>
+      <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{note}</div>
+    </div>
+  );
+}
+
 function Tuile({ valeur, libelle, couleur }) {
   return (
-    <div className="carte carte-s" style={{ padding: "10px 8px", textAlign: "center" }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: couleur }}>{valeur}</div>
-      <div style={{ fontSize: 10, color: "var(--text-muted)", lineHeight: 1.25 }}>{libelle}</div>
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 12px 12px 16px" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleur === "var(--text)" ? "var(--bleu)" : couleur }} />
+      <div style={{ fontSize: 22, fontWeight: 800, color: couleur, fontVariantNumeric: "tabular-nums" }}>{valeur}</div>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.25 }}>{libelle}</div>
     </div>
   );
 }
@@ -331,8 +360,8 @@ function Importation({ compte }) {
   }
 
   return (
-    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-      <div className="titre-section">Importer un fichier de la banque</div>
+    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Importer un fichier de la banque</div>
       <div style={{ display: "flex", gap: 8 }}>
         {/* Pas d'attribut accept : l'iPhone (et certains Android) ne connaît
             pas le type .ofx/.qfx/.qbo et grise ces fichiers dans le sélecteur.
@@ -342,7 +371,7 @@ function Importation({ compte }) {
           onChange={(e) => { setFichier(e.target.files?.[0] || null); setChoixCompte(null); setErreur(""); }}
           className="champ" style={{ flex: 1, minWidth: 0 }}
         />
-        <button onClick={() => importer()} disabled={!fichier || enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 700 }}>
+        <button onClick={() => importer()} disabled={!fichier || enCours} style={{ padding: "8px 16px", borderRadius: 10, fontSize: 14, fontWeight: 700, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer", opacity: !fichier ? 0.6 : 1 }}>
           {enCours ? "Import…" : "Importer"}
         </button>
       </div>
@@ -393,8 +422,8 @@ function HistoriqueImports({ imports }) {
 
   if (imports.length === 0) return null;
   return (
-    <details className="carte carte-m" style={{ marginTop: 16 }}>
-      <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🗂️ Historique des imports</summary>
+    <details style={{ ...stylePanneau, marginTop: 16 }}>
+      <summary style={{ cursor: "pointer", fontSize: 15, fontWeight: 700 }}>🗂️ Historique des imports</summary>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
         {imports.map((i) => (
           <div key={i.id} style={{ fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 8, opacity: i.annuleLe ? 0.6 : 1 }}>
@@ -431,8 +460,8 @@ function ClassementsAppris({ regles }) {
   }
 
   return (
-    <details className="carte carte-m" style={{ marginTop: 10 }}>
-      <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 700 }}>🧠 Classements appris ({regles.length})</summary>
+    <details style={stylePanneau}>
+      <summary style={{ cursor: "pointer", fontSize: 15, fontWeight: 700 }}>🧠 Classements appris ({regles.length})</summary>
       <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "8px 0" }}>
         Chaque transaction ajoutée (dépense, écriture, transfert) est retenue par ses mots significatifs. La prochaine qui lui
         ressemble est proposée avec le même classement — à confirmer, jamais comptabilisée sans toi. Valables pour tous les comptes.
@@ -457,10 +486,10 @@ function EnteteTransaction({ t }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, overflowWrap: "anywhere" }}>{t.description}</div>
-        <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{t.date}{t.reference ? ` · chèque ${t.reference}` : ""}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: "anywhere" }}>{t.description}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{t.date}{t.reference ? ` · chèque ${t.reference}` : ""}</div>
       </div>
-      <span style={{ fontWeight: 700, fontSize: 13, whiteSpace: "nowrap", color: t.montant >= 0 ? "var(--success)" : "var(--danger)" }}>{formaterMontant(t.montant)}</span>
+      <span style={{ fontWeight: 800, fontSize: 16, whiteSpace: "nowrap", color: t.montant >= 0 ? "var(--success)" : "var(--danger)", fontVariantNumeric: "tabular-nums" }}>{formaterMontant(t.montant)}</span>
     </div>
   );
 }
@@ -469,7 +498,7 @@ function EnteteTransaction({ t }) {
 function Journal({ t }) {
   if (!t.journal?.length) return null;
   return (
-    <details style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>
+    <details style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
       <summary style={{ cursor: "pointer" }}>Historique ({t.journal.length})</summary>
       {t.journal.map((j, i) => (
         <div key={i}>{formaterDateHeure(j.le)} · {LABEL_JOURNAL[j.action] || j.action}{j.par ? ` · ${j.par}` : ""}</div>
@@ -481,8 +510,8 @@ function Journal({ t }) {
 // Correspondance trouvée (sûre), possible (à vérifier), ou classement appris
 const STYLE_CERTITUDE = {
   SURE: { fond: "rgba(111,169,107,0.12)", couleur: "var(--success)" },
-  POSSIBLE: { fond: "rgba(201,162,39,0.14)", couleur: "#C9A227" },
-  APPRISE: { fond: "rgba(79,130,192,0.14)", couleur: "#4F82C0" },
+  POSSIBLE: { fond: "var(--avertissement-fond)", couleur: "var(--avertissement)" },
+  APPRISE: { fond: "var(--bleu-fond)", couleur: "var(--bleu)" },
 };
 
 function Suggestion({ t, enCours, onAccepter }) {
@@ -496,12 +525,12 @@ function Suggestion({ t, enCours, onAccepter }) {
         : [`Classement appris : ${s.action === "DEPENSE" ? "dépense" : "écriture"}`, "Confirmer", { action: "regle", regleId: s.regleId }];
   const style = STYLE_CERTITUDE[s.certitude] || STYLE_CERTITUDE.POSSIBLE;
   return (
-    <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: style.fond, display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: style.couleur }}>{titre}</div>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", overflowWrap: "anywhere" }}>{s.description}</div>
+    <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: style.fond, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: style.couleur }}>{titre}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>{s.description}</div>
       </div>
-      <button onClick={() => onAccepter(corps)} disabled={enCours} className="bouton-3d" style={{ padding: "7px 10px", borderRadius: 8, fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>
+      <button onClick={() => onAccepter(corps)} disabled={enCours} style={{ padding: "9px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
         {bouton}
       </button>
     </div>
@@ -511,8 +540,8 @@ function Suggestion({ t, enCours, onAccepter }) {
 function BoutonAction({ actif, children, ...props }) {
   return (
     <button {...props} style={{
-      padding: "5px 10px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, cursor: "pointer", color: "var(--text)",
-      background: actif ? "var(--bg)" : "none", border: actif ? "1px solid var(--accent)" : "1px solid var(--border)",
+      padding: "9px 4px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: "var(--text)", lineHeight: 1.2,
+      background: actif ? "rgba(232,163,61,0.16)" : "var(--bg)", border: actif ? "1.5px solid var(--accent)" : "1px solid var(--border)",
     }}>
       {children}
     </button>
