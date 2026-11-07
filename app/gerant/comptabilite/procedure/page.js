@@ -3,6 +3,8 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import EnTete from "../../../components/EnTete";
+import BandeauSection from "../../../components/BandeauSection";
+import { Icone, TEINTES, TitrePanneau, stylePanneau, BoutonContour, TitreGroupe, Pastille } from "../../../components/StyleSection";
 
 const ETAPES = [
   {
@@ -61,56 +63,73 @@ export default async function ProcedureFermeture() {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <div className="conteneur-page">
-        <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
-        <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>📋 Procédure de fermeture de mois</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 6 }}>
-          L'ordre recommandé pour fermer un mois comptable proprement avec ce logiciel. Les étapes marquées{" "}
-          <span style={{ color: "var(--danger)", fontWeight: 700 }}>obligatoire</span> sont vérifiées automatiquement —
-          le logiciel refuse de fermer le mois tant qu'elles ne sont pas faites. Les autres sont fortement
-          recommandées, mais le logiciel ne les impose pas.
-        </p>
-        <p style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 20, fontStyle: "italic" }}>
-          Rien n'empêche de faire les étapes dans un autre ordre — celui-ci évite simplement les allers-retours (ex :
-          rapprocher la banque avant d'avoir ajouté les écritures manquantes veut souvent dire recommencer).
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {ETAPES.map((e) => (
-            <div key={e.numero} className="carte">
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: "50%", flexShrink: 0, marginTop: 2,
-                  background: "linear-gradient(180deg, var(--accent-clair), var(--accent))",
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#17150f",
-                }}>
-                  {e.numero}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14 }}>{e.titre}</span>
-                    {e.obligatoire && (
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--danger)", border: "1px solid var(--danger)", borderRadius: 999, padding: "2px 8px" }}>
-                        OBLIGATOIRE{e.obligatoireSi ? ` — ${e.obligatoireSi}` : ""}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 10px" }}>{e.description}</p>
-                  <Link
-                    href={e.lien.href}
-                    className="bouton-3d-sombre"
-                    style={{ display: "inline-block", padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}
-                  >
-                    {e.lien.label} →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
+        <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
+        <div style={{ marginTop: 8 }}>
+          <BandeauSection icone="📋" titre="Procédure de fermeture" sousTitre="L'ordre recommandé pour fermer un mois comptable proprement." />
         </div>
 
-        <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Après la fermeture</div>
-          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+          <BoutonContour href="/gerant/comptabilite/fermeture" icone="cadenas" style={{ flex: "1 1 200px", justifyContent: "center" }}>Fermeture de période</BoutonContour>
+        </div>
+
+        <div style={{ ...stylePanneau, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <Pastille couleur="var(--danger)" fond="var(--danger-fond)">Obligatoire</Pastille>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Vérifiée automatiquement : le mois ne se ferme pas tant qu'elle n'est pas faite.</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">Recommandée</Pastille>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Fortement conseillée, mais pas imposée.</span>
+          </div>
+          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "4px 0 0", fontStyle: "italic" }}>
+            Rien n'empêche un autre ordre — celui-ci évite les allers-retours (ex : rapprocher la banque avant d'avoir ajouté les
+            écritures manquantes veut souvent dire recommencer).
+          </p>
+        </div>
+
+        <TitreGroupe couleur="var(--accent)">{`${ETAPES.length} étapes`}</TitreGroupe>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+          {ETAPES.map((e) => {
+            const couleur = e.obligatoire ? "var(--danger)" : "var(--accent)";
+            return (
+              <div key={e.numero} style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleur }} />
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: e.obligatoire ? "var(--danger-fond)" : "rgba(232,163,61,0.16)",
+                    color: e.obligatoire ? "var(--danger)" : "var(--accent-ombre)",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800,
+                  }}>
+                    {e.numero}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, fontSize: 15 }}>{e.titre}</span>
+                      {e.obligatoire
+                        ? <Pastille couleur="var(--danger)" fond="var(--danger-fond)">Obligatoire</Pastille>
+                        : <Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">Recommandée</Pastille>}
+                    </div>
+                    {e.obligatoire && e.obligatoireSi && (
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--danger)", marginBottom: 4 }}>{e.obligatoireSi.charAt(0).toUpperCase() + e.obligatoireSi.slice(1)}</div>
+                    )}
+                    <p style={{ fontSize: 13.5, color: "var(--text-muted)", margin: "0 0 10px" }}>{e.description}</p>
+                    <Link
+                      href={e.lien.href}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }}
+                    >
+                      {e.lien.label} <Icone nom="chevron" taille={15} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={stylePanneau}>
+          <TitrePanneau icone="cadenas" teinte={TEINTES.bleu} titre="Après la fermeture" />
+          <p style={{ fontSize: 13.5, color: "var(--text-muted)", margin: 0 }}>
             « 🟡 Verrouiller » empêche de modifier les écritures existantes du mois, mais accepte encore de nouvelles
             écritures datées dans ce mois — utile pour un premier arrêt pendant que tu termines le reste. « 🔴 Fermer »
             bloque tout, définitivement, sauf réouverture. Une réouverture reste possible en tout temps (gérant
