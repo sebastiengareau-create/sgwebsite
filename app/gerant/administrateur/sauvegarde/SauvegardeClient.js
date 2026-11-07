@@ -3,6 +3,8 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { nombre } from "@/lib/format";
+import BandeauSection from "../../../components/BandeauSection";
+import { TEINTES, TitrePanneau, stylePanneau, Pastille } from "../../../components/StyleSection";
 
 // Lit le fichier choisi : .json, ou .json.gz (sauvegarde automatique reçue
 // par courriel, compressée)
@@ -130,23 +132,20 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
   return (
     <div className="conteneur-page">
       <Link href="/gerant/parametres" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à Paramètres</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>💾 Sauvegarde</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>
-        Toutes les données de l'installation (clients, bons, factures, comptabilité, etc.) dans un seul fichier
-        téléchargeable — garde-le où tu veux (ton ordinateur, Google Drive, Dropbox…).
-      </p>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="💾" titre="Sauvegarde des données" sousTitre="Toutes les données de l'installation dans un seul fichier — garde-le où tu veux (ordinateur, Google Drive, Dropbox…)." />
+      </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Télécharger une sauvegarde</div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="boite" teinte={TEINTES.bleu} titre="Télécharger une sauvegarde" sousTitre="Clients, bons, factures, comptabilité… et les photos" />
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
           Crée un fichier .json avec absolument tout, à l'instant présent. Recommandé régulièrement, et surtout avant
           tout changement important.
         </p>
         <button
           onClick={telecharger}
           disabled={telechargementEnCours}
-          className="bouton-3d"
-          style={{ width: "100%", padding: 12, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+          style={{ width: "100%", padding: 13, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", fontSize: 15, fontWeight: 700, cursor: "pointer" }}
         >
           {telechargementEnCours ? "Préparation…" : "⬇️ Télécharger la sauvegarde"}
         </button>
@@ -163,9 +162,12 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
       </div>
 
       {peutRestaurer && (
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>📧 Sauvegarde automatique quotidienne</div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="horloge" teinte={TEINTES.vert} titre="Sauvegarde automatique quotidienne" sousTitre="Envoyée par courriel une fois par jour"
+          droite={courrielEnregistre ? <Pastille couleur="var(--success)" fond="var(--success-fond)">Active</Pastille> : <Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Désactivée</Pastille>}
+        />
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
           Le serveur n'a pas d'espace de stockage permanent où choisir un chemin — la sauvegarde du jour t'est plutôt
           envoyée par courriel automatiquement, une fois par jour. Elle contient toutes les données{" "}
           <strong>sauf les photos des bons</strong>, trop lourdes pour un courriel : pour une copie avec les photos,
@@ -178,13 +180,12 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
             value={courrielAuto}
             onChange={(e) => setCourrielAuto(e.target.value)}
             placeholder="courriel@exemple.com"
-            style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" }}
+            style={{ flex: 1, minWidth: 0, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }}
           />
           <button
             onClick={sauvegarderCourrielAuto}
             disabled={courrielAutoEnCours}
-            className="bouton-3d"
-            style={{ padding: "0 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+            style={{ padding: "0 16px", borderRadius: 10, border: "none", background: "var(--accent)", color: "#221f18", fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
           >
             {courrielAutoEnCours ? "…" : "✓ Enregistrer"}
           </button>
@@ -206,8 +207,7 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
             <button
               onClick={envoyerMaintenant}
               disabled={envoiEnCours}
-              className="bouton-3d"
-              style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+              style={{ width: "100%", padding: 11, borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
             >
               {envoiEnCours ? "Envoi en cours… (peut prendre une minute)" : "📤 Envoyer la sauvegarde maintenant"}
             </button>
@@ -217,9 +217,10 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
       )}
 
       {peutRestaurer && (
-      <div style={{ background: "var(--surface)", border: "1px solid var(--danger)", borderRadius: 10, padding: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: "var(--danger)" }}>⚠️ Restaurer une sauvegarde</div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+      <div style={{ ...stylePanneau, position: "relative", overflow: "hidden", border: "1px solid var(--danger)", paddingLeft: 22 }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--danger)" }} />
+        <TitrePanneau icone="alerte" teinte={TEINTES.rouge} titre="Restaurer une sauvegarde" sousTitre="Zone sensible — efface tout d'abord" />
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>
           Efface TOUTES les données actuelles et les remplace par celles du fichier choisi. Irréversible — à utiliser
           seulement en cas de vrai problème (perte de données, migration vers une nouvelle installation).
         </p>
@@ -229,19 +230,19 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
           type="file"
           accept=".json,.gz,application/json,application/gzip"
           onChange={(e) => setFichierChoisi(e.target.files?.[0] || null)}
-          style={{ width: "100%", marginBottom: 10, fontSize: 12, color: "var(--text-muted)" }}
+          style={{ width: "100%", marginBottom: 10, fontSize: 13, color: "var(--text-muted)", padding: 10, borderRadius: 10, border: "1px dashed var(--border)", background: "var(--bg)", boxSizing: "border-box" }}
         />
 
         {fichierChoisi && (
           <>
-            <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+            <label style={{ fontSize: 13, color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
               Tape <strong style={{ color: "var(--danger)" }}>RESTAURER</strong> pour confirmer :
             </label>
             <input
               value={phraseConfirmation}
               onChange={(e) => setPhraseConfirmation(e.target.value)}
               placeholder="RESTAURER"
-              style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--danger)", background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 10, boxSizing: "border-box" }}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--danger)", background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 10, boxSizing: "border-box" }}
             />
           </>
         )}
@@ -256,8 +257,8 @@ export default function SauvegardeClient({ peutRestaurer, courrielAutoInit, dern
           onClick={restaurer}
           disabled={!fichierChoisi || phraseConfirmation !== "RESTAURER" || restaurationEnCours}
           style={{
-            width: "100%", padding: 12, borderRadius: 8, border: "none", fontWeight: 700, fontSize: 13,
-            background: fichierChoisi && phraseConfirmation === "RESTAURER" ? "var(--danger)" : "#3a2620",
+            width: "100%", padding: 12, borderRadius: 12, border: "none", fontWeight: 700, fontSize: 14,
+            background: fichierChoisi && phraseConfirmation === "RESTAURER" ? "var(--danger)" : "var(--danger-fond)",
             color: fichierChoisi && phraseConfirmation === "RESTAURER" ? "white" : "var(--text-muted)",
             cursor: fichierChoisi && phraseConfirmation === "RESTAURER" ? "pointer" : "not-allowed",
           }}
