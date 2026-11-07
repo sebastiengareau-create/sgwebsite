@@ -34,7 +34,7 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
   const parRole = rolesPresents
     .map((r) => [r, tousActifs.filter((e) => e.role === r).length])
     .filter(([, n]) => n > 0)
-    .map(([r, n]) => `${nomsRoles[r] || r} ${n}`)
+    .map(([r, n]) => `${nomsRoles[r] || r} → ${n}`)
     .join(" · ");
   const nbInactifs = employes.length - tousActifs.length;
 
