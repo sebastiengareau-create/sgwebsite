@@ -102,12 +102,12 @@ function LienOuBouton({ href, onClick, target, style, children, ...rest }) {
 }
 
 // Bouton à bordure dorée (ex. « État des résultats », « Bilan »).
-export function BoutonContour({ href, onClick, target, icone, actif, children }) {
+export function BoutonContour({ href, onClick, target, icone, actif, children, style }) {
   return (
     <LienOuBouton href={href} onClick={onClick} target={target} style={{
       display: "inline-flex", alignItems: "center", gap: 10, padding: "11px 18px", borderRadius: 12,
       border: "1.5px solid var(--accent)", background: actif ? "rgba(232,163,61,0.16)" : "var(--surface)", color: "var(--text)",
-      fontSize: 14, fontWeight: 700,
+      fontSize: 14, fontWeight: 700, ...style,
     }}>
       {icone && <Icone nom={icone} taille={18} couleur="var(--accent-ombre)" />}
       {children}

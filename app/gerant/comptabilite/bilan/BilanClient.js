@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { argent, nombre } from "@/lib/format";
+import BandeauSection from "../../../components/BandeauSection";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonContour, TitrePanneau, stylePanneau } from "../../../components/StyleSection";
 
 const COULEURS_ACTIF = ["#4F82C0", "#5AC8C8", "#7BA7D9", "#3E6A9E"];
 const COULEURS_PASSIF = ["#C9A227", "#D4B24D", "#B8901A"];
@@ -28,62 +30,87 @@ export default function BilanClient({ lignes, resultatNetCumule }) {
   ];
 
   return (
-    <div style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
-      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>Bilan</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 20 }}>À ce jour — Actif d'un côté, Passif et capitaux propres de l'autre.</p>
+    <div className="conteneur-page">
+      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="⚖️" titre="Bilan" sousTitre="À ce jour — Actif d'un côté, Passif et capitaux propres de l'autre." />
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
+        <BoutonContour style={boutonEgal} href="/gerant/comptabilite/etat-resultats" icone="graphique">État des résultats</BoutonContour>
+        <BoutonContour style={boutonEgal} href="/gerant/comptabilite/rapports" icone="imprimante">Rapports imprimables</BoutonContour>
+      </div>
 
       {/* Vérification d'équilibre — mise en évidence en premier */}
-      <div
-        style={{
-          padding: 18, borderRadius: 14, marginBottom: 24, textAlign: "center",
-          background: equilibre ? "rgba(111,169,107,0.14)" : "rgba(193,91,74,0.14)",
-          border: `1px solid ${equilibre ? "var(--success)" : "var(--danger)"}`,
-        }}
-      >
-        <div style={{ fontSize: 22, fontWeight: 800, color: equilibre ? "var(--success)" : "var(--danger)" }}>
-          {equilibre ? "✓ Le bilan s'équilibre" : `Écart de ${argent(Math.abs(ecart))}`}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-          Actif {argent(totalActif)} = Passif {argent(totalPassif)} + Capitaux propres {argent(totalCapitauxPropres)}
+      <div style={{
+        position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 12,
+        background: "var(--surface)", border: `1px solid ${equilibre ? "var(--success)" : "var(--danger)"}`,
+        borderRadius: 16, padding: "14px 16px 14px 20px", marginBottom: 16,
+      }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: equilibre ? "var(--success)" : "var(--danger)" }} />
+        <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: equilibre ? "var(--success-fond)" : "var(--danger-fond)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Icone nom={equilibre ? "crochet" : "alerte"} taille={20} couleur={equilibre ? "var(--success)" : "var(--danger)"} />
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: equilibre ? "var(--success)" : "var(--danger)" }}>
+            {equilibre ? "Le bilan s'équilibre" : `Écart de ${argent(Math.abs(ecart))}`}
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
+            Actif {argent(totalActif)} = Passif {argent(totalPassif)} + Capitaux propres {argent(totalCapitauxPropres)}
+          </div>
         </div>
       </div>
 
-      <SectionBarres titre="🏦 Actif" total={totalActif} lignes={actifs} couleurs={COULEURS_ACTIF} />
-      <SectionBarres titre="📋 Passif" total={totalPassif} lignes={passifs} couleurs={COULEURS_PASSIF} />
-      <SectionBarres titre="💼 Capitaux propres" total={totalCapitauxPropres} lignes={capitauxAvecResultat} couleurs={COULEURS_CAPITAUX} />
+      <GrilleChiffres>
+        <CarteChiffre titre="Actif" montant={argent(totalActif)} couleur="var(--bleu)" teinte="var(--bleu)" note="Ce que l'entreprise possède" />
+        <CarteChiffre titre="Passif" montant={argent(totalPassif)} couleur="var(--avertissement)" teinte="var(--avertissement)" note="Ce qu'elle doit" />
+        <CarteChiffre
+          titre="Capitaux propres" montant={argent(totalCapitauxPropres)}
+          couleur={totalCapitauxPropres >= 0 ? "var(--success)" : "var(--danger)"} teinte={totalCapitauxPropres >= 0 ? "var(--success)" : "var(--danger)"}
+          note="Mise de fonds et résultats accumulés"
+        />
+      </GrilleChiffres>
+
+      <SectionBarres titre="Actif" icone="banque" teinte={TEINTES.bleu} total={totalActif} lignes={actifs} couleurs={COULEURS_ACTIF} />
+      <SectionBarres titre="Passif" icone="document" teinte={{ couleur: "var(--avertissement)", fond: "var(--avertissement-fond)" }} total={totalPassif} lignes={passifs} couleurs={COULEURS_PASSIF} />
+      <SectionBarres titre="Capitaux propres" icone="balance" teinte={TEINTES.vert} total={totalCapitauxPropres} lignes={capitauxAvecResultat} couleurs={COULEURS_CAPITAUX} />
 
       {actifs.length === 0 && passifs.length === 0 && (
-        <p style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", marginTop: 30 }}>
-          Aucune donnée encore — émets ta première facture pour voir apparaître les chiffres ici.
-        </p>
+        <div style={{ textAlign: "center", padding: "30px 16px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 16 }}>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>
+            Aucune donnée encore — émets ta première facture pour voir apparaître les chiffres ici.
+          </p>
+        </div>
       )}
     </div>
   );
 }
 
-function SectionBarres({ titre, total, lignes, couleurs }) {
+function SectionBarres({ titre, icone, teinte, total, lignes, couleurs }) {
   if (lignes.length === 0) return null;
   const max = Math.max(...lignes.map((l) => Math.abs(l.solde)), 1);
 
   return (
-    <div style={{ marginBottom: 26 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{titre}</span>
-        <span style={{ fontSize: 16, fontWeight: 800 }}>{argent(total)}</span>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={stylePanneau}>
+      <TitrePanneau
+        icone={icone} teinte={teinte} titre={titre}
+        droite={<span style={{ fontSize: 20, fontWeight: 800, color: teinte.couleur, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(total)}</span>}
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {lignes.map((l, i) => {
           const couleur = couleurs[i % couleurs.length];
           const largeur = Math.max(6, (Math.abs(l.solde) / max) * 100);
           const part = total !== 0 ? (l.solde / total) * 100 : 0;
           return (
             <div key={l.numero}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
-                <span>{l.nom}</span>
-                <span style={{ fontWeight: 700 }}>{argent(l.solde)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({nombre(part, 0)} %)</span></span>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13.5, marginBottom: 5 }}>
+                <span>
+                  {l.numero !== "RESULTAT" && <span style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums", marginRight: 6 }}>{l.numero}</span>}
+                  {l.nom}
+                </span>
+                <span style={{ fontWeight: 700, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{argent(l.solde)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>({nombre(part, 0)} %)</span></span>
               </div>
-              <div style={{ height: 10, background: "var(--surface)", borderRadius: 999, overflow: "hidden", border: "1px solid var(--border)" }}>
+              <div style={{ height: 12, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
                 <div style={{ width: `${largeur}%`, height: "100%", background: couleur, borderRadius: 999 }} />
               </div>
             </div>
@@ -93,3 +120,6 @@ function SectionBarres({ titre, total, lignes, couleurs }) {
     </div>
   );
 }
+
+// Les deux boutons du haut prennent la même largeur, côte à côte ou empilés
+const boutonEgal = { flex: "1 1 160px", justifyContent: "center", padding: "11px 12px" };
