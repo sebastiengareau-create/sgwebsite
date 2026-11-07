@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import { CHAMPS, DESTINATAIRES } from "@/lib/documents";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, Panneau } from "../../components/StyleSection";
 
 export default function DocumentsClient({ modeles, destinataires, pour }) {
   const router = useRouter();
@@ -22,51 +23,93 @@ export default function DocumentsClient({ modeles, destinataires, pour }) {
       <BandeauSection icone="📄" titre="Documents" sousTitre="Lettres prêtes à imprimer, remplies à partir de la fiche d'un employé ou d'un client." />
 
       {pour && (
-        <div className="carte carte-s" style={{ marginBottom: 16, fontSize: 13 }}>
-          Lettre pour <strong>{pour.nom}</strong> — choisis un modèle.{" "}
-          <Link href="/gerant/documents" style={{ color: "var(--text-muted)", fontSize: 12 }}>Voir tous les modèles</Link>
+        <div style={{
+          position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px", marginBottom: 18,
+        }}>
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
+          <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nom="crayon" taille={20} couleur={TEINTES.ambre.couleur} />
+          </span>
+          <span style={{ flex: 1, minWidth: 180, fontSize: 14 }}>
+            Lettre pour <strong>{pour.nom}</strong> — choisis un modèle.
+          </span>
+          <Link href="/gerant/documents" style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)", textDecoration: "none" }}>Voir tous les modèles</Link>
         </div>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <Link href="/gerant/documents/historique" className="bouton-3d-sombre" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>🕘 Historique des courriels</Link>
-        <button onClick={() => { setNouveau((v) => !v); setEnEdition(null); }} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
-          {nouveau ? "Annuler" : "+ Nouveau modèle"}
-        </button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
+        <BoutonPlein icone={nouveau ? null : "plus"} onClick={() => { setNouveau((v) => !v); setEnEdition(null); }}>
+          {nouveau ? "Annuler" : "Nouveau modèle"}
+        </BoutonPlein>
+        <BoutonContour href="/gerant/documents/historique" icone="horloge">Historique des courriels</BoutonContour>
       </div>
 
       {nouveau && <FormulaireModele destinataires={destinataires} onEnregistre={apresEnregistrement} onAnnule={() => setNouveau(false)} />}
 
+      {!pour && (
+        <GrilleChiffres>
+          {destinataires.map((d) => (
+            <CarteChiffre
+              key={d}
+              titre={`Lettres aux ${DESTINATAIRES[d].libelle.toLowerCase()}s`}
+              montant={String(modeles.filter((m) => m.destinataire === d).length)}
+              teinte={TEINTE_DESTINATAIRE[d].couleur}
+              note={d === "CLIENT" ? "Modèles · imprimer ou envoyer par courriel" : "Modèles · remplis depuis la fiche"}
+            />
+          ))}
+        </GrilleChiffres>
+      )}
+
       {destinataires.map((d) => {
         const liste = modeles.filter((m) => m.destinataire === d);
+        const teinte = TEINTE_DESTINATAIRE[d];
         return (
-          <div key={d} style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Lettres aux {DESTINATAIRES[d].libelle.toLowerCase()}s</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {liste.map((m) => enEdition === m.id ? (
-                <FormulaireModele key={m.id} modele={m} destinataires={destinataires} onEnregistre={apresEnregistrement} onAnnule={() => setEnEdition(null)} />
-              ) : (
-                <div key={m.id} className="carte carte-m" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{m.nom}</div>
-                    {m.destinataire === "CLIENT" && !pour && (
-                      <Link href={`/gerant/documents/envoi-groupe?modele=${m.id}`} style={{ fontSize: 11.5, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>📢 Envoi groupé par courriel</Link>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => { setEnEdition(m.id); setNouveau(false); }} className="bouton-3d-sombre" style={{ padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Modifier</button>
-                    <Link href={`/gerant/documents/rediger?modele=${m.id}${pour ? `&pour=${pour.id}` : ""}`} className="bouton-3d" style={{ padding: "7px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>✍️ Rédiger</Link>
-                  </div>
+          <Panneau key={d} titre={`Lettres aux ${DESTINATAIRES[d].libelle.toLowerCase()}s`}>
+            {liste.length > 0 && (
+              <div style={{ display: "flex", padding: "0 6px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: `2px solid ${teinte.couleur}` }}>
+                <span style={{ flex: 1 }}>{liste.length} modèle{liste.length > 1 ? "s" : ""}</span>
+              </div>
+            )}
+            {liste.map((m, i) => enEdition === m.id ? (
+              <div key={m.id} style={{ marginTop: 12 }}>
+                <FormulaireModele modele={m} destinataires={destinataires} onEnregistre={apresEnregistrement} onAnnule={() => setEnEdition(null)} />
+              </div>
+            ) : (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "12px 6px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: teinte.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icone nom="document" taille={20} couleur={teinte.couleur} />
+                </span>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{m.nom}</div>
+                  {m.destinataire === "CLIENT" && !pour && (
+                    <Link href={`/gerant/documents/envoi-groupe?modele=${m.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 3, fontSize: 12.5, color: "var(--accent-ombre)", textDecoration: "none", fontWeight: 700 }}>
+                      <Icone nom="utilisateurs" taille={14} /> Envoi groupé par courriel
+                    </Link>
+                  )}
                 </div>
-              ))}
-              {liste.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucun modèle.</p>}
-            </div>
-          </div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: "auto" }}>
+                  <button onClick={() => { setEnEdition(m.id); setNouveau(false); }} style={boutonSecondaire}>Modifier</button>
+                  <Link href={`/gerant/documents/rediger?modele=${m.id}${pour ? `&pour=${pour.id}` : ""}`} style={{ ...boutonSecondaire, background: "var(--accent)", borderColor: "var(--accent)", color: "#221f18", textDecoration: "none" }}>
+                    <Icone nom="crayon" taille={15} /> Rédiger
+                  </Link>
+                </div>
+              </div>
+            ))}
+            {liste.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucun modèle.</p>}
+          </Panneau>
         );
       })}
     </div>
   );
 }
+
+const TEINTE_DESTINATAIRE = { EMPLOYE: TEINTES.bleu, CLIENT: TEINTES.vert };
+
+const boutonSecondaire = {
+  display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 10,
+  border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", cursor: "pointer",
+};
 
 // Création (sans modele) ou modification d'un modèle
 function FormulaireModele({ modele, destinataires, onEnregistre, onAnnule }) {
@@ -113,7 +156,7 @@ function FormulaireModele({ modele, destinataires, onEnregistre, onAnnule }) {
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 16 }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 16, padding: 16, marginBottom: 18 }}>
       <label className="etiquette">Nom du modèle</label>
       <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" placeholder="ex. Lettre de référence" />
       {destinataires.length > 1 && (
@@ -131,17 +174,20 @@ function FormulaireModele({ modele, destinataires, onEnregistre, onAnnule }) {
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {Object.entries(CHAMPS[destinataire]).map(([cle, libelle]) => (
-          <button key={cle} type="button" onClick={() => insererChamp(cle)} title={`{${cle}}`} style={{ padding: "4px 9px", borderRadius: 999, fontSize: 11, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", cursor: "pointer" }}>
+          <button key={cle} type="button" onClick={() => insererChamp(cle)} title={`{${cle}}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 11px", borderRadius: 999, fontSize: 12, fontWeight: 600, border: "none", background: "rgba(232,163,61,0.14)", color: "var(--accent-ombre)", cursor: "pointer" }}>
+            <span style={{ fontWeight: 800 }}>+</span>
             {libelle}
           </button>
         ))}
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-        <button onClick={enregistrer} disabled={enCours} className="bouton-3d" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>Enregistrer</button>
-        <button onClick={onAnnule} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>Annuler</button>
+        <button onClick={enregistrer} disabled={enCours} style={{ ...boutonSecondaire, background: "var(--accent)", borderColor: "var(--accent)", color: "#221f18" }}>Enregistrer</button>
+        <button onClick={onAnnule} disabled={enCours} style={boutonSecondaire}>Annuler</button>
         {modele && (
-          <button onClick={supprimer} disabled={enCours} style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "none", border: "1px solid var(--danger)", color: "var(--danger)", cursor: "pointer" }}>Supprimer</button>
+          <button onClick={supprimer} disabled={enCours} style={{ ...boutonSecondaire, marginLeft: "auto", color: "var(--danger)" }}>
+            <Icone nom="poubelle" taille={15} /> Supprimer
+          </button>
         )}
       </div>
     </div>
