@@ -6,6 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import FichiersRendezVous from "../../components/FichiersRendezVous";
 import { QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
+import { Icone, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
 const JOURS_LABEL = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const DEBUT_GRILLE = 7; // 7h — élargie au besoin selon les heures d'ouverture
@@ -139,113 +140,180 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
     router.push(`/secretaire/calendrier?date=${decaler(jours[0], decalageJours)}`);
   }
 
+  // Chiffres de la semaine affichée (rendez-vous annulés exclus)
+  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+  const actifsSemaine = rendezVous.filter((r) => r.statut !== "ANNULE");
+  const nbAujourdhui = (rdvParJour[aujourdhui] || []).filter((r) => r.statut !== "ANNULE").length;
+  const aTransformer = actifsSemaine.filter((r) => !r.bonId).length;
+  const nbWeb = actifsSemaine.filter((r) => r.source === "WEB").length;
+  const semaineCourante = jours.includes(aujourdhui);
+  // « 2 au 8 novembre 2026 », ou « 30 oct. au 5 nov. 2026 » sur deux mois
+  const debutSem = new Date(`${jours[0]}T12:00:00`);
+  const finSem = new Date(`${jours[6]}T12:00:00`);
+  const libelleSemaine = debutSem.getMonth() === finSem.getMonth()
+    ? `${debutSem.getDate()} au ${finSem.toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })}`
+    : `${debutSem.toLocaleDateString("fr-CA", { day: "numeric", month: "short" })} au ${finSem.toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" })}`;
+
   return (
-    <div style={{ padding: 16, maxWidth: vue === "grille" ? 1100 : 480, margin: "0 auto", width: "100%" }}>
+    <div style={{ padding: 16, maxWidth: vue === "grille" ? 1100 : 560, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       <BandeauSection icone="📅" titre="Calendrier" sousTitre="Rendez-vous et disponibilités de l'atelier." />
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <Link href="/secretaire/calendrier/parametres-web" className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8, textDecoration: "none" }}>
-          🌐 Paramètres web
-        </Link>
-        <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
-          <button onClick={() => setVue("grille")} style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 7, border: "none", cursor: "pointer", background: vue === "grille" ? "var(--accent)" : "none", color: vue === "grille" ? "#17150f" : "var(--text-muted)" }}>
-            ▦ Grille
-          </button>
-          <button onClick={() => setVue("liste")} style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 7, border: "none", cursor: "pointer", background: vue === "liste" ? "var(--accent)" : "none", color: vue === "liste" ? "#17150f" : "var(--text-muted)" }}>
-            ☰ Liste
-          </button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
+        <BoutonPlein href="/secretaire/calendrier/nouveau" icone="plus">Nouveau rendez-vous</BoutonPlein>
+        <BoutonContour icone="bloque" actif={afficherFormIndispo} onClick={() => setAfficherFormIndispo((v) => !v)}>
+          {afficherFormIndispo ? "Annuler" : "Indisponibilité"}
+        </BoutonContour>
+        <BoutonContour href="/secretaire/calendrier/parametres-web" icone="globe">Paramètres web</BoutonContour>
+      </div>
+
+      {afficherFormIndispo && (
+        <div style={{ marginBottom: 18 }}>
+          <FormulaireIndisponibilite dateParDefaut={jourActif} onCree={() => { setAfficherFormIndispo(false); router.refresh(); }} />
         </div>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-        <button onClick={() => changerSemaine(-7)} className="bouton-3d-sombre" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 14, fontWeight: 700 }}>←</button>
-        <span style={{ flex: 1, textAlign: "center", fontSize: 12, color: "var(--text-muted)" }}>
-          Semaine du {new Date(`${jours[0]}T12:00:00`).toLocaleDateString("fr-CA", { day: "numeric", month: "long" })}
-        </span>
-        <button onClick={() => changerSemaine(7)} className="bouton-3d-sombre" style={{ padding: "8px 14px", borderRadius: 8, fontSize: 14, fontWeight: 700 }}>→</button>
-      </div>
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
-        {Object.values(SOURCES).map((s) => <span key={s.label} title={s.titre}>{s.icone} {s.label}</span>)}
-        <span title="Le client a joint un fichier — cliquer le rendez-vous pour l'ouvrir">📎 Pièce jointe</span>
-        <span title="Rendez-vous transformé en bon de travail">✔️ Bon créé</span>
-        {capacite && <span>· Case fermée après {capacite} rendez-vous simultané{capacite > 1 ? "s" : ""}</span>}
-      </div>
-
-      {vue === "grille" ? (
-        <>
-          <GrilleSemaine
-            jours={jours}
-            rdvParJour={rdvParJour}
-            indisponibles={indisponibles}
-            heuresParJour={heuresParJour}
-            couleursMotifs={couleursMotifs}
-            rdvSelectionneId={rdvSelectionneId}
-            onSelectionner={setRdvSelectionneId}
-          />
-          {rdvSelectionneId && (() => {
-            const rdvSelectionne = rendezVous.find((r) => r.id === rdvSelectionneId);
-            if (!rdvSelectionne) return null;
-            return (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>Détail du rendez-vous</span>
-                  <button onClick={() => setRdvSelectionneId(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 16, cursor: "pointer" }}>✕</button>
-                </div>
-                <CarteRendezVous rdv={rdvSelectionne} onChange={() => router.refresh()} />
-              </div>
-            );
-          })()}
-        </>
-      ) : (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 16 }}>
-            {jours.map((j) => {
-              const actif = j === jourActif;
-              const nbRdv = (rdvParJour[j] || []).filter((r) => r.statut !== "ANNULE").length;
-              const jourNum = new Date(`${j}T12:00:00`).getDate();
-              return (
-                <button
-                  key={j}
-                  onClick={() => setJourActif(j)}
-                  className={actif ? "bouton-3d" : "bouton-3d-sombre"}
-                  style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 2px", borderRadius: 10 }}
-                >
-                  <span style={{ fontSize: 10, fontWeight: 600 }}>{JOURS_LABEL[new Date(`${j}T12:00:00`).getDay()]}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>{jourNum}</span>
-                  {nbRdv > 0 && <span style={{ fontSize: 9, fontWeight: 700 }}>{nbRdv}</span>}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>
-              {heuresParJour[jourActif] ? `Ouvert de ${heuresParJour[jourActif].ouverture} à ${heuresParJour[jourActif].fermeture}` : "Fermé ce jour-là"}
-            </p>
-            {indisponibles.filter((p) => portionDuJour(p, jourActif)).map((p) => (
-              <div key={p.id} style={{ ...styleIndispo, borderRadius: 10, padding: 10, fontSize: 12 }}>
-                ⛔ {formatPeriode(p)}{p.motif ? ` — ${p.motif}` : ""}
-              </div>
-            ))}
-            {rdvDuJour.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun rendez-vous ce jour-là.</p>}
-            {rdvDuJour.map((r) => (
-              <CarteRendezVous key={r.id} rdv={r} onChange={() => router.refresh()} />
-            ))}
-          </div>
-        </>
       )}
+
+      <GrilleChiffres>
+        <CarteChiffre
+          titre={semaineCourante ? "Aujourd'hui" : "Cette semaine-là"}
+          montant={String(semaineCourante ? nbAujourdhui : actifsSemaine.length)}
+          teinte="var(--accent)"
+          note={semaineCourante ? `rendez-vous · ${actifsSemaine.length} dans la semaine` : "rendez-vous dans la semaine affichée"}
+        />
+        <CarteChiffre
+          titre="À transformer en bon" montant={String(aTransformer)}
+          couleur={aTransformer > 0 ? "var(--bleu)" : "var(--success)"} teinte={aTransformer > 0 ? "var(--bleu)" : "var(--success)"}
+          note={aTransformer > 0 ? "Rendez-vous de la semaine sans bon de travail" : "Tous les rendez-vous ont leur bon"}
+        />
+        <CarteChiffre
+          titre="Réservés en ligne" montant={String(nbWeb)} teinte="var(--success)"
+          note="Cette semaine, sur le site web"
+        />
+      </GrilleChiffres>
+
+      <Panneau
+        titre={libelleSemaine}
+        action={
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => changerSemaine(-7)} aria-label="Semaine précédente" style={boutonNav}><Icone nom="chevronGauche" taille={18} /></button>
+            {!semaineCourante && (
+              <button onClick={() => router.push("/secretaire/calendrier")} style={{ ...boutonNav, width: "auto", padding: "0 12px", fontSize: 13, fontWeight: 700 }}>Aujourd'hui</button>
+            )}
+            <button onClick={() => changerSemaine(7)} aria-label="Semaine suivante" style={boutonNav}><Icone nom="chevron" taille={18} /></button>
+          </div>
+        }
+      >
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)" }}>
+            {[["grille", "grille", "Grille"], ["liste", "listePlate", "Liste"]].map(([cle, icone, label]) => (
+              <button key={cle} onClick={() => setVue(cle)} style={{
+                display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: vue === cle ? 700 : 600,
+                padding: "7px 14px", borderRadius: 9, border: "none", cursor: "pointer",
+                background: vue === cle ? "var(--surface)" : "transparent", color: vue === cle ? "var(--text)" : "var(--text-muted)",
+                boxShadow: vue === cle ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
+              }}>
+                <Icone nom={icone} taille={15} /> {label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: 12, color: "var(--text-muted)" }}>
+            {Object.values(SOURCES).map((s) => <span key={s.label} title={s.titre} style={legende}>{s.icone} {s.label}</span>)}
+            <span title="Le client a joint un fichier — cliquer le rendez-vous pour l'ouvrir" style={legende}>📎 Pièce jointe</span>
+            <span title="Rendez-vous transformé en bon de travail" style={legende}>✔️ Bon créé</span>
+          </div>
+        </div>
+        {capacite && (
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px" }}>
+            Une case se ferme sur le site après {capacite} rendez-vous simultané{capacite > 1 ? "s" : ""}.
+          </p>
+        )}
+
+        {vue === "grille" ? (
+          <>
+            <GrilleSemaine
+              jours={jours}
+              rdvParJour={rdvParJour}
+              indisponibles={indisponibles}
+              heuresParJour={heuresParJour}
+              couleursMotifs={couleursMotifs}
+              rdvSelectionneId={rdvSelectionneId}
+              onSelectionner={setRdvSelectionneId}
+            />
+            {rdvSelectionneId && (() => {
+              const rdvSelectionne = rendezVous.find((r) => r.id === rdvSelectionneId);
+              if (!rdvSelectionne) return null;
+              return (
+                <div style={{ marginTop: 16 }}>
+                  <TitreGroupe couleur="var(--accent)" droite={
+                    <button onClick={() => setRdvSelectionneId(null)} aria-label="Fermer" style={{ ...boutonNav, width: 32, height: 32 }}>✕</button>
+                  }>
+                    Détail du rendez-vous
+                  </TitreGroupe>
+                  <CarteRendezVous rdv={rdvSelectionne} onChange={() => router.refresh()} />
+                </div>
+              );
+            })()}
+          </>
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", marginBottom: 14 }}>
+              {jours.map((j) => {
+                const actif = j === jourActif;
+                const nbRdv = (rdvParJour[j] || []).filter((r) => r.statut !== "ANNULE").length;
+                const jourNum = new Date(`${j}T12:00:00`).getDate();
+                const estAujourdhui = j === aujourdhui;
+                return (
+                  <button
+                    key={j}
+                    onClick={() => setJourActif(j)}
+                    style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 2px", borderRadius: 9, border: "none", cursor: "pointer",
+                      background: actif ? "var(--surface)" : "transparent", boxShadow: actif ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
+                      color: estAujourdhui ? "var(--accent-ombre)" : actif ? "var(--text)" : "var(--text-muted)",
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 600 }}>{JOURS_LABEL[new Date(`${j}T12:00:00`).getDay()]}</span>
+                    <span style={{ fontSize: 16, fontWeight: 800 }}>{jourNum}</span>
+                    <span style={{ minHeight: 16, fontSize: 10.5, fontWeight: 700, padding: nbRdv ? "0 6px" : 0, borderRadius: 999, background: nbRdv ? "rgba(232,163,61,0.18)" : "transparent", color: "var(--accent-ombre)" }}>
+                      {nbRdv > 0 ? nbRdv : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <p style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
+                <Icone nom="horloge" taille={15} />
+                {heuresParJour[jourActif] ? `Ouvert de ${heuresParJour[jourActif].ouverture} à ${heuresParJour[jourActif].fermeture}` : "Fermé ce jour-là"}
+              </p>
+              {indisponibles.filter((p) => portionDuJour(p, jourActif)).map((p) => (
+                <div key={p.id} style={{ ...styleIndispo, borderRadius: 12, padding: "10px 12px", fontSize: 13 }}>
+                  ⛔ {formatPeriode(p)}{p.motif ? ` — ${p.motif}` : ""}
+                </div>
+              ))}
+              {rdvDuJour.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucun rendez-vous ce jour-là.</p>}
+              {rdvDuJour.map((r) => (
+                <CarteRendezVous key={r.id} rdv={r} onChange={() => router.refresh()} />
+              ))}
+            </div>
+          </>
+        )}
+      </Panneau>
+
       <SectionIndisponibilites
         indisponibles={indisponibles}
-        afficherForm={afficherFormIndispo}
-        setAfficherForm={setAfficherFormIndispo}
-        dateParDefaut={jourActif}
         onChange={() => router.refresh()}
       />
     </div>
   );
 }
 
-function SectionIndisponibilites({ indisponibles, afficherForm, setAfficherForm, dateParDefaut, onChange }) {
+const boutonNav = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 10,
+  border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", cursor: "pointer",
+};
+const legende = { padding: "3px 9px", borderRadius: 999, background: "var(--bg)", whiteSpace: "nowrap" };
+
+function SectionIndisponibilites({ indisponibles, onChange }) {
   const [enCours, setEnCours] = useState(null);
 
   async function supprimer(id) {
@@ -257,31 +325,31 @@ function SectionIndisponibilites({ indisponibles, afficherForm, setAfficherForm,
   }
 
   return (
-    <div style={{ marginTop: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700 }}>Périodes indisponibles (semaine)</span>
-        <button onClick={() => setAfficherForm((v) => !v)} className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
-          {afficherForm ? "Annuler" : "+ Indisponibilité"}
-        </button>
-      </div>
-      {afficherForm && (
-        <FormulaireIndisponibilite
-          dateParDefaut={dateParDefaut}
-          onCree={() => { setAfficherForm(false); onChange(); }}
-        />
-      )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <section style={{ marginBottom: 24 }}>
+      <TitreGroupe couleur="var(--text-muted)">Périodes indisponibles de la semaine</TitreGroupe>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {indisponibles.map((p) => (
-          <div key={p.id} style={{ ...styleIndispo, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, borderRadius: 8, padding: "8px 10px", fontSize: 12, opacity: enCours === p.id ? 0.5 : 1 }}>
-            <span>⛔ {formatPeriode(p)}{p.motif ? ` — ${p.motif}` : ""}</span>
-            <button onClick={() => supprimer(p.id)} disabled={enCours === p.id} style={{ background: "none", border: "none", color: "var(--danger)", fontSize: 13, cursor: "pointer" }}>🗑️</button>
+          <div key={p.id} style={{
+            display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
+            background: "var(--surface)", border: "1px solid var(--border)", opacity: enCours === p.id ? 0.5 : 1,
+          }}>
+            <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, ...styleIndispo, border: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icone nom="bloque" taille={18} couleur="var(--text-muted)" />
+            </span>
+            <span style={{ flex: 1, fontSize: 13.5 }}>
+              <span style={{ fontWeight: 700 }}>{formatPeriode(p)}</span>
+              {p.motif && <span style={{ color: "var(--text-muted)" }}> — {p.motif}</span>}
+            </span>
+            <button onClick={() => supprimer(p.id)} disabled={enCours === p.id} aria-label="Retirer" style={{ ...boutonNav, color: "var(--danger)" }}>
+              <Icone nom="poubelle" taille={17} />
+            </button>
           </div>
         ))}
-        {indisponibles.length === 0 && !afficherForm && (
-          <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>Aucune cette semaine. Ajoutes-en une pour bloquer des heures (congé, férié, formation…).</p>
+        {indisponibles.length === 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucune cette semaine. Utilise « Indisponibilité » pour bloquer des heures (congé, férié, formation…).</p>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -313,7 +381,7 @@ function FormulaireIndisponibilite({ dateParDefaut, onCree }) {
   }
 
   return (
-    <form onSubmit={enregistrer} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, marginBottom: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+    <form onSubmit={enregistrer} style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 16, padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
         <input type="checkbox" checked={journeeEntiere} onChange={(e) => setJourneeEntiere(e.target.checked)} />
         Journée(s) entière(s)
@@ -330,7 +398,7 @@ function FormulaireIndisponibilite({ dateParDefaut, onCree }) {
       </div>
       <input placeholder="Motif (ex : Férié, formation, vacances)" value={motif} onChange={(e) => setMotif(e.target.value)} style={styleChamp} />
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{erreur}</p>}
-      <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+      <button type="submit" disabled={enCours} style={{ padding: 11, borderRadius: 12, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer", background: "var(--accent)", color: "#221f18" }}>
         {enCours ? "Enregistrement…" : "Bloquer cette période"}
       </button>
     </form>
@@ -358,10 +426,10 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
   }
 
   return (
-    <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", background: "var(--surface)" }}>
       {/* Colonne des heures */}
       <div style={{ width: 44, flexShrink: 0, borderRight: "1px solid var(--border)" }}>
-        <div style={{ height: 28, borderBottom: "1px solid var(--border)" }} />
+        <div style={{ height: 40, borderBottom: "1px solid var(--border)" }} />
         {heures.map((h) => (
           <div key={h} style={{ height: HAUTEUR_HEURE, fontSize: 10, color: "var(--text-muted)", textAlign: "right", paddingRight: 6, borderBottom: "1px solid var(--border)", boxSizing: "border-box" }}>
             {h}h
@@ -378,9 +446,9 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
           const estAujourdhui = j === new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
           return (
             <div key={j} style={{ flex: "1 1 0", minWidth: 100, borderRight: "1px solid var(--border)", position: "relative" }}>
-              <div style={{ height: 28, borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, background: estAujourdhui ? "rgba(232,163,61,0.1)" : "none" }}>
-                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>{JOURS_LABEL[new Date(`${j}T12:00:00`).getDay()]}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: estAujourdhui ? "var(--accent)" : "var(--text)" }}>{jourNum}</span>
+              <div style={{ height: 40, borderBottom: estAujourdhui ? "2px solid var(--accent)" : "1px solid var(--border)", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: estAujourdhui ? "rgba(232,163,61,0.12)" : "var(--surface-alt)" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>{JOURS_LABEL[new Date(`${j}T12:00:00`).getDay()]}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: estAujourdhui ? "var(--accent-ombre)" : "var(--text)" }}>{jourNum}</span>
               </div>
               <div style={{ position: "relative", height: hauteurTotale }}>
                 {heures.map((h, i) => (
@@ -423,14 +491,14 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
                       title={`${source.titre} — ${r.clientNom}${r.pieceJointe ? " — pièce jointe" : ""}${r.bonId ? " — transformé en bon de travail" : ""}`}
                       onClick={() => onSelectionner(selectionne ? null : r.id)}
                       style={{
-                        position: "absolute", top, height: hauteur, background: couleur, borderRadius: 5,
+                        position: "absolute", top, height: hauteur, background: couleur, borderRadius: 8,
                         left: `calc(${(col / nbCols) * 100}% + 2px)`, width: `calc(${100 / nbCols}% - 4px)`,
                         padding: "3px 5px", overflow: "hidden", cursor: "pointer", textAlign: "left",
-                        border: selectionne ? "2px solid var(--text)" : "none", boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                        border: selectionne ? "2px solid var(--text)" : "none", boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
                       }}
                     >
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "#17150f", lineHeight: 1.2 }}>{r.bonId && "✔️ "}{r.pieceJointe && "📎 "}{source.icone} {heureTxt} {r.clientNom}</div>
-                      {hauteur > 32 && <div style={{ fontSize: 9, color: "#17150f", opacity: 0.85, lineHeight: 1.2 }}>{cle}</div>}
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: "#17150f", lineHeight: 1.25 }}>{r.bonId && "✔️ "}{r.pieceJointe && "📎 "}{source.icone} {heureTxt} {r.clientNom}</div>
+                      {hauteur > 32 && <div style={{ fontSize: 10, color: "#17150f", opacity: 0.85, lineHeight: 1.25 }}>{cle}</div>}
                     </button>
                   );
                 })}
@@ -496,27 +564,29 @@ function CarteRendezVous({ rdv, onChange, compact }) {
     router.push(`/bons/${bonId}`);
   }
 
+  const teinte = annule ? "var(--danger)" : converti ? "var(--success)" : "var(--accent)";
+  const source = infosSource(rdv);
   return (
     <div style={{
-      background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, padding: 14,
-      opacity: annule ? 0.6 : 1, borderLeft: `3px solid ${annule ? "#C15B4A" : converti ? "#6FA96B" : "var(--accent)"}`,
-      boxShadow: compact ? "0 6px 16px rgba(0,0,0,0.5)" : "none",
+      position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+      padding: "14px 16px 14px 20px", opacity: annule ? 0.6 : 1, boxShadow: compact ? "0 6px 16px rgba(0,0,0,0.5)" : "none",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 15, fontWeight: 700 }}>{converti && <span title="Transformé en bon de travail">✔️ </span>}{heure}</span>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{heure}</span>
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span title={infosSource(rdv).titre} style={{ fontSize: 10.5, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
-            {infosSource(rdv).icone} {infosSource(rdv).label}
+          <span title={source.titre} style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "var(--bg)", color: "var(--text-muted)" }}>
+            {source.icone} {source.label}
           </span>
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{rdv.dureeMinutes} min</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{rdv.dureeMinutes} min</span>
         </span>
       </div>
-      <div style={{ fontWeight: 600, marginTop: 2 }}>{rdv.clientNom}</div>
-      {rdv.vehiculeInfo && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{rdv.vehiculeInfo}</div>}
-      {rdv.note && <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>{rdv.note}</div>}
-      <div style={{ fontSize: 13, marginTop: 4 }}>{rdv.motif}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{rdv.clientNom}</div>
+      {rdv.vehiculeInfo && <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{rdv.vehiculeInfo}</div>}
+      {rdv.note && <div style={{ fontSize: 13, color: "var(--text-muted)", fontStyle: "italic" }}>{rdv.note}</div>}
+      <div style={{ fontSize: 14, marginTop: 6 }}>{rdv.motif}</div>
       {rdv.taches?.length > 0 && (
-        <ul style={{ fontSize: 12, margin: "2px 0 0", paddingLeft: 18 }}>
+        <ul style={{ fontSize: 13, margin: "2px 0 0", paddingLeft: 18 }}>
           {rdv.taches.map((t, i) => <li key={i}>{t}</li>)}
         </ul>
       )}
@@ -525,41 +595,45 @@ function CarteRendezVous({ rdv, onChange, compact }) {
       ) : rdv.pieceJointe && (
         // Fichier gardé par le site seulement (réservation d'avant le transfert
         // des fichiers, ou transfert échoué) ou déjà effacé après 12 mois
-        <div style={{ fontSize: 12, marginTop: 4 }}>
+        <div style={{ fontSize: 13, marginTop: 4 }}>
           📎 {rdv.piecesJointes?.length ? rdv.piecesJointes.join(", ") : "Pièce jointe"} <span style={{ color: "var(--text-muted)" }}>— voir le courriel de confirmation</span>
         </div>
       )}
-      {rdv.clientTelephone && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{rdv.clientTelephone}</div>}
-      {(rdv.clientAdresse || rdv.clientVille) && (
-        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          {[rdv.clientAdresse, [rdv.clientVille, rdv.clientCodePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+      {(rdv.clientTelephone || rdv.clientAdresse || rdv.clientVille) && (
+        <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>
+          {[rdv.clientTelephone, [rdv.clientAdresse, [rdv.clientVille, rdv.clientCodePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
         </div>
       )}
 
-      {erreur && <p style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{erreur}</p>}
+      {erreur && <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{erreur}</p>}
 
       {converti ? (
-        <Link href={`/bons/${rdv.bonId}`} style={{ display: "inline-block", marginTop: 10, fontSize: 11, fontWeight: 700, color: "var(--success)", textDecoration: "none" }}>
-          {rdv.source === "BON" ? "🔧 Voir le bon de travail →" : "✓ Transformé en bon de travail →"}
+        <Link href={`/bons/${rdv.bonId}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 10, fontSize: 13, fontWeight: 700, color: "var(--success)", textDecoration: "none" }}>
+          {rdv.source === "BON" ? "Voir le bon de travail" : "Transformé en bon de travail"} <Icone nom="chevron" taille={15} />
         </Link>
       ) : annule ? (
-        <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 8 }}>Annulé</div>
+        <div style={{ marginTop: 10 }}><Pastille couleur="var(--danger)" fond="var(--danger-fond)">Annulé</Pastille></div>
       ) : (
-        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <button onClick={() => convertir()} disabled={enCours} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
-            → Créer le bon
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <button onClick={() => convertir()} disabled={enCours} style={{ ...boutonAction, background: "var(--accent)", borderColor: "var(--accent)", color: "#221f18" }}>
+            <Icone nom="presse" taille={16} /> Créer le bon
           </button>
-          <button onClick={annuler} disabled={enCours} className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 600, padding: "6px 10px", borderRadius: 8 }}>
+          <button onClick={annuler} disabled={enCours} style={boutonAction}>
             Annuler
           </button>
-          <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ fontSize: 11, fontWeight: 600, padding: "6px 10px", borderRadius: 8, color: "var(--danger)" }}>
-            🗑️
+          <button onClick={supprimer} disabled={enCours} aria-label="Supprimer" style={{ ...boutonAction, color: "var(--danger)" }}>
+            <Icone nom="poubelle" taille={16} />
           </button>
         </div>
       )}
     </div>
   );
 }
+
+const boutonAction = {
+  display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, padding: "8px 14px", borderRadius: 10,
+  border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", cursor: "pointer",
+};
 
 // Hachures grises, utilisées pour les périodes indisponibles dans la grille et les listes.
 const styleIndispo = {
