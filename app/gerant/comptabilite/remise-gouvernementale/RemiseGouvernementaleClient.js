@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent } from "@/lib/format";
+import BandeauSection from "../../../components/BandeauSection";
+import { TEINTES, TitrePanneau, stylePanneau, CarteChiffre, GrilleChiffres } from "../../../components/StyleSection";
 
 export default function RemiseGouvernementaleClient({ soldes }) {
   const router = useRouter();
@@ -62,61 +64,87 @@ export default function RemiseGouvernementaleClient({ soldes }) {
     router.refresh();
   }
 
+  const TEINTES_GROUPES = [TEINTES.rouge, TEINTES.bleu, TEINTES.vert, TEINTES.ambre];
+  const teinteGroupe = (groupe) => TEINTES_GROUPES[groupes.indexOf(groupe) % TEINTES_GROUPES.length];
+  const soldeGroupe = (groupe) => soldes.filter((c) => c.groupe === groupe).reduce((s, c) => s + Math.max(0, c.solde), 0);
+
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 4 }}>🏛️ Payer une remise gouvernementale</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Règle ce que tu dois déjà — débite directement les comptes concernés, sort l'argent de la banque. Chaque
-        groupe se paie séparément, avec sa propre référence (chèque ou transaction).
-      </p>
+      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="🏛️" titre="Remise gouvernementale" sousTitre="Règle ce que tu dois déjà : TPS, TVQ et retenues sur la paie. Chaque groupe se paie séparément, avec sa propre référence." />
+      </div>
+
+      <GrilleChiffres>
+        {groupes.map((groupe) => (
+          <CarteChiffre
+            key={groupe} titre={`À remettre — ${libelleGroupe(groupe)}`} montant={argent(soldeGroupe(groupe))}
+            teinte={teinteGroupe(groupe).couleur} couleur={soldeGroupe(groupe) > 0.005 ? "var(--text)" : "var(--success)"}
+            note={soldeGroupe(groupe) > 0.005 ? "Solde aux livres" : "Rien à remettre"}
+          />
+        ))}
+      </GrilleChiffres>
 
       {message && (
-        <p style={{ fontSize: 12, marginBottom: 12, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
+        <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
       )}
 
-      {groupes.map((groupe) => (
-        <div key={groupe} className="carte carte-m" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 10, fontWeight: 700 }}>
-            {infoGroupe(groupe).titre}
-            {infoGroupe(groupe).precision && <span style={{ fontWeight: 400 }}> · {infoGroupe(groupe).precision}</span>}
-          </div>
-          {soldes.filter((c) => c.groupe === groupe).map((c) => (
-            <div key={c.numero} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ flex: 1, fontSize: 13 }}>{c.nom}</span>
-              <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>solde {argent(c.solde)}</span>
-              <input
-                type="number" min={0} step="0.01" value={montants[c.numero]}
-                onChange={(e) => changer(c.numero, e.target.value)}
-                placeholder="0.00"
-                style={{ width: 90, padding: "7px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, textAlign: "right" }}
-              />
+      {groupes.map((groupe) => {
+        const teinte = teinteGroupe(groupe);
+        const total = totalGroupe(groupe);
+        return (
+          <div key={groupe} style={{ ...stylePanneau, position: "relative", overflow: "hidden", paddingLeft: 22 }}>
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte.couleur }} />
+            <TitrePanneau icone="banque" teinte={teinte} titre={infoGroupe(groupe).titre} sousTitre={infoGroupe(groupe).precision || null} />
+            <div style={{ display: "flex", padding: "0 4px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: `2px solid ${teinte.couleur}` }}>
+              <span style={{ flex: 1 }}>Compte</span>
+              <span>Montant à payer</span>
             </div>
-          ))}
+            {soldes.filter((c) => c.groupe === groupe).map((c, i) => (
+              <div key={c.numero} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 4px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{c.nom}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.numero} · solde {argent(c.solde)}</div>
+                </div>
+                <input
+                  type="number" min={0} step="0.01" value={montants[c.numero]}
+                  onChange={(e) => changer(c.numero, e.target.value)}
+                  placeholder="0.00"
+                  style={{ width: 110, padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, textAlign: "right", fontWeight: 700 }}
+                />
+              </div>
+            ))}
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{argent(totalGroupe(groupe))}</span>
-            {groupeAPayer !== groupe && (
-              <button
-                onClick={() => setGroupeAPayer(groupe)}
-                disabled={totalGroupe(groupe) <= 0}
-                className="bouton-3d"
-                style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, opacity: totalGroupe(groupe) <= 0 ? 0.4 : 1 }}
-              >
-                Payer {infoGroupe(groupe).titre}
-              </button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 10, padding: "12px 14px", borderRadius: 12, background: "var(--bg)" }}>
+              <span>
+                <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>Total du paiement</span>
+                <span style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(total)}</span>
+              </span>
+              {groupeAPayer !== groupe && (
+                <button
+                  onClick={() => setGroupeAPayer(groupe)}
+                  disabled={total <= 0}
+                  style={{
+                    flex: "1 1 100%", padding: "11px 18px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 700,
+                    background: total > 0 ? "var(--accent)" : "var(--surface-alt)", color: total > 0 ? "#221f18" : "var(--text-muted)",
+                    cursor: total > 0 ? "pointer" : "not-allowed",
+                  }}
+                >
+                  Payer {infoGroupe(groupe).titre}{infoGroupe(groupe).precision ? ` (${infoGroupe(groupe).precision})` : ""}
+                </button>
+              )}
+            </div>
+
+            {groupeAPayer === groupe && (
+              <FormulaireReferenceRemise
+                enCours={enCours}
+                onConfirmer={(reference) => payerGroupe(groupe, reference)}
+                onAnnuler={() => setGroupeAPayer(null)}
+              />
             )}
           </div>
-
-          {groupeAPayer === groupe && (
-            <FormulaireReferenceRemise
-              enCours={enCours}
-              onConfirmer={(reference) => payerGroupe(groupe, reference)}
-              onAnnuler={() => setGroupeAPayer(null)}
-            />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -125,18 +153,18 @@ function FormulaireReferenceRemise({ enCours, onConfirmer, onAnnuler }) {
   const [reference, setReference] = useState("");
 
   return (
-    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ background: "var(--bg)", border: "1px solid var(--accent)", borderRadius: 12, padding: 12, marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
       <input
         placeholder="No de chèque ou de transaction (optionnel)" value={reference}
         onChange={(e) => setReference(e.target.value)}
-        style={{ padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12.5 }}
+        style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14 }}
         autoFocus
       />
-      <div style={{ display: "flex", gap: 6 }}>
-        <button onClick={() => onConfirmer(reference)} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={() => onConfirmer(reference)} disabled={enCours} style={{ flex: 1, padding: 11, borderRadius: 10, fontSize: 14, fontWeight: 700, border: "none", background: "var(--success)", color: "#fff", cursor: "pointer" }}>
           {enCours ? "…" : "✓ Confirmer le paiement"}
         </button>
-        <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
+        <button onClick={onAnnuler} style={{ flex: 1, padding: 11, borderRadius: 10, fontSize: 14, fontWeight: 700, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
           Annuler
         </button>
       </div>
