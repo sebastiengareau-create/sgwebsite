@@ -6,6 +6,7 @@ import BanderoleBo from "../components/BanderoleBo";
 import DossiersParMois, { DossiersParMoisACharger } from "../components/DossiersParMois";
 import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 import { correspondRecherche } from "@/lib/recherche";
+import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -83,25 +84,31 @@ export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
   const dossiersACharger = filtre === "TOUS" || filtre === "TERMINE" ? moisACharger : [];
 
   return (
-    <div style={{ padding: 16, maxWidth: vue === "tableau" ? 1200 : 560, margin: "0 auto", width: "100%" }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-        <input
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          placeholder="🔍 Rechercher par numéro ou client…"
-          style={{
-            flex: 1, minWidth: 0, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-            background: "var(--surface)", color: "var(--text)", fontSize: 13, boxSizing: "border-box",
-          }}
-        />
-        <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3, flexShrink: 0 }}>
-          <BoutonVue actif={vue === "liste"} onClick={() => setVue("liste")}>☰ Liste</BoutonVue>
-          <BoutonVue actif={vue === "tableau"} onClick={() => setVue("tableau")}>▦ Tableau</BoutonVue>
+    <div className="conteneur-page-large" style={{ padding: 16, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
+        <BoutonPlein href="/secretaire/nouveau" icone="plus">Nouveau bon</BoutonPlein>
+        <div style={{ position: "relative", flex: "1 1 100%", minWidth: 0, order: 3 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+            <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+          </span>
+          <input
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Numéro ou client…"
+            style={{
+              width: "100%", padding: "11px 12px 11px 40px", borderRadius: 12, border: "1px solid var(--border)",
+              background: "var(--surface)", color: "var(--text)", fontSize: 14, boxSizing: "border-box",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 4, flexShrink: 0, marginLeft: "auto", order: 2 }}>
+          <BoutonVue actif={vue === "liste"} onClick={() => setVue("liste")} icone="listePlate">Liste</BoutonVue>
+          <BoutonVue actif={vue === "tableau"} onClick={() => setVue("tableau")} icone="grille">Tableau</BoutonVue>
         </div>
       </div>
 
       {vue === "liste" && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 14, overflowX: "auto" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: 4, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 14 }}>
           <FiltrePill actif={filtre === "TOUS"} onClick={() => setFiltre("TOUS")} label="Tous" nombre={bonsRecherches.length + nombreACharger} />
           {ETAPES.map((cle) => (
             <FiltrePill
@@ -152,11 +159,11 @@ function TableauBons({ bons, ouvert, moisACharger, nombreACharger, chargerMois }
         const { recents, anciens } = separerFactures(bonsColonne);
         const dossiersACharger = cle === "TERMINE" ? moisACharger : [];
         return (
-          <div key={cle} style={{ flex: "1 1 240px", minWidth: 220, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 4px 8px", borderBottom: `2px solid ${infos.color}`, marginBottom: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: infos.color }} />
-              <span style={{ fontSize: 12, fontWeight: 700 }}>{infos.label}</span>
-              <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, color: infos.color, background: `${infos.color}22`, borderRadius: 999, padding: "1px 8px" }}>
+          <div key={cle} style={{ flex: "1 1 0", minWidth: 170, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 10px", borderBottom: `2px solid ${infos.color}`, marginBottom: 10 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: infos.color }} />
+              <span style={{ fontSize: 14, fontWeight: 800 }}>{infos.label}</span>
+              <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: infos.color, background: `${infos.color}22`, borderRadius: 999, padding: "2px 9px" }}>
                 {bonsColonne.length + (cle === "TERMINE" ? nombreACharger : 0)}
               </span>
             </div>
@@ -186,13 +193,14 @@ function CarteBonCompacte({ b }) {
   const infos = infosEtape(etape(b));
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: `3px solid ${infos.color}`, borderRadius: 8, padding: "8px 10px" }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "9px 10px 9px 14px" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: infos.color }} />
         <BanderoleBo bon={b} compact style={{ marginBottom: 6 }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
-          {b.datePrevue && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>🕒 {heureQuebec(b.datePrevue)}</span>}
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>#{b.numero}</span>
+          {b.datePrevue && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--text-muted)" }}><Icone nom="horloge" taille={13} /> {heureQuebec(b.datePrevue)}</span>}
         </div>
-        <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
         {b.problemes[0] && (
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {b.problemes[0].description}{b.problemes.length > 1 ? ` (+${b.problemes.length - 1})` : ""}
@@ -212,23 +220,21 @@ function CarteBon({ b }) {
   const nbPieces = b.problemes.reduce((s, p) => s + p.pieces.length, 0);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div style={{ display: "flex", gap: 12, alignItems: "stretch", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "stretch", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 12 }}>
         <PastilleDate date={date} couleur={infos.color} heure={b.datePrevue ? heureQuebec(b.datePrevue) : null} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: infos.color, background: `${infos.color}22`, borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>
-              {infos.label}
-            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>#{b.numero}</span>
+            <Pastille couleur={infos.color} fond={`${infos.color}22`}>{infos.label}</Pastille>
           </div>
-          <div style={{ fontWeight: 600, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
           {b.problemes[0] && (
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {b.problemes[0].description}
             </div>
           )}
           <BanderoleBo bon={b} compact style={{ marginTop: 6 }} />
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
             {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
           </div>
         </div>
@@ -241,7 +247,7 @@ function CarteBon({ b }) {
 function PastilleDate({ date, couleur, heure }) {
   const partie = (options) => date.toLocaleDateString("fr-CA", { timeZone: "America/Toronto", ...options }).replace(".", "");
   return (
-    <div style={{ width: 52, flexShrink: 0, borderRadius: 8, background: `${couleur}1a`, border: `1px solid ${couleur}55`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4px 0" }}>
+    <div style={{ width: 54, flexShrink: 0, borderRadius: 12, background: `${couleur}1a`, border: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4px 0" }}>
       <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", color: couleur }}>{partie({ weekday: "short" })}</span>
       <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.1 }}>{partie({ day: "numeric" })}</span>
       <span style={{ fontSize: 9.5, textTransform: "uppercase", color: "var(--text-muted)" }}>{partie({ month: "short" })}</span>
@@ -264,12 +270,16 @@ function EnTeteGroupe({ groupe, compact }) {
   );
 }
 
-function BoutonVue({ actif, onClick, children }) {
+function BoutonVue({ actif, onClick, icone, children }) {
   return (
     <button
       onClick={onClick}
-      style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 7, border: "none", cursor: "pointer", background: actif ? "var(--accent)" : "none", color: actif ? "#17150f" : "var(--text-muted)" }}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, padding: "7px 12px", borderRadius: 9, border: "none", cursor: "pointer",
+        background: actif ? "var(--accent)" : "transparent", color: actif ? "#221f18" : "var(--text-muted)",
+      }}
     >
+      <Icone nom={icone} taille={15} />
       {children}
     </button>
   );
@@ -277,12 +287,12 @@ function BoutonVue({ actif, onClick, children }) {
 
 function EtatVide() {
   return (
-    <div style={{ textAlign: "center", padding: "30px 16px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 12 }}>
-      <div style={{ fontSize: 30, marginBottom: 8 }}>🔧</div>
-      <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>Pas encore de bon de commande.</p>
-      <Link href="/secretaire/nouveau" className="bouton-3d" style={{ display: "inline-block", fontSize: 12, fontWeight: 700, padding: "9px 16px", borderRadius: 999, textDecoration: "none" }}>
-        + Créer le premier
-      </Link>
+    <div style={{ textAlign: "center", padding: "30px 16px", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 16 }}>
+      <span style={{ display: "inline-flex", width: 52, height: 52, borderRadius: 14, background: "rgba(232,163,61,0.16)", alignItems: "center", justifyContent: "center", marginBottom: 10 }}>
+        <Icone nom="outils" taille={26} couleur="var(--accent-ombre)" />
+      </span>
+      <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 14 }}>Pas encore de bon de commande.</p>
+      <BoutonPlein href="/secretaire/nouveau">Créer le premier</BoutonPlein>
     </div>
   );
 }
@@ -292,16 +302,15 @@ function FiltrePill({ actif, onClick, label, nombre, couleur }) {
     <button
       onClick={onClick}
       style={{
-        display: "flex", alignItems: "center", gap: 6,
-        fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, whiteSpace: "nowrap", cursor: "pointer",
-        background: actif ? "var(--accent)" : "var(--surface)",
-        color: actif ? "#17150f" : "var(--text-muted)",
-        border: "1px solid var(--border)",
+        flex: "1 1 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        fontSize: 13, fontWeight: 700, padding: "8px 10px", borderRadius: 9, whiteSpace: "nowrap", cursor: "pointer", border: "none",
+        background: actif ? "var(--accent)" : "transparent",
+        color: actif ? "#221f18" : "var(--text-muted)",
       }}
     >
-      {couleur && !actif && <span style={{ width: 7, height: 7, borderRadius: "50%", background: couleur }} />}
+      {couleur && <span style={{ width: 7, height: 7, borderRadius: "50%", background: actif ? "#221f18" : couleur }} />}
       {label}
-      <span style={{ fontSize: 10.5, opacity: 0.75 }}>{nombre}</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: actif ? "rgba(0,0,0,0.12)" : "var(--surface-alt)" }}>{nombre}</span>
     </button>
   );
 }
