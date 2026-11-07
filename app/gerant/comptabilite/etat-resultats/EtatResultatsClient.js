@@ -25,8 +25,8 @@ export default function EtatResultatsClient({ lignes }) {
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
-        <BoutonContour href="/gerant/comptabilite/bilan" icone="balance">Bilan</BoutonContour>
-        <BoutonContour href="/gerant/comptabilite/rapports" icone="imprimante">Rapports imprimables</BoutonContour>
+        <BoutonContour style={boutonEgal} href="/gerant/comptabilite/bilan" icone="balance">Bilan</BoutonContour>
+        <BoutonContour style={boutonEgal} href="/gerant/comptabilite/rapports" icone="imprimante">Rapports imprimables</BoutonContour>
       </div>
 
       <GrilleChiffres>
@@ -84,3 +84,6 @@ function SectionBarres({ titre, icone, teinte, total, lignes, couleurs }) {
     </div>
   );
 }
+
+// Les deux boutons du haut prennent la même largeur, côte à côte ou empilés
+const boutonEgal = { flex: "1 1 160px", justifyContent: "center", padding: "11px 12px" };
