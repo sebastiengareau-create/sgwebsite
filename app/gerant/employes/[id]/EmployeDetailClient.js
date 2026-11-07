@@ -37,7 +37,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [salaireAnnuel, setSalaireAnnuel] = useState(employe.salaireAnnuel ?? "");
   const [frequencePaie, setFrequencePaie] = useState(employe.frequencePaie || "BIHEBDOMADAIRE");
   const [tauxVacances, setTauxVacances] = useState(employe.tauxVacances ?? 4);
-  const [theme, setTheme] = useState(employe.theme || "sombre");
+  const [theme, setTheme] = useState(employe.theme || "clair");
   const [tailleTexte, setTailleTexte] = useState(employe.tailleTexte || "normal");
 
   async function sauvegarder() {
@@ -224,7 +224,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
                 <button
                   type="button"
                   onClick={() => setTheme("sombre")}
-                  className={theme !== "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+                  className={theme === "sombre" ? "bouton-3d" : "bouton-3d-sombre"}
                   style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
                 >
                   🌙 Sombre
@@ -232,7 +232,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
                 <button
                   type="button"
                   onClick={() => setTheme("clair")}
-                  className={theme === "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+                  className={theme !== "sombre" ? "bouton-3d" : "bouton-3d-sombre"}
                   style={{ flex: 1, padding: "9px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
                 >
                   ☀️ Clair
@@ -282,7 +282,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <LigneInfo label="Assignation" valeur={employe.assignation} />
             <LigneInfo label="Date d'embauche" valeur={employe.dateEmbauche ? new Date(employe.dateEmbauche).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" }) : null} />
             {peutVoirNas && <LigneInfo label="NAS" valeur={masquerNas(employe.nas) || null} />}
-            <LigneInfo label="Affichage" valeur={`${employe.theme === "clair" ? "☀️ Clair" : "🌙 Sombre"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
+            <LigneInfo label="Affichage" valeur={`${employe.theme === "sombre" ? "🌙 Sombre" : "☀️ Clair"} · ${employe.tailleTexte === "grand" ? "Texte plus gros" : "Texte normal"}`} />
           </div>
 
           <div className="carte" style={{ marginBottom: 12 }}>

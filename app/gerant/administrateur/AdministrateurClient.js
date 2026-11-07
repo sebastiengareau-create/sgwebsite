@@ -116,7 +116,7 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
               type="button"
               onClick={() => choisirTheme("sombre")}
               disabled={themeEnCours}
-              className={theme !== "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+              className={theme === "sombre" ? "bouton-3d" : "bouton-3d-sombre"}
               style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}
             >
               🌙 Sombre
@@ -125,7 +125,7 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
               type="button"
               onClick={() => choisirTheme("clair")}
               disabled={themeEnCours}
-              className={theme === "clair" ? "bouton-3d" : "bouton-3d-sombre"}
+              className={theme !== "sombre" ? "bouton-3d" : "bouton-3d-sombre"}
               style={{ flex: 1, padding: "10px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}
             >
               ☀️ Clair
@@ -176,6 +176,14 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
         style={{ display: "block", textAlign: "center", marginTop: 10, padding: 14, borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700 }}
       >
         🏢 Informations de l'entreprise
+      </Link>
+
+      <Link
+        href="/gerant/administrateur/google-places"
+        className="bouton-3d-sombre"
+        style={{ display: "block", textAlign: "center", marginTop: 10, padding: 14, borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700 }}
+      >
+        📍 Google — adresses
       </Link>
 
       <div style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--danger)", borderRadius: 10, padding: 16 }}>

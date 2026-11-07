@@ -35,19 +35,19 @@ export async function generateMetadata() {
 // développeur n'a pas de fiche employé (voir lib/auth.js) — son affichage
 // vit à part, dans Parametre (réglable dans Administrateur → Affichage).
 async function obtenirPreferencesAffichage(session) {
-  const defaut = { theme: "sombre", tailleTexte: "normal" };
+  const defaut = { theme: "clair", tailleTexte: "normal" };
   if (!session) return defaut;
   if (session.role === "DEVELOPPEUR") {
     const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["theme_developpeur", "taille_texte_developpeur"] } } });
     const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
     return {
-      theme: dict.theme_developpeur === "clair" ? "clair" : "sombre",
+      theme: dict.theme_developpeur === "sombre" ? "sombre" : "clair",
       tailleTexte: dict.taille_texte_developpeur === "grand" ? "grand" : "normal",
     };
   }
   const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { theme: true, tailleTexte: true } });
   return {
-    theme: utilisateur?.theme === "clair" ? "clair" : "sombre",
+    theme: utilisateur?.theme === "sombre" ? "sombre" : "clair",
     tailleTexte: utilisateur?.tailleTexte === "grand" ? "grand" : "normal",
   };
 }

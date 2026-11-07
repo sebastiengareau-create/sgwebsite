@@ -34,7 +34,7 @@ export default async function Administrateur() {
         ]}
         verrouilleInit={dict.compte_verrouille === "actif"}
         estDeveloppeur={session.role === "DEVELOPPEUR"}
-        themeInit={dict.theme_developpeur === "clair" ? "clair" : "sombre"}
+        themeInit={dict.theme_developpeur === "sombre" ? "sombre" : "clair"}
         tailleTexteInit={dict.taille_texte_developpeur === "grand" ? "grand" : "normal"}
       />
     </div>
