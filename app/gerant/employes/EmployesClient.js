@@ -11,6 +11,7 @@ import { useOrdreFiches } from "../../components/NavigationFiches";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, GroupeLiens, Panneau, Pastille } from "../../components/StyleSection";
 
 export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
   const router = useRouter();
@@ -25,95 +26,133 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
   const inactifs = filtres.filter((e) => !e.actif);
   useOrdreFiches("employes", [...actifs, ...(voirInactifs ? inactifs : [])].map((e) => e.id));
 
+  // Une teinte par rôle (dans l'ordre où ils apparaissent), pour les repérer
+  const tousActifs = employes.filter((e) => e.actif);
+  const rolesPresents = [...new Set(employes.map((e) => e.role))];
+  const PALETTE = [TEINTES.ambre, TEINTES.bleu, TEINTES.vert, TEINTES.rouge, TEINTES.neutre];
+  const teinteRole = (role) => PALETTE[rolesPresents.indexOf(role) % PALETTE.length];
+  const parRole = rolesPresents
+    .map((r) => [r, tousActifs.filter((e) => e.role === r).length])
+    .filter(([, n]) => n > 0)
+    .map(([r, n]) => `${nomsRoles[r] || r} ${n}`)
+    .join(" · ");
+  const nbInactifs = employes.length - tousActifs.length;
+
   return (
     <div className="conteneur-page">
       <BandeauSection icone="👥" titre="Gestion des employés" sousTitre="Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie." />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <BoutonPlein icone={afficherFormulaire ? null : "utilisateurPlus"} onClick={() => setAfficherFormulaire((v) => !v)}>
+          {afficherFormulaire ? "Annuler" : "Nouveau compte"}
+        </BoutonPlein>
         {peutImporter && <BoutonImporterFichier apiUrl="/api/employes/importer" libelle="depuis Excel" libellePluriel="employé" />}
-        <button
-          onClick={() => setAfficherFormulaire((v) => !v)}
-          className="bouton-3d"
-          style={{ padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}
-        >
-          {afficherFormulaire ? "Annuler" : "+ Nouveau compte"}
-        </button>
       </div>
-
-      <Link
-        href="/gerant/comptabilite/rapports/employes"
-        target="_blank"
-        className="bouton-3d-sombre"
-        style={{ display: "block", textAlign: "center", padding: 10, borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16 }}
-      >
-        📄 Liste des employés (PDF / Excel / imprimer)
-      </Link>
 
       {afficherFormulaire && (
-        <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
+        <div style={{ marginBottom: 14 }}>
+          <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
+        </div>
       )}
 
-      <input
-        type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)}
-        placeholder="🔍 Rechercher par nom, rôle, assignation, courriel, téléphone…"
-        style={{ ...champStyle, background: "var(--surface)", marginTop: 16 }}
+      <GrilleChiffres>
+        <CarteChiffre
+          titre="Employés actifs" montant={String(tousActifs.length)} teinte="var(--bleu)"
+          note={parRole || "Aucun compte actif"}
+        />
+        {nbInactifs > 0 && (
+          <CarteChiffre
+            titre="Comptes désactivés" montant={String(nbInactifs)} couleur="var(--text-muted)" teinte="var(--text-muted)"
+            actif={voirInactifs}
+            onClick={() => setVoirInactifs((v) => !v)}
+            note={voirInactifs ? "Affichés dans la liste · touche pour les cacher" : "Touche pour les voir dans la liste"}
+          />
+        )}
+      </GrilleChiffres>
+
+      <GroupeLiens
+        titre="Rapports" teinte={TEINTES.vert}
+        liens={[
+          { href: "/gerant/comptabilite/rapports/employes", target: "_blank", icone: "imprimante", label: "Liste des employés", detail: "PDF, Excel ou imprimer" },
+        ]}
       />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-        {actifs.map((e) => <CarteEmploye key={e.id} employe={e} moi={moi} nomsRoles={nomsRoles} />)}
-        {employes.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun employé encore.</p>}
-        {employes.length > 0 && actifs.length === 0 && inactifs.length === 0 && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun employé ne correspond à "{recherche}".</p>
-        )}
-      </div>
+      <Panneau titre="Équipe">
+        <div style={{ position: "relative", marginBottom: 14 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+            <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+          </span>
+          <input
+            type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Nom, rôle, assignation, courriel, téléphone…"
+            style={{ ...champStyle, marginBottom: 0, padding: "11px 12px 11px 40px", fontSize: 14, borderRadius: 12 }}
+          />
+        </div>
 
-      {inactifs.length > 0 && (
-        <>
-          <button
-            onClick={() => setVoirInactifs((v) => !v)}
-            style={{ marginTop: 20, marginBottom: 8, fontSize: 12, fontWeight: 700, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-          >
-            {voirInactifs || terme ? "▾" : "▸"} Comptes désactivés ({inactifs.length})
-          </button>
-          {(voirInactifs || terme) && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {inactifs.map((e) => <CarteEmploye key={e.id} employe={e} moi={moi} nomsRoles={nomsRoles} />)}
-            </div>
-          )}
-        </>
-      )}
+        {actifs.length > 0 && <EnteteListe titre={`${actifs.length} actif${actifs.length > 1 ? "s" : ""}`} droite="Rôle" />}
+        {actifs.map((e, i) => <CarteEmploye key={e.id} employe={e} moi={moi} nomsRoles={nomsRoles} teinte={teinteRole(e.role)} premier={i === 0} />)}
+        {employes.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucun employé encore.</p>}
+        {employes.length > 0 && actifs.length === 0 && inactifs.length === 0 && (
+          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucun employé ne correspond à « {recherche} ».</p>
+        )}
+
+        {inactifs.length > 0 && (
+          <>
+            <button
+              onClick={() => setVoirInactifs((v) => !v)}
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 18, marginBottom: 8, fontSize: 13, fontWeight: 700, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              <span style={{ display: "inline-flex", transform: voirInactifs || terme ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+                <Icone nom="chevron" taille={16} />
+              </span>
+              Comptes désactivés ({inactifs.length})
+            </button>
+            {(voirInactifs || terme) && (
+              <>
+                <EnteteListe titre="Désactivés" droite="Rôle" couleur="var(--border)" />
+                {inactifs.map((e, i) => <CarteEmploye key={e.id} employe={e} moi={moi} nomsRoles={nomsRoles} teinte={teinteRole(e.role)} premier={i === 0} />)}
+              </>
+            )}
+          </>
+        )}
+      </Panneau>
     </div>
   );
 }
 
-function CarteEmploye({ employe: e, moi, nomsRoles }) {
+function EnteteListe({ titre, droite, couleur = "var(--accent)" }) {
   return (
-    <Link href={`/gerant/employes/${e.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <div
-        className="bouton-3d-sombre"
-        style={{ borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12, opacity: e.actif ? 1 : 0.55 }}
-      >
+    <div style={{ display: "flex", padding: "0 6px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: `2px solid ${couleur}` }}>
+      <span style={{ flex: 1 }}>{titre}</span>
+      <span>{droite}</span>
+    </div>
+  );
+}
+
+function CarteEmploye({ employe: e, moi, nomsRoles, teinte, premier }) {
+  return (
+    <Link href={`/gerant/employes/${e.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 6px", borderTop: premier ? "none" : "1px solid var(--border)", opacity: e.actif ? 1 : 0.55 }}>
         <div style={{
-          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-          background: "linear-gradient(180deg, var(--accent-clair), var(--accent))",
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "#17150f",
+          width: 40, height: 40, borderRadius: "50%", flexShrink: 0, background: teinte.fond,
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: teinte.couleur,
         }}>
           {e.nom.charAt(0).toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>
-            {e.nom} {e.id === moi && <span style={{ fontSize: 10.5, color: "var(--text-muted)", fontWeight: 400 }}>(toi)</span>}
-            {e.numeroEmploye && <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>#{e.numeroEmploye}</span>}
+          <div style={{ fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {e.nom} {e.id === moi && <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>(toi)</span>}
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {e.numeroEmploye && <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>#{e.numeroEmploye}{" · "}</span>}
             {[e.assignation, e.telephone].filter(Boolean).join(" · ") || e.courriel}
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent)" }}>{nomsRoles[e.role] || e.role}</span>
-          {!e.actif && <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--danger)" }}>Désactivé</span>}
+          <Pastille couleur={teinte.couleur} fond={teinte.fond}>{nomsRoles[e.role] || e.role}</Pastille>
+          {!e.actif && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--danger)" }}>Désactivé</span>}
         </div>
-        <span style={{ color: "var(--text-muted)", fontSize: 16 }}>›</span>
+        <Icone nom="chevron" taille={18} couleur="var(--text-muted)" />
       </div>
     </Link>
   );
