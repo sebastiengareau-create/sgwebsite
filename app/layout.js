@@ -1,7 +1,6 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import AssistantSG from "./components/AssistantSG";
 import BoutonFlottantNouveau from "./components/BoutonFlottantNouveau";
 import "./globals.css";
 import { image } from "@/lib/client";
@@ -90,7 +89,6 @@ export default async function RootLayout({ children }) {
       <body>
         {verrouille ? <EcranVerrouille /> : children}
         {!verrouille && session && <BoutonFlottantNouveau sections={sectionsBouton} />}
-        {!verrouille && session && <AssistantSG />}
       </body>
     </html>
   );

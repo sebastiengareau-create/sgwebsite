@@ -7,6 +7,7 @@ import { versionEnLigne } from "@/lib/version";
 import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
 import Cloche from "./Cloche";
+import AssistantSG from "./AssistantSG";
 import { image } from "@/lib/client";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { destinatairesPermis } from "@/lib/documentsServeur";
@@ -101,7 +102,10 @@ export default async function EnTete({ nom, role }) {
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{labelRole}</div>
           </div>
         </div>
-        {estEmploye && <Cloche nonLuesInitial={nbNonLues} />}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <AssistantSG />
+          {estEmploye && <Cloche nonLuesInitial={nbNonLues} />}
+        </div>
       </div>
     </div>
   );
