@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TitreSection, LigneInfo } from "../../../components/ui";
+import { Icone, TEINTES, CarteChiffre, CarteLien, TitreGroupe, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../../components/StyleSection";
 import SelectProvince from "../../../components/SelectProvince";
 import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { ligneVille } from "@/lib/adresse";
@@ -11,7 +11,9 @@ import { etatEcheance } from "@/lib/echeance";
 import { formaterTelephone } from "@/lib/telephone";
 import { argent } from "@/lib/format";
 
-export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpayees }) {
+const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
+
+export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpayees, enRetard = 0, nbEnRetard = 0, achatsAnnee = 0, nbAchatsAnnee = 0 }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -68,27 +70,40 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
     router.push("/gerant/fournisseurs");
   }
 
+  const contacts = [
+    fournisseur.telephone && { href: `tel:${fournisseur.telephone.replace(/[^\d+]/g, "")}`, icone: "telephone", label: "Appeler" },
+    fournisseur.courriel && { href: `mailto:${fournisseur.courriel}`, icone: "courriel", label: "Écrire" },
+  ].filter(Boolean);
+  const couleurProfil = fournisseur.actif ? "var(--bleu)" : "var(--text-muted)";
+
   return (
     <div className="conteneur-page">
       <Link href="/gerant/fournisseurs" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux fournisseurs</Link>
 
       {/* Carte profil */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "linear-gradient(180deg, var(--accent-clair), var(--accent))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "#17150f", flexShrink: 0 }}>
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "20px 20px 20px 24px", marginTop: 10, marginBottom: 14 }}>
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: couleurProfil }} />
+        <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: couleurProfil, opacity: 0.08 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: TEINTES.bleu.fond, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: TEINTES.bleu.couleur, flexShrink: 0 }}>
             {fournisseur.nom.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{fournisseur.nom}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {fournisseur.numero && <span style={{ fontFamily: "monospace", fontWeight: 700, marginRight: 6 }}>#{fournisseur.numero}</span>}
-              {fournisseur.courriel || "Aucun courriel"}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{fournisseur.nom}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
+              {fournisseur.numero && <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", marginRight: 6 }}>#{fournisseur.numero}</span>}
+              Fournisseur depuis le {dateCourte(fournisseur.creeLe)}
             </div>
+            {!fournisseur.actif && (
+              <div style={{ marginTop: 6 }}>
+                <Pastille couleur="var(--danger)" fond="var(--danger-fond)">Désactivé</Pastille>
+              </div>
+            )}
           </div>
         </div>
-        {!fournisseur.actif && (
-          <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-            <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: "var(--danger)", color: "white" }}>Désactivé</span>
+        {contacts.length > 0 && (
+          <div style={{ position: "relative", display: "grid", gridTemplateColumns: `repeat(${contacts.length}, 1fr)`, gap: 8, marginTop: 16 }}>
+            {contacts.map((c) => <BoutonAction key={c.label} href={c.href} icone={c.icone}>{c.label}</BoutonAction>)}
           </div>
         )}
       </div>
@@ -96,8 +111,8 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
       {modeEdition ? (
-        <div className="carte">
-          <TitreSection>Coordonnées</TitreSection>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="crayon" titre="Modifier les coordonnées" />
           <label className="etiquette">Nom</label>
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Téléphone</label>
@@ -108,7 +123,7 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
           <ChampAdresse valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} className="champ" />
           <label className="etiquette">Ville</label>
           <ChampVille valeur={ville} onChange={setVille} codePostal={codePostal} className="champ" />
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
             <div style={{ flex: 1 }}>
               <label className="etiquette">Province</label>
               <SelectProvince valeur={province} onChange={setProvince} className="champ" style={{ marginBottom: 0 }} />
@@ -119,81 +134,86 @@ export default function FournisseurDetailClient({ fournisseur, soldeDu, nbImpaye
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
               {enCours ? "…" : "Sauvegarder"}
             </button>
-            <button onClick={() => setModeEdition(false)} className="bouton-3d-sombre" style={{ flex: 1, padding: 11, borderRadius: 10, fontSize: 13 }}>
-              Annuler
-            </button>
+            <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setModeEdition(false)}>Annuler</BoutonAction>
           </div>
         </div>
       ) : (
         <>
-          <div className="carte" style={{ marginBottom: 12 }}>
-            <TitreSection>Coordonnées</TitreSection>
-            <LigneInfo label="Numéro" valeur={fournisseur.numero} />
-            <LigneInfo label="Téléphone" valeur={fournisseur.telephone} />
-            <LigneInfo label="Courriel" valeur={fournisseur.courriel} />
-            <LigneInfo label="Adresse" valeur={fournisseur.adresse} />
-            <LigneInfo label="Ville" valeur={ligneVille(fournisseur) || null} />
+          <div className="grille-trois" style={{ marginBottom: 24 }}>
+            <CarteChiffre
+              titre="Solde dû" montant={argent(soldeDu)}
+              couleur={soldeDu > 0.005 ? "var(--danger)" : "var(--success)"} teinte={soldeDu > 0.005 ? "var(--danger)" : "var(--success)"}
+              href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${fournisseur.id}`}
+              note={nbImpayees > 0 ? `${nbImpayees} facture${nbImpayees > 1 ? "s" : ""} impayée${nbImpayees > 1 ? "s" : ""}` : "À jour — aucune facture impayée"}
+            />
+            <CarteChiffre
+              titre="En retard" montant={argent(enRetard)}
+              couleur={nbEnRetard > 0 ? "var(--danger)" : "var(--text)"} teinte={nbEnRetard > 0 ? "var(--danger)" : "var(--avertissement)"}
+              note={nbEnRetard > 0 ? `${nbEnRetard} facture${nbEnRetard > 1 ? "s" : ""} passée${nbEnRetard > 1 ? "s" : ""} d'échéance` : "Aucune facture en retard"}
+            />
+            <CarteChiffre
+              titre="Achats cette année" montant={argent(achatsAnnee)} teinte="var(--bleu)"
+              note={`${nbAchatsAnnee} facture${nbAchatsAnnee !== 1 ? "s" : ""} depuis le 1er janvier`}
+            />
           </div>
 
-          <div className="carte" style={{ marginBottom: 12 }}>
-            <TitreSection>Solde dû</TitreSection>
-            <div style={{ fontSize: 18, fontWeight: 700, color: soldeDu > 0 ? "var(--danger)" : "var(--success)" }}>{argent(soldeDu)}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>
-              {nbImpayees > 0 ? `${nbImpayees} facture${nbImpayees > 1 ? "s" : ""} impayée${nbImpayees > 1 ? "s" : ""}` : "À jour — aucune facture impayée"}
+          <section style={{ marginBottom: 24 }}>
+            <TitreGroupe couleur={TEINTES.ambre.couleur}>Actions</TitreGroupe>
+            <div className="grille-trois" style={{ gap: 10 }}>
+              <CarteLien href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${fournisseur.id}`} icone="presse" label="Comptes à payer" detail="Saisir et payer ses factures" />
+              <CarteLien href={`/secretaire/inventaire/commandes?fournisseur=${fournisseur.id}`} icone="panier" label="Commander" detail="Commander des pièces" />
+              <CarteLien href={`/gerant/comptabilite/rapports/inventaire-fournisseurs?fournisseur=${fournisseur.id}`} target="_blank" icone="imprimante" label="Inventaire" detail="Ses pièces en stock (PDF)" />
             </div>
-            <Link href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${fournisseur.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-              💳 Ses comptes à payer
-            </Link>
-            <Link href={`/secretaire/inventaire/commandes?fournisseur=${fournisseur.id}`} className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
-              🛒 Commander des pièces
-            </Link>
-            <Link href={`/gerant/comptabilite/rapports/inventaire-fournisseurs?fournisseur=${fournisseur.id}`} target="_blank" className="bouton-3d-sombre" style={{ display: "block", textAlign: "center", padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", marginTop: 8 }}>
-              📄 Inventaire de ce fournisseur
-            </Link>
+          </section>
+
+          <div style={stylePanneau}>
+            <TitrePanneau icone="immeuble" teinte={TEINTES.bleu} titre="Coordonnées" />
+            <LigneDetail label="Numéro" valeur={fournisseur.numero} premiere />
+            <LigneDetail label="Téléphone" valeur={fournisseur.telephone && <a href={`tel:${fournisseur.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "inherit" }}>{fournisseur.telephone}</a>} />
+            <LigneDetail label="Courriel" valeur={fournisseur.courriel && <a href={`mailto:${fournisseur.courriel}`} style={{ color: "inherit" }}>{fournisseur.courriel}</a>} />
+            <LigneDetail label="Adresse" valeur={fournisseur.adresse} />
+            <LigneDetail label="Ville" valeur={ligneVille(fournisseur) || null} />
           </div>
 
-          <div className="carte" style={{ marginBottom: 12 }}>
-            <TitreSection>Dépenses récentes ({fournisseur.depenses.length})</TitreSection>
-            {fournisseur.depenses.length === 0 ? (
-              <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucune dépense encore.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {fournisseur.depenses.map((d) => {
-                  const etat = etatEcheance(d);
-                  return (
-                    <Link key={d.id} href={`/gerant/comptabilite/comptes-a-payer/${d.id}`} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, textDecoration: "none", color: "var(--text)", padding: "6px 8px", borderRadius: 6, background: "var(--bg)" }}>
-                      <span style={{ color: "var(--text-muted)" }}>
-                        {new Date(d.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} — {d.description}
-                        <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: d.statut === "PAYEE" ? "var(--success)" : (etat?.couleur || "var(--danger)") }}>
-                          {d.statut === "PAYEE" ? "Payée" : (etat?.texte || "Impayée")}
-                        </span>
-                      </span>
-                      <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{argent(d.montant)} ›</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+          <div style={stylePanneau}>
+            <TitrePanneau
+              icone="presse" teinte={TEINTES.ambre} titre="Factures récentes"
+              sousTitre={fournisseur.depenses.length === 0 ? "Aucune facture encore." : `Les ${fournisseur.depenses.length} plus récentes`}
+            />
+            {fournisseur.depenses.map((d, i) => {
+              const payee = d.statut === "PAYEE";
+              const etat = etatEcheance(d);
+              const couleur = payee ? "var(--success)" : etat?.enRetard ? "var(--danger)" : "var(--avertissement)";
+              const fond = payee ? "var(--success-fond)" : etat?.enRetard ? "var(--danger-fond)" : "var(--avertissement-fond)";
+              return (
+                <Link key={d.id} href={`/gerant/comptabilite/comptes-a-payer/${d.id}`} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "var(--text)", padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.description}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 3 }}>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Facture du {dateCourte(d.dateFacture)}</span>
+                      <Pastille couleur={couleur} fond={fond}>{payee ? "Payée" : (etat?.texte || "Impayée")}</Pastille>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(d.montant)}</span>
+                  <Icone nom="chevron" taille={18} couleur="var(--text-muted)" />
+                </Link>
+              );
+            })}
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-              ✏️ Modifier
-            </button>
-            <button onClick={toggleActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, color: fournisseur.actif ? "var(--danger)" : "var(--success)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+            <BoutonAction icone="crayon" onClick={() => setModeEdition(true)}>Modifier</BoutonAction>
+            <BoutonAction icone={fournisseur.actif ? "bloque" : "crochet"} couleur={fournisseur.actif ? "var(--avertissement)" : "var(--success)"} onClick={toggleActif} disabled={enCours}>
               {fournisseur.actif ? "Désactiver" : "Réactiver"}
-            </button>
-            <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
-              🗑️
-            </button>
+            </BoutonAction>
+            <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={supprimer} disabled={enCours}>Supprimer</BoutonAction>
           </div>
         </>
       )}
     </div>
   );
 }
-
