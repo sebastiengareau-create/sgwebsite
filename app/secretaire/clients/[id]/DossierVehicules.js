@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TitreSection } from "../../../components/ui";
+import { Icone, TEINTES, TitrePanneau, BoutonAction, stylePanneau } from "../../../components/StyleSection";
 import ChampsVehicule, { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
 import { libelleVehicule, identifiantsVehicule, valeursFormulaireVehicule } from "@/lib/vehicules";
 
@@ -55,43 +55,41 @@ export default function DossierVehicules({ clientId, vehicules }) {
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <TitreSection>🚗 Véhicules ({vehicules.length})</TitreSection>
+    <div style={stylePanneau}>
+      <TitrePanneau
+        icone="vehicule" teinte={TEINTES.bleu} titre="Véhicules"
+        sousTitre={vehicules.length === 0 ? "Aucun véhicule au dossier." : `${vehicules.length} véhicule${vehicules.length !== 1 ? "s" : ""} au dossier`}
+      />
 
-      {vehicules.length === 0 && edition === null && (
-        <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun véhicule au dossier.</p>
+      {vehicules.map((v, i) =>
+        edition === v.id ? null : (
+          <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+            <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 11, background: TEINTES.bleu.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icone nom="vehicule" taille={19} couleur={TEINTES.bleu.couleur} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{libelleVehicule(v) || "Véhicule sans description"}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
+                {identifiantsVehicule(v) || "Aucune plaque ni NIV"}
+                {v._count?.bons > 0 && ` · ${v._count.bons} bon${v._count.bons > 1 ? "s" : ""}`}
+              </div>
+            </div>
+            <BoutonIcone icone="crayon" titre="Modifier" onClick={() => ouvrir(v)} disabled={enCours} />
+            <BoutonIcone icone="poubelle" titre="Retirer du dossier" couleur="var(--danger)" onClick={() => supprimer(v)} disabled={enCours} />
+          </div>
+        )
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {vehicules.map((v) =>
-          edition === v.id ? null : (
-            <div key={v.id} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10, display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{libelleVehicule(v) || "Véhicule sans description"}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", overflowWrap: "anywhere" }}>
-                  {identifiantsVehicule(v) || "Aucune plaque ni NIV"}
-                  {v._count?.bons > 0 && <span style={{ fontFamily: "inherit" }}> · {v._count.bons} bon{v._count.bons > 1 ? "s" : ""}</span>}
-                </div>
-              </div>
-              <button type="button" onClick={() => ouvrir(v)} disabled={enCours} style={boutonIcone} title="Modifier">✏️</button>
-              <button type="button" onClick={() => supprimer(v)} disabled={enCours} style={boutonIcone} title="Retirer du dossier">🗑️</button>
-            </div>
-          )
-        )}
-      </div>
-
       {edition !== null ? (
-        <form onSubmit={sauvegarder} style={{ marginTop: 10, borderTop: vehicules.length ? "1px solid var(--border)" : "none", paddingTop: vehicules.length ? 6 : 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>{edition === "nouveau" ? "Nouveau véhicule" : "Modifier le véhicule"}</div>
+        <form onSubmit={sauvegarder} style={{ marginTop: 10, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 800 }}>{edition === "nouveau" ? "Nouveau véhicule" : "Modifier le véhicule"}</div>
           <ChampsVehicule valeur={valeur} onChange={setValeur} />
           {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 6 }}>{erreur}</p>}
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button type="submit" disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 10, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+            <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 11, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
               {enCours ? "…" : "Sauvegarder"}
             </button>
-            <button type="button" onClick={() => setEdition(null)} className="bouton-3d-sombre" style={{ flex: 1, padding: 10, borderRadius: 10, fontSize: 13 }}>
-              Annuler
-            </button>
+            <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setEdition(null)}>Annuler</BoutonAction>
           </div>
         </form>
       ) : (
@@ -104,8 +102,18 @@ export default function DossierVehicules({ clientId, vehicules }) {
   );
 }
 
-const boutonIcone = { background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 4 };
+function BoutonIcone({ icone, titre, couleur = "var(--text-muted)", onClick, disabled }) {
+  return (
+    <button
+      type="button" onClick={onClick} disabled={disabled} title={titre} aria-label={titre}
+      style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+    >
+      <Icone nom={icone} taille={16} couleur={couleur} />
+    </button>
+  );
+}
+
 const boutonAjout = {
-  background: "none", border: "1px dashed var(--border)", color: "var(--accent)", fontSize: 12,
-  padding: "6px 10px", borderRadius: 8, cursor: "pointer", width: "100%", marginTop: 8,
+  width: "100%", marginTop: 10, padding: "10px 8px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+  color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)",
 };
