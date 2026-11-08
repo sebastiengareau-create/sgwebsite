@@ -351,3 +351,16 @@ a { color: inherit; }
     grid-template-columns: repeat(6, 1fr);
   }
 }
+
+/* Grille de 2 cases (ex. 4 cartes chiffres en 2 × 2) : une colonne sur
+   cellulaire, deux dès 700 px. */
+.grille-deux {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 700px) {
+  .grille-deux {
+    grid-template-columns: 1fr 1fr;
+  }
+}
