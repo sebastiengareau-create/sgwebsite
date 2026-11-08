@@ -1093,6 +1093,8 @@ model Fournisseur {
   pieces       PieceFournisseur[]
   commandes    CommandeFournisseur[]
   reglesBancaires RegleBancaire[] // classements appris des transactions bancaires
+  travauxCopro    TravailCopro[] // bons de travail de la copropriété confiés à ce fournisseur
+  entretiensCopro EntretienCopro[] // entretiens préventifs et inspections dont il est chargé
   creeLe       DateTime  @default(now())
 }
 
@@ -1488,4 +1490,315 @@ model VenteViande {
 
   @@index([lotId])
   @@index([date])
+}
+
+// ============================================================
+// COPROPRIÉTÉ — module « Copropriété » (Administrateur → Modules), inactif
+// tant que le super-administrateur ne l'active pas. Gestion d'un syndicat
+// de copropriété : unités et copropriétaires, charges communes, entretien
+// et réparations, documents partagés aux copropriétaires par leur portail
+// (lien sécurisé). Voir lib/copropriete.js et lib/coproprieteCalculs.js.
+// ============================================================
+
+model BatimentCopro {
+  id                String           @id @default(cuid())
+  nom               String
+  adresse           String?
+  anneeConstruction Int?
+  nbEtages          Int?
+  notes             String?
+  unites            UniteCopro[]
+  espaces           EspaceCopro[]
+  demandes          DemandeCopro[]
+  travaux           TravailCopro[]
+  entretiens        EntretienCopro[]
+  documents         DocumentCopro[]
+  creeLe            DateTime         @default(now())
+}
+
+// Partie privative (fraction) : un logement, un local commercial, ou un
+// stationnement / rangement quand il forme une fraction à lui seul
+model UniteCopro {
+  id         String           @id @default(cuid())
+  numero     String           @unique // « 101 », « P-12 »…
+  batimentId String?
+  batiment   BatimentCopro?   @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  type       String           @default("LOGEMENT") // "LOGEMENT" | "COMMERCIAL" | "STATIONNEMENT" | "RANGEMENT" | "AUTRE"
+  numeroLot  String? // numéro de lot au cadastre
+  etage      String?
+  superficie Float? // pi²
+  quotePart  Float            @default(0) // valeur relative de la fraction, en % (déclaration de copropriété)
+  notes      String?
+  proprietes ProprieteCopro[]
+  occupants  OccupantCopro[]
+  espaces    EspaceCopro[]
+  charges    ChargeCopro[]
+  paiements  PaiementCopro[]
+  demandes   DemandeCopro[]
+  travaux    TravailCopro[]
+  documents  DocumentCopro[]
+  creeLe     DateTime         @default(now())
+}
+
+model CoproprietaireCopro {
+  id                  String           @id @default(cuid())
+  nom                 String
+  courriel            String?
+  telephone           String?
+  telephone2          String?
+  adressePostale      String? // si différente de l'unité (propriétaire non occupant)
+  notes               String?
+  avisCourriel        Boolean          @default(true) // reçoit par courriel le suivi de ses demandes
+  jetonPortail        String?          @unique // lien secret de son portail (null = aucun accès)
+  dernierAccesPortail DateTime?
+  proprietes          ProprieteCopro[]
+  demandes            DemandeCopro[]
+  creeLe              DateTime         @default(now())
+}
+
+// Historique des propriétaires : une ligne par période de propriété. En
+// cours = sans dateFin. Plusieurs propriétaires à la fois = copropriété
+// indivise (part détenue en %).
+model ProprieteCopro {
+  id               String              @id @default(cuid())
+  uniteId          String
+  unite            UniteCopro          @relation(fields: [uniteId], references: [id], onDelete: Cascade)
+  coproprietaireId String
+  coproprietaire   CoproprietaireCopro @relation(fields: [coproprietaireId], references: [id], onDelete: Cascade)
+  dateDebut        DateTime?
+  dateFin          DateTime?
+  partDetenue      Float               @default(100)
+  notes            String?
+  creeLe           DateTime            @default(now())
+
+  @@index([uniteId])
+  @@index([coproprietaireId])
+}
+
+// Occupants et locataires d'une unité (passés et actuels)
+model OccupantCopro {
+  id        String     @id @default(cuid())
+  uniteId   String
+  unite     UniteCopro @relation(fields: [uniteId], references: [id], onDelete: Cascade)
+  type      String     @default("LOCATAIRE") // "PROPRIETAIRE" (occupant) | "LOCATAIRE" | "OCCUPANT"
+  nom       String
+  courriel  String?
+  telephone String?
+  dateDebut DateTime?
+  dateFin   DateTime?
+  notes     String?
+  creeLe    DateTime   @default(now())
+
+  @@index([uniteId])
+}
+
+// Stationnement ou rangement qui n'est pas une fraction : partie commune à
+// usage restreint, ou espace loué par le syndicat
+model EspaceCopro {
+  id           String         @id @default(cuid())
+  type         String // "STATIONNEMENT" | "RANGEMENT" | "VELO" | "AUTRE"
+  numero       String
+  batimentId   String?
+  batiment     BatimentCopro? @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  emplacement  String?
+  uniteId      String? // unité à qui il est attribué (vide = libre)
+  unite        UniteCopro?    @relation(fields: [uniteId], references: [id], onDelete: SetNull)
+  mode         String         @default("USAGE_RESTREINT") // "USAGE_RESTREINT" | "LOCATION"
+  fraisMensuel Float          @default(0)
+  notes        String?
+  creeLe       DateTime       @default(now())
+
+  @@unique([type, numero])
+}
+
+// Budget annuel adopté : réparti entre les unités selon leur quote-part
+model BudgetCopro {
+  id                 String    @id @default(cuid())
+  annee              Int       @unique // année où commence l'exercice
+  moisDebut          Int       @default(1) // 1 = janvier
+  chargesCourantes   Float     @default(0) // dépenses d'opération
+  fondsPrevoyance    Float     @default(0) // contribution au fonds de prévoyance
+  fondsAutoAssurance Float     @default(0) // contribution au fonds d'autoassurance
+  adopteLe           DateTime?
+  notes              String?
+  creeLe             DateTime  @default(now())
+}
+
+// Ce qui est facturé à une unité : cotisation mensuelle, cotisation
+// spéciale, frais de stationnement… (periode « 2026-11 » pour les
+// cotisations générées chaque mois — une seule par unité, mois et type)
+model ChargeCopro {
+  id          String     @id @default(cuid())
+  uniteId     String
+  unite       UniteCopro @relation(fields: [uniteId], references: [id], onDelete: Cascade)
+  date        DateTime
+  periode     String?
+  type        String     @default("COTISATION") // "COTISATION" | "SPECIALE" | "ESPACE" | "AUTRE"
+  description String?
+  montant     Float
+  creePar     String?
+  creeLe      DateTime   @default(now())
+
+  @@unique([uniteId, periode, type])
+  @@index([uniteId, date])
+}
+
+model PaiementCopro {
+  id        String     @id @default(cuid())
+  uniteId   String
+  unite     UniteCopro @relation(fields: [uniteId], references: [id], onDelete: Cascade)
+  date      DateTime
+  montant   Float
+  mode      String? // voir MODES_PAIEMENT dans lib/coproprieteCalculs.js
+  reference String? // numéro de chèque, de transaction…
+  note      String?
+  creePar   String?
+  creeLe    DateTime   @default(now())
+
+  @@index([uniteId, date])
+}
+
+// Demande de réparation ou signalement d'un problème (par l'équipe ou par
+// un copropriétaire depuis son portail)
+model DemandeCopro {
+  id               String               @id @default(cuid())
+  numero           String               @unique // « DR-001 »
+  type             String               @default("REPARATION") // "REPARATION" | "SIGNALEMENT"
+  titre            String
+  description      String?
+  categorie        String?
+  priorite         String               @default("NORMALE") // "URGENTE" | "HAUTE" | "NORMALE" | "BASSE"
+  statut           String               @default("NOUVELLE") // "NOUVELLE" | "ACCEPTEE" | "EN_COURS" | "TERMINEE" | "REFUSEE"
+  batimentId       String?
+  batiment         BatimentCopro?       @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  uniteId          String?
+  unite            UniteCopro?          @relation(fields: [uniteId], references: [id], onDelete: SetNull)
+  emplacement      String? // partie commune : « Garage P1 », « Toit »…
+  coproprietaireId String?
+  coproprietaire   CoproprietaireCopro? @relation(fields: [coproprietaireId], references: [id], onDelete: SetNull)
+  signalePar       String? // nom de qui l'a signalée, si pas un copropriétaire
+  source           String               @default("INTERNE") // "INTERNE" | "PORTAIL"
+  reponse          String? // message au demandeur (affiché dans son portail)
+  travaux          TravailCopro[]
+  fichiers         FichierCopro[]
+  creePar          String?
+  creeLe           DateTime             @default(now())
+
+  @@index([statut])
+}
+
+// Bon de travail : réparation ou entretien confié à un fournisseur
+model TravailCopro {
+  id            String              @id @default(cuid())
+  numero        String              @unique // « TR-001 »
+  titre         String
+  description   String?
+  categorie     String?
+  priorite      String              @default("NORMALE")
+  statut        String              @default("A_PLANIFIER") // "A_PLANIFIER" | "PLANIFIE" | "EN_COURS" | "TERMINE" | "ANNULE"
+  demandeId     String?
+  demande       DemandeCopro?       @relation(fields: [demandeId], references: [id], onDelete: SetNull)
+  entretienId   String? // entretien préventif / inspection qui l'a fait naître
+  entretien     EntretienCopro?     @relation(fields: [entretienId], references: [id], onDelete: SetNull)
+  batimentId    String?
+  batiment      BatimentCopro?      @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  uniteId       String?
+  unite         UniteCopro?         @relation(fields: [uniteId], references: [id], onDelete: SetNull)
+  emplacement   String?
+  fournisseurId String?
+  fournisseur   Fournisseur?        @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  datePrevue    DateTime?
+  dateFin       DateTime?
+  coutEstime    Float?
+  coutReel      Float?
+  numeroFacture String?
+  garantieFin   DateTime?
+  notes         String?
+  suivis        SuiviTravailCopro[]
+  fichiers      FichierCopro[]
+  creePar       String?
+  creeLe        DateTime            @default(now())
+
+  @@index([statut])
+}
+
+// Journal d'un bon de travail : changements de statut et notes
+model SuiviTravailCopro {
+  id        String       @id @default(cuid())
+  travailId String
+  travail   TravailCopro @relation(fields: [travailId], references: [id], onDelete: Cascade)
+  date      DateTime     @default(now())
+  statut    String? // nouveau statut, s'il a changé
+  texte     String?
+  public    Boolean      @default(true) // visible par le copropriétaire qui a fait la demande
+  auteur    String?
+
+  @@index([travailId, date])
+}
+
+// Entretien préventif ou inspection à refaire à intervalle régulier
+model EntretienCopro {
+  id            String         @id @default(cuid())
+  titre         String
+  type          String         @default("ENTRETIEN") // "ENTRETIEN" | "INSPECTION"
+  categorie     String?
+  description   String?
+  batimentId    String?
+  batiment      BatimentCopro? @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  emplacement   String?
+  frequenceMois Int            @default(12)
+  prochaineDate DateTime
+  derniereDate  DateTime?
+  fournisseurId String?
+  fournisseur   Fournisseur?   @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
+  coutEstime    Float?
+  obligatoire   Boolean        @default(false) // exigé par la loi ou l'assureur
+  actif         Boolean        @default(true)
+  notes         String?
+  travaux       TravailCopro[]
+  creeLe        DateTime       @default(now())
+
+  @@index([prochaineDate])
+}
+
+// Document du syndicat (procès-verbal, règlement, états financiers…) ou
+// propre à une unité ; visibilite décide qui le voit dans le portail
+model DocumentCopro {
+  id          String         @id @default(cuid())
+  titre       String
+  categorie   String
+  date        DateTime?
+  description String?
+  visibilite  String         @default("COPROPRIETAIRES") // "ADMIN" | "COPROPRIETAIRES" | "UNITE"
+  uniteId     String?
+  unite       UniteCopro?    @relation(fields: [uniteId], references: [id], onDelete: Cascade)
+  batimentId  String?
+  batiment    BatimentCopro? @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  nom         String
+  typeMime    String
+  taille      Int
+  donnees     Bytes
+  creePar     String?
+  creeLe      DateTime       @default(now())
+
+  @@index([categorie])
+  @@index([uniteId])
+}
+
+// Photos et pièces jointes d'une demande ou d'un bon de travail
+model FichierCopro {
+  id        String        @id @default(cuid())
+  demandeId String?
+  demande   DemandeCopro? @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  travailId String?
+  travail   TravailCopro? @relation(fields: [travailId], references: [id], onDelete: Cascade)
+  nom       String
+  typeMime  String
+  taille    Int
+  donnees   Bytes
+  ajoutePar String?
+  creeLe    DateTime      @default(now())
+
+  @@index([demandeId])
+  @@index([travailId])
 }

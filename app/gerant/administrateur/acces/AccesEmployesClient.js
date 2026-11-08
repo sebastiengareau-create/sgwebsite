@@ -13,6 +13,7 @@ const SECTIONS = [
   { cle: "fournisseurs", label: "🏢 Fournisseurs" },
   { cle: "inventaire", label: "📦 Inventaire" },
   { cle: "elevage", label: "🐂 Élevage — troupeau, découpe, vente de viande" },
+  { cle: "copropriete", label: "🏢 Copropriété — unités, charges, entretien, documents" },
   { cle: "comptabilite", label: "💰 Comptabilité" },
   { cle: "paie", label: "🧾 Paie" },
   { cle: "employes", label: "👥 Employés" },

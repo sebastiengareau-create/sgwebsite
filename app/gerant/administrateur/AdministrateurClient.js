@@ -169,7 +169,7 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
 
 const ICONES_MODULES = {
   calendrier: "calendrier", comptabilite: "banque", paie: "calculatrice", notifications: "alerte",
-  documents: "document", jobs_deplacement: "vehicule", elevage: "drapeau",
+  documents: "document", jobs_deplacement: "vehicule", elevage: "drapeau", copropriete: "immeuble",
 };
 
 // Interrupteur marche/arrêt, bien visible même éteint (thème clair ou sombre)

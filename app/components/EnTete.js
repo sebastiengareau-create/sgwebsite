@@ -22,6 +22,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "personne", groupe: "Opérations" },
   { cle: "jobs-deplacement", href: "/gerant/jobs-deplacement", label: "Jobs en déplacement", icone: "vehicule", groupe: "Opérations", moduleParam: "module_jobs_deplacement", moduleActifSeulementSi: "actif" },
   { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "horloge", groupe: "Opérations" },
+  { cle: "copropriete", href: "/copropriete", label: "Copropriété", icone: "immeuble", groupe: "Opérations", moduleParam: "module_copropriete", moduleActifSeulementSi: "actif" },
   { cle: "inventaire", href: "/secretaire/inventaire", label: "Inventaire", icone: "boite", groupe: "Achats et stock" },
   { cle: "fournisseurs", href: "/gerant/fournisseurs", label: "Fournisseurs", icone: "immeuble", groupe: "Achats et stock" },
   { cle: "elevage", href: "/elevage", label: "Élevage", icone: "drapeau", groupe: "Achats et stock", moduleParam: "module_elevage", moduleActifSeulementSi: "actif" },
@@ -38,7 +39,7 @@ export default async function EnTete({ nom, role }) {
   const session = await obtenirSession();
 
   const parametres = await prisma.parametre.findMany({
-    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_elevage"] } },
+    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_elevage", "module_copropriete"] } },
   });
   const dictModules = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
