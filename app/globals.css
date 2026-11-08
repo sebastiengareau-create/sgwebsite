@@ -333,3 +333,8 @@ a { color: inherit; }
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Champ de montant sans flèches haut/bas (le « $ » est collé à droite) */
+.champ-sans-fleches { -moz-appearance: textfield; appearance: textfield; }
+.champ-sans-fleches::-webkit-outer-spin-button,
+.champ-sans-fleches::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
