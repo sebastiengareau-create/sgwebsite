@@ -338,3 +338,16 @@ a { color: inherit; }
 .champ-sans-fleches { -moz-appearance: textfield; appearance: textfield; }
 .champ-sans-fleches::-webkit-outer-spin-button,
 .champ-sans-fleches::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Six onglets symétriques (ex. fiche d'une pièce) : 3 × 2 sur cellulaire,
+   une rangée de 6 dès 700 px. */
+.grille-onglets-6 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+@media (min-width: 700px) {
+  .grille-onglets-6 {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
