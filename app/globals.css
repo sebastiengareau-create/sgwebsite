@@ -276,3 +276,24 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .squelette { animation: none; }
 }
+
+/* Grille de 5 cases (Vue d'ensemble : actions rapides, indicateurs de
+   rentabilité) : 5 cases sur une rangée sur
+   ordinateur ; 2 par rangée sur cellulaire, la dernière case seule prenant
+   toute la largeur pour ne laisser aucun trou. */
+.grille-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.grille-actions > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+@media (min-width: 700px) {
+  .grille-actions {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .grille-actions > :last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
