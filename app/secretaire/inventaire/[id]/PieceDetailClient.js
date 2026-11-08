@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TitreSection } from "../../../components/ui";
+import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../../components/StyleSection";
 import ScannerCodeBarres from "../../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../../components/ImpressionEtiquettes";
 import { extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
@@ -19,11 +19,12 @@ const ONGLETS = [
 ];
 
 const TYPE_MOUVEMENT = {
-  RECEPTION: { label: "Réception", couleur: "var(--success)" },
-  VENTE: { label: "Vente", couleur: "var(--danger)" },
-  AJUSTEMENT: { label: "Ajustement", couleur: "var(--text-muted)" },
-  RETOUR: { label: "Retour client", couleur: "var(--success)" },
+  RECEPTION: { label: "Réception", couleur: "var(--success)", fond: "var(--success-fond)" },
+  VENTE: { label: "Vente", couleur: "var(--danger)", fond: "var(--danger-fond)" },
+  AJUSTEMENT: { label: "Ajustement", couleur: "var(--text-muted)", fond: "var(--surface-alt)" },
+  RETOUR: { label: "Retour client", couleur: "var(--success)", fond: "var(--success-fond)" },
 };
+const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
 export default function PieceDetailClient({ piece, categories, fournisseurs, autresPieces }) {
   const router = useRouter();
@@ -114,24 +115,39 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
     router.push("/secretaire/inventaire");
   }
 
+  const couleurProfil = !piece.actif ? "var(--text-muted)" : stockBas ? "var(--danger)" : "var(--accent)";
+
   return (
     <div className="conteneur-page">
       <Link href="/secretaire/inventaire" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à l'inventaire</Link>
 
-      <div style={{ background: "var(--surface)", border: stockBas && piece.actif ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>{piece.nom}</div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2 }}>{piece.numero}</div>
-        <span className="bouton-3d" style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{nomCategorie}</span>
-        {!piece.actif && (
-          <span style={{ display: "inline-block", marginTop: 8, marginLeft: 6, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, border: "1px solid var(--border)", color: "var(--text-muted)" }}>Désactivée</span>
-        )}
-        {stockBas && piece.actif && <div style={{ fontSize: 12, color: "var(--danger)", marginTop: 8, fontWeight: 700 }}>⚠ Stock sous le seuil minimum</div>}
+      {/* Carte de la pièce */}
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "20px 20px 20px 24px", marginTop: 10, marginBottom: 14 }}>
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: couleurProfil }} />
+        <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: couleurProfil, opacity: 0.08 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: stockBas && piece.actif ? "var(--danger-fond)" : TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icone nom="boite" taille={28} couleur={stockBas && piece.actif ? "var(--danger)" : TEINTES.ambre.couleur} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{piece.nom}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2, overflowWrap: "anywhere" }}>
+              {piece.numero}{piece.emplacement && <span style={{ fontFamily: "inherit" }}> · {piece.emplacement}</span>}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              <Pastille couleur={TEINTES.ambre.couleur} fond={TEINTES.ambre.fond}>{nomCategorie}</Pastille>
+              {!piece.actif && <Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Désactivée</Pastille>}
+              {stockBas && piece.actif && <Pastille couleur="var(--danger)" fond="var(--danger-fond)">Stock sous le minimum</Pastille>}
+            </div>
+          </div>
+        </div>
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
       {modeEdition ? (
-        <div className="carte">
+        <div style={stylePanneau}>
+          <TitrePanneau icone="crayon" titre="Modifier la pièce" />
           <label className="etiquette">Description</label>
           <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
           <label className="etiquette">Numéro de référence</label>
@@ -141,7 +157,9 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
           <label className="etiquette">Code-barres du fabricant (UPC/EAN) — optionnel</label>
           <div style={{ display: "flex", gap: 6 }}>
             <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" className="champ" style={{ flex: 1 }} />
-            <button type="button" onClick={() => setScannerOuvert(true)} className="bouton-3d-sombre" title="Scanner le code de la boîte" style={{ padding: "0 12px", borderRadius: 8, fontSize: 15, alignSelf: "stretch", marginBottom: 8 }}>📷</button>
+            <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner le code de la boîte" aria-label="Scanner le code de la boîte" style={{ width: 44, borderRadius: 10, alignSelf: "stretch", marginBottom: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Icone nom="camera" taille={18} couleur="var(--accent-ombre)" />
+            </button>
           </div>
           {scannerOuvert && (
             <ScannerCodeBarres
@@ -158,36 +176,36 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
               }}
             />
           )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div>
               <label className="etiquette">Stock</label>
               <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} className="champ" />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label className="etiquette">Seuil min.</label>
               <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} className="champ" />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label className="etiquette">Seuil max.</label>
               <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" className="champ" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div>
               <label className="etiquette">Coût moyen ($)</label>
               <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => setCoutant(e.target.value)} className="champ" />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label className="etiquette">Prix de vente ($)</label>
               <input type="number" min={0} step="0.01" value={prix} onChange={(e) => setPrix(e.target.value)} className="champ" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div>
               <label className="etiquette">Emplacement</label>
               <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="ex. A-03-02" className="champ" />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <label className="etiquette">Fournisseur habituel</label>
               <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} className="champ">
                 <option value="">Aucun</option>
@@ -196,29 +214,40 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
             </div>
           </div>
           <label className="etiquette">Catégorie</label>
-          <select value={categorie} onChange={(e) => setCategorie(e.target.value)} className="champ" style={{ marginBottom: 12 }}>
+          <select value={categorie} onChange={(e) => setCategorie(e.target.value)} className="champ" style={{ marginBottom: 14 }}>
             {categories.map((c) => <option key={c.code} value={c.code}>{c.nom}</option>)}
           </select>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
               {enCours ? "…" : "Sauvegarder"}
             </button>
-            <button onClick={() => setModeEdition(false)} className="bouton-3d-sombre" style={{ flex: 1, padding: 11, borderRadius: 10, fontSize: 13 }}>
-              Annuler
-            </button>
+            <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setModeEdition(false)}>Annuler</BoutonAction>
           </div>
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 4, overflowX: "auto", marginBottom: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
+          <div className="grille-trois" style={{ marginBottom: 20 }}>
+            <CarteChiffre
+              titre="En stock" montant={nombre(piece.qte, 0)}
+              couleur={stockBas && piece.actif ? "var(--danger)" : "var(--text)"} teinte={stockBas && piece.actif ? "var(--danger)" : "var(--bleu)"}
+              note={`Minimum ${piece.qteMin}${piece.qteMax != null ? ` · maximum ${piece.qteMax}` : ""}`}
+            />
+            <CarteChiffre titre="Prix de vente" montant={argent(piece.prix)} teinte="var(--accent)" note={`Coût moyen ${argent(piece.coutant || 0)}`} />
+            <CarteChiffre
+              titre="Marge par unité" montant={argent(marge)} teinte={marge >= 0 ? "var(--success)" : "var(--danger)"}
+              couleur={marge >= 0 ? "var(--success)" : "var(--danger)"} note={`${nombre(margePct, 0)} % du prix de vente`}
+            />
+          </div>
+
+          <div className="grille-onglets-6" style={{ padding: 4, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 14 }}>
             {ONGLETS.map((o) => (
               <button
                 key={o.code}
                 onClick={() => setOnglet(o.code)}
                 style={{
-                  flex: "1 0 auto", fontSize: 11.5, fontWeight: 700, padding: "7px 10px", borderRadius: 7, border: "none", cursor: "pointer", whiteSpace: "nowrap",
-                  background: onglet === o.code ? "var(--accent)" : "none",
-                  color: onglet === o.code ? "#17150f" : "var(--text-muted)",
+                  padding: "9px 4px", borderRadius: 9, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap",
+                  background: onglet === o.code ? "var(--accent)" : "transparent",
+                  color: onglet === o.code ? "#221f18" : "var(--text-muted)",
                 }}
               >
                 {o.label}
@@ -238,27 +267,19 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
           {afficherFusion && <FusionPiece piece={piece} autresPieces={autresPieces} onFermer={() => setAfficherFusion(false)} />}
 
           {afficherEtiquettes && (
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginBottom: 16 }}>
               <ImpressionEtiquettes pieces={[{ id: piece.id, qte: piece.qte }]} uneSeule onFermer={() => setAfficherEtiquettes(false)} />
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button onClick={() => setAfficherEtiquettes((v) => !v)} className="bouton-3d-sombre" title="Imprimer une étiquette code-barres" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
-              🏷️
-            </button>
-            <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-              ✏️ Modifier
-            </button>
-            <button onClick={basculerActif} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
-              {piece.actif ? "🚫 Désactiver" : "✅ Réactiver"}
-            </button>
-            <button onClick={() => setAfficherFusion((v) => !v)} disabled={enCours} className="bouton-3d-sombre" title="Fusionner ce doublon dans une autre fiche" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
-              🔀
-            </button>
-            <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
-              🗑️
-            </button>
+          <div className="grille-actions" style={{ marginBottom: 16 }}>
+            <BoutonAction icone="crayon" onClick={() => setModeEdition(true)}>Modifier</BoutonAction>
+            <BoutonAction icone="etiquette" onClick={() => setAfficherEtiquettes((v) => !v)}>Étiquette</BoutonAction>
+            <BoutonAction icone="echange" onClick={() => setAfficherFusion((v) => !v)} disabled={enCours}>Fusionner</BoutonAction>
+            <BoutonAction icone={piece.actif ? "bloque" : "crochet"} couleur={piece.actif ? "var(--avertissement)" : "var(--success)"} onClick={basculerActif} disabled={enCours}>
+              {piece.actif ? "Désactiver" : "Réactiver"}
+            </BoutonAction>
+            <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={supprimer} disabled={enCours}>Supprimer</BoutonAction>
           </div>
         </>
       )}
@@ -269,133 +290,141 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
 function OngletResume({ piece, marge, margePct }) {
   return (
     <>
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Stock</TitreSection>
-        <Champ label="Stock actuel" valeur={`${piece.qte}`} />
-        <Champ label="Seuil minimum" valeur={`${piece.qteMin}`} />
-        {piece.qteMax != null && <Champ label="Seuil maximum" valeur={`${piece.qteMax}`} />}
-        {piece.emplacement && <Champ label="Emplacement" valeur={piece.emplacement} />}
-        <Champ label="Code-barres fabricant" valeur={piece.codeBarre || "Aucun"} />
-        {piece.autresNumeros.length > 0 && <Champ label="Autres numéros" valeur={piece.autresNumeros.join(", ")} />}
+      <div style={stylePanneau}>
+        <TitrePanneau icone="boite" teinte={TEINTES.bleu} titre="Stock" />
+        <LigneDetail label="Stock actuel" valeur={nombre(piece.qte, 0)} premiere />
+        <LigneDetail label="Seuil minimum" valeur={nombre(piece.qteMin, 0)} />
+        {piece.qteMax != null && <LigneDetail label="Seuil maximum" valeur={nombre(piece.qteMax, 0)} />}
+        {piece.emplacement && <LigneDetail label="Emplacement" valeur={piece.emplacement} />}
+        <LigneDetail label="Code-barres fabricant" valeur={piece.codeBarre || "Aucun"} />
+        {piece.autresNumeros.length > 0 && <LigneDetail label="Autres numéros" valeur={piece.autresNumeros.join(", ")} />}
         {piece.lignesCommande.length > 0 && (
-          <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
-            {piece.lignesCommande.map((l) => (
-              <Link key={l.id} href={`/secretaire/inventaire/commandes/${l.commande.id}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4, color: "inherit", textDecoration: "none" }}>
-                <span style={{ color: "var(--text-muted)" }}>{l.commande.statut === "BROUILLON" ? "Brouillon" : "En commande"} — {l.commande.numero} ({l.commande.fournisseur.nom})</span>
-                <span style={{ fontWeight: 700, color: "var(--accent)" }}>{Math.max(0, l.qteCommandee - l.qteRecue)}</span>
+          <div style={{ marginTop: 8, padding: "4px 12px", borderRadius: 12, background: "rgba(232,163,61,0.16)" }}>
+            {piece.lignesCommande.map((l, i) => (
+              <Link key={l.id} href={`/secretaire/inventaire/commandes/${l.commande.id}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 0", color: "inherit", textDecoration: "none", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                <span style={{ fontSize: 13, minWidth: 0 }}>
+                  <strong>{l.commande.statut === "BROUILLON" ? "Brouillon" : "En commande"}</strong>
+                  <span style={{ color: "var(--text-muted)" }}> · {l.commande.numero} · {l.commande.fournisseur.nom}</span>
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "var(--accent-ombre)", whiteSpace: "nowrap" }}>+{Math.max(0, l.qteCommandee - l.qteRecue)}</span>
               </Link>
             ))}
           </div>
         )}
       </div>
 
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Prix et marge</TitreSection>
-        <Champ label="Coût moyen" valeur={`${argent((piece.coutant || 0))}`} />
-        <Champ label="Prix de vente" valeur={`${argent(piece.prix)}`} />
-        <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
-          <Champ label="Marge par unité" valeur={`${argent(marge)} (${nombre(margePct, 0)} %)`} accent />
+      <div style={stylePanneau}>
+        <TitrePanneau icone="etiquette" teinte={TEINTES.ambre} titre="Prix et marge" />
+        <LigneDetail label="Coût moyen" valeur={argent(piece.coutant || 0)} premiere />
+        <LigneDetail label="Prix de vente" valeur={argent(piece.prix)} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: marge >= 0 ? "var(--success-fond)" : "var(--danger-fond)", marginTop: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>Marge par unité</span>
+          <span style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>{argent(marge)} · {nombre(margePct, 0)} %</span>
         </div>
       </div>
 
       {piece.dansKits.length > 0 && (
-        <div className="carte" style={{ marginBottom: 12 }}>
-          <TitreSection>Dans les kits</TitreSection>
-          {piece.dansKits.map((c) => (
-            <div key={c.kit.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-              <Link href={`/secretaire/inventaire/${c.kit.id}`} style={{ color: "var(--accent)" }}>🧰 {c.kit.nom}</Link>
-              <span style={{ color: "var(--text-muted)" }}>×{c.qte} par kit</span>
-            </div>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="outils" teinte={TEINTES.vert} titre="Dans les kits" />
+          {piece.dansKits.map((c, i) => (
+            <Link key={c.kit.id} href={`/secretaire/inventaire/${c.kit.id}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{c.kit.nom}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-muted)" }}>×{c.qte} par kit <Icone nom="chevron" taille={16} /></span>
+            </Link>
           ))}
         </div>
       )}
 
-      <div className="carte">
-        <TitreSection>Fournisseur</TitreSection>
-        <Champ label="Fournisseur habituel" valeur={piece.fournisseur?.nom || "Aucun"} />
+      <div style={stylePanneau}>
+        <TitrePanneau icone="immeuble" teinte={TEINTES.bleu} titre="Fournisseur" />
+        <LigneDetail label="Fournisseur habituel" valeur={piece.fournisseur ? <Link href={`/gerant/fournisseurs/${piece.fournisseur.id}`} style={{ color: "inherit" }}>{piece.fournisseur.nom}</Link> : "Aucun"} premiere />
       </div>
     </>
   );
 }
 
+function Vide({ children }) {
+  return <div style={{ ...stylePanneau, color: "var(--text-muted)", fontSize: 13.5, textAlign: "center" }}>{children}</div>;
+}
+
 function OngletMouvements({ mouvements }) {
   if (mouvements.length === 0) {
-    return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun mouvement de stock enregistré pour cet article pour l'instant.</p>;
+    return <Vide>Aucun mouvement de stock enregistré pour cet article pour l'instant.</Vide>;
   }
   return (
-    <div className="carte">
-      <TitreSection>Historique des mouvements de stock</TitreSection>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {mouvements.map((m) => {
-          const info = TYPE_MOUVEMENT[m.type] || { label: m.type, couleur: "var(--text)" };
-          return (
-            <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: info.couleur }}>{info.label}</div>
-                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{new Date(m.creeLe).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}</div>
-                {m.note && <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2 }}>{m.note}</div>}
+    <div style={stylePanneau}>
+      <TitrePanneau icone="echange" teinte={TEINTES.bleu} titre="Mouvements de stock" sousTitre={`Les ${mouvements.length} plus récents`} />
+      {mouvements.map((m, i) => {
+        const info = TYPE_MOUVEMENT[m.type] || { label: m.type, couleur: "var(--text-muted)", fond: "var(--surface-alt)" };
+        return (
+          <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                <Pastille couleur={info.couleur} fond={info.fond}>{info.label}</Pastille>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateCourte(m.creeLe)}</span>
               </div>
-              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: m.qte >= 0 ? "var(--success)" : "var(--danger)" }}>
-                  {m.qte >= 0 ? "+" : ""}{m.qte}
-                </div>
-                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>Solde : {m.solde}</div>
-              </div>
+              {m.note && <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 3 }}>{m.note}</div>}
             </div>
-          );
-        })}
-      </div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: m.qte >= 0 ? "var(--success)" : "var(--danger)" }}>
+                {m.qte >= 0 ? "+" : "−"}{Math.abs(m.qte)}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Solde : {m.solde}</div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 function OngletAchats({ lignesDepense }) {
   if (lignesDepense.length === 0) {
-    return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun achat lié à cet article — utilise l'option "Réception d'inventaire" en créant une dépense fournisseur pour en enregistrer.</p>;
+    return <Vide>Aucun achat lié à cet article — utilise l'option « Réception d'inventaire » en créant une dépense fournisseur pour en enregistrer.</Vide>;
   }
   return (
-    <div className="carte">
-      <TitreSection>Réceptions liées à des factures fournisseur</TitreSection>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {lignesDepense.map((l) => (
-          <div key={l.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600 }}>{l.depense.fournisseur.nom}</div>
-              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                {new Date(l.depense.dateFacture).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} · {l.depense.description}
-              </div>
-              <div style={{ fontSize: 10.5, color: l.depense.statut === "PAYEE" ? "var(--success)" : "var(--danger)" }}>
-                {l.depense.statut === "PAYEE" ? "Payée" : "Impayée"}
+    <div style={stylePanneau}>
+      <TitrePanneau icone="panier" teinte={TEINTES.vert} titre="Achats" sousTitre="Réceptions liées à des factures fournisseur" />
+      {lignesDepense.map((l, i) => {
+        const payee = l.depense.statut === "PAYEE";
+        return (
+          <Link key={l.id} href={`/gerant/comptabilite/comptes-a-payer/${l.depense.id}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{l.depense.fournisseur.nom}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 3 }}>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateCourte(l.depense.dateFacture)} · {l.depense.description}</span>
+                <Pastille couleur={payee ? "var(--success)" : "var(--danger)"} fond={payee ? "var(--success-fond)" : "var(--danger-fond)"}>{payee ? "Payée" : "Impayée"}</Pastille>
               </div>
             </div>
-            <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success)" }}>+{l.qteRecue}</div>
-              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{argent((l.montant / l.qteRecue))} / unité</div>
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--success)" }}>+{l.qteRecue}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{argent(l.montant / l.qteRecue)} / unité</div>
             </div>
-          </div>
-        ))}
-      </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
 
 function OngletVentes({ utilisee }) {
   if (utilisee.length === 0) {
-    return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Cette pièce n'a pas encore été utilisée sur un bon de travail.</p>;
+    return <Vide>Cette pièce n'a pas encore été utilisée sur un bon de travail.</Vide>;
   }
   return (
-    <div className="carte">
-      <TitreSection>Utilisations sur des bons de travail</TitreSection>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {utilisee.map((u) => (
-          <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
-              <span style={{ color: "var(--text-muted)" }}>#{u.probleme.bon.numero} — {u.probleme.bon.client.nom}</span>
-              <span>{u.qte} × {argent(u.prix)}</span>
-            </div>
-          </Link>
-        ))}
-      </div>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Ventes" sousTitre="Utilisations sur des bons de travail" />
+      {utilisee.map((u, i) => (
+        <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Bon #{u.probleme.bon.numero}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.probleme.bon.client.nom}</div>
+          </div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>
+            {u.qte} × {argent(u.prix)} <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+          </span>
+        </Link>
+      ))}
     </div>
   );
 }
@@ -466,95 +495,96 @@ function OngletFournisseurs({ piece, fournisseurs }) {
 
   return (
     <>
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Numéros et prix par fournisseur</TitreSection>
-        <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-          La même pièce peut avoir un numéro différent chez chaque fournisseur. Le dernier prix se met à jour à chaque réception ; la recherche et le scan trouvent la pièce par n'importe lequel de ces numéros.
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {liens.map((l) => (
-            <div key={l.id} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="immeuble" teinte={TEINTES.bleu} titre="Numéros et prix par fournisseur"
+          sousTitre="La même pièce peut avoir un numéro différent chez chaque fournisseur. Le dernier prix se met à jour à chaque réception ; la recherche et le scan trouvent la pièce par n'importe lequel de ces numéros."
+        />
+        {liens.map((l, i) => {
+          const leMoinsCher = moinsCher && l.id === moinsCher.id && liens.length > 1;
+          return (
+            <div key={l.id} style={{ padding: "12px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
               {edition?.id === l.id ? (
-                <>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>{l.fournisseur.nom}</div>
+                <div style={boiteFormulaire}>
+                  <div style={{ fontSize: 14, fontWeight: 800 }}>{l.fournisseur.nom}</div>
                   <div style={{ display: "flex", gap: 6 }}>
                     <input value={edition.numero} onChange={(e) => setEdition({ ...edition, numero: e.target.value })} placeholder="No chez ce fournisseur" className="champ" style={{ flex: 2, marginBottom: 0 }} />
                     <input type="number" min={0} step="0.01" value={edition.cout} onChange={(e) => setEdition({ ...edition, cout: e.target.value })} placeholder="Prix $" className="champ" style={{ flex: 1, marginBottom: 0 }} />
                   </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                    <button onClick={enregistrerEdition} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 7, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Enregistrer</button>
-                    <button onClick={() => setEdition(null)} className="bouton-3d-sombre" style={{ flex: 1, padding: 7, borderRadius: 8, fontSize: 12 }}>Annuler</button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <button onClick={enregistrerEdition} disabled={enCours} className="bouton-3d" style={{ padding: 10, borderRadius: 12, fontSize: 13.5, fontWeight: 700 }}>Enregistrer</button>
+                    <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setEdition(null)}>Annuler</BoutonAction>
                   </div>
-                </>
+                </div>
               ) : (
                 <>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>
-                        {l.fournisseur.nom}
-                        {piece.fournisseurId === l.fournisseurId && <span style={{ fontSize: 10.5, color: "var(--accent)", fontWeight: 400 }}> · habituel</span>}
+                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 14.5, fontWeight: 700 }}>{l.fournisseur.nom}</span>
+                        {piece.fournisseurId === l.fournisseurId && <Pastille couleur={TEINTES.ambre.couleur} fond={TEINTES.ambre.fond}>Habituel</Pastille>}
+                        {leMoinsCher && <Pastille couleur="var(--success)" fond="var(--success-fond)">Le moins cher</Pastille>}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>{l.numeroFournisseur ? `No ${l.numeroFournisseur}` : "No fournisseur non saisi"}</div>
-                      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                        {l.dernierAchat ? `Dernier achat : ${new Date(l.dernierAchat).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}` : "Jamais acheté ici"}
+                      <div style={{ fontSize: 12.5, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 3 }}>{l.numeroFournisseur ? `No ${l.numeroFournisseur}` : "No fournisseur non saisi"}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                        {l.dernierAchat ? `Dernier achat : ${dateCourte(l.dernierAchat)}` : "Jamais acheté ici"}
                         {recuParFournisseur[l.fournisseurId] ? ` · ${recuParFournisseur[l.fournisseurId]} reçues au total` : ""}
                       </div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: moinsCher && l.id === moinsCher.id && liens.length > 1 ? "var(--success)" : "var(--text)" }}>
-                        {l.coutant != null ? `${argent(l.coutant)}` : "—"}
-                      </div>
-                      {moinsCher && l.id === moinsCher.id && liens.length > 1 && <div style={{ fontSize: 10, color: "var(--success)" }}>le moins cher</div>}
+                    <div style={{ fontWeight: 800, fontSize: 16, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: leMoinsCher ? "var(--success)" : "var(--text)" }}>
+                      {l.coutant != null ? argent(l.coutant) : "—"}
                     </div>
                   </div>
                   {commande?.fournisseurId === l.fournisseurId ? (
-                    <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
-                      <span style={{ fontSize: 12 }}>Qté :</span>
+                    <div style={{ ...boiteFormulaire, flexDirection: "row", alignItems: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700 }}>Qté</span>
                       <input type="number" min={1} value={commande.qte} onChange={(e) => setCommande({ ...commande, qte: e.target.value })} className="champ" style={{ width: 70, marginBottom: 0 }} />
-                      <button onClick={commander} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 7, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Ajouter à la commande</button>
-                      <button onClick={() => setCommande(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>✕</button>
+                      <button onClick={commander} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 10, borderRadius: 12, fontSize: 13, fontWeight: 700 }}>Ajouter à la commande</button>
+                      <button onClick={() => setCommande(null)} aria-label="Annuler" title="Annuler" style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icone nom="bloque" taille={16} couleur="var(--text-muted)" />
+                      </button>
                     </div>
                   ) : (
-                    <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 12 }}>
-                      <button onClick={() => setCommande({ fournisseurId: l.fournisseurId, qte: "1" })} style={boutonLienStyle}>🛒 Commander ici</button>
-                      <button onClick={() => setEdition({ id: l.id, numero: l.numeroFournisseur || "", cout: l.coutant ?? "" })} style={boutonLienStyle}>✏️ Modifier</button>
-                      <button onClick={() => retirerLien(l)} style={{ ...boutonLienStyle, color: "var(--danger)" }}>Retirer</button>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10 }}>
+                      <BoutonAction icone="panier" couleur="var(--accent-ombre)" compact onClick={() => setCommande({ fournisseurId: l.fournisseurId, qte: "1" })}>Commander</BoutonAction>
+                      <BoutonAction icone="crayon" compact onClick={() => setEdition({ id: l.id, numero: l.numeroFournisseur || "", cout: l.coutant ?? "" })}>Modifier</BoutonAction>
+                      <BoutonAction icone="poubelle" couleur="var(--danger)" compact onClick={() => retirerLien(l)}>Retirer</BoutonAction>
                     </div>
                   )}
                 </>
               )}
             </div>
-          ))}
-          {liens.length === 0 && <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>Aucun fournisseur lié pour l'instant.</p>}
-        </div>
+          );
+        })}
+        {liens.length === 0 && <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucun fournisseur lié pour l'instant.</p>}
 
         {ajout ? (
-          <form onSubmit={ajouterLien} style={{ marginTop: 10 }}>
-            <select value={nouveauFournisseur} onChange={(e) => setNouveauFournisseur(e.target.value)} className="champ" required>
+          <form onSubmit={ajouterLien} style={boiteFormulaire}>
+            <div style={{ fontSize: 14, fontWeight: 800 }}>Ajouter un fournisseur</div>
+            <select value={nouveauFournisseur} onChange={(e) => setNouveauFournisseur(e.target.value)} className="champ" style={{ marginBottom: 0 }} required>
               <option value="">Choisir le fournisseur…</option>
               {fournisseursLibres.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
             </select>
             <div style={{ display: "flex", gap: 6 }}>
-              <input value={nouveauNumero} onChange={(e) => setNouveauNumero(e.target.value)} placeholder="No chez ce fournisseur" className="champ" style={{ flex: 2 }} />
-              <input type="number" min={0} step="0.01" value={nouveauCout} onChange={(e) => setNouveauCout(e.target.value)} placeholder="Prix $" className="champ" style={{ flex: 1 }} />
+              <input value={nouveauNumero} onChange={(e) => setNouveauNumero(e.target.value)} placeholder="No chez ce fournisseur" className="champ" style={{ flex: 2, marginBottom: 0 }} />
+              <input type="number" min={0} step="0.01" value={nouveauCout} onChange={(e) => setNouveauCout(e.target.value)} placeholder="Prix $" className="champ" style={{ flex: 1, marginBottom: 0 }} />
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button type="submit" disabled={enCours || !nouveauFournisseur} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Lier ce fournisseur</button>
-              <button type="button" onClick={() => setAjout(false)} className="bouton-3d-sombre" style={{ flex: 1, padding: 8, borderRadius: 8, fontSize: 12 }}>Annuler</button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button type="submit" disabled={enCours || !nouveauFournisseur} className="bouton-3d" style={{ padding: 10, borderRadius: 12, fontSize: 13.5, fontWeight: 700 }}>Lier ce fournisseur</button>
+              <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setAjout(false)}>Annuler</BoutonAction>
             </div>
           </form>
         ) : (
           fournisseursLibres.length > 0 && (
-            <button onClick={() => setAjout(true)} className="bouton-3d-sombre" style={{ width: "100%", marginTop: 10, padding: 9, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>+ Ajouter un fournisseur</button>
+            <button onClick={() => setAjout(true)} style={boutonPointille}>+ Ajouter un fournisseur</button>
           )
         )}
-        {erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "8px 0 0" }}>{erreur}</p>}
+        {erreur && <p style={{ color: "var(--danger)", fontSize: 12.5, fontWeight: 700, margin: "8px 0 0" }}>{erreur}</p>}
       </div>
 
-      <div className="carte">
-        <TitreSection>Fournisseur habituel</TitreSection>
-        <Champ label="Fournisseur par défaut" valeur={piece.fournisseur?.nom || "Aucun — configurable dans Modifier"} />
-        <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: 0 }}>Proposé en premier quand la pièce passe sous le seuil minimum.</p>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="drapeau" teinte={TEINTES.ambre} titre="Fournisseur habituel" sousTitre="Proposé en premier quand la pièce passe sous le seuil minimum." />
+        <LigneDetail label="Fournisseur par défaut" valeur={piece.fournisseur?.nom || "Aucun — configurable dans Modifier"} premiere />
       </div>
     </>
   );
@@ -582,19 +612,30 @@ function FusionPiece({ piece, autresPieces, onFermer }) {
   }
 
   return (
-    <div className="carte" style={{ marginTop: 16, border: "1px solid var(--accent)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong style={{ fontSize: 13 }}>🔀 Fusionner ce doublon dans une autre fiche</strong>
-        <button onClick={onFermer} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>✕</button>
+    <div style={{ ...stylePanneau, border: "1.5px solid var(--accent)" }}>
+      <TitrePanneau
+        icone="echange" titre="Fusionner ce doublon"
+        sousTitre="Pour la même pièce entrée deux fois (souvent sous les numéros de deux fournisseurs). Choisis la fiche à garder."
+        droite={
+          <button onClick={onFermer} aria-label="Fermer" title="Fermer" style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nom="bloque" taille={16} couleur="var(--text-muted)" />
+          </button>
+        }
+      />
+      <div style={{ position: "relative", marginBottom: 8 }}>
+        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+          <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+        </span>
+        <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Fiche à garder (nom ou numéro)…" className="champ" autoFocus style={{ marginBottom: 0, paddingLeft: 40 }} />
       </div>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 8px" }}>
-        Pour la même pièce entrée deux fois (souvent sous les numéros de deux fournisseurs). Choisis la fiche à garder.
-      </p>
-      <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="🔍 Fiche à garder (nom ou numéro)…" className="champ" autoFocus />
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {suggestions.map((p) => (
-          <button key={p.id} onClick={() => fusionner(p)} disabled={enCours} style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12.5, cursor: "pointer" }}>
-            {p.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>— {p.numero} · stock {p.qte}{!p.actif ? " · désactivée" : ""}</span>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {suggestions.map((p, i) => (
+          <button key={p.id} onClick={() => fusionner(p)} disabled={enCours} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, textAlign: "left", padding: "10px 4px", border: "none", borderTop: i === 0 ? "none" : "1px solid var(--border)", background: "none", color: "var(--text)", font: "inherit", cursor: "pointer" }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{p.nom}</span>
+              <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)", fontFamily: "monospace" }}>{p.numero} · stock {p.qte}{!p.actif ? " · désactivée" : ""}</span>
+            </span>
+            <Icone nom="chevron" taille={18} couleur="var(--text-muted)" />
           </button>
         ))}
       </div>
@@ -603,37 +644,29 @@ function FusionPiece({ piece, autresPieces, onFermer }) {
   );
 }
 
-const boutonLienStyle = { background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, padding: 0 };
+const boiteFormulaire = { background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginTop: 10, display: "flex", flexDirection: "column", gap: 8 };
+const boutonPointille = {
+  width: "100%", marginTop: 10, padding: "10px 8px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+  color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)",
+};
 
 function OngletHistorique({ historique }) {
   if (historique.length === 0) {
-    return <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune modification enregistrée sur la fiche de cet article.</p>;
+    return <Vide>Aucune modification enregistrée sur la fiche de cet article.</Vide>;
   }
   return (
-    <div className="carte">
-      <TitreSection>Modifications de la fiche</TitreSection>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {historique.map((h) => (
-          <div key={h.id} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
-            <div style={{ fontSize: 12 }}>
-              <strong>{h.champ}</strong> : {h.ancienneValeur ?? "—"} → {h.nouvelleValeur ?? "—"}
-            </div>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-              {new Date(h.modifieLe).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}{h.modifiePar ? ` · ${h.modifiePar}` : ""}
-            </div>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="horloge" teinte={TEINTES.neutre} titre="Historique" sousTitre="Modifications de la fiche" />
+      {historique.map((h, i) => (
+        <div key={h.id} style={{ padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+          <div style={{ fontSize: 13.5 }}>
+            <strong>{h.champ}</strong> : <span style={{ color: "var(--text-muted)" }}>{h.ancienneValeur ?? "—"}</span> → <strong>{h.nouvelleValeur ?? "—"}</strong>
           </div>
-        ))}
-      </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+            {dateCourte(h.modifieLe)}{h.modifiePar ? ` · ${h.modifiePar}` : ""}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
-
-function Champ({ label, valeur, accent }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontWeight: 700, color: accent ? "var(--accent)" : "var(--text)" }}>{valeur}</span>
-    </div>
-  );
-}
-
