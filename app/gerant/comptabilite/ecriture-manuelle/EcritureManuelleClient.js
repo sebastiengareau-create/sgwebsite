@@ -91,7 +91,7 @@ export default function EcritureManuelleClient({ comptes }) {
 
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/comptabilite/journal" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au journal</Link>
+      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
       <div style={{ marginTop: 8 }}>
         <BandeauSection icone="✍️" titre="Écriture supplémentaire" sousTitre="Corrections, ajustements, amortissements, fin de période — n'importe quel compte du plan comptable." />
       </div>
