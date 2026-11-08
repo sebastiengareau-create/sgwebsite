@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TitreSection, LigneInfo } from "../../components/ui";
+import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../components/StyleSection";
 import { ChampsBete, FICHE_VIDE } from "../TroupeauClient";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, CATEGORIES_FRAIS, CANAUX, libelle, age, dateCourte, argent, kg,
@@ -18,12 +18,51 @@ const decimal = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().rep
 
 export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }) {
   const statut = STATUTS_BETE.find((s) => s.code === bete.statut);
+  const couleur = statut?.couleur || "var(--accent)";
+  const pesee = dernierePesee(bete.pesees);
+  const gmq = gainMoyenQuotidien(bete.pesees);
+  const cout = coutBete(bete);
+  const revenus = revenusBete(bete);
+  const aResultat = revenus > 0 || !!bete.abattage;
   return (
     <div className="conteneur-page">
       <Link href="/elevage" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au troupeau</Link>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "10px 0 14px" }}>
-        <h1 style={{ fontSize: 21, margin: 0 }}>🐂 {bete.numero}{bete.nom && ` — ${bete.nom}`}</h1>
-        <span style={{ fontSize: 12, fontWeight: 700, color: statut?.couleur }}>{statut?.label}{bete.dateSortie && ` le ${dateCourte(bete.dateSortie)}`}</span>
+
+      {/* Carte de la bête */}
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "20px 20px 20px 24px", marginTop: 10, marginBottom: 14 }}>
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: couleur }} />
+        <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: couleur, opacity: 0.08 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>🐂</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{bete.numero}{bete.nom && ` — ${bete.nom}`}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
+              {[libelle(SEXES, bete.sexe).split(" (")[0], bete.dateNaissance && age(bete.dateNaissance, bete.dateSortie || new Date()), bete.identifiant && `boucle ${bete.identifiant}`].filter(Boolean).join(" · ")}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              <Pastille couleur={couleur} fond="var(--surface-alt)">{statut?.label}{bete.dateSortie && ` le ${dateCourte(bete.dateSortie)}`}</Pastille>
+              {bete.pourcentageWagyu != null && <Pastille couleur={TEINTES.ambre.couleur} fond={TEINTES.ambre.fond}>{bete.pourcentageWagyu} % wagyu</Pastille>}
+              {bete.abattage?.bms && <Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>BMS {bete.abattage.bms}</Pastille>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grille-trois" style={{ marginBottom: 20 }}>
+        <CarteChiffre
+          titre="Dernier poids" montant={pesee ? kg(pesee.poids, 0) : "—"} teinte="var(--bleu)"
+          note={pesee ? `Pesée du ${dateCourte(pesee.date)}${gmq != null ? ` · ${decimal(gmq, 2)} kg/jour` : ""}` : "Aucune pesée"}
+        />
+        <CarteChiffre titre="Coût de revient" montant={argent(cout)} teinte="var(--accent)" note={`${bete.frais.length} frais${bete.coutAcquisition > 0 ? " + achat" : ""}`} />
+        {aResultat ? (
+          <CarteChiffre
+            titre="Résultat à ce jour" montant={argent(revenus - cout)}
+            couleur={revenus - cout >= 0 ? "var(--success)" : "var(--danger)"} teinte={revenus - cout >= 0 ? "var(--success)" : "var(--danger)"}
+            note={`Ventes ${argent(revenus)}`}
+          />
+        ) : (
+          <CarteChiffre titre="Âge" montant={bete.dateNaissance ? age(bete.dateNaissance, bete.dateSortie || new Date()) : "—"} teinte="var(--success)" note={bete.dateNaissance ? `Née le ${dateCourte(bete.dateNaissance)}` : "Date de naissance inconnue"} />
+        )}
       </div>
 
       <Fiche bete={bete} femelles={femelles} />
@@ -37,14 +76,35 @@ export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }
   );
 }
 
-function Section({ titre, children, droite }) {
+function Section({ titre, icone = "liste", teinte = TEINTES.ambre, sousTitre, children, droite }) {
   return (
-    <div className="carte" style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-        <TitreSection>{titre}</TitreSection>
-        {droite}
-      </div>
+    <div style={stylePanneau}>
+      <TitrePanneau icone={icone} teinte={teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
       {children}
+    </div>
+  );
+}
+
+// Lien d'action dans l'en-tête d'un panneau (Modifier, Annuler…)
+function LienPanneau({ onClick, couleur = "var(--accent-ombre)", children }) {
+  return <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 0", fontSize: 13, fontWeight: 700, color: couleur, whiteSpace: "nowrap", fontFamily: "inherit" }}>{children}</button>;
+}
+
+// Petit bouton à icône (retirer une ligne)
+function BoutonRetirer({ titre, onClick }) {
+  return (
+    <button type="button" onClick={onClick} title={titre} aria-label={titre} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" }}>
+      <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
+    </button>
+  );
+}
+
+// Encadré de total (coût de revient, profit)
+function Encadre({ label, valeur, couleur = "var(--accent-ombre)", fond = "rgba(232,163,61,0.16)" }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 12, background: fond, marginTop: 8 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: couleur }}>{label}</span>
+      <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: couleur === "var(--accent-ombre)" ? "var(--text)" : couleur }}>{valeur}</span>
     </div>
   );
 }
@@ -61,10 +121,10 @@ function Fiche({ bete, femelles }) {
     if (await appeler(`/api/elevage/betes/${bete.id}`, "PATCH", fiche)) setEdition(false);
   }
 
-  const bouton = <button onClick={() => setEdition((v) => !v)} style={{ ...boutonLien, color: "var(--accent)" }}>{edition ? "Annuler" : "Modifier"}</button>;
+  const bouton = <LienPanneau onClick={() => setEdition((v) => !v)}>{edition ? "Annuler" : "Modifier"}</LienPanneau>;
   if (edition) {
     return (
-      <Section titre="Fiche" droite={bouton}>
+      <Section titre="Fiche" icone="crayon" droite={bouton}>
         <ChampsBete fiche={fiche} maj={maj} femelles={femelles} />
         <Erreur texte={erreur} />
         <button onClick={enregistrer} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "…" : "Enregistrer"}</button>
@@ -72,15 +132,15 @@ function Fiche({ bete, femelles }) {
     );
   }
   return (
-    <Section titre="Fiche" droite={bouton}>
-      <LigneInfo label="Sexe" valeur={libelle(SEXES, bete.sexe)} />
-      <LigneInfo label="Boucle d'oreille" valeur={bete.identifiant} />
-      <LigneInfo label="Naissance" valeur={bete.dateNaissance && `${dateCourte(bete.dateNaissance)} (${age(bete.dateNaissance, bete.dateSortie || new Date())})`} />
-      <LigneInfo label="Génétique" valeur={[bete.genetique && libelle(GENETIQUES, bete.genetique).split(" (")[0], bete.pourcentageWagyu != null && `${bete.pourcentageWagyu} % wagyu`].filter(Boolean).join(" · ")} />
-      <LigneInfo label="Mère" valeur={bete.mere && <Link href={`/elevage/${bete.mere.id}`} style={{ color: "var(--accent)" }}>{bete.mere.numero}{bete.mere.nom ? ` — ${bete.mere.nom}` : ""}</Link>} />
-      <LigneInfo label="Père" valeur={bete.pere} />
-      <LigneInfo label="Origine" valeur={bete.origine === "ACHETEE" ? ["Achetée", bete.dateAcquisition && `le ${dateCourte(bete.dateAcquisition)}`, bete.provenance && `de ${bete.provenance}`, `pour ${argent(bete.coutAcquisition)}`].filter(Boolean).join(" ") : "Née ici"} />
-      {bete.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{bete.notes}</p>}
+    <Section titre="Fiche" icone="presse" droite={bouton}>
+      <LigneDetail premiere label="Sexe" valeur={libelle(SEXES, bete.sexe)} />
+      <LigneDetail label="Boucle d'oreille" valeur={bete.identifiant} />
+      <LigneDetail label="Naissance" valeur={bete.dateNaissance && `${dateCourte(bete.dateNaissance)} (${age(bete.dateNaissance, bete.dateSortie || new Date())})`} />
+      <LigneDetail label="Génétique" valeur={[bete.genetique && libelle(GENETIQUES, bete.genetique).split(" (")[0], bete.pourcentageWagyu != null && `${bete.pourcentageWagyu} % wagyu`].filter(Boolean).join(" · ")} />
+      <LigneDetail label="Mère" valeur={bete.mere && <Link href={`/elevage/${bete.mere.id}`} style={{ color: "var(--accent-ombre)" }}>{bete.mere.numero}{bete.mere.nom ? ` — ${bete.mere.nom}` : ""}</Link>} />
+      <LigneDetail label="Père" valeur={bete.pere} />
+      <LigneDetail label="Origine" valeur={bete.origine === "ACHETEE" ? ["Achetée", bete.dateAcquisition && `le ${dateCourte(bete.dateAcquisition)}`, bete.provenance && `de ${bete.provenance}`, `pour ${argent(bete.coutAcquisition)}`].filter(Boolean).join(" ") : "Née ici"} />
+      {bete.notes && <p style={{ fontSize: 13.5, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "10px 12px", borderRadius: 12, background: "var(--bg)" }}>{bete.notes}</p>}
     </Section>
   );
 }
@@ -95,27 +155,34 @@ function Rentabilite({ bete }) {
   const parCanal = CANAUX.map((c) => ({ ...c, total: lots.reduce((s, l) => s + l.ventes.filter((v) => v.canal === c.code).reduce((t, v) => t + v.montant, 0), 0) }));
   const valeurStock = lots.reduce((s, l) => s + stockLot(l).poids * (l.coupe.prixBoutique || 0), 0);
   return (
-    <Section titre="Coût de revient et ventes">
-      {bete.coutAcquisition > 0 && <LigneInfo label="Achat de la bête" valeur={argent(bete.coutAcquisition)} />}
-      {fraisParCategorie.map((c) => <LigneInfo key={c.code} label={c.label} valeur={argent(c.total)} />)}
-      {bete.abattage && <LigneInfo label="Abattage et découpe" valeur={argent(bete.abattage.fraisAbattage)} />}
-      <div className="ligne-info" style={{ fontWeight: 700 }}><span>Coût de revient</span><span>{argent(cout)}</span></div>
+    <Section titre="Coût de revient et ventes" icone="calculatrice" teinte={TEINTES.vert}>
+      {(() => {
+        const lignes = [
+          bete.coutAcquisition > 0 && { cle: "achat", label: "Achat de la bête", valeur: argent(bete.coutAcquisition) },
+          ...fraisParCategorie.map((c) => ({ cle: c.code, label: c.label, valeur: argent(c.total) })),
+          bete.abattage && { cle: "abattage", label: "Abattage et découpe", valeur: argent(bete.abattage.fraisAbattage) },
+        ].filter(Boolean);
+        return lignes.map((l, i) => <LigneDetail key={l.cle} premiere={i === 0} label={l.label} valeur={l.valeur} />);
+      })()}
+      <Encadre label="Coût de revient" valeur={argent(cout)} />
       {bete.abattage && cout > 0 && bete.abattage.poidsCarcasse > 0 && (
-        <LigneInfo label="Coût par kg de carcasse" valeur={argent(cout / bete.abattage.poidsCarcasse)} />
+        <LigneDetail premiere label="Coût par kg de carcasse" valeur={argent(cout / bete.abattage.poidsCarcasse)} />
       )}
-      {bete.statut === "VENDUE" && <LigneInfo label="Vente sur pied" valeur={argent(bete.prixVente)} />}
-      {bete.abattage && parCanal.map((c) => <LigneInfo key={c.code} label={`${c.icone} Ventes ${c.label.toLowerCase()}`} valeur={argent(c.total)} />)}
+      {bete.statut === "VENDUE" && <LigneDetail label="Vente sur pied" valeur={argent(bete.prixVente)} />}
+      {bete.abattage && parCanal.map((c) => <LigneDetail key={c.code} label={`${c.icone} Ventes ${c.label.toLowerCase()}`} valeur={argent(c.total)} />)}
       {(revenus > 0 || bete.abattage) && (
-        <div className="ligne-info" style={{ fontWeight: 700, color: revenus - cout >= 0 ? "var(--success)" : "var(--danger)" }}>
-          <span>{valeurStock > 0 ? "Résultat à ce jour" : "Profit"}</span><span>{argent(revenus - cout)}</span>
-        </div>
+        <Encadre
+          label={valeurStock > 0 ? "Résultat à ce jour" : "Profit"} valeur={argent(revenus - cout)}
+          couleur={revenus - cout >= 0 ? "var(--success)" : "var(--danger)"} fond={revenus - cout >= 0 ? "var(--success-fond)" : "var(--danger-fond)"}
+        />
       )}
       {valeurStock > 0 && (
         <>
-          <LigneInfo label="Viande en stock (prix boutique)" valeur={argent(valeurStock)} />
-          <div className="ligne-info" style={{ fontWeight: 700, color: revenus + valeurStock - cout >= 0 ? "var(--success)" : "var(--danger)" }}>
-            <span>Profit prévu (tout vendu en boutique)</span><span>{argent(revenus + valeurStock - cout)}</span>
-          </div>
+          <LigneDetail premiere label="Viande en stock (prix boutique)" valeur={argent(valeurStock)} />
+          <Encadre
+            label="Profit prévu (tout vendu en boutique)" valeur={argent(revenus + valeurStock - cout)}
+            couleur={revenus + valeurStock - cout >= 0 ? "var(--success)" : "var(--danger)"} fond={revenus + valeurStock - cout >= 0 ? "var(--success-fond)" : "var(--danger-fond)"}
+          />
         </>
       )}
     </Section>
@@ -132,20 +199,21 @@ function EstimationEtAbattage({ bete, coupes, rendementCarcasse }) {
   const totaux = totauxDecoupe(lignes);
 
   return (
-    <Section titre={abattre ? "Abattage et découpe" : "Si elle était abattue aujourd'hui"} droite={<button onClick={() => setAbattre((v) => !v)} style={{ ...boutonLien, color: "var(--accent)" }}>{abattre ? "Annuler" : "🔪 Abattage et découpe"}</button>}>
+    <Section
+      titre={abattre ? "Abattage et découpe" : "Si elle était abattue aujourd'hui"} icone={abattre ? "outils" : "balance"} teinte={abattre ? TEINTES.rouge : TEINTES.ambre}
+      droite={<LienPanneau onClick={() => setAbattre((v) => !v)} couleur={abattre ? "var(--text-muted)" : "var(--danger)"}>{abattre ? "Annuler" : "Abattage…"}</LienPanneau>}
+    >
       {abattre ? (
         <FormulaireAbattage bete={bete} coupes={coupes} poidsVifInitial={pesee?.poids} carcasseInitiale={carcasse} />
       ) : !pesee ? (
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Ajoute une pesée pour estimer la viande que donnera cette bête.</p>
       ) : (
         <>
-          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 8px" }}>
-            {kg(pesee.poids, 0)} vif (pesée du {dateCourte(pesee.date)}) × {rendementCarcasse} % = <strong style={{ color: "var(--text)" }}>{kg(carcasse, 0)} de carcasse</strong>, découpée selon les <Link href="/elevage/coupes" style={{ color: "var(--accent)" }}>rendements</Link> :
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 10px" }}>
+            {kg(pesee.poids, 0)} vif (pesée du {dateCourte(pesee.date)}) × {rendementCarcasse} % = <strong style={{ color: "var(--text)" }}>{kg(carcasse, 0)} de carcasse</strong>, découpée selon les <Link href="/elevage/coupes" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>rendements</Link> :
           </p>
           <TableEstimation lignes={lignes} />
-          <p style={{ fontSize: 12.5, margin: "8px 0 0" }}>
-            <strong>{totaux.paquets} paquets</strong> · {kg(totaux.poidsPaquets)} de viande{totaux.valeurBoutique > 0 && <> · <strong>{argent(totaux.valeurBoutique)}</strong> au prix boutique</>}
-          </p>
+          <Encadre label={`${totaux.paquets} paquets · ${kg(totaux.poidsPaquets)} de viande`} valeur={totaux.valeurBoutique > 0 ? argent(totaux.valeurBoutique) : "—"} />
         </>
       )}
     </Section>
@@ -200,7 +268,8 @@ function FormulaireAbattage({ bete, coupes, poidsVifInitial, carcasseInitiale })
           </tr>
         ))}
       </Tableau>
-      <p style={{ fontSize: 12.5, margin: "8px 0" }}><strong>{totalRecu} paquets</strong> · {kg(poidsRecu)}</p>
+      <Encadre label="Total reçu" valeur={`${totalRecu} paquets · ${kg(poidsRecu)}`} />
+      <div style={{ height: 10 }} />
       <Champ label="Notes"><textarea value={champs.notes} onChange={maj("notes")} rows={2} style={{ ...champStyle, resize: "vertical" }} /></Champ>
       <Erreur texte={erreur} />
       <button onClick={enregistrer} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "…" : "Enregistrer l'abattage et mettre les paquets en stock"}</button>
@@ -226,12 +295,12 @@ function Decoupe({ bete }) {
   }
 
   return (
-    <Section titre="Abattage et découpe">
-      <LigneInfo label="Date" valeur={`${dateCourte(a.date)}${a.abattoir ? ` — ${a.abattoir}` : ""}`} />
-      {a.poidsVif && <LigneInfo label="Poids vif" valeur={kg(a.poidsVif)} />}
-      <LigneInfo label="Carcasse froide" valeur={`${kg(a.poidsCarcasse)}${a.poidsVif ? ` (rendement ${decimal((a.poidsCarcasse / a.poidsVif) * 100)} %)` : ""}`} />
-      {a.bms && <LigneInfo label="Persillage" valeur={`BMS ${a.bms}`} />}
-      <LigneInfo label="Viande en paquets" valeur={`${kg(totaux.poids)} (${decimal((totaux.poids / a.poidsCarcasse) * 100)} % de la carcasse)`} />
+    <Section titre="Abattage et découpe" icone="outils" teinte={TEINTES.rouge}>
+      <LigneDetail premiere label="Date" valeur={`${dateCourte(a.date)}${a.abattoir ? ` — ${a.abattoir}` : ""}`} />
+      {a.poidsVif && <LigneDetail label="Poids vif" valeur={kg(a.poidsVif)} />}
+      <LigneDetail label="Carcasse froide" valeur={`${kg(a.poidsCarcasse)}${a.poidsVif ? ` (rendement ${decimal((a.poidsCarcasse / a.poidsVif) * 100)} %)` : ""}`} />
+      {a.bms && <LigneDetail label="Persillage" valeur={`BMS ${a.bms}`} />}
+      <LigneDetail label="Viande en paquets" valeur={`${kg(totaux.poids)} (${decimal((totaux.poids / a.poidsCarcasse) * 100)} % de la carcasse)`} />
       {a.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{a.notes}</p>}
 
       <div style={{ marginTop: 10 }}>
@@ -248,7 +317,7 @@ function Decoupe({ bete }) {
                 <td style={celluleDroite}>{kg(l.poidsTotal, 2)}</td>
                 <td style={celluleDroite}>{s.vendus}</td>
                 <td style={{ ...celluleDroite, fontWeight: 700 }}>{s.paquets}</td>
-                <td style={cellule}><button onClick={() => setEdition(l.id)} style={{ ...boutonLien, color: "var(--accent)" }}>Corriger</button></td>
+                <td style={cellule}><button onClick={() => setEdition(l.id)} style={{ ...boutonLien, color: "var(--accent-ombre)", fontWeight: 700, fontSize: 13 }}>Corriger</button></td>
               </tr>
             );
           })}
@@ -265,19 +334,20 @@ function Decoupe({ bete }) {
       </div>
 
       {ventes.length > 0 && (
-        <div style={{ marginTop: 12 }}>
-          <TitreSection>Ventes de sa viande</TitreSection>
-          {ventes.map((v) => (
-            <div key={v.id} className="ligne-info">
-              <span>{dateCourte(v.date)} · {CANAUX.find((c) => c.code === v.canal)?.icone} {v.nbPaquets} × {v.coupe} ({kg(v.poids, 2)}){v.note && ` — ${v.note}`}</span>
-              <span>{argent(v.montant)}</span>
-            </div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Ventes de sa viande</div>
+          {ventes.map((v, i) => (
+            <LigneDetail
+              key={v.id} premiere={i === 0}
+              label={<>{dateCourte(v.date)} · {CANAUX.find((c) => c.code === v.canal)?.icone} {v.nbPaquets} × {v.coupe} ({kg(v.poids, 2)}){v.note && ` — ${v.note}`}</>}
+              valeur={argent(v.montant)}
+            />
           ))}
         </div>
       )}
-      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent)" }}>Élevage → Viande</Link> : les paquets les plus anciens partent en premier.</p>
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>Élevage → Viande</Link> : les paquets les plus anciens partent en premier.</p>
       <Erreur texte={erreur} />
-      {ventes.length === 0 && <button onClick={annuler} disabled={enCours} style={{ ...boutonLien, color: "var(--danger)", marginTop: 10 }}>Annuler l'abattage</button>}
+      {ventes.length === 0 && <div style={{ marginTop: 12 }}><BoutonAction icone="echange" couleur="var(--danger)" onClick={annuler} disabled={enCours} style={{ width: "100%" }}>Annuler l'abattage</BoutonAction></div>}
     </Section>
   );
 }
@@ -318,31 +388,39 @@ function Pesees({ bete }) {
   }
 
   return (
-    <Section titre="Pesées" droite={gmq != null && <span style={{ fontSize: 12, fontWeight: 700 }}>Gain moyen {decimal(gmq, 2)} kg/jour</span>}>
+    <Section
+      titre="Pesées" icone="graphique" teinte={TEINTES.bleu}
+      sousTitre={gmq != null ? `Gain moyen ${decimal(gmq, 2)} kg/jour` : undefined}
+    >
       {bete.statut === "ACTIVE" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr auto", gap: 6, alignItems: "start" }}>
-          <input type="date" max="9999-12-31" value={champs.date} onChange={(e) => setChamps((c) => ({ ...c, date: e.target.value }))} style={champStyle} />
-          <input inputMode="decimal" value={champs.poids} onChange={(e) => setChamps((c) => ({ ...c, poids: e.target.value }))} placeholder="Poids (kg)" style={champStyle} />
-          <input value={champs.note} onChange={(e) => setChamps((c) => ({ ...c, note: e.target.value }))} placeholder="Note (sevrage, finition…)" style={champStyle} />
-          <button onClick={ajouter} disabled={enCours} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700 }}>+</button>
+        <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <input type="date" max="9999-12-31" value={champs.date} onChange={(e) => setChamps((c) => ({ ...c, date: e.target.value }))} style={{ ...champStyle, marginBottom: 0 }} />
+            <input inputMode="decimal" value={champs.poids} onChange={(e) => setChamps((c) => ({ ...c, poids: e.target.value }))} placeholder="Poids (kg)" style={{ ...champStyle, marginBottom: 0 }} />
+          </div>
+          <input value={champs.note} onChange={(e) => setChamps((c) => ({ ...c, note: e.target.value }))} placeholder="Note (sevrage, finition…)" style={{ ...champStyle, marginTop: 8, marginBottom: 8 }} />
+          <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter la pesée</BoutonAction>
         </div>
       )}
       <Erreur texte={erreur} />
       {liste.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucune pesée.</p>
       ) : (
-        <Tableau entetes={["Date", "Âge", "Poids", "Gain/jour", "Note", ""]} alignDroite={[2, 3]}>
-          {liste.map((p) => (
-            <tr key={p.id}>
-              <td style={cellule}>{dateCourte(p.date)}</td>
-              <td style={{ ...cellule, color: "var(--text-muted)" }}>{age(bete.dateNaissance, p.date)}</td>
-              <td style={celluleDroite}>{kg(p.poids)}</td>
-              <td style={celluleDroite}>{p.gain == null ? "—" : `${decimal(p.gain, 2)} kg`}</td>
-              <td style={{ ...cellule, color: "var(--text-muted)" }}>{p.note}</td>
-              <td style={cellule}><button onClick={() => retirer(p.id)} style={{ ...boutonLien, color: "var(--danger)" }}>✕</button></td>
-            </tr>
-          ))}
-        </Tableau>
+        liste.map((p, i) => (
+          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{dateCourte(p.date)}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{[age(bete.dateNaissance, p.date), p.note].filter(Boolean).join(" · ")}</div>
+            </div>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <span style={{ textAlign: "right" }}>
+                <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{kg(p.poids)}</span>
+                <span style={{ display: "block", fontSize: 12, color: p.gain == null ? "var(--text-muted)" : p.gain >= 0 ? "var(--success)" : "var(--danger)" }}>{p.gain == null ? "—" : `${p.gain >= 0 ? "+" : ""}${decimal(p.gain, 2)} kg/jour`}</span>
+              </span>
+              <BoutonRetirer titre="Retirer la pesée" onClick={() => retirer(p.id)} />
+            </span>
+          </div>
+        ))
       )}
     </Section>
   );
@@ -364,23 +442,32 @@ function Frais({ bete }) {
   }
 
   return (
-    <Section titre="Frais de la bête" droite={<span style={{ fontSize: 12, fontWeight: 700 }}>{argent(total)}</span>}>
-      <div style={grille2}>
-        <input type="date" max="9999-12-31" value={champs.date} onChange={maj("date")} style={champStyle} />
-        <select value={champs.categorie} onChange={maj("categorie")} style={champStyle}>
-          {CATEGORIES_FRAIS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-        </select>
-        <input value={champs.description} onChange={maj("description")} placeholder="Description" style={champStyle} />
-        <div style={{ display: "flex", gap: 6 }}>
-          <input inputMode="decimal" value={champs.montant} onChange={maj("montant")} placeholder="Montant ($)" style={champStyle} />
-          <button onClick={ajouter} disabled={enCours} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 700, height: 35 }}>+</button>
+    <Section
+      titre="Frais de la bête" icone="banque" teinte={TEINTES.ambre}
+      droite={<span style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", paddingTop: 2 }}>{argent(total)}</span>}
+    >
+      <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+          <input type="date" max="9999-12-31" value={champs.date} onChange={maj("date")} style={{ ...champStyle, marginBottom: 0 }} />
+          <select value={champs.categorie} onChange={maj("categorie")} style={{ ...champStyle, marginBottom: 0 }}>
+            {CATEGORIES_FRAIS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+          <input value={champs.description} onChange={maj("description")} placeholder="Description" style={{ ...champStyle, marginBottom: 0 }} />
+          <input inputMode="decimal" value={champs.montant} onChange={maj("montant")} placeholder="Montant ($)" style={{ ...champStyle, marginBottom: 0 }} />
         </div>
+        <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter les frais</BoutonAction>
       </div>
       <Erreur texte={erreur} />
-      {bete.frais.map((f) => (
-        <div key={f.id} className="ligne-info">
-          <span>{dateCourte(f.date)} · {libelle(CATEGORIES_FRAIS, f.categorie)}{f.description && ` — ${f.description}`}</span>
-          <span>{argent(f.montant)} <button onClick={() => retirer(f.id)} style={{ ...boutonLien, color: "var(--danger)", marginLeft: 6 }}>✕</button></span>
+      {bete.frais.map((f, i) => (
+        <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{libelle(CATEGORIES_FRAIS, f.categorie)}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateCourte(f.date)}{f.description && ` · ${f.description}`}</div>
+          </div>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <strong style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{argent(f.montant)}</strong>
+            <BoutonRetirer titre="Retirer ces frais" onClick={() => retirer(f.id)} />
+          </span>
         </div>
       ))}
     </Section>
@@ -389,13 +476,20 @@ function Frais({ bete }) {
 
 function Veaux({ veaux }) {
   return (
-    <Section titre={`Ses veaux (${veaux.length})`}>
-      {veaux.map((v) => (
-        <div key={v.id} className="ligne-info">
-          <Link href={`/elevage/${v.id}`} style={{ color: "var(--accent)" }}>{v.numero}{v.nom ? ` — ${v.nom}` : ""}</Link>
-          <span>{libelle(SEXES, v.sexe).split(" (")[0]}{v.dateNaissance && ` · né le ${dateCourte(v.dateNaissance)}`} · {libelle(STATUTS_BETE, v.statut)}</span>
-        </div>
-      ))}
+    <Section titre="Ses veaux" icone="utilisateurs" teinte={TEINTES.vert} droite={<Pastille couleur={TEINTES.vert.couleur} fond={TEINTES.vert.fond}>{veaux.length}</Pastille>}>
+      {veaux.map((v, i) => {
+        const st = STATUTS_BETE.find((x) => x.code === v.statut);
+        return (
+          <Link key={v.id} href={`/elevage/${v.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{v.numero}{v.nom ? ` — ${v.nom}` : ""}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{libelle(SEXES, v.sexe).split(" (")[0]}{v.dateNaissance && ` · né le ${dateCourte(v.dateNaissance)}`}</div>
+            </div>
+            <Pastille couleur={st?.couleur || "var(--text-muted)"} fond="var(--surface-alt)">{st?.label || v.statut}</Pastille>
+            <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+          </Link>
+        );
+      })}
     </Section>
   );
 }
@@ -420,28 +514,29 @@ function Sortie({ bete }) {
     <div style={{ marginBottom: 20 }}>
       {bete.statut === "ACTIVE" ? (
         choix ? (
-          <div className="carte carte-m">
+          <div style={stylePanneau}>
+            <TitrePanneau icone={choix === "VENDUE" ? "banque" : "alerte"} teinte={choix === "VENDUE" ? TEINTES.bleu : TEINTES.rouge} titre={choix === "VENDUE" ? "Vente sur pied" : "Bête morte"} />
             <div style={grille2}>
               <Champ label="Date"><input type="date" max="9999-12-31" value={champs.dateSortie} onChange={(e) => setChamps((c) => ({ ...c, dateSortie: e.target.value }))} style={champStyle} /></Champ>
               {choix === "VENDUE" && <Champ label="Prix de vente (avant taxes)"><input inputMode="decimal" value={champs.prixVente} onChange={(e) => setChamps((c) => ({ ...c, prixVente: e.target.value }))} style={champStyle} /></Champ>}
             </div>
             <Erreur texte={erreur} />
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => confirmer(choix)} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{choix === "VENDUE" ? "Confirmer la vente sur pied" : "Confirmer la mort"}</button>
-              <button onClick={() => setChoix(null)} style={{ ...boutonLien, color: "var(--text-muted)", padding: "0 10px" }}>Annuler</button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <button onClick={() => confirmer(choix)} disabled={enCours} className="bouton-3d" style={{ ...boutonPrincipal, width: "auto" }}>{choix === "VENDUE" ? "Confirmer la vente" : "Confirmer la mort"}</button>
+              <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setChoix(null)}>Annuler</BoutonAction>
             </div>
           </div>
         ) : (
-          <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
-            <button onClick={() => setChoix("VENDUE")} style={{ ...boutonLien, color: "var(--text-muted)" }}>Vendue sur pied…</button>
-            <button onClick={() => setChoix("MORTE")} style={{ ...boutonLien, color: "var(--text-muted)" }}>Morte…</button>
-            <button onClick={supprimer} style={{ ...boutonLien, color: "var(--danger)", marginLeft: "auto" }}>Supprimer la fiche</button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <BoutonAction icone="banque" compact onClick={() => setChoix("VENDUE")}>Vendue sur pied</BoutonAction>
+            <BoutonAction icone="alerte" compact couleur="var(--avertissement)" onClick={() => setChoix("MORTE")}>Morte</BoutonAction>
+            <BoutonAction icone="poubelle" compact couleur="var(--danger)" onClick={supprimer}>Supprimer</BoutonAction>
           </div>
         )
       ) : (
-        <div style={{ display: "flex", gap: 16 }}>
-          <button onClick={() => confirmer("ACTIVE")} disabled={enCours} style={{ ...boutonLien, color: "var(--accent)" }}>↩ Remettre au troupeau</button>
-          <button onClick={supprimer} style={{ ...boutonLien, color: "var(--danger)", marginLeft: "auto" }}>Supprimer la fiche</button>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <BoutonAction icone="echange" couleur="var(--accent-ombre)" onClick={() => confirmer("ACTIVE")} disabled={enCours}>Remettre au troupeau</BoutonAction>
+          <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={supprimer}>Supprimer la fiche</BoutonAction>
         </div>
       )}
       {!choix && <Erreur texte={erreur} />}
