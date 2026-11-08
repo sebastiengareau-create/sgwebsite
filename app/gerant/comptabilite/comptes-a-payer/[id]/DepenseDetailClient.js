@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TitreSection, LigneInfo } from "../../../../components/ui";
+import { Icone, TEINTES, Pastille, TitrePanneau, BoutonContour, stylePanneau } from "../../../../components/StyleSection";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { etatEcheance } from "@/lib/echeance";
-import { FormulairePaiementDepense, FormulaireEditionDepense, formaterDate, lienDepense } from "../ComptesAPayerClient";
+import { FormulairePaiementDepense, FormulaireEditionDepense, BoutonAction, formaterDate, lienDepense } from "../ComptesAPayerClient";
 import { argent } from "@/lib/format";
 
 export default function DepenseDetailClient({ depense, fournisseurs, categories, comptesTresorerie, tpsTaux, tvqTaux, autresImpayees }) {
@@ -40,39 +40,65 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
     router.refresh();
   }
 
+  const couleur = payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "var(--avertissement)";
+  const fond = payee ? "var(--success-fond)" : echeance?.enRetard ? "var(--danger-fond)" : "var(--avertissement-fond)";
+
   return (
     <div className="conteneur-page">
       <Link href="/gerant/comptabilite/comptes-a-payer" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux comptes à payer</Link>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: `4px solid ${payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "#C9A227"}`, borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16 }}>
-        <Link href={`/gerant/fournisseurs/${depense.fournisseurId}`} style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", textDecoration: "none" }}>
-          🏢 {depense.fournisseur.nom} →
-        </Link>
-        <div style={{ fontSize: 15, marginTop: 4 }}>{depense.description}</div>
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "20px 20px 20px 24px", marginTop: 10, marginBottom: 14 }}>
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: couleur }} />
+        <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: couleur, opacity: 0.08 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{
+            width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: TEINTES.bleu.fond, color: TEINTES.bleu.couleur,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800,
+          }}>
+            {depense.fournisseur.nom.charAt(0).toUpperCase()}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Link href={`/gerant/fournisseurs/${depense.fournisseurId}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 17, fontWeight: 800, color: "var(--text)", textDecoration: "none" }}>
+              {depense.fournisseur.nom} <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+            </Link>
+            <div style={{ fontSize: 13.5, color: "var(--text-muted)", marginTop: 2 }}>{depense.description}</div>
+          </div>
+        </div>
+        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+          <div>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", fontWeight: 600 }}>Montant de la facture</div>
+            <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>{argent(depense.montant)}</div>
+          </div>
+          <Pastille couleur={couleur} fond={fond}>{payee ? "Payée" : (echeance?.texte || "Impayée")}</Pastille>
+        </div>
         {depense.commandeFournisseur && (
-          <Link href={`/secretaire/inventaire/commandes/${depense.commandeFournisseur.id}`} style={{ display: "inline-block", fontSize: 12, color: "var(--accent)", textDecoration: "none", marginTop: 4 }}>
-            🛒 Réception de la commande {depense.commandeFournisseur.numero} →
+          <Link href={`/secretaire/inventaire/commandes/${depense.commandeFournisseur.id}`} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)", textDecoration: "none", marginTop: 12, padding: "5px 10px", borderRadius: 999, background: "rgba(232,163,61,0.16)" }}>
+            <Icone nom="panier" taille={14} couleur="var(--accent-ombre)" /> Réception de la commande {depense.commandeFournisseur.numero}
           </Link>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 10, gap: 8 }}>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>{argent(depense.montant)}</div>
-          <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "#C9A227", color: payee || echeance?.enRetard ? "white" : "#17150f" }}>
-            {payee ? "✓ Payée" : (echeance?.texte || "Impayée")}
-          </span>
-        </div>
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
 
+      {mode === null && (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${payee ? 2 : 3}, 1fr)`, gap: 8, marginBottom: 16 }}>
+          {!payee && (
+            <BoutonAction icone="crochet" couleur="#fff" fond="var(--success)" bordure="var(--success)" onClick={() => setMode("payer")}>Payer</BoutonAction>
+          )}
+          <BoutonAction icone="crayon" onClick={() => setMode("modifier")}>Corriger</BoutonAction>
+          <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={enCours ? undefined : supprimer}>{enCours ? "…" : "Supprimer"}</BoutonAction>
+        </div>
+      )}
+
       {mode === "payer" && (
-        <div className="carte" style={{ marginBottom: 12 }}>
-          <TitreSection>Enregistrer le paiement</TitreSection>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="banque" teinte={TEINTES.vert} titre="Enregistrer le paiement" sousTitre="Compte, mode de paiement et numéro de chèque ou de transaction." />
           <FormulairePaiementDepense depense={depense} comptesTresorerie={comptesTresorerie} onTermine={termine} onAnnuler={() => setMode(null)} />
         </div>
       )}
       {mode === "modifier" && (
-        <div className="carte" style={{ marginBottom: 12 }}>
-          <TitreSection>Corriger la facture</TitreSection>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="crayon" titre="Corriger la facture" sousTitre="Les écritures comptables sont ajustées automatiquement." />
           <FormulaireEditionDepense
             depense={depense} fournisseurs={fournisseurs} categories={categories} tpsTaux={tpsTaux} tvqTaux={tvqTaux}
             onTermine={termine} onAnnuler={() => setMode(null)}
@@ -80,86 +106,91 @@ export default function DepenseDetailClient({ depense, fournisseurs, categories,
         </div>
       )}
 
-      {mode === null && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          {!payee && (
-            <button onClick={() => setMode("payer")} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-              💸 Marquer payée
-            </button>
-          )}
-          <button onClick={() => setMode("modifier")} className={payee ? "bouton-3d" : "bouton-3d-sombre"} style={{ flex: payee ? 1 : undefined, padding: "11px 14px", borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-            ✏️ Modifier
-          </button>
-          <button onClick={supprimer} disabled={enCours} className="bouton-3d-sombre" style={{ padding: "11px 14px", borderRadius: 10, fontSize: 13 }}>
-            🗑️
-          </button>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div style={{ ...stylePanneau, marginBottom: 0 }}>
+          <TitrePanneau icone="calendrier" teinte={TEINTES.ambre} titre="Facture" />
+          <LigneDetail label="Date de la facture" valeur={formaterDate(depense.dateFacture)} premiere />
+          <LigneDetail label="Échéance" valeur={depense.dateEcheance ? formaterDate(depense.dateEcheance) : "—"} />
+          <LigneDetail label="Saisie le" valeur={formaterDate(depense.creeLe)} />
         </div>
-      )}
-
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Facture</TitreSection>
-        <LigneInfo label="Date de la facture" valeur={formaterDate(depense.dateFacture)} />
-        <LigneInfo label="Échéance" valeur={depense.dateEcheance ? formaterDate(depense.dateEcheance) : null} />
-        <LigneInfo label="Saisie le" valeur={formaterDate(depense.creeLe)} />
-      </div>
-
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Détail par poste</TitreSection>
-        {depense.lignes.map((l) => (
-          <div key={l.id} className="ligne-info">
-            <span>
-              {l.piece ? `📦 ${l.piece.nom} (${l.piece.numero}) × ${l.qteRecue}` : l.categorieDepense.nom}
-              {l.description ? ` — ${l.description}` : ""}
-            </span>
-            <span>{argent(l.montant)}</span>
-          </div>
-        ))}
-        <LigneInfo label="Sous-total" valeur={`${argent(sousTotal)}`} />
-        <LigneInfo label="TPS (récupérable)" valeur={`${argent(depense.tpsPayee)}`} />
-        <LigneInfo label="TVQ (récupérable)" valeur={`${argent(depense.tvqPayee)}`} />
-        <LigneInfo label="Total" valeur={`${argent(depense.montant)}`} />
-      </div>
-
-      {payee && (
-        <div className="carte" style={{ marginBottom: 12 }}>
-          <TitreSection>Paiement</TitreSection>
-          <LigneInfo label="Payée le" valeur={depense.datePaiement ? formaterDate(depense.datePaiement) : null} />
-          <LigneInfo label="Mode" valeur={LABEL_MODE_PAIEMENT[depense.modePaiement] || depense.modePaiement} />
-          <LigneInfo label="Compte" valeur={depense.compteTresorerie?.nom} />
-          <LigneInfo label="Référence" valeur={depense.referenceVersement} />
-        </div>
-      )}
-
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Solde dû à {depense.fournisseur.nom}</TitreSection>
-        <div style={{ fontSize: 18, fontWeight: 700, color: soldeFournisseur > 0 ? "var(--danger)" : "var(--success)", marginBottom: 6 }}>
-          {argent(soldeFournisseur)}
-        </div>
-        {autresImpayees.length === 0 ? (
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-            {payee ? "Aucune autre facture impayée pour ce fournisseur." : "C'est la seule facture impayée de ce fournisseur."}
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Autres factures impayées :</div>
-            {autresImpayees.map((d) => {
-              const etat = etatEcheance(d);
-              return (
-                <Link key={d.id} href={lienDepense(d.id)} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, textDecoration: "none", color: "var(--text)", padding: "6px 8px", borderRadius: 6, background: "var(--bg)" }}>
-                  <span>
-                    {formaterDate(d.dateFacture)} — {d.description}
-                    {etat && <span style={{ color: etat.couleur, marginLeft: 6, fontSize: 10.5, fontWeight: 700 }}>{etat.texte}</span>}
-                  </span>
-                  <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{argent(d.montant)} ›</span>
-                </Link>
-              );
-            })}
-            <Link href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${depense.fournisseurId}`} style={{ fontSize: 11.5, color: "var(--accent)", marginTop: 4 }}>
-              Voir toutes les factures de ce fournisseur
-            </Link>
+        {payee && (
+          <div style={{ ...stylePanneau, marginBottom: 0 }}>
+            <TitrePanneau icone="banque" teinte={TEINTES.vert} titre="Paiement" />
+            <LigneDetail label="Payée le" valeur={depense.datePaiement ? formaterDate(depense.datePaiement) : "—"} premiere />
+            <LigneDetail label="Mode" valeur={LABEL_MODE_PAIEMENT[depense.modePaiement] || depense.modePaiement || "—"} />
+            <LigneDetail label="Compte" valeur={depense.compteTresorerie?.nom || "—"} />
+            <LigneDetail label="Référence" valeur={depense.referenceVersement || "—"} />
           </div>
         )}
       </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="liste" teinte={TEINTES.bleu} titre="Détail par poste" sousTitre={`${depense.lignes.length} ligne${depense.lignes.length !== 1 ? "s" : ""}`} />
+        {depense.lignes.map((l, i) => (
+          <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>
+                {l.piece ? `${l.piece.nom} (${l.piece.numero}) × ${l.qteRecue}` : l.categorieDepense.nom}
+              </div>
+              {(l.piece || l.description) && (
+                <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
+                  {[l.piece && "Réception d'inventaire", l.description].filter(Boolean).join(" · ")}
+                </div>
+              )}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(l.montant)}</span>
+          </div>
+        ))}
+        <div style={{ borderTop: "2px solid var(--accent)", marginTop: 4, paddingTop: 4 }}>
+          <LigneDetail label="Sous-total" valeur={argent(sousTotal)} premiere />
+          <LigneDetail label="TPS (récupérable)" valeur={argent(depense.tpsPayee)} />
+          <LigneDetail label="TVQ (récupérable)" valeur={argent(depense.tvqPayee)} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: "rgba(232,163,61,0.16)", marginTop: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)" }}>Total</span>
+          <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(depense.montant)}</span>
+        </div>
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="immeuble" teinte={TEINTES.bleu} titre={`Solde dû à ${depense.fournisseur.nom}`}
+          sousTitre={autresImpayees.length === 0 ? (payee ? "Aucune autre facture impayée pour ce fournisseur." : "C'est la seule facture impayée de ce fournisseur.") : `${autresImpayees.length} autre${autresImpayees.length !== 1 ? "s" : ""} facture${autresImpayees.length !== 1 ? "s" : ""} impayée${autresImpayees.length !== 1 ? "s" : ""}`}
+        />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: soldeFournisseur > 0 ? "var(--danger-fond)" : "var(--success-fond)", marginBottom: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: soldeFournisseur > 0 ? "var(--danger)" : "var(--success)" }}>{soldeFournisseur > 0 ? "Total dû" : "Rien à payer"}</span>
+          <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: soldeFournisseur > 0 ? "var(--danger)" : "var(--success)" }}>{argent(soldeFournisseur)}</span>
+        </div>
+        {autresImpayees.map((d, i) => {
+          const etat = etatEcheance(d);
+          const c = etat?.enRetard ? "var(--danger)" : "var(--avertissement)";
+          return (
+            <Link key={d.id} href={lienDepense(d.id)} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "var(--text)", padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.description}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 3 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Facture du {formaterDate(d.dateFacture)}</span>
+                  {etat && <Pastille couleur={c} fond={etat.enRetard ? "var(--danger-fond)" : "var(--avertissement-fond)"}>{etat.texte}</Pastille>}
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(d.montant)}</span>
+              <Icone nom="chevron" taille={18} couleur="var(--text-muted)" />
+            </Link>
+          );
+        })}
+        <BoutonContour href={`/gerant/comptabilite/comptes-a-payer?fournisseur=${depense.fournisseurId}`} icone="presse" style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
+          Voir toutes les factures de ce fournisseur
+        </BoutonContour>
+      </div>
+    </div>
+  );
+}
+
+function LigneDetail({ label, valeur, premiere }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", fontSize: 13.5 }}>
+      <span style={{ color: "var(--text-muted)" }}>{label}</span>
+      <span style={{ fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{valeur}</span>
     </div>
   );
 }
