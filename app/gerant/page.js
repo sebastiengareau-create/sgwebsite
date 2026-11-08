@@ -8,6 +8,7 @@ import EnTete from "../components/EnTete";
 import LiveTimer from "../components/LiveTimer";
 import VueGlobaleClient from "./VueGlobaleClient";
 import { NIVEAUX, niveauHorodateur } from "./niveaux";
+import { TEINTES, CarteChiffre, Pastille, TitrePanneau, stylePanneau } from "../components/StyleSection";
 
 const NOMS_MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const NOMS_MOIS_COURT = ["Jan.", "Fév.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
@@ -206,64 +207,67 @@ export default async function EspaceGerant(props) {
         rentabilite={{ mois: detailMois, annee: detailAnnee }}
       />
 
-      <div className="conteneur-page" style={{ maxWidth: 1000, marginTop: 8 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 20 }}>
-          <Carte href="/secretaire?statut=EN_ATTENTE" label="Bons en attente" valeur={enAttente} niveau={enAttente > 0 ? "avertissement" : "neutre"} />
-          <Carte href="/secretaire?statut=EN_COURS" label="Bons en cours" valeur={enCours} niveau={enCours > 0 ? "bleu" : "neutre"} />
-          <Carte href="/secretaire/inventaire" label="Pièces sous le seuil" valeur={stockBas.length} niveau={stockBas.length > 0 ? "danger" : "bon"} />
+      <div className="conteneur-page" style={{ paddingTop: 0 }}>
+        <div className="grille-trois" style={{ marginBottom: 20 }}>
+          <Carte href="/secretaire?statut=EN_ATTENTE" label="Bons en attente" valeur={enAttente} niveau={enAttente > 0 ? "avertissement" : "neutre"} note={enAttente > 0 ? "À commencer" : "Aucun bon en attente"} />
+          <Carte href="/secretaire?statut=EN_COURS" label="Bons en cours" valeur={enCours} niveau={enCours > 0 ? "bleu" : "neutre"} note={enCours > 0 ? "Au travail en ce moment" : "Aucun bon en cours"} />
+          <Carte href="/secretaire/inventaire" label="Pièces sous le seuil" valeur={stockBas.length} niveau={stockBas.length > 0 ? "danger" : "bon"} note={stockBas.length > 0 ? "À recommander" : "Stock suffisant"} />
         </div>
 
-        <div className="carte" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, padding: "12px 16px", borderBottom: totalPoinconsActifs > 0 ? "1px solid var(--border)" : "none" }}>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>⏱ Horodateurs actifs ({totalPoinconsActifs})</span>
-            {totalPoinconsActifs > 0 && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Orange après 8 h · rouge après 10 h</span>}
+        <div style={stylePanneau}>
+          <TitrePanneau
+            icone="horloge" teinte={TEINTES.vert} titre="Horodateurs actifs"
+            sousTitre={totalPoinconsActifs > 0 ? "Orange après 8 h · rouge après 10 h (probablement un oubli)." : "Personne n'est poinçonné actuellement."}
+            droite={<Pastille couleur={totalPoinconsActifs > 0 ? "var(--success)" : "var(--text-muted)"} fond={totalPoinconsActifs > 0 ? "var(--success-fond)" : "var(--surface-alt)"}>{totalPoinconsActifs}</Pastille>}
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {poinconsActifs.map((t) => {
+              const numeroTache = t.probleme.bon.problemes.findIndex((p) => p.id === t.probleme.id) + 1;
+              return (
+                <Link key={t.id} href={`/bons/${t.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  <LigneHorodateur debut={t.debut} maintenant={maintenant} nom={t.employe.nom}>
+                    Bon #{t.probleme.bon.numero} · {t.probleme.bon.client.nom} · <strong>{numeroTache}.</strong> {t.probleme.description}
+                  </LigneHorodateur>
+                </Link>
+              );
+            })}
+            {poinconsInternesActifs.map((t) => (
+              <LigneHorodateur key={t.id} debut={t.debut} maintenant={maintenant} nom={t.employe.nom}>
+                {t.tacheInterne.nom} (interne, non facturable)
+              </LigneHorodateur>
+            ))}
           </div>
-          {poinconsActifs.map((t) => {
-            const numeroTache = t.probleme.bon.problemes.findIndex((p) => p.id === t.probleme.id) + 1;
-            return (
-              <Link key={t.id} href={`/bons/${t.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                <LigneHorodateur debut={t.debut} maintenant={maintenant} nom={t.employe.nom}>
-                  #{t.probleme.bon.numero} · {t.probleme.bon.client.nom} · <strong>{numeroTache}.</strong> {t.probleme.description}
-                </LigneHorodateur>
-              </Link>
-            );
-          })}
-          {poinconsInternesActifs.map((t) => (
-            <LigneHorodateur key={t.id} debut={t.debut} maintenant={maintenant} nom={t.employe.nom}>
-              🛠️ {t.tacheInterne.nom} (interne, non facturable)
-            </LigneHorodateur>
-          ))}
-          {totalPoinconsActifs === 0 && (
-            <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0, padding: "0 16px 12px" }}>Personne n'est poinçonné actuellement.</p>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Carte({ href, label, valeur, niveau }) {
-  const { couleur, fond } = NIVEAUX[niveau];
-  return (
-    <Link href={href} style={{ display: "flex", alignItems: "center", gap: 12, background: fond === "transparent" ? "var(--surface)" : fond, border: `1px solid ${niveau === "neutre" ? "var(--border)" : couleur}`, borderRadius: 12, padding: "12px 14px", textDecoration: "none", color: "var(--text)" }}>
-      <span style={{ fontSize: 26, fontWeight: 700, color: niveau === "neutre" ? "var(--text-muted)" : couleur }}>{valeur}</span>
-      <span style={{ fontSize: 12, fontWeight: 600 }}>{label}</span>
-    </Link>
-  );
+// Carte chiffre cliquable, teintée selon le niveau (voir NIVEAUX)
+function Carte({ href, label, valeur, niveau, note }) {
+  const { couleur } = NIVEAUX[niveau];
+  const neutre = niveau === "neutre";
+  return <CarteChiffre href={href} titre={label} montant={String(valeur)} teinte={neutre ? "var(--border)" : couleur} couleur={neutre ? "var(--text)" : couleur} note={note} />;
 }
 
 // Une ligne par poinçon ouvert, colorée selon sa durée (voir niveauHorodateur)
 function LigneHorodateur({ debut, maintenant, nom, children }) {
   const { niveau, etat } = niveauHorodateur(debut, maintenant);
   const { couleur, fond } = NIVEAUX[niveau];
+  const neutre = niveau === "neutre";
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 52, paddingRight: 16, background: fond, borderBottom: "1px solid var(--border)" }}>
-      <span style={{ width: 5, alignSelf: "stretch", background: couleur, flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0, padding: "8px 0" }}>
-        <div style={{ fontWeight: 600, fontSize: 13 }}>{nom}</div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{children}</div>
+    <div style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 12, padding: "10px 12px 10px 16px", borderRadius: 12, background: neutre ? "var(--bg)" : fond, border: `1px solid ${neutre ? "var(--border)" : couleur}` }}>
+      <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: neutre ? "var(--success)" : couleur }} />
+      <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: TEINTES.ambre.fond, color: TEINTES.ambre.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>
+        {nom.charAt(0).toUpperCase()}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>{nom}</span>
+          {etat && <Pastille couleur={couleur} fond="var(--surface)">{etat}</Pastille>}
+        </div>
+        <div style={{ fontSize: 12.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{children}</div>
       </div>
-      {etat && <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: fond, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
       <LiveTimer debut={debut.toISOString()} />
     </div>
   );
