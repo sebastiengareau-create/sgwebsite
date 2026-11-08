@@ -47,6 +47,11 @@ on décide quand et à qui une modification s'applique.
   copropriétaires et historique des propriétaires, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents
   et portail sécurisé des copropriétaires, `lib/copropriete.js`).
+- **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
+  `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
+  tous — discrète (bas de la page de connexion, Administrateur → À propos),
+  jamais sur les documents du client. Le badge GARAGE / FERME et la couleur
+  de l'aiguille suivent `secteurMarque` dans le profil.
 - **Contexte** : `clients/<id>/CLIENT.md` — qui est le client, ce qui le
   distingue et pourquoi.
 
