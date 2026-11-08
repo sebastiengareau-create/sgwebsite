@@ -15,9 +15,10 @@ export default async function PortailCopro(props) {
   if (!c) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "var(--bg)" }}>
-        <div className="carte" style={{ maxWidth: 420, textAlign: "center" }}>
-          <h1 style={{ fontSize: 19, margin: "0 0 10px" }}>{entreprise.nomEntreprise}</h1>
-          <p style={{ fontSize: 14, margin: 0 }}>Ce lien n'est plus valide. Demandez un nouveau lien à l'administration{entreprise.telephone ? ` (${entreprise.telephone})` : ""}.</p>
+        <div style={{ maxWidth: 420, textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 24 }}>
+          <div style={{ fontSize: 34, marginBottom: 8 }}>🔒</div>
+          <h1 style={{ fontSize: 20, margin: "0 0 10px" }}>{entreprise.nomEntreprise}</h1>
+          <p style={{ fontSize: 14, margin: 0, color: "var(--text-muted)" }}>Ce lien n'est plus valide. Demandez un nouveau lien à l'administration{entreprise.telephone ? ` (${entreprise.telephone})` : ""}.</p>
         </div>
       </div>
     );
