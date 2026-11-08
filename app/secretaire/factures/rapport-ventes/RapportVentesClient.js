@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { argent } from "@/lib/format";
+import { TEINTES, CarteChiffre, TitrePanneau, BoutonAction, stylePanneau } from "../../../components/StyleSection";
 
 const GROUPEMENTS = [
   { valeur: "jour", label: "Jour" },
@@ -27,102 +28,111 @@ export default function RapportVentesClient({ lignes, totaux, ticketMoyen, debut
 
   const requete = `debut=${debutStr}&fin=${finStr}&groupement=${groupement}`;
 
+  const libelleGroupement = GROUPEMENTS.find((g) => g.valeur === groupement)?.label.toLowerCase() || groupement;
+
   return (
     <div className="conteneur-page">
-      <h1 style={{ fontSize: 20, marginBottom: 4 }}>📊 Rapport de ventes</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Chiffre d'affaires facturé, groupé par {groupement}.
-        {nombreAnnulees > 0 && ` ${nombreAnnulees} facture${nombreAnnulees !== 1 ? "s" : ""} annulée${nombreAnnulees !== 1 ? "s" : ""} exclue${nombreAnnulees !== 1 ? "s" : ""}.`}
-      </p>
-
-      <form onSubmit={appliquerFiltre} style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
-        <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
-        <select value={grp} onChange={(e) => setGrp(e.target.value)} style={champStyle}>
+      <form onSubmit={appliquerFiltre} style={stylePanneau}>
+        <TitrePanneau
+          icone="tendance" teinte={TEINTES.ambre} titre="Rapport de ventes"
+          sousTitre={`Chiffre d'affaires facturé, groupé par ${libelleGroupement}.${nombreAnnulees > 0 ? ` ${nombreAnnulees} facture${nombreAnnulees !== 1 ? "s" : ""} annulée${nombreAnnulees !== 1 ? "s" : ""} exclue${nombreAnnulees !== 1 ? "s" : ""}.` : ""}`}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div>
+            <label style={labelStyle}>Du</label>
+            <input type="date" max="9999-12-31" value={debut} onChange={(e) => setDebut(e.target.value)} style={champStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Au</label>
+            <input type="date" max="9999-12-31" value={fin} onChange={(e) => setFin(e.target.value)} style={champStyle} />
+          </div>
+        </div>
+        <label style={{ ...labelStyle, marginTop: 10 }}>Grouper par</label>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)", marginBottom: 12 }}>
           {GROUPEMENTS.map((g) => (
-            <option key={g.valeur} value={g.valeur}>{g.label}</option>
+            <button
+              key={g.valeur} type="button" onClick={() => setGrp(g.valeur)}
+              style={{ padding: "9px 4px", borderRadius: 9, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", background: grp === g.valeur ? "var(--accent)" : "transparent", color: grp === g.valeur ? "#221f18" : "var(--text-muted)" }}
+            >
+              {g.label}
+            </button>
           ))}
-        </select>
-        <button type="submit" className="bouton-3d-sombre" style={{ padding: "0 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-          Filtrer
+        </div>
+        <button type="submit" className="bouton-3d" style={{ width: "100%", padding: 11, borderRadius: 12, fontSize: 14, fontWeight: 700 }}>
+          Afficher le rapport
         </button>
       </form>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-        <Carte valeur={fmt(totaux.totalAvantTaxes)} label="Ventes (avant taxes)" couleur="var(--accent)" />
-        <Carte valeur={fmt(totaux.tps + totaux.tvq)} label="Taxes perçues" couleur="var(--text-muted)" />
-        <Carte valeur={fmt(totaux.totalAvecTaxes)} label="Total avec taxes" couleur="#6FA96B" />
-        <Carte
-          valeur={String(totaux.nombreFactures)}
-          label={`Facture${totaux.nombreFactures !== 1 ? "s" : ""} — ticket moyen ${fmt(ticketMoyen)}`}
-          couleur="var(--text)"
-        />
+      <div className="grille-deux" style={{ marginBottom: 20 }}>
+        <CarteChiffre titre="Ventes (avant taxes)" montant={fmt(totaux.totalAvantTaxes)} teinte="var(--accent)" couleur="var(--accent-ombre)" note={`Pièces ${fmt(totaux.totalPieces || 0)} · main-d'œuvre ${fmt(totaux.totalMainOeuvre || 0)}`} />
+        <CarteChiffre titre="Taxes perçues" montant={fmt(totaux.tps + totaux.tvq)} teinte="var(--bleu)" note={`TPS ${fmt(totaux.tps)} · TVQ ${fmt(totaux.tvq)}`} />
+        <CarteChiffre titre="Total avec taxes" montant={fmt(totaux.totalAvecTaxes)} teinte="var(--success)" couleur="var(--success)" note="Facturé aux clients" />
+        <CarteChiffre titre="Factures" montant={String(totaux.nombreFactures)} teinte="var(--bleu)" note={`Ticket moyen ${fmt(ticketMoyen)}`} />
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        <button onClick={() => window.print()} className="bouton-3d-sombre" style={boutonExportStyle}>🖨️ Imprimer</button>
-        <a href={`/api/factures/rapport-ventes/pdf?${requete}`} className="bouton-3d-sombre" style={{ ...boutonExportStyle, textDecoration: "none", display: "inline-block" }}>
-          📄 PDF
-        </a>
-        <a href={`/api/factures/rapport-ventes/csv?${requete}`} className="bouton-3d-sombre" style={{ ...boutonExportStyle, textDecoration: "none", display: "inline-block" }}>
-          📊 Excel (.csv)
-        </a>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+        <BoutonAction icone="imprimante" compact onClick={() => window.print()}>Imprimer</BoutonAction>
+        <BoutonAction icone="document" compact href={`/api/factures/rapport-ventes/pdf?${requete}`}>PDF</BoutonAction>
+        <BoutonAction icone="grille" compact href={`/api/factures/rapport-ventes/csv?${requete}`}>Excel (.csv)</BoutonAction>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <th style={enteteStyle}>Période</th>
-              <th style={{ ...enteteStyle, textAlign: "right" }}>#</th>
-              <th style={{ ...enteteStyle, textAlign: "right" }}>Pièces</th>
-              <th style={{ ...enteteStyle, textAlign: "right" }}>Main-d'œuvre</th>
-              <th style={{ ...enteteStyle, textAlign: "right" }}>Avant taxes</th>
-              <th style={{ ...enteteStyle, textAlign: "right" }}>Taxes</th>
-              <th style={{ ...enteteStyle, textAlign: "right" }}>Avec taxes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lignes.map((l) => (
-              <tr key={l.cle} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={celluleStyle}>{l.libelle}</td>
-                <td style={{ ...celluleStyle, textAlign: "right" }}>{l.nombreFactures}</td>
-                <td style={{ ...celluleStyle, textAlign: "right" }}>{fmt(l.totalPieces)}</td>
-                <td style={{ ...celluleStyle, textAlign: "right" }}>{fmt(l.totalMainOeuvre)}</td>
-                <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 600 }}>{fmt(l.totalAvantTaxes)}</td>
-                <td style={{ ...celluleStyle, textAlign: "right" }}>{fmt(l.tps + l.tvq)}</td>
-                <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 700 }}>{fmt(l.totalAvecTaxes)}</td>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="liste" teinte={TEINTES.bleu} titre={`Ventes par ${libelleGroupement}`} sousTitre={`Du ${debutStr} au ${finStr}`} />
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid var(--accent)" }}>
+                <th style={enteteStyle}>Période</th>
+                <th style={{ ...enteteStyle, textAlign: "right" }}>Factures</th>
+                <th style={{ ...enteteStyle, textAlign: "right" }}>Pièces</th>
+                <th style={{ ...enteteStyle, textAlign: "right" }}>Main-d'œuvre</th>
+                <th style={{ ...enteteStyle, textAlign: "right" }}>Avant taxes</th>
+                <th style={{ ...enteteStyle, textAlign: "right" }}>Taxes</th>
+                <th style={{ ...enteteStyle, textAlign: "right" }}>Avec taxes</th>
               </tr>
-            ))}
-            {lignes.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ padding: "16px 4px", color: "var(--text-muted)", fontStyle: "italic", textAlign: "center" }}>
-                  Aucune vente sur cette période.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {lignes.map((l) => (
+                <tr key={l.cle} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td style={{ ...celluleStyle, fontWeight: 700, whiteSpace: "nowrap" }}>{l.libelle}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right" }}>{l.nombreFactures}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right" }}>{fmt(l.totalPieces)}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right" }}>{fmt(l.totalMainOeuvre)}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 700 }}>{fmt(l.totalAvantTaxes)}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", color: "var(--text-muted)" }}>{fmt(l.tps + l.tvq)}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800 }}>{fmt(l.totalAvecTaxes)}</td>
+                </tr>
+              ))}
+              {lignes.length > 0 && (
+                <tr style={{ background: "rgba(232,163,61,0.16)" }}>
+                  <td style={{ ...celluleStyle, fontWeight: 800, color: "var(--accent-ombre)", borderRadius: "10px 0 0 10px" }}>Total</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800 }}>{totaux.nombreFactures}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800 }}>{totaux.totalPieces != null ? fmt(totaux.totalPieces) : ""}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800 }}>{totaux.totalMainOeuvre != null ? fmt(totaux.totalMainOeuvre) : ""}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800 }}>{fmt(totaux.totalAvantTaxes)}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800 }}>{fmt(totaux.tps + totaux.tvq)}</td>
+                  <td style={{ ...celluleStyle, textAlign: "right", fontWeight: 800, borderRadius: "0 10px 10px 0" }}>{fmt(totaux.totalAvecTaxes)}</td>
+                </tr>
+              )}
+              {lignes.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding: "16px 4px", color: "var(--text-muted)", textAlign: "center" }}>
+                    Aucune vente sur cette période.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 }
 
-function Carte({ valeur, label, couleur }) {
-  return (
-    <div className="carte carte-s">
-      <div style={{ fontSize: 18, fontWeight: 700, color: couleur }}>{valeur}</div>
-      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{label}</div>
-    </div>
-  );
-}
-
+const labelStyle = { fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4 };
 const champStyle = {
-  flex: "1 1 130px", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--surface)", color: "var(--text)", fontSize: 13,
+  width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 14, boxSizing: "border-box",
 };
-
-const boutonExportStyle = { border: "none", padding: "8px 14px", borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer" };
-
-const enteteStyle = { textAlign: "left", padding: "6px 4px", fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)" };
-const celluleStyle = { padding: "8px 4px" };
+const enteteStyle = { textAlign: "left", padding: "8px 8px", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap" };
+const celluleStyle = { padding: "10px 8px", whiteSpace: "nowrap" };

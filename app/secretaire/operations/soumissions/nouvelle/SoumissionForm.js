@@ -15,6 +15,8 @@ import { correspondRecherche } from "@/lib/recherche";
 import { pieceCorrespond } from "@/lib/codesBarres";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
 import { argent } from "@/lib/format";
+import BandeauSection from "@/app/components/BandeauSection";
+import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "@/app/components/StyleSection";
 
 // Profil piecesEnHautDuBon : comme sur le bon, une seule section « Pièces »
 // en haut, avant les tâches. Les pièces restent enregistrées sur une tâche
@@ -232,221 +234,237 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
 
   return (
     <form onSubmit={creer} className="conteneur-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <Link href="/secretaire/operations/soumissions" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux soumissions</Link>
-        {soumissionExistante && (
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <BoutonEnvoiCourriel url={`/api/soumissions/${soumissionExistante.id}/envoyer`} courrielDefaut={soumissionExistante.client?.courriel} libelle="📧 Envoyer par courriel" style={{ fontSize: 12, border: "none", padding: 0, color: "var(--accent)" }} />
-            <Link href={`/secretaire/operations/soumissions/${soumissionExistante.id}/imprimer`} target="_blank" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>🖨️ Imprimer</Link>
+      <Link href="/secretaire/operations/soumissions" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux soumissions</Link>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection
+          icone="📝"
+          titre={soumissionExistante ? `Soumission #${soumissionExistante.numero}` : "Nouvelle soumission"}
+          sousTitre={soumissionExistante ? "Modifie l'estimé, puis enregistre — imprime-la ou envoie-la au client." : "Un estimé à donner au client avant de commencer les travaux."}
+        />
+      </div>
+
+      {soumissionExistante && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          <BoutonEnvoiCourriel
+            url={`/api/soumissions/${soumissionExistante.id}/envoyer`} courrielDefaut={soumissionExistante.client?.courriel} libelle="📧 Envoyer par courriel"
+            style={{ flex: "1 1 0", minWidth: 0, padding: "10px 8px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, background: "var(--surface)" }}
+          />
+          <BoutonAction href={`/secretaire/operations/soumissions/${soumissionExistante.id}/imprimer`} target="_blank" icone="imprimante" style={{ flex: "1 1 0" }}>Imprimer</BoutonAction>
+        </div>
+      )}
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="personne" teinte={TEINTES.bleu} titre="Client" sousTitre={clientSelectionne ? undefined : "Cherche un client existant ou entre un nouveau client."} />
+        {clientSelectionne ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, background: TEINTES.bleu.fond, border: `1px solid ${TEINTES.bleu.couleur}` }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "var(--surface)", color: TEINTES.bleu.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800 }}>
+              {(nomSurSoumission || clientSelectionne.nom).charAt(0).toUpperCase()}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {editionNom ? (
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                  <input
+                    value={nomEnEdition} onChange={(e) => setNomEnEdition(e.target.value)} autoFocus placeholder={clientSelectionne.nom}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); validerNom(); } if (e.key === "Escape") setEditionNom(false); }}
+                    style={{ ...champInput, marginBottom: 0, flex: 1, minWidth: 140, fontWeight: 600, background: "var(--surface)" }}
+                  />
+                  <button type="button" onClick={validerNom} style={boutonLien}>OK</button>
+                  <button type="button" onClick={() => setEditionNom(false)} style={{ ...boutonLien, color: "var(--text-muted)" }}>Annuler</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800 }}>{nomSurSoumission || clientSelectionne.nom}</span>
+                  <button type="button" onClick={() => { setNomEnEdition(nomSurSoumission || clientSelectionne.nom); setEditionNom(true); }} style={boutonLien}>
+                    Modifier le nom
+                  </button>
+                </div>
+              )}
+              {nomSurSoumission && nomSurSoumission !== clientSelectionne.nom && !editionNom && (
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Nom sur cette soumission seulement — dossier : {clientSelectionne.nom}</div>
+              )}
+              <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
+                {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
+              </div>
+              {clientSelectionne.garantieProlongee && (
+                <div style={{ marginTop: 6 }}><Pastille couleur={TEINTES.bleu.couleur} fond="var(--surface)">Garantie prolongée #{clientSelectionne.garantieProlongee}</Pastille></div>
+              )}
+            </div>
+            <button type="button" onClick={changerClientPourNouveau} style={{ ...boutonLien, whiteSpace: "nowrap", alignSelf: "flex-start" }}>
+              Changer
+            </button>
           </div>
+        ) : (
+          <>
+            <div ref={boiteRef} style={{ position: "relative" }}>
+              <label style={labelStyle}>Nom du client</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
+                  <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+                </span>
+                <input
+                  required
+                  value={rechercheClient}
+                  onChange={(e) => { setRechercheClient(e.target.value); setClientNom(e.target.value); setAfficherSuggestions(true); }}
+                  onFocus={() => setAfficherSuggestions(true)}
+                  placeholder="Nom du client — recherche ou nouveau"
+                  style={{ ...champInput, paddingLeft: 40 }}
+                />
+              </div>
+              {afficherSuggestions && suggestions.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, zIndex: 10, marginTop: -4, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}>
+                  {suggestions.map((c) => (
+                    <button
+                      key={c.id} type="button" onClick={() => choisirClient(c)}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 13.5, cursor: "pointer" }}
+                    >
+                      <div style={{ fontWeight: 700 }}>{c.nom}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{[c.telephone, c.ville].filter(Boolean).join(" · ")}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <label style={labelStyle}>Téléphone</label>
+            <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+            <label style={labelStyle}>Adresse</label>
+            <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
+            <label style={labelStyle}>Ville</label>
+            <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Province</label>
+                <SelectProvince valeur={clientProvince} onChange={setClientProvince} style={{ ...champInput, marginBottom: 0 }} />
+              </div>
+              <div style={{ width: 120 }}>
+                <label style={labelStyle}>Code postal</label>
+                <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={{ ...champInput, marginBottom: 0 }} />
+              </div>
+            </div>
+          </>
         )}
       </div>
-      <h1 style={{ fontSize: 20, marginBottom: 4 }}>{soumissionExistante ? "Modifier la soumission" : "Nouvelle soumission"}</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        {soumissionExistante ? `#${soumissionExistante.numero}` : "Un estimé à donner au client avant de commencer les travaux."}
-      </p>
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Client</div>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="vehicule" teinte={TEINTES.bleu} titre="Véhicule" />
+        <ChoixVehiculeClient
+          key={clientSelectionne?.id || "nouveau-client"}
+          vehicules={clientSelectionne?.vehicules || []}
+          choix={choixVehicule} onChoix={setChoixVehicule}
+          vehicule={vehicule} onVehicule={setVehicule}
+          onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
+          libelleNouveau="+ Autre véhicule (ajouté au dossier du client si la soumission est acceptée)"
+        />
+      </div>
 
-      {clientSelectionne ? (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {editionNom ? (
-              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                <input
-                  value={nomEnEdition} onChange={(e) => setNomEnEdition(e.target.value)} autoFocus placeholder={clientSelectionne.nom}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); validerNom(); } if (e.key === "Escape") setEditionNom(false); }}
-                  style={{ ...champInput, marginBottom: 0, flex: 1, minWidth: 140, fontWeight: 600 }}
-                />
-                <button type="button" onClick={validerNom} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>OK</button>
-                <button type="button" onClick={() => setEditionNom(false)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Annuler</button>
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, fontWeight: 600 }}>
-                {nomSurSoumission || clientSelectionne.nom}
-                <button type="button" onClick={() => { setNomEnEdition(nomSurSoumission || clientSelectionne.nom); setEditionNom(true); }} style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                  ✏️ Modifier le nom
-                </button>
-              </div>
-            )}
-            {nomSurSoumission && nomSurSoumission !== clientSelectionne.nom && !editionNom && (
-              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Nom sur cette soumission seulement — dossier : {clientSelectionne.nom}</div>
-            )}
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
-              {clientSelectionne.garantieProlongee && <> · 🛡️ Garantie #{clientSelectionne.garantieProlongee}</>}
-            </div>
-          </div>
-          <button type="button" onClick={changerClientPourNouveau} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
-            Changer de client
-          </button>
-        </div>
-      ) : (
-        <div ref={boiteRef} style={{ position: "relative" }}>
-          <label style={labelStyle}>Nom du client</label>
-          <input
-            required
-            value={rechercheClient}
-            onChange={(e) => { setRechercheClient(e.target.value); setClientNom(e.target.value); setAfficherSuggestions(true); }}
-            onFocus={() => setAfficherSuggestions(true)}
-            placeholder="Nom du client — recherche ou nouveau"
-            style={champInput}
-          />
-          {afficherSuggestions && suggestions.length > 0 && (
-            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: -4, overflow: "hidden" }}>
-              {suggestions.map((c) => (
-                <button
-                  key={c.id} type="button" onClick={() => choisirClient(c)}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}
-                >
-                  <div style={{ fontWeight: 600 }}>{c.nom}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{[c.telephone, c.ville].filter(Boolean).join(" · ")}</div>
-                </button>
+      {PIECES_EN_HAUT && (
+        <div style={stylePanneau}>
+          <TitrePanneau icone="boite" teinte={TEINTES.ambre} titre="Pièces de la soumission" />
+          {piecesHaut.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+              {piecesHaut.map((p) => (
+                <LignePiece key={p.id} piece={p} inventaire={inventaire} onChange={(champ, valeur) => majPieceHaut(p.id, champ, valeur)} onSupprimer={() => setPiecesHaut((prev) => prev.filter((x) => x.id !== p.id))} />
               ))}
             </div>
           )}
+          <AjoutPieces
+            inventaire={inventaire}
+            onAjouterLibre={() => setPiecesHaut((prev) => [...prev, nouvellePiece()])}
+            onAjouterInventaire={(piece) => setPiecesHaut((prev) => ajouterDeLInventaire(prev, piece))}
+          />
         </div>
       )}
 
-      {!clientSelectionne && (
-        <>
-          <label style={labelStyle}>Téléphone</label>
-          <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
-          <label style={labelStyle}>Adresse</label>
-          <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
-          <label style={labelStyle}>Ville</label>
-          <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Province</label>
-              <SelectProvince valeur={clientProvince} onChange={setClientProvince} style={champInput} />
-            </div>
-            <div style={{ width: 110 }}>
-              <label style={labelStyle}>Code postal</label>
-              <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={champInput} />
-            </div>
-          </div>
-        </>
-      )}
-
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
-      <ChoixVehiculeClient
-        key={clientSelectionne?.id || "nouveau-client"}
-        vehicules={clientSelectionne?.vehicules || []}
-        choix={choixVehicule} onChoix={setChoixVehicule}
-        vehicule={vehicule} onVehicule={setVehicule}
-        onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
-        libelleNouveau="+ Autre véhicule (ajouté au dossier du client si la soumission est acceptée)"
-      />
-      {PIECES_EN_HAUT && (
-        <>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Pièces de la soumission</div>
-          <div className="carte carte-s">
-            {piecesHaut.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
-                {piecesHaut.map((p) => (
-                  <LignePiece key={p.id} piece={p} inventaire={inventaire} onChange={(champ, valeur) => majPieceHaut(p.id, champ, valeur)} onSupprimer={() => setPiecesHaut((prev) => prev.filter((x) => x.id !== p.id))} />
-                ))}
+      <div style={stylePanneau}>
+        <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Tâches estimées" sousTitre={`Taux horaire : ${argent(tauxHoraireClient)}/h`} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {taches.map((t, idx) => (
+            <div key={t.id} style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 14, padding: 12 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: TEINTES.ambre.fond, color: TEINTES.ambre.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>
+                  {idx + 1}
+                </span>
+                <input
+                  placeholder="ex : Remplacement plaquettes de frein"
+                  value={t.description}
+                  onChange={(e) => majTache(t.id, "description", e.target.value)}
+                  style={{ ...champInput, marginBottom: 0, flex: 1, background: "var(--surface)", fontWeight: 600 }}
+                />
+                {taches.length > 1 && <BoutonIconeSuppr titre="Retirer la tâche" onClick={() => supprimerTache(t.id)} />}
               </div>
-            )}
-            <AjoutPieces
-              inventaire={inventaire}
-              onAjouterLibre={() => setPiecesHaut((prev) => [...prev, nouvellePiece()])}
-              onAjouterInventaire={(piece) => setPiecesHaut((prev) => ajouterDeLInventaire(prev, piece))}
-            />
-          </div>
-        </>
-      )}
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 16, marginBottom: 8 }}>Tâches estimées</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {taches.map((t, idx) => (
-          <div key={t.id} className="carte carte-s">
-            <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <input
-                placeholder={`Tâche ${idx + 1} — ex : Remplacement plaquettes de frein`}
-                value={t.description}
-                onChange={(e) => majTache(t.id, "description", e.target.value)}
-                style={{ ...champInput, marginBottom: 0, flex: 1 }}
-              />
-              {taches.length > 1 && (
-                <button type="button" onClick={() => supprimerTache(t.id)} style={boutonTexte}>✕</button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: PIECES_EN_HAUT ? 0 : 10 }}>
+                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Temps estimé</span>
+                <input
+                  type="number" min={0} step="0.25"
+                  value={t.tempsEstime}
+                  onChange={(e) => majTache(t.id, "tempsEstime", e.target.value)}
+                  style={{ ...champInput, marginBottom: 0, width: 80, textAlign: "center", background: "var(--surface)" }}
+                />
+                <span style={{ fontSize: 13, color: "var(--text-muted)" }}>h</span>
+                {t.tempsEstime && <span style={{ marginLeft: "auto", fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(Number(t.tempsEstime) * tauxHoraireClient)}</span>}
+              </div>
+
+              {!PIECES_EN_HAUT && (
+                <>
+                  {t.pieces.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+                      {t.pieces.map((p) => (
+                        <LignePiece key={p.id} piece={p} inventaire={inventaire} onChange={(champ, valeur) => majPiece(t.id, p.id, champ, valeur)} onSupprimer={() => supprimerPiece(t.id, p.id)} />
+                      ))}
+                    </div>
+                  )}
+                  <AjoutPieces
+                    inventaire={inventaire}
+                    onAjouterLibre={() => ajouterPiece(t.id)}
+                    onAjouterInventaire={(piece) => ajouterPieceInventaire(t.id, piece)}
+                  />
+                </>
               )}
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Temps estimé :</span>
-              <input
-                type="number" min={0} step="0.25"
-                value={t.tempsEstime}
-                onChange={(e) => majTache(t.id, "tempsEstime", e.target.value)}
-                style={{ ...champInput, marginBottom: 0, width: 70, textAlign: "center" }}
-              />
-              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                h {t.tempsEstime ? `≈ ${argent((Number(t.tempsEstime) * tauxHoraireClient))}` : ""}
-              </span>
-            </div>
-
-            {!PIECES_EN_HAUT && (
-              <>
-                {t.pieces.length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
-                    {t.pieces.map((p) => (
-                      <LignePiece key={p.id} piece={p} inventaire={inventaire} onChange={(champ, valeur) => majPiece(t.id, p.id, champ, valeur)} onSupprimer={() => supprimerPiece(t.id, p.id)} />
-                    ))}
-                  </div>
-                )}
-                <AjoutPieces
-                  inventaire={inventaire}
-                  onAjouterLibre={() => ajouterPiece(t.id)}
-                  onAjouterInventaire={(piece) => ajouterPieceInventaire(t.id, piece)}
-                />
-              </>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
+        <button type="button" onClick={ajouterTache} style={{ ...boutonPointille, marginTop: 10 }}>
+          + Ajouter une autre tâche
+        </button>
       </div>
-      <button type="button" onClick={ajouterTache} style={{ ...boutonAjoutLigne, marginTop: 10 }}>
-        + Ajouter une autre tâche
-      </button>
 
-      <div style={{ marginTop: 16, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-          <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({totalTemps}h × {argent(tauxHoraireClient)})</span>
-          <span style={{ fontWeight: 600 }}>{argent(totalMainOeuvre)}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-          <span style={{ color: "var(--text-muted)" }}>Pièces estimées</span>
-          <span style={{ fontWeight: 600 }}>{argent(totalPieces)}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
-          <span>Sous-total</span>
-          <span>{argent(totalEstime)}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-          <span style={{ color: "var(--text-muted)" }}>TPS ({tpsTaux}%){tpsNumero && <span style={{ fontSize: 10 }}> · n° {tpsNumero}</span>}</span>
-          <span>{argent(tpsMontant)}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-          <span style={{ color: "var(--text-muted)" }}>TVQ ({tvqTaux}%){tvqNumero && <span style={{ fontSize: 10 }}> · n° {tvqNumero}</span>}</span>
-          <span>{argent(tvqMontant)}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, fontWeight: 700, marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
-          <span>Total estimé (taxes incl.)</span>
-          <span style={{ color: "var(--accent)" }}>{argent(totalAvecTaxes)}</span>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="calculatrice" teinte={TEINTES.vert} titre="Total estimé" />
+        <LigneTotal libelle={`Main-d'œuvre (${totalTemps} h × ${argent(tauxHoraireClient)})`} montant={totalMainOeuvre} premiere />
+        <LigneTotal libelle="Pièces estimées" montant={totalPieces} />
+        <LigneTotal libelle="Sous-total" montant={totalEstime} gras />
+        <LigneTotal libelle={<>TPS ({tpsTaux} %){tpsNumero && <span style={{ fontSize: 11 }}> · n° {tpsNumero}</span>}</>} montant={tpsMontant} />
+        <LigneTotal libelle={<>TVQ ({tvqTaux} %){tvqNumero && <span style={{ fontSize: 11 }}> · n° {tvqNumero}</span>}</>} montant={tvqMontant} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: "rgba(232,163,61,0.16)", marginTop: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)" }}>Total estimé (taxes incl.)</span>
+          <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(totalAvecTaxes)}</span>
         </div>
       </div>
 
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginTop: 10 }}>{erreur}</p>}
-      {confirmation && <p style={{ color: "var(--success)", fontSize: 13, marginTop: 10 }}>{confirmation}</p>}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 700, marginTop: 0 }}>{erreur}</p>}
+      {confirmation && <p style={{ color: "var(--success)", fontSize: 13, fontWeight: 700, marginTop: 0 }}>{confirmation}</p>}
 
-      <button
-        type="submit" disabled={enCours}
-        style={{ width: "100%", marginTop: 16, padding: 12, borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, cursor: "pointer" }}
-      >
+      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 13, borderRadius: 12, fontWeight: 700, fontSize: 15, marginBottom: 16 }}>
         {enCours ? "Enregistrement…" : soumissionExistante ? "Sauvegarder les modifications" : "Créer la soumission"}
       </button>
     </form>
+  );
+}
+
+function LigneTotal({ libelle, montant, gras, premiere }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13.5, padding: "8px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", fontWeight: gras ? 800 : 400 }}>
+      <span style={{ color: gras ? "var(--text)" : "var(--text-muted)" }}>{libelle}</span>
+      <span style={{ fontWeight: gras ? 800 : 700, fontVariantNumeric: "tabular-nums" }}>{argent(montant)}</span>
+    </div>
+  );
+}
+
+function BoutonIconeSuppr({ titre, onClick }) {
+  return (
+    <button type="button" onClick={onClick} title={titre} aria-label={titre} style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      <Icone nom="poubelle" taille={15} couleur="var(--danger)" />
+    </button>
   );
 }
 
@@ -464,20 +482,22 @@ function LignePiece({ piece: p, inventaire, onChange, onSupprimer }) {
   const manque = fiche && !CLIENT.stockNegatifBons && qte > fiche.qte;
   return (
     <div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {p.pieceId ? (
-          <div title="Pièce de l'inventaire — déduite du stock seulement quand la soumission devient un bon ou une facture" style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            📦 {p.nom}
+          <div title="Pièce de l'inventaire — déduite du stock seulement quand la soumission devient un bon ou une facture" style={{ ...champInput, marginBottom: 0, flex: "1 1 200px", width: "auto", fontSize: 13, fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6, background: "var(--surface)" }}>
+            <Icone nom="boite" taille={15} couleur={TEINTES.ambre.couleur} /> {p.nom}
           </div>
         ) : (
-          <input placeholder="Pièce" value={p.nom} onChange={(e) => onChange("nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: 1, fontSize: 12 }} />
+          <input placeholder="Pièce" value={p.nom} onChange={(e) => onChange("nom", e.target.value)} style={{ ...champInput, marginBottom: 0, flex: "1 1 200px", width: "auto", fontSize: 13, background: "var(--surface)" }} />
         )}
-        <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => onChange("qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 50, fontSize: 12, textAlign: "center" }} />
-        <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => onChange("prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 70, fontSize: 12 }} />
-        <button type="button" onClick={onSupprimer} style={boutonTexte}>✕</button>
+        <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+        <input type="number" min={0} placeholder="Qté" value={p.qte} onChange={(e) => onChange("qte", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 56, fontSize: 13, textAlign: "center", background: "var(--surface)" }} />
+        <input type="number" min={0} step="0.01" placeholder="Prix $" value={p.prixEstime} onChange={(e) => onChange("prixEstime", e.target.value)} style={{ ...champInput, marginBottom: 0, width: 80, fontSize: 13, textAlign: "right", background: "var(--surface)" }} />
+        <BoutonIconeSuppr titre="Retirer la pièce" onClick={onSupprimer} />
+        </div>
       </div>
       {p.pieceId && (
-        <div style={{ fontSize: 10.5, color: manque ? "#D9822B" : "var(--text-muted)", margin: "2px 0 0 4px" }}>
+        <div style={{ fontSize: 12, color: manque ? "var(--avertissement)" : "var(--text-muted)", fontWeight: manque ? 700 : 400, margin: "4px 0 0 4px" }}>
           {fiche
             ? <>Inventaire{fiche.numero ? ` · #${fiche.numero}` : ""} · {libelleStock(fiche)}{manque ? " — pas assez pour transférer en ce moment" : ""} · déduite au transfert en bon ou en facture</>
             : "Inventaire · pièce désactivée ou retirée — elle ne pourra pas sortir du stock"}
@@ -519,17 +539,17 @@ function AjoutPieces({ inventaire, onAjouterLibre, onAjouterInventaire }) {
   }
 
   return (
-    <div style={{ display: "flex", gap: 6 }}>
-      <button type="button" onClick={onAjouterLibre} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11, flex: 1 }}>
-        + Ajouter une pièce estimée
+    <div style={{ display: "grid", gridTemplateColumns: inventaire.length > 0 ? "1fr 1fr" : "1fr", gap: 8 }}>
+      <button type="button" onClick={onAjouterLibre} style={boutonPointille}>
+        + Pièce estimée
       </button>
       {inventaire.length > 0 && (
-        <div ref={boiteRef} style={{ position: "relative", flex: 1 }}>
-          <button type="button" onClick={() => { setOuvert((v) => !v); setRecherche(""); }} style={{ ...boutonAjoutLigne, padding: "5px 8px", fontSize: 11 }}>
-            📦 Pièce de l'inventaire
+        <div ref={boiteRef} style={{ position: "relative" }}>
+          <button type="button" onClick={() => { setOuvert((v) => !v); setRecherche(""); }} style={boutonPointille}>
+            + Pièce de l'inventaire
           </button>
           {ouvert && (
-            <div style={{ position: "absolute", top: "100%", right: 0, width: "min(340px, calc(100vw - 32px))", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "100%", right: 0, width: "min(360px, calc(100vw - 32px))", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, zIndex: 10, marginTop: 4, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
               <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>
                 <input
                   autoFocus
@@ -539,10 +559,10 @@ function AjoutPieces({ inventaire, onAjouterLibre, onAjouterInventaire }) {
                     if (e.key === "Escape") setOuvert(false);
                     if (e.key === "Enter") { e.preventDefault(); if (suggestions.length > 0) choisir(suggestions[0]); }
                   }}
-                  placeholder="🔍 Rechercher (nom ou numéro)…"
-                  style={{ ...champInput, marginBottom: 0, fontSize: 12, padding: "6px 8px" }}
+                  placeholder="Rechercher (nom ou numéro)…"
+                  style={{ ...champInput, marginBottom: 0, fontSize: 13 }}
                 />
-                <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
+                <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 6 }}>
                   Le stock n'est pas touché : la pièce sera déduite quand la soumission deviendra un bon ou une facture.
                 </div>
               </div>
@@ -552,9 +572,9 @@ function AjoutPieces({ inventaire, onAjouterLibre, onAjouterInventaire }) {
                 ) : suggestions.slice(0, MAX_SUGGESTIONS_PIECES).map((p) => (
                   <button
                     key={p.id} type="button" onClick={() => choisir(p)}
-                    style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                    style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 12px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}
                   >
-                    {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{libelleStock(p)}</span>
+                    <strong>{p.nom}</strong> — <span style={p.qte <= 0 ? { color: "var(--avertissement)", fontWeight: 700 } : undefined}>{libelleStock(p)}</span>
                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{p.numero ? ` · #${p.numero}` : ""} · {argent(Number(p.prix || 0))}</span>
                   </button>
                 ))}
@@ -572,13 +592,13 @@ function AjoutPieces({ inventaire, onAjouterLibre, onAjouterInventaire }) {
   );
 }
 
-const labelStyle = { display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
+const labelStyle = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
 const champInput = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
-const boutonTexte = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 };
-const boutonAjoutLigne = {
-  background: "none", border: "1px dashed var(--border)", color: "var(--accent)", fontSize: 12,
-  padding: "6px 10px", borderRadius: 8, cursor: "pointer", width: "100%",
+const boutonLien = { fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" };
+const boutonPointille = {
+  width: "100%", padding: "10px 8px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer",
+  color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)",
 };
