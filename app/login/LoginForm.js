@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { image } from "@/lib/client";
+import { SignatureKontrolshop } from "../components/LogoKontrolshop";
 
 export default function LoginForm({ nomEntreprise }) {
   const router = useRouter();
@@ -80,6 +81,11 @@ export default function LoginForm({ nomEntreprise }) {
         >
           {chargement ? "Connexion…" : "Se connecter"}
         </button>
+
+        {/* Marque du logiciel — discrète, sous le logo du client */}
+        <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+          <SignatureKontrolshop />
+        </div>
       </form>
     </div>
   );
