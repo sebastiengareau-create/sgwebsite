@@ -7,7 +7,7 @@ import { Icone } from "./StyleSection";
 // gauche (ordinateur) et le menu hamburger (cellulaire), pour qu'ils soient
 // toujours identiques. Chaque lien porte son groupe et son icône (voir
 // EnTete.js) ; un groupe sans lien permis n'apparaît pas.
-export const ORDRE_GROUPES = ["Accueil", "Opérations", "Achats et stock", "Finances", "Équipe", "Configuration"];
+export const ORDRE_GROUPES = ["Accueil", "Équipe", "Opérations", "Achats et stock", "Finances", "Configuration"];
 
 // Lien actif = le plus long préfixe correspondant (ex. /secretaire/clients
 // plutôt que /secretaire quand on est sur la fiche d'un client)
