@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TitreSection } from "../../../components/ui";
+import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../../components/StyleSection";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "../FormulaireKit";
 import { argent, nombre } from "@/lib/format";
@@ -56,22 +56,33 @@ export default function KitDetailClient({ kit, pieces, categories, coutHoraireDe
     router.push("/secretaire/inventaire");
   }
 
+  const manque = possibles === 0 && kit.actif;
+  const couleurProfil = !kit.actif ? "var(--text-muted)" : manque ? "var(--danger)" : "var(--success)";
+  const nbPieces = kit.composantsKit.filter((c) => c.pieceId).length;
+  const nbMainOeuvre = kit.composantsKit.length - nbPieces;
+
   return (
     <div className="conteneur-page">
       <Link href="/secretaire/inventaire" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à l'inventaire</Link>
 
-      <div style={{ background: "var(--surface)", border: possibles === 0 && kit.actif ? "1px solid var(--danger)" : "1px solid var(--border)", borderRadius: 16, padding: 20, marginTop: 10, marginBottom: 16, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" }}>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>🧰 {kit.nom}</div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2 }}>{kit.numero}</div>
-        <span className="bouton-3d" style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>Kit · {nomCategorie}</span>
-        {!kit.actif && (
-          <span style={{ display: "inline-block", marginTop: 8, marginLeft: 6, padding: "4px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, border: "1px solid var(--border)", color: "var(--text-muted)" }}>Désactivé</span>
-        )}
-        {possibles !== null && (
-          <div style={{ fontSize: 12, marginTop: 8, fontWeight: 700, color: possibles === 0 ? "var(--danger)" : "var(--text-muted)" }}>
-            {possibles === 0 ? "⚠ Pas assez de pièces en stock pour faire ce kit" : `Le stock permet d'en faire ${possibles}`}
+      {/* Carte du kit */}
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "20px 20px 20px 24px", marginTop: 10, marginBottom: 14 }}>
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: couleurProfil }} />
+        <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: couleurProfil, opacity: 0.08 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: manque ? "var(--danger-fond)" : TEINTES.vert.fond, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icone nom="outils" taille={28} couleur={manque ? "var(--danger)" : TEINTES.vert.couleur} />
           </div>
-        )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{kit.nom}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2 }}>{kit.numero}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              <Pastille couleur={TEINTES.vert.couleur} fond={TEINTES.vert.fond}>Kit · {nomCategorie}</Pastille>
+              {!kit.actif && <Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Désactivé</Pastille>}
+              {manque && <Pastille couleur="var(--danger)" fond="var(--danger-fond)">Pas assez de pièces en stock</Pastille>}
+            </div>
+          </div>
+        </div>
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
@@ -87,99 +98,121 @@ export default function KitDetailClient({ kit, pieces, categories, coutHoraireDe
         />
       ) : (
         <>
-          <div className="carte" style={{ marginBottom: 12 }}>
-            <TitreSection>Contenu du kit</TitreSection>
-            {kit.composantsKit.map((c) => (
-              <div key={c.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 13, marginBottom: 6 }}>
-                {c.pieceId ? (
-                  <>
-                    <span>
-                      <Link href={`/secretaire/inventaire/${c.pieceId}`} style={{ color: "var(--text)" }}>{c.piece.nom}</Link> ×{c.qte}
-                      <span style={{ display: "block", fontSize: 11, color: c.piece.qte < c.qte ? "var(--danger)" : "var(--text-muted)" }}>
-                        {c.piece.numero} · {c.piece.qte} en stock{!c.piece.actif ? " · désactivée" : ""}
-                      </span>
-                    </span>
-                    <span style={{ fontWeight: 700 }}>{argent((c.qte * c.piece.coutant))}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>
-                      {c.description || "Main-d'œuvre"}
-                      <span style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>{String(c.qte).replace(".", ",")} h × {argent((c.coutHoraire || 0))}/h</span>
-                    </span>
-                    <span style={{ fontWeight: 700 }}>{argent((c.qte * (c.coutHoraire || 0)))}</span>
-                  </>
-                )}
-              </div>
-            ))}
+          <div className="grille-trois" style={{ marginBottom: 24 }}>
+            <CarteChiffre
+              titre="Kits possibles" montant={possibles === null ? "—" : nombre(possibles, 0)}
+              couleur={manque ? "var(--danger)" : "var(--text)"} teinte={manque ? "var(--danger)" : "var(--bleu)"}
+              note={possibles === null ? "Aucune pièce dans le kit" : "Avec le stock actuel"}
+            />
+            <CarteChiffre titre="Prix de vente" montant={argent(kit.prix)} teinte="var(--accent)" note={`Coûtant ${argent(cout.total)}`} />
+            <CarteChiffre
+              titre="Marge par kit" montant={argent(marge)} teinte={marge >= 0 ? "var(--success)" : "var(--danger)"}
+              couleur={marge >= 0 ? "var(--success)" : "var(--danger)"}
+              note={kit.prix > 0 ? `${nombre((marge / kit.prix) * 100, 0)} % du prix de vente` : "Aucun prix de vente"}
+            />
           </div>
 
-          <div className="carte" style={{ marginBottom: 12 }}>
-            <TitreSection>Prix et marge</TitreSection>
-            <Champ label="Coûtant des pièces" valeur={`${argent(cout.pieces)}`} />
-            <Champ label="Coûtant de la main-d'œuvre" valeur={`${argent(cout.mainOeuvre)}`} />
-            <Champ label="Coûtant total" valeur={`${argent(cout.total)}`} />
-            <Champ label="Prix de vente" valeur={`${argent(kit.prix)}`} />
-            <div style={{ borderTop: "1px dashed var(--border)", marginTop: 6, paddingTop: 6 }}>
-              <Champ label="Marge par kit" valeur={`${argent(marge)}${kit.prix > 0 ? ` (${nombre(((marge / kit.prix) * 100), 0)} %)` : ""}`} accent />
+          <div style={stylePanneau}>
+            <TitrePanneau
+              icone="liste" teinte={TEINTES.vert} titre="Contenu du kit"
+              sousTitre={`${nbPieces} pièce${nbPieces !== 1 ? "s" : ""}${nbMainOeuvre > 0 ? ` · ${nbMainOeuvre} ligne${nbMainOeuvre !== 1 ? "s" : ""} de main-d'œuvre` : ""}`}
+            />
+            {kit.composantsKit.map((c, i) => {
+              const ligne = { display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" };
+              if (c.pieceId) {
+                const enManque = c.piece.qte < c.qte;
+                return (
+                  <Link key={c.id} href={`/secretaire/inventaire/${c.pieceId}`} style={ligne}>
+                    <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: enManque ? "var(--danger-fond)" : TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Icone nom="boite" taille={18} couleur={enManque ? "var(--danger)" : TEINTES.ambre.couleur} />
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700 }}>{c.piece.nom} <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>×{c.qte}</span></div>
+                      <div style={{ fontSize: 12, color: enManque ? "var(--danger)" : "var(--text-muted)" }}>
+                        {c.piece.numero} · {c.piece.qte} en stock{!c.piece.actif ? " · désactivée" : ""}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(c.qte * c.piece.coutant)}</span>
+                    <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+                  </Link>
+                );
+              }
+              return (
+                <div key={c.id} style={ligne}>
+                  <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: TEINTES.bleu.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icone nom="horloge" taille={18} couleur={TEINTES.bleu.couleur} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700 }}>{c.description || "Main-d'œuvre"}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{String(c.qte).replace(".", ",")} h × {argent(c.coutHoraire || 0)}/h</div>
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", marginRight: 22 }}>{argent(c.qte * (c.coutHoraire || 0))}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={stylePanneau}>
+            <TitrePanneau icone="etiquette" teinte={TEINTES.ambre} titre="Prix et marge" />
+            <LigneDetail label="Coûtant des pièces" valeur={argent(cout.pieces)} premiere />
+            <LigneDetail label="Coûtant de la main-d'œuvre" valeur={argent(cout.mainOeuvre)} />
+            <LigneDetail label="Coûtant total" valeur={argent(cout.total)} />
+            <LigneDetail label="Prix de vente" valeur={argent(kit.prix)} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: marge >= 0 ? "var(--success-fond)" : "var(--danger-fond)", marginTop: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>Marge par kit</span>
+              <span style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: marge >= 0 ? "var(--success)" : "var(--danger)" }}>
+                {argent(marge)}{kit.prix > 0 ? ` · ${nombre((marge / kit.prix) * 100, 0)} %` : ""}
+              </span>
             </div>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 0" }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>
               Coûtant des pièces au coût moyen actuel. Sur un bon, la main-d'œuvre est comprise dans le prix du kit : les heures poinçonnées sur la tâche ne sont pas facturées en plus.
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button onClick={() => setModeEdition(true)} className="bouton-3d" style={{ flex: 1, padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 12.5 }}>✏️ Modifier</button>
-            <button onClick={basculerActif} disabled={enCours} className="bouton-3d-sombre" style={{ flex: 1, padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 12.5 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+            <BoutonAction icone="crayon" onClick={() => setModeEdition(true)}>Modifier</BoutonAction>
+            <BoutonAction icone={kit.actif ? "bloque" : "crochet"} couleur={kit.actif ? "var(--avertissement)" : "var(--success)"} onClick={basculerActif} disabled={enCours}>
               {kit.actif ? "Désactiver" : "Réactiver"}
-            </button>
-            <button onClick={supprimer} disabled={enCours} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid var(--danger)", background: "none", color: "var(--danger)", cursor: "pointer", fontSize: 12.5 }}>
-              Supprimer
-            </button>
+            </BoutonAction>
+            <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={supprimer} disabled={enCours}>Supprimer</BoutonAction>
           </div>
         </>
       )}
 
-      <div className="carte" style={{ marginBottom: 12 }}>
-        <TitreSection>Ventes sur des bons de travail</TitreSection>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="presse" teinte={TEINTES.ambre} titre="Ventes" sousTitre="Ajouts du kit sur des bons de travail" />
         {kit.utilisee.length === 0 ? (
           <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Ce kit n'a pas encore été ajouté à un bon.</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {kit.utilisee.map((u) => (
-              <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
-                  <span style={{ color: "var(--text-muted)" }}>#{u.probleme.bon.numero} — {u.probleme.bon.client.nom}</span>
-                  <span>{u.qte} × {argent(u.prix)}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          kit.utilisee.map((u, i) => (
+            <Link key={u.id} href={`/bons/${u.probleme.bon.id}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Bon #{u.probleme.bon.numero}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.probleme.bon.client.nom}</div>
+              </div>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 700, whiteSpace: "nowrap" }}>
+                {u.qte} × {argent(u.prix)} <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+              </span>
+            </Link>
+          ))
         )}
       </div>
 
       {kit.historique.length > 0 && (
-        <div className="carte">
-          <TitreSection>Historique</TitreSection>
-          {kit.historique.map((h) => (
-            <div key={h.id} style={{ fontSize: 12, borderBottom: "1px solid var(--border)", padding: "4px 0" }}>
-              <strong>{h.champ}</strong>{h.ancienneValeur ? ` : ${h.ancienneValeur} → ` : " : "}{h.nouvelleValeur || "—"}
-              <span style={{ display: "block", fontSize: 10.5, color: "var(--text-muted)" }}>
-                {new Date(h.modifieLe).toLocaleString("fr-CA", { dateStyle: "short", timeStyle: "short" })}{h.modifiePar ? ` · ${h.modifiePar}` : ""}
-              </span>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="horloge" teinte={TEINTES.neutre} titre="Historique" sousTitre="Modifications de la fiche" />
+          {kit.historique.map((h, i) => (
+            <div key={h.id} style={{ padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+              <div style={{ fontSize: 13.5 }}>
+                <strong>{h.champ}</strong> : {h.ancienneValeur && <><span style={{ color: "var(--text-muted)" }}>{h.ancienneValeur}</span> → </>}<strong>{h.nouvelleValeur || "—"}</strong>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                {new Date(h.modifieLe).toLocaleString("fr-CA", { dateStyle: "short", timeStyle: "short", timeZone: "America/Toronto" })}{h.modifiePar ? ` · ${h.modifiePar}` : ""}
+              </div>
             </div>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function Champ({ label, valeur, accent }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontWeight: 700, color: accent ? "var(--accent)" : "var(--text)" }}>{valeur}</span>
     </div>
   );
 }
