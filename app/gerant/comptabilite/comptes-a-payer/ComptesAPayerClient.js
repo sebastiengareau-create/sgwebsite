@@ -303,7 +303,7 @@ function BoutonIcone({ icone, titre, couleur = "var(--text-muted)", onClick }) {
   );
 }
 
-function BoutonAction({ icone, couleur = "var(--text)", fond = "var(--surface)", bordure = "var(--border)", onClick, children }) {
+export function BoutonAction({ icone, couleur = "var(--text)", fond = "var(--surface)", bordure = "var(--border)", onClick, children }) {
   return (
     <button
       type="button" onClick={onClick}
