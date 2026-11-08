@@ -4,6 +4,7 @@ import { useState } from "react";
 import { pieceCorrespond } from "@/lib/codesBarres";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import { argent, nombre } from "@/lib/format";
+import { Icone, TEINTES, TitrePanneau, BoutonAction, stylePanneau } from "../../components/StyleSection";
 
 // Création ou modification d'un kit (lib/kits.js) : nom, prix de vente, et
 // son contenu — des pièces de l'inventaire et de la main-d'œuvre. Le coûtant
@@ -74,10 +75,11 @@ export default function FormulaireKit({ kit, pieces, categories, coutHoraireDefa
   }
 
   return (
-    <form onSubmit={enregistrer} className="carte carte-m" style={{ marginBottom: 4 }}>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Un kit se facture à son prix, comme une pièce. L'ajouter à un bon déduit ses pièces de l'inventaire ; sa main-d'œuvre est comprise dans le prix (les heures poinçonnées sur cette tâche restent pour la paie).
-      </p>
+    <form onSubmit={enregistrer} style={stylePanneau}>
+      <TitrePanneau
+        icone="outils" teinte={TEINTES.vert} titre={kit ? "Modifier le kit" : "Nouveau kit"}
+        sousTitre="Un kit se facture à son prix, comme une pièce. L'ajouter à un bon déduit ses pièces de l'inventaire ; sa main-d'œuvre est comprise dans le prix (les heures poinçonnées sur cette tâche restent pour la paie)."
+      />
       <label className="etiquette">Nom du kit</label>
       <input required value={nom} onChange={(e) => setNom(e.target.value)} placeholder="ex : Changement d'huile" className="champ champ-espace" />
       <div style={{ display: "flex", gap: 8 }}>
@@ -95,18 +97,18 @@ export default function FormulaireKit({ kit, pieces, categories, coutHoraireDefa
         {categories.map((c) => <option key={c.code} value={c.code}>{c.nom}</option>)}
       </select>
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", margin: "6px 0" }}>Contenu du kit</div>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "10px 0 8px" }}>Contenu du kit</div>
       {composants.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Ajoute les pièces et la main-d'œuvre comprises dans le kit.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
         {composants.map((c) => {
           const piece = pieceParId.get(c.pieceId);
           return (
-            <div key={c.cle} style={{ display: "flex", gap: 6, alignItems: "center", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "6px 8px" }}>
+            <div key={c.cle} style={{ display: "flex", flexWrap: c.pieceId ? "nowrap" : "wrap", gap: 6, alignItems: "center", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "8px 10px" }}>
               {c.pieceId ? (
                 <>
-                  <div style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700 }}>
                     {piece?.nom || "Pièce introuvable"}
-                    <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>
                       {piece ? `${piece.numero} · ${piece.qte} en stock · coût ${argent((piece.coutant || 0))}` : ""}
                     </div>
                   </div>
@@ -115,34 +117,42 @@ export default function FormulaireKit({ kit, pieces, categories, coutHoraireDefa
                 </>
               ) : (
                 <>
-                  <input value={c.description} onChange={(e) => changer(c.cle, "description", e.target.value)} className="champ" style={{ flex: 1, minWidth: 0 }} />
+                  <input value={c.description} onChange={(e) => changer(c.cle, "description", e.target.value)} placeholder="Description de la main-d'œuvre" className="champ" style={{ flex: "1 1 100%", minWidth: 0 }} />
+                  <span style={{ flex: 1 }} />
                   <input type="number" min={0} step="0.05" value={c.qte} onChange={(e) => changer(c.cle, "qte", e.target.value)} title="Heures" className="champ" style={{ width: 60, textAlign: "center" }} />
                   <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>h ×</span>
                   <input type="number" min={0} step="0.01" value={c.coutHoraire} onChange={(e) => changer(c.cle, "coutHoraire", e.target.value)} title="Coût horaire ($)" className="champ" style={{ width: 70, textAlign: "center" }} />
                   <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>$/h</span>
                 </>
               )}
-              <button type="button" onClick={() => retirer(c.cle)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13 }}>✕</button>
+              <button type="button" onClick={() => retirer(c.cle)} aria-label="Retirer du kit" title="Retirer du kit" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
+              </button>
             </div>
           );
         })}
       </div>
 
-      <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="🔍 Ajouter une pièce (nom ou numéro)…" className="champ champ-espace" />
+      <div style={{ position: "relative" }}>
+        <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
+          <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+        </span>
+        <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Ajouter une pièce (nom ou numéro)…" className="champ champ-espace" style={{ paddingLeft: 40 }} />
+      </div>
       {suggestions.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
           {suggestions.map((p) => (
-            <button key={p.id} type="button" onClick={() => ajouterPiece(p)} style={{ textAlign: "left", padding: "7px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 12.5, cursor: "pointer" }}>
+            <button key={p.id} type="button" onClick={() => ajouterPiece(p)} style={{ textAlign: "left", padding: "9px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}>
               {p.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>— {p.numero}</span> <span style={{ color: "var(--text-muted)" }}>· {p.qte} en stock</span>
             </button>
           ))}
         </div>
       )}
-      <button type="button" onClick={ajouterMainOeuvre} className="bouton-3d-sombre" style={{ width: "100%", padding: 8, borderRadius: 8, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
+      <button type="button" onClick={ajouterMainOeuvre} style={{ width: "100%", padding: "10px 8px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer", color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)", marginBottom: 12 }}>
         + Main-d'œuvre
       </button>
 
-      <div style={{ fontSize: 12.5, background: "var(--bg)", borderRadius: 8, padding: 10 }}>
+      <div style={{ fontSize: 13, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
         <Ligne label="Coûtant des pièces" valeur={cout.pieces} />
         <Ligne label="Coûtant de la main-d'œuvre" valeur={cout.mainOeuvre} />
         <Ligne label="Coûtant total" valeur={cout.total} gras />
@@ -159,15 +169,11 @@ export default function FormulaireKit({ kit, pieces, categories, coutHoraireDefa
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}
-      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <button type="submit" disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 10, borderRadius: 8, fontWeight: 700 }}>
+      <div style={{ display: "grid", gridTemplateColumns: onAnnuler ? "1fr 1fr" : "1fr", gap: 8, marginTop: 12 }}>
+        <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
           {enCours ? "Enregistrement…" : kit ? "Enregistrer le kit" : "Créer le kit"}
         </button>
-        {onAnnuler && (
-          <button type="button" onClick={onAnnuler} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
-            Annuler
-          </button>
-        )}
+        {onAnnuler && <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={onAnnuler}>Annuler</BoutonAction>}
       </div>
     </form>
   );
