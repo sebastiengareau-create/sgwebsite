@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { compresserImage } from "@/lib/images";
 import { useChoixPhoto } from "@/app/components/ChoixPhoto";
+import { Icone } from "@/app/components/StyleSection";
 
 // Bouton photo d'une tâche, directement dans l'horodateur : le mécanicien
 // documente son travail sans ouvrir la fiche du bon. Les photos rejoignent
@@ -48,14 +49,15 @@ export default function TachePhoto({ bonId, problemeId, nbPhotos }) {
         disabled={envoi}
         onClick={photo.ouvrir}
         style={{
-          padding: "6px 12px", borderRadius: 999, border: "1px solid var(--border)", fontSize: 11, fontWeight: 700,
-          cursor: "pointer", background: "var(--surface)", color: "var(--text)",
+          display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 999, border: "1px solid var(--border)", fontSize: 13, fontWeight: 700,
+          cursor: "pointer", background: "var(--surface)", color: "var(--text)", fontFamily: "inherit",
         }}
       >
-        {envoi ? "Envoi…" : `📷 Photo${nbPhotos > 0 ? ` (${nbPhotos})` : ""}`}
+        <Icone nom="camera" taille={15} couleur="var(--accent-ombre)" />
+        {envoi ? "Envoi…" : `Photo${nbPhotos > 0 ? ` (${nbPhotos})` : ""}`}
       </button>
       {photo.element}
-      {erreur && <div style={{ color: "var(--danger)", fontSize: 10.5, marginTop: 4, maxWidth: 220, textAlign: "right" }}>{erreur}</div>}
+      {erreur && <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4, maxWidth: 240, textAlign: "right" }}>{erreur}</div>}
     </div>
   );
 }
