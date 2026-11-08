@@ -319,3 +319,17 @@ a { color: inherit; }
     grid-column: auto;
   }
 }
+
+/* Grille de 3 cases (ex. Comptes à payer : total dû, en retard, sous 7
+   jours) : une colonne sur cellulaire, trois sur une rangée dès 700 px —
+   jamais de case orpheline. */
+.grille-trois {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 700px) {
+  .grille-trois {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
