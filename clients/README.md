@@ -43,6 +43,10 @@ on décide quand et à qui une modification s'applique.
   Jobs en déplacement, **Élevage** (troupeau de bœuf wagyu, découpe et vente
   de viande, `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
+  **Copropriété** (syndicat de copropriété : unités et quotes-parts,
+  copropriétaires et historique des propriétaires, charges communes,
+  demandes de réparation et bons de travail, entretien préventif, documents
+  et portail sécurisé des copropriétaires, `lib/copropriete.js`).
 - **Contexte** : `clients/<id>/CLIENT.md` — qui est le client, ce qui le
   distingue et pourquoi.
 
