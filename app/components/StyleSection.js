@@ -184,16 +184,16 @@ export function GroupeLiens({ titre, teinte, liens }) {
 // Bouton d'action de même largeur que ses voisins (mettre dans une grille) :
 // lien interne, lien tel:/mailto:, ou bouton.
 // `compact` : texte et marges réduits, pour trois boutons côte à côte au cellulaire.
-export function BoutonAction({ icone, couleur = "var(--text)", fond = "var(--surface)", bordure = "var(--border)", href, onClick, disabled, compact, children }) {
+export function BoutonAction({ icone, couleur = "var(--text)", fond = "var(--surface)", bordure = "var(--border)", href, target, onClick, disabled, compact, style: styleEnPlus, children }) {
   const style = {
     display: "inline-flex", alignItems: "center", justifyContent: "center", gap: compact ? 4 : 6, padding: compact ? "9px 4px" : "10px 8px", borderRadius: 12,
     fontSize: compact ? 12.5 : 13.5, fontWeight: 700, cursor: disabled ? "default" : "pointer", color: couleur, background: fond,
     border: `1px solid ${bordure}`, textDecoration: "none", opacity: disabled ? 0.6 : 1, boxSizing: "border-box", minWidth: 0,
-    fontFamily: "inherit", lineHeight: 1.2, textAlign: "center",
+    fontFamily: "inherit", lineHeight: 1.2, textAlign: "center", ...styleEnPlus,
   };
   const contenu = <>{icone && <Icone nom={icone} taille={compact ? 14 : 16} couleur={couleur} />}<span style={{ minWidth: 0 }}>{children}</span></>;
   if (href && /^(tel|mailto):/.test(href)) return <a href={href} style={style}>{contenu}</a>;
-  if (href) return <Link href={href} style={style}>{contenu}</Link>;
+  if (href) return <Link href={href} target={target} rel={target === "_blank" ? "noopener noreferrer" : undefined} style={style}>{contenu}</Link>;
   return <button type="button" onClick={onClick} disabled={disabled} style={style}>{contenu}</button>;
 }
 
