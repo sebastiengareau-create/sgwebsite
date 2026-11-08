@@ -5,6 +5,7 @@ import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { peutGererJobsDeplacement } from "@/lib/envois";
 import EnTete from "../../components/EnTete";
 import BandeauSection from "../../components/BandeauSection";
+import { CarteChiffre } from "../../components/StyleSection";
 import EnvoisClient from "./EnvoisClient";
 import CarteSuivi from "./CarteSuivi";
 import { TACHES_SEULEMENT } from "@/lib/piecesSoumission";
@@ -50,11 +51,19 @@ export default async function JobsEnDeplacement(props) {
     }),
   ]);
 
+  const nbActifs = envois.filter((e) => STATUTS_ACTIFS.includes(e.statut)).length;
+  const nbNotifs = employes.filter((e) => e._count.abonnementsPush > 0).length;
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "12px 16px 0" }}>
         <BandeauSection icone="🚐" titre="Jobs en déplacement" sousTitre="Envoie un bon à des employés précis, avertis-les par notification et suis leurs déplacements." />
+        <div className="grille-trois" style={{ marginBottom: 4 }}>
+          <CarteChiffre titre="En cours" montant={String(nbActifs)} teinte="var(--accent)" couleur={nbActifs > 0 ? "var(--accent-ombre)" : "var(--text)"} note="Bons envoyés, pas encore terminés" />
+          <CarteChiffre titre="Joignables par notification" montant={`${nbNotifs} / ${employes.length}`} teinte="var(--success)" note="Les autres reçoivent un courriel" />
+          <CarteChiffre titre="Fermés — 7 jours" montant={String(envois.length - nbActifs)} teinte="var(--bleu)" note="Terminés ou annulés" />
+        </div>
       </div>
       <EnvoisClient
         bons={bons}

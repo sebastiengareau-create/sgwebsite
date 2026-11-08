@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { nombre } from "@/lib/format";
+import { TEINTES, Pastille, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 
 // Carte Leaflet (fonds OpenStreetMap), chargée à la demande depuis unpkg :
 // rien à installer, et rien de chargé pour qui n'ouvre pas cet onglet.
@@ -136,23 +137,24 @@ export default function CarteSuivi({ employes }) {
 
   return (
     <div className="conteneur-page-large" style={{ margin: "0 auto", padding: "0 16px 24px" }}>
-      <div className="carte">
-        <div className="titre-section">📍 Suivi GPS des employés</div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>
-          Positions partagées par les employés depuis « Mes tâches » (seulement pendant qu'ils partagent). Gardées 90 jours.
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-          <select className="champ" value={employeId} onChange={(e) => setEmployeId(e.target.value)} style={{ flex: "1 1 200px", width: "auto" }}>
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="epingle" teinte={TEINTES.vert} titre="Suivi GPS des employés"
+          sousTitre="Positions partagées depuis « Mes tâches », seulement pendant le partage. Gardées 90 jours."
+          droite={!employeId && dernieres.length > 0 ? <Pastille couleur="var(--success)" fond="var(--success-fond)">{dernieres.length} sur la carte</Pastille> : undefined}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: employeId ? "2fr 1fr" : "1fr", gap: 8, marginBottom: 10 }}>
+          <select className="champ" value={employeId} onChange={(e) => setEmployeId(e.target.value)} style={{ marginBottom: 0 }}>
             <option value="">Tous — dernière position (24 h)</option>
             {employes.map((e) => <option key={e.id} value={e.id}>Trajet de {e.nom}</option>)}
           </select>
           {employeId && (
-            <input type="date" className="champ" value={date} max={aujourdhui()} onChange={(e) => setDate(e.target.value)} style={{ flex: "0 1 170px", width: "auto" }} />
+            <input type="date" className="champ" value={date} max={aujourdhui()} onChange={(e) => setDate(e.target.value)} style={{ marginBottom: 0 }} />
           )}
         </div>
-        {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
-        <div ref={conteneur} style={{ height: 420, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--bg)" }} />
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+        {erreur && <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 700 }}>{erreur}</p>}
+        <div ref={conteneur} style={{ height: 420, borderRadius: 14, overflow: "hidden", border: "1px solid var(--border)", background: "var(--bg)" }} />
+        <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 10, padding: "8px 12px", borderRadius: 12, background: "var(--bg)" }}>
           {!employeId && (dernieres.length === 0 ? "Personne n'a partagé sa position dans les dernières 24 h." : `${dernieres.length} employé(s) sur la carte · rafraîchi aux 30 s`)}
           {employeId && trajet && (trajet.length === 0
             ? "Aucune position enregistrée cette journée-là."
