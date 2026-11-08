@@ -5,6 +5,8 @@ import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { NIVEAUX } from "./niveaux";
 import { argent, nombre } from "@/lib/format";
+import BandeauSection from "../components/BandeauSection";
+import { Icone, TEINTES, TitrePanneau, stylePanneau, TitreGroupe } from "../components/StyleSection";
 
 function fmt(montant) {
   return `${argent(montant)}`;
@@ -57,22 +59,26 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
     .join(" · ");
 
   return (
-    <div className="conteneur-page" style={{ maxWidth: 1000 }}>
-      {/* Bandeau d'accueil */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
-        <div>
-          <h1 style={{ fontSize: 22, margin: 0 }}>Bonjour {nomUtilisateur.split(" ")[0]} 👋</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "2px 0 0" }}>Voici l'état de votre entreprise aujourd'hui.</p>
+    <div className="conteneur-page">
+      {/* Bandeau d'accueil, avec le choix du mois */}
+      <BandeauSection icone="📊" titre={`Bonjour ${nomUtilisateur.split(" ")[0]} 👋`} sousTitre="Voici l'état de votre entreprise aujourd'hui.">
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 12, background: "rgba(0,0,0,0.28)", borderRadius: 999, padding: 4 }}>
+          <Link href={`/gerant?annee=${moisPrecUrl.annee}&mois=${moisPrecUrl.mois}`} aria-label="Mois précédent" style={boutonMois}><Icone nom="chevronGauche" taille={16} /></Link>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", minWidth: 120, textAlign: "center", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Icone nom="calendrier" taille={14} /> {nomMois} {annee}
+          </span>
+          <Link href={`/gerant?annee=${moisSuivUrl.annee}&mois=${moisSuivUrl.mois}`} aria-label="Mois suivant" style={boutonMois}><Icone nom="chevron" taille={16} /></Link>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "6px 8px" }}>
-          <Link href={`/gerant?annee=${moisPrecUrl.annee}&mois=${moisPrecUrl.mois}`} style={{ color: "var(--text-muted)", textDecoration: "none", padding: "2px 6px", fontSize: 13 }}>◀</Link>
-          <span style={{ fontSize: 13, fontWeight: 700, minWidth: 130, textAlign: "center" }}>📅 {nomMois} {annee}</span>
-          <Link href={`/gerant?annee=${moisSuivUrl.annee}&mois=${moisSuivUrl.mois}`} style={{ color: "var(--text-muted)", textDecoration: "none", padding: "2px 6px", fontSize: 13 }}>▶</Link>
-        </div>
-      </div>
+      </BandeauSection>
 
-      {/* KPI — bande de couleur selon l'état */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, marginBottom: 20 }}>
+      {/* Bénéfice net mis en avant, puis les quatre autres indicateurs (4 colonnes, 2 sur cellulaire) */}
+      <div style={{ marginBottom: 10 }}>
+        <CarteKpi
+          grand label="Bénéfice net" valeur={fmt(kpis.beneficeNet)} variation={kpis.beneficeNetVariation}
+          {...(kpis.beneficeNet > 0 ? { niveau: "bon", etat: "Positif" } : kpis.beneficeNet < 0 ? { niveau: "danger", etat: "Perte" } : { niveau: "neutre" })}
+        />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(max(150px, 22%), 1fr))", gap: 10, marginBottom: 24 }}>
         <CarteKpi label="Chiffre d'affaires" valeur={fmt(kpis.revenus)} variation={kpis.revenusVariation} {...niveauVariation(kpis.revenusVariation)} />
         <CarteKpi
           label="À recevoir" valeur={fmt(kpis.clientsARecevoir)} href="/secretaire/factures"
@@ -88,28 +94,24 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
           label="Liquidités" valeur={fmt(kpis.soldeBancaire)} variation={kpis.soldeBancaireVariation} {...nivReserve}
           sousLabel={sante.moisReserve != null ? `${fmtNombre(sante.moisReserve)} mois de réserve` : null}
         />
-        <CarteKpi
-          label="Bénéfice net" valeur={fmt(kpis.beneficeNet)} variation={kpis.beneficeNetVariation}
-          {...(kpis.beneficeNet > 0 ? { niveau: "bon", etat: "Positif" } : kpis.beneficeNet < 0 ? { niveau: "danger", etat: "Perte" } : { niveau: "neutre" })}
-        />
       </div>
 
       <BlocAlertes alertes={alertesTriees} decompte={decompteAlertes} />
 
       {/* Graphique + santé financière */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12, marginBottom: 20, alignItems: "start" }}>
-        <div className="carte">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 12, marginBottom: 24, alignItems: "start" }}>
+        <div style={{ ...stylePanneau, marginBottom: 0 }}>
+          <TitrePanneau icone="graphique" teinte={TEINTES.vert} titre="Revenus vs dépenses" sousTitre="12 derniers mois" />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>Revenus vs dépenses — 12 derniers mois</span>
-            <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>
+            <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 4 }}>
               {[{ cle: "comparaison", label: "Revenus / dépenses" }, { cle: "benefice", label: "Bénéfice" }].map((v) => (
                 <button
                   key={v.cle}
                   onClick={() => setVueGraphique(v.cle)}
                   style={{
-                    fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer",
+                    fontSize: 13, fontWeight: 700, padding: "7px 12px", borderRadius: 8, border: "none", cursor: "pointer",
                     background: vueGraphique === v.cle ? "var(--accent)" : "none",
-                    color: vueGraphique === v.cle ? "#17150f" : "var(--text-muted)",
+                    color: vueGraphique === v.cle ? "#221f18" : "var(--text-muted)",
                   }}
                 >
                   {v.label}
@@ -117,7 +119,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
             {vueGraphique === "comparaison" ? (
               <>
                 <Legende couleur="var(--success)" label="Revenus" />
@@ -146,7 +148,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
                       <div title={`Bénéfice : ${fmt(g.benefice)}`} style={{ width: "100%", maxWidth: 22, height: hauteur(g.benefice), background: g.benefice < 0 ? "var(--danger)" : "var(--success)", borderRadius: "4px 4px 0 0", opacity: opacite }} />
                     )}
                   </div>
-                  <span style={{ fontSize: 9.5, color: "var(--text-muted)" }}>{g.label}</span>
+                  <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{g.label}</span>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: g.benefice < 0 ? "var(--danger)" : "transparent" }} />
                 </div>
               );
@@ -154,13 +156,13 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
           </div>
         </div>
 
-        <div className="carte" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 14 }}>
+        <div style={{ ...stylePanneau, marginBottom: 0, padding: 0, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 18 }}>
             <JaugeScore score={sante.score} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>Santé financière</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: couleurScore(sante.score) }}>{sante.label}</div>
-              <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>Estimation indicative · 12 derniers mois ({sante.periode})</div>
+              <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.01em" }}>Santé financière</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: couleurScore(sante.score) }}>{sante.label}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Estimation indicative · 12 derniers mois ({sante.periode})</div>
             </div>
           </div>
           <LigneSante label="Marge bénéficiaire (12 mois)" cible="Cible ≥ 15 %" valeur={`${fmtNombre(sante.margePct)} %`} {...(sante.aucuneDonnee ? neutre : niveauMarge(sante.margePct))} />
@@ -185,41 +187,43 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
       <CarteRentabilite rentabilite={rentabilite} nomMois={nomMois} annee={annee} periode={periodeRentabilite} onChangerPeriode={setPeriodeRentabilite} />
 
       {/* Actions rapides */}
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>🚀 Actions rapides</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
-          <BoutonAction icone="🔧" label="Nouveau bon de travail" href="/secretaire/nouveau" />
-          <BoutonAction icone="🧑‍🤝‍🧑" label="Nouveau client" href="/secretaire/clients" />
-          <BoutonAction icone="🛒" label="Dépense" href="/gerant/comptabilite/comptes-a-payer" />
+      <section style={{ marginBottom: 24 }}>
+        <TitreGroupe couleur="var(--accent)">Actions rapides</TitreGroupe>
+        <div className="grille-actions">
+          <BoutonAction icone="outils" label="Nouveau bon de travail" href="/secretaire/nouveau" />
+          <BoutonAction icone="utilisateurPlus" label="Nouveau client" href="/secretaire/clients" />
+          <BoutonAction icone="panier" label="Dépense" href="/gerant/comptabilite/comptes-a-payer" />
           {CLIENT.actionRapideInventaire ? (
-            <BoutonAction icone="📦" label="Inventaire" href="/secretaire/inventaire" />
+            <BoutonAction icone="boite" label="Inventaire" href="/secretaire/inventaire" />
           ) : (
-            <BoutonAction icone="👥" label="Employé / Paie" href="/gerant/paie" />
+            <BoutonAction icone="calculatrice" label="Employé / Paie" href="/gerant/paie" />
           )}
-          <BoutonAction icone="📊" label="Rapports" href="/gerant/rapports" />
+          <BoutonAction icone="graphique" label="Rapports" href="/gerant/rapports" />
         </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-function CarteKpi({ label, valeur, sousLabel, variation, href, niveau = "neutre", etat }) {
+function CarteKpi({ label, valeur, sousLabel, variation, href, niveau = "neutre", etat, grand }) {
   const { couleur, fond } = NIVEAUX[niveau];
+  const bande = niveau === "neutre" ? "var(--accent)" : couleur;
   const contenu = (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", display: "flex", height: "100%", boxSizing: "border-box" }}>
-      <span style={{ width: 5, flexShrink: 0, background: couleur }} />
-      <div style={{ padding: "12px 14px", flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 4 }}>
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{label}</span>
-          {etat && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: fond, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, height: "100%", boxSizing: "border-box", padding: grand ? "18px 20px" : "14px 14px 14px 18px" }}>
+      <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: bande }} />
+      {grand && <span style={{ position: "absolute", right: -30, top: -30, width: 110, height: 110, borderRadius: "50%", background: bande, opacity: 0.08 }} />}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 4, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>{label}</span>
+          {etat && <span style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: fond, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>{valeur}</div>
+        <div style={{ fontSize: grand ? 32 : 21, fontWeight: 800, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", color: grand && niveau !== "neutre" ? couleur : "var(--text)" }}>{valeur}</div>
         {variation !== undefined && variation !== null && (
-          <div style={{ fontSize: 11, fontWeight: 700, color: variation >= 0 ? "var(--success)" : "var(--danger)", marginTop: 2 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: variation >= 0 ? "var(--success)" : "var(--danger)", marginTop: 2 }}>
             {variation >= 0 ? "↑" : "↓"} {fmtNombre(Math.abs(variation))} % <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>vs mois préc.</span>
           </div>
         )}
-        {sousLabel && <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginTop: 2 }}>{sousLabel}</div>}
+        {sousLabel && <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, marginTop: 2 }}>{sousLabel}</div>}
       </div>
     </div>
   );
@@ -230,23 +234,30 @@ function CarteKpi({ label, valeur, sousLabel, variation, href, niveau = "neutre"
 // moins grave, avec bande et fond de la couleur de son niveau.
 function BlocAlertes({ alertes, decompte }) {
   return (
-    <div className="carte" style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6, padding: "12px 16px", borderBottom: alertes.length ? "1px solid var(--border)" : "none" }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>⚠️ À surveiller aujourd'hui</span>
-        {decompte && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{decompte}</span>}
+    <div style={{ ...stylePanneau, padding: 0, overflow: "hidden", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "16px 18px", borderBottom: alertes.length ? "1px solid var(--border)" : "none" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, fontWeight: 800 }}>
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--avertissement-fond)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nom="alerte" taille={18} couleur="var(--avertissement)" />
+          </span>
+          À surveiller aujourd'hui
+        </span>
+        {decompte && <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-muted)" }}>{decompte}</span>}
       </div>
       {alertes.length === 0 ? (
-        <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0, padding: "0 16px 12px" }}>Rien à signaler — tout est sous contrôle. 🎉</p>
+        <p style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 13.5, margin: 0, padding: "0 18px 16px" }}>
+          <Icone nom="crochet" taille={18} couleur="var(--success)" /> Rien à signaler — tout est sous contrôle.
+        </p>
       ) : (
         alertes.map((a, i) => {
           const { couleur, fond } = NIVEAUX[a.niveau];
           return (
             <Link key={i} href={a.href} style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 46, paddingRight: 16, background: fond, borderBottom: i < alertes.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none", color: "inherit" }}>
               <span style={{ width: 5, alignSelf: "stretch", background: couleur, flexShrink: 0 }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: couleur, width: 62, flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>{ETAT_ALERTE[a.niveau]}</span>
-              <span style={{ flex: 1, fontSize: 13, padding: "8px 0" }}>{a.texte}</span>
-              {a.montant !== undefined && <span style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{fmt(a.montant)}</span>}
-              <span style={{ color: "var(--text-muted)" }}>→</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: couleur, width: 68, flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>{ETAT_ALERTE[a.niveau]}</span>
+              <span style={{ flex: 1, fontSize: 13.5, padding: "10px 0" }}>{a.texte}</span>
+              {a.montant !== undefined && <span style={{ fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap" }}>{fmt(a.montant)}</span>}
+              <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
             </Link>
           );
         })
@@ -289,20 +300,24 @@ function LigneSante({ label, cible, valeur, niveau, etat }) {
       <span style={{ width: 5, alignSelf: "stretch", background: couleur, flexShrink: 0 }} />
       <span style={{ width: 9, height: 9, borderRadius: "50%", background: niveau === "neutre" ? "var(--text-muted)" : couleur, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0, padding: "6px 0" }}>
-        <div style={{ fontSize: 12.5 }}>{label}</div>
-        {cible && <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{cible}</div>}
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{label}</div>
+        {cible && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{cible}</div>}
       </div>
-      {etat && <span style={{ fontSize: 10.5, fontWeight: 700, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
-      <span style={{ fontSize: 13, fontWeight: 700, minWidth: 70, textAlign: "right", whiteSpace: "nowrap" }}>{valeur}</span>
+      {etat && <span style={{ fontSize: 11.5, fontWeight: 700, color: couleur, whiteSpace: "nowrap" }}>{etat}</span>}
+      <span style={{ fontSize: 14, fontWeight: 800, minWidth: 70, textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{valeur}</span>
     </div>
   );
 }
 
+const boutonMois = { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 999, color: "#fff", textDecoration: "none", background: "rgba(255,255,255,0.12)" };
+
 function BoutonAction({ icone, label, href }) {
   return (
-    <Link href={href} className="bouton-3d-sombre" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "14px 8px", borderRadius: 12, textDecoration: "none", textAlign: "center" }}>
-      <span style={{ fontSize: 20 }}>{icone}</span>
-      <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text)" }}>{label}</span>
+    <Link href={href} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "16px 8px", borderRadius: 16, textDecoration: "none", textAlign: "center", background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <span style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(232,163,61,0.16)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <Icone nom={icone} taille={22} couleur="var(--accent-ombre)" />
+      </span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.25 }}>{label}</span>
     </Link>
   );
 }
@@ -325,19 +340,24 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
   const excedent = seuilCalculable ? totalRevenus - seuilRentabilite : null;
 
   return (
-    <div className="carte" style={{ marginBottom: 20 }}>
+    <div style={{ ...stylePanneau, marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>📊 Analyse de rentabilité</span>
-        <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 8, padding: 3 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, fontWeight: 800 }}>
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: TEINTES.bleu.fond, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nom="tendance" taille={18} couleur={TEINTES.bleu.couleur} />
+          </span>
+          Analyse de rentabilité
+        </span>
+        <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 4 }}>
           <button
             onClick={() => onChangerPeriode("mois")}
-            style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: periode === "mois" ? "var(--accent)" : "none", color: periode === "mois" ? "#17150f" : "var(--text-muted)" }}
+            style={{ fontSize: 13, fontWeight: 700, padding: "7px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: periode === "mois" ? "var(--accent)" : "none", color: periode === "mois" ? "#221f18" : "var(--text-muted)" }}
           >
             {nomMois}
           </button>
           <button
             onClick={() => onChangerPeriode("annee")}
-            style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: periode === "annee" ? "var(--accent)" : "none", color: periode === "annee" ? "#17150f" : "var(--text-muted)" }}
+            style={{ fontSize: 13, fontWeight: 700, padding: "7px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: periode === "annee" ? "var(--accent)" : "none", color: periode === "annee" ? "#221f18" : "var(--text-muted)" }}
           >
             Année {annee}
           </button>
@@ -349,7 +369,10 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
         <SectionPostes titre="Coûts" postes={depenses} total={totalDepenses} couleur="var(--danger)" sousTotal={`Fixes ${fmt(totalChargesFixes)} · Variables ${fmt(totalChargesVariables)}`} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+      <div
+        className={seuilCalculable ? "grille-actions" : undefined}
+        style={{ ...(seuilCalculable ? {} : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }), paddingTop: 14, borderTop: "1px solid var(--border)" }}
+      >
         <Metrique label="Bénéfice" valeur={fmt(benefice)} niveau={benefice >= 0 ? "bon" : "danger"} />
         <Metrique label="Marge" valeur={`${fmtNombre(margePct)} %`} niveau={totalRevenus > 0 ? niveauMarge(margePct).niveau : undefined} />
         {seuilCalculable ? (
@@ -418,10 +441,10 @@ function SectionPostes({ titre, postes, total, couleur, sousTotal }) {
 function Metrique({ label, valeur, niveau, sousLabel }) {
   const n = niveau ? NIVEAUX[niveau] : null;
   return (
-    <div style={{ background: n ? n.fond : "var(--surface-alt)", borderRadius: 10, padding: "10px 12px" }}>
-      <div style={{ fontSize: 16, fontWeight: 700, color: n ? n.couleur : "var(--text)" }}>{valeur}</div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</div>
-      {sousLabel && <div style={{ fontSize: 9.5, color: "var(--text-muted)", marginTop: 1 }}>{sousLabel}</div>}
+    <div style={{ background: n ? n.fond : "var(--surface-alt)", borderRadius: 12, padding: "12px 14px" }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: n ? n.couleur : "var(--text)", fontVariantNumeric: "tabular-nums" }}>{valeur}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-muted)" }}>{label}</div>
+      {sousLabel && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{sousLabel}</div>}
     </div>
   );
 }
