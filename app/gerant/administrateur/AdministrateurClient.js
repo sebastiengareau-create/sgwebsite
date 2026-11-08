@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
-import { LogoKontrolshop } from "../../components/LogoKontrolshop";
-import { SLOGAN, COURRIEL_SOUTIEN } from "@/lib/marque";
 
 export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
@@ -136,16 +134,6 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
           </div>
         </Panneau>
       )}
-
-      <Panneau titre="À propos">
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "8px 0 4px", textAlign: "center" }}>
-          <LogoKontrolshop taille={64} />
-          <div style={{ fontSize: 15, fontWeight: 600 }}>{SLOGAN}</div>
-          <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
-            Soutien : <a href={`mailto:${COURRIEL_SOUTIEN}`} style={{ color: "inherit" }}>{COURRIEL_SOUTIEN}</a>
-          </div>
-        </div>
-      </Panneau>
 
       <section style={{ marginBottom: 24 }}>
         <TitreGroupe couleur="var(--danger)">Zone sensible</TitreGroupe>
