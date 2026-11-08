@@ -2,17 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { STATUTS_ENVOI } from "@/lib/statutsEnvoi";
 import { dateCourteQuebec, heureQuebec } from "@/lib/regroupementDates";
 import ActivationNotifications from "../components/ActivationNotifications";
+import BandeauSection from "../components/BandeauSection";
+import { Icone, TEINTES, CarteChiffre, Pastille, TitreGroupe, TitrePanneau, BoutonAction, stylePanneau } from "../components/StyleSection";
 
 // Prochaine étape proposée à l'employé selon où en est l'envoi
 const PROCHAINE = {
-  ENVOYE: { statut: "EN_ROUTE", label: "🚗 Je pars (en route)" },
-  VU: { statut: "EN_ROUTE", label: "🚗 Je pars (en route)" },
-  EN_ROUTE: { statut: "SUR_PLACE", label: "📍 Je suis arrivé" },
-  SUR_PLACE: { statut: "TERMINE", label: "✅ Tâche terminée" },
+  ENVOYE: { statut: "EN_ROUTE", label: "Je pars (en route)", icone: "vehicule" },
+  VU: { statut: "EN_ROUTE", label: "Je pars (en route)", icone: "vehicule" },
+  EN_ROUTE: { statut: "SUR_PLACE", label: "Je suis arrivé", icone: "epingle" },
+  SUR_PLACE: { statut: "TERMINE", label: "Tâche terminée", icone: "crochet" },
 };
 
 const CLE_PARTAGE = "partage_gps_actif";
@@ -156,47 +157,51 @@ export default function MesTachesClient({ envois, clePublique }) {
     router.refresh();
   }
 
+  const enDeplacementCompte = actifs.filter((e) => e.statut === "EN_ROUTE" || e.statut === "SUR_PLACE").length;
+
   return (
     <div className="conteneur-page">
-      <h1 style={{ fontSize: 20, marginBottom: 4 }}>📲 Mes tâches</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>Les bons qui t'ont été envoyés. Indique où tu en es à chaque étape.</p>
+      <BandeauSection icone="📲" titre="Mes tâches" sousTitre="Les bons qui t'ont été envoyés. Indique où tu en es à chaque étape." />
+
+      <div className="grille-trois" style={{ marginBottom: 20 }}>
+        <CarteChiffre titre="À faire" montant={String(actifs.length)} teinte="var(--accent)" couleur={actifs.length > 0 ? "var(--accent-ombre)" : "var(--text)"} note={actifs.length > 0 ? "Bons envoyés, pas encore terminés" : "Rien en attente"} />
+        <CarteChiffre titre="En déplacement" montant={String(enDeplacementCompte)} teinte="#9A7FC7" note="En route ou sur place" />
+        <CarteChiffre titre="Terminées aujourd'hui" montant={String(termines.length)} teinte="var(--success)" couleur={termines.length > 0 ? "var(--success)" : "var(--text)"} note="Depuis minuit" />
+      </div>
 
       <ActivationNotifications clePublique={clePublique} />
 
-      <div className="carte carte-m" style={{ marginBottom: 16, borderLeft: `3px solid ${partage.actif ? "#6FA96B" : "var(--border)"}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>{partage.actif ? "🟢 Position partagée avec le bureau" : "📍 Partage de position arrêté"}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              {partage.etat || "Démarre automatiquement quand tu pars vers un client."}
-            </div>
-          </div>
-          <button
-            className={partage.actif ? "bouton-3d-sombre" : "bouton-3d"}
-            onClick={partage.actif ? partage.arreter : partage.demarrer}
-            style={{ fontSize: 12, padding: "8px 12px", borderRadius: 10, whiteSpace: "nowrap" }}
-          >
-            {partage.actif ? "Arrêter" : "Partager"}
-          </button>
-        </div>
+      <div style={{ ...stylePanneau, border: `1.5px solid ${partage.actif ? "var(--success)" : "var(--border)"}` }}>
+        <TitrePanneau
+          icone="epingle" teinte={partage.actif ? TEINTES.vert : TEINTES.neutre}
+          titre={partage.actif ? "Position partagée avec le bureau" : "Partage de position arrêté"}
+          sousTitre={partage.etat || "Démarre automatiquement quand tu pars vers un client."}
+          droite={partage.actif
+            ? <Pastille couleur="var(--success)" fond="var(--success-fond)">Actif</Pastille>
+            : <Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Arrêté</Pastille>}
+        />
         {partage.actif && (
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>
+          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 12px", padding: "8px 12px", borderRadius: 12, background: "var(--bg)" }}>
             Garde cette page ouverte pendant le déplacement : si tu changes d'application ou que l'écran se verrouille, le suivi s'interrompt jusqu'à ton retour.
           </p>
         )}
+        {partage.actif
+          ? <BoutonAction icone="bloque" couleur="var(--danger)" onClick={partage.arreter} style={{ width: "100%" }}>Arrêter le partage</BoutonAction>
+          : <BoutonAction icone="epingle" couleur="#fff" fond="var(--success)" bordure="var(--success)" onClick={partage.demarrer} style={{ width: "100%" }}>Partager ma position</BoutonAction>}
       </div>
 
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 700 }}>{erreur}</p>}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.16)">{actifs.length}</Pastille>}>À faire</TitreGroupe>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
         {actifs.map((e) => <CarteEnvoi key={e.id} envoi={e} occupe={occupe === e.id} onAvancer={() => avancer(e)} />)}
-        {actifs.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucune tâche en attente. 👍</p>}
+        {actifs.length === 0 && <p style={{ ...stylePanneau, color: "var(--text-muted)", fontSize: 13.5, textAlign: "center" }}>Aucune tâche en attente. 👍</p>}
       </div>
 
       {termines.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <div className="titre-section">Terminées aujourd'hui ({termines.length})</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ marginBottom: 24 }}>
+          <TitreGroupe couleur="var(--success)" droite={<Pastille couleur="var(--success)" fond="var(--success-fond)">{termines.length}</Pastille>}>Terminées aujourd'hui</TitreGroupe>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {termines.map((e) => <CarteEnvoi key={e.id} envoi={e} />)}
           </div>
         </div>
@@ -211,45 +216,63 @@ function CarteEnvoi({ envoi, occupe, onAvancer }) {
   const etape = PROCHAINE[envoi.statut];
   const adresse = [bon.client.adresse, bon.client.ville, bon.client.codePostal].filter(Boolean).join(", ");
   const vehicule = bon.vehicule && [bon.vehicule.annee, bon.vehicule.marque, bon.vehicule.modele].filter(Boolean).join(" ");
+  const contacts = [
+    adresse && { cle: "itin", href: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresse)}`, icone: "epingle", label: "Itinéraire" },
+    bon.client.telephone && { cle: "tel", href: `tel:${bon.client.telephone}`, icone: "telephone", label: "Appeler" },
+  ].filter(Boolean);
 
   return (
-    <div className="carte carte-m" style={{ borderLeft: `3px solid ${statut.color}`, opacity: etape ? 1 : 0.7 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{bon.numero}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: statut.color }}>● {statut.label}</span>
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 14px 14px 18px", opacity: etape ? 1 : 0.75 }}>
+      <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: statut.color }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>Bon #{bon.numero}</span>
+        <Pastille couleur={statut.color} fond="var(--surface-alt)">{statut.label}</Pastille>
       </div>
-      <div style={{ fontWeight: 600 }}>{bon.client.nom}</div>
-      {vehicule && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>🚘 {vehicule}{bon.vehicule.plaque ? ` · ${bon.vehicule.plaque}` : ""}</div>}
-      {bon.datePrevue && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>🕒 {dateCourteQuebec(bon.datePrevue)} à {heureQuebec(bon.datePrevue)}</div>}
-      {adresse && (
-        <a
-          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresse)}`}
-          target="_blank"
-          rel="noreferrer"
-          style={{ display: "block", fontSize: 12, color: "var(--accent)", textDecoration: "none", marginTop: 2 }}
-        >
-          📍 {adresse} — itinéraire
-        </a>
+      <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{bon.client.nom}</div>
+      {vehicule && <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{vehicule}{bon.vehicule.plaque ? ` · ${bon.vehicule.plaque}` : ""}</div>}
+      {bon.datePrevue && (
+        <div style={{ marginTop: 6 }}>
+          <Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>{dateCourteQuebec(bon.datePrevue)} à {heureQuebec(bon.datePrevue)}</Pastille>
+        </div>
       )}
-      {bon.client.telephone && (
-        <a href={`tel:${bon.client.telephone}`} style={{ display: "block", fontSize: 12, color: "var(--accent)", textDecoration: "none" }}>
-          📞 {bon.client.telephone}
-        </a>
+      {adresse && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6 }}>{adresse}</div>}
+      {contacts.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${contacts.length}, 1fr)`, gap: 8, marginTop: 10 }}>
+          {contacts.map((c) => (
+            c.cle === "itin"
+              ? <a key={c.cle} href={c.href} target="_blank" rel="noreferrer" style={styleLienAction}><Icone nom={c.icone} taille={16} couleur="var(--text)" />{c.label}</a>
+              : <BoutonAction key={c.cle} href={c.href} icone={c.icone}>{c.label}</BoutonAction>
+          ))}
+        </div>
       )}
       {bon.problemes.length > 0 && (
-        <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 13 }}>
-          {bon.problemes.map((p) => <li key={p.id}>{p.description}</li>)}
-        </ul>
+        <div style={{ marginTop: 10, padding: "4px 12px", borderRadius: 12, background: "var(--bg)" }}>
+          {bon.problemes.map((p, i) => (
+            <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: i === 0 ? "none" : "1px solid var(--border)", fontSize: 13.5 }}>
+              <span style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: TEINTES.ambre.fond, color: TEINTES.ambre.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 }}>{i + 1}</span>
+              <span style={{ paddingTop: 2 }}>{p.description}</span>
+            </div>
+          ))}
+        </div>
       )}
-      {envoi.message && <div style={{ fontSize: 12, fontStyle: "italic", color: "var(--text-muted)", marginTop: 6 }}>Note du bureau : « {envoi.message} »</div>}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 10 }}>
-        <Link href={`/bons/${bon.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>Voir la fiche complète →</Link>
+      {envoi.message && (
+        <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, padding: "8px 12px", borderRadius: 12, background: "rgba(232,163,61,0.12)" }}>
+          <strong style={{ color: "var(--accent-ombre)" }}>Note du bureau :</strong> « {envoi.message} »
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: etape ? "1fr 1fr" : "1fr", gap: 8, marginTop: 12 }}>
+        <BoutonAction href={`/bons/${bon.id}`} icone="presse">Voir la fiche</BoutonAction>
         {etape && (
-          <button className="bouton-3d" disabled={occupe} onClick={onAvancer} style={{ fontSize: 12, padding: "9px 14px", borderRadius: 10, fontWeight: 700 }}>
+          <BoutonAction icone={etape.icone} couleur="#fff" fond="var(--success)" bordure="var(--success)" onClick={onAvancer} disabled={occupe}>
             {occupe ? "…" : etape.label}
-          </button>
+          </BoutonAction>
         )}
       </div>
     </div>
   );
 }
+
+const styleLienAction = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 12,
+  fontSize: 13.5, fontWeight: 700, color: "var(--text)", background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none",
+};

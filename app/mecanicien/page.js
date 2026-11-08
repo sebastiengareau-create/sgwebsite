@@ -12,6 +12,10 @@ import { CLIENT } from "@/lib/client";
 import { bonEstAVenir, dateBon, regrouperParJour, heureQuebec, dateCourteQuebec, libelleJour, cleJourQuebec } from "@/lib/regroupementDates";
 import { TACHES_SEULEMENT } from "@/lib/piecesSoumission";
 import { libelleVehicule } from "@/lib/vehicules";
+import BandeauSection from "../components/BandeauSection";
+import { Icone, TEINTES, CarteChiffre, CarteLien, Pastille, TitreGroupe, TitrePanneau, stylePanneau } from "../components/StyleSection";
+
+const VIOLET = "#9A7FC7"; // bons à venir (planifiés plus tard)
 
 function dureeHeures(debutISO, finISO) {
   return (new Date(finISO) - new Date(debutISO)) / 3600000;
@@ -74,104 +78,103 @@ export default async function EspaceMecanicien() {
       ])
     : [0, 0];
 
+  const mesChronos = poinconsActifs.filter((t) => t.employeId === session.id).length + poinconsInternesActifs.filter((t) => t.employeId === session.id).length;
+  const nbEquipe = poinconsActifs.length + poinconsInternesActifs.length;
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <div className="conteneur-page">
-        {nbMesTaches > 0 && (
-          <Link href="/mes-taches" className="carte carte-m" style={{ display: "block", marginBottom: 16, textDecoration: "none", color: "var(--text)", borderLeft: "3px solid var(--accent)" }}>
-            <strong>📲 {nbMesTaches} tâche{nbMesTaches > 1 ? "s" : ""} t'{nbMesTaches > 1 ? "ont" : "a"} été envoyée{nbMesTaches > 1 ? "s" : ""}</strong>
-            <span style={{ fontSize: 12, color: "var(--accent)", marginLeft: 8 }}>Voir mes tâches →</span>
-          </Link>
+        <BandeauSection
+          icone="⏱️" titre={estGerant ? "Horodateur — vue d'ensemble" : "Horodateur"}
+          sousTitre={estGerant ? "Tous les poinçons actifs de l'équipe, par tâche." : "Poinçonne par tâche précise — tu peux avoir plusieurs tâches actives en même temps."}
+        />
+
+        {(nbMesTaches > 0 || (moduleDeplacement && nbAbonnements === 0)) && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            {nbMesTaches > 0 && (
+              <CarteLien
+                href="/mes-taches" icone="presse" teinte={TEINTES.ambre}
+                label={`${nbMesTaches} tâche${nbMesTaches > 1 ? "s" : ""} t'${nbMesTaches > 1 ? "ont" : "a"} été envoyée${nbMesTaches > 1 ? "s" : ""}`}
+                detail="Voir mes tâches"
+              />
+            )}
+            {moduleDeplacement && nbAbonnements === 0 && (
+              <CarteLien href="/mes-taches" icone="cloche" teinte={TEINTES.bleu} label="Active les notifications" detail="Pour être averti quand un bon t'est envoyé" />
+            )}
+          </div>
         )}
-        {moduleDeplacement && nbAbonnements === 0 && (
-          <Link href="/mes-taches" className="carte carte-s" style={{ display: "block", marginBottom: 16, textDecoration: "none", color: "var(--text)", fontSize: 13 }}>
-            🔔 Active les notifications pour être averti quand un bon t'est envoyé
-            <span style={{ fontSize: 12, color: "var(--accent)", marginLeft: 8 }}>Activer →</span>
-          </Link>
-        )}
-        <h1 style={{ fontSize: 20, marginBottom: 4 }}>{estGerant ? "Horodateur — vue d'ensemble" : "Horodateur"}</h1>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-          {estGerant
-            ? "Tous les poinçons actifs de l'équipe, par tâche."
-            : "Poinçonne par tâche précise — tu peux avoir plusieurs tâches actives en même temps."}
-        </p>
+
+        <div className="grille-trois" style={{ marginBottom: 24 }}>
+          <CarteChiffre
+            titre={estGerant ? "Poinçonnés en ce moment" : "Mes chronos en cours"} montant={String(estGerant ? nbEquipe : mesChronos)}
+            teinte="var(--success)" couleur={(estGerant ? nbEquipe : mesChronos) > 0 ? "var(--success)" : "var(--text)"}
+            note={estGerant ? "Toute l'équipe, bons et tâches internes" : "Bons et tâches internes"}
+          />
+          <CarteChiffre titre="Bons actifs" montant={String(bonsActifs.length)} teinte="var(--accent)" note="Non terminés, à faire aujourd'hui" />
+          <CarteChiffre titre="À venir" montant={String(nbAVenir)} teinte={VIOLET} note="Planifiés pour un autre jour" />
+        </div>
 
         {estGerant && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>
-              Poinçons actifs en ce moment ({poinconsActifs.length + poinconsInternesActifs.length})
-            </div>
-            {poinconsActifs.length + poinconsInternesActifs.length === 0 ? (
-              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Personne n'est poinçonné actuellement.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {poinconsActifs.map((t) => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600 }}>{t.employe.nom}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Bon #{t.bon.numero} — {t.tache.description}</div>
-                    </div>
-                    <span style={{ fontSize: 11, color: "var(--accent)", alignSelf: "center" }}>● en cours</span>
-                  </div>
-                ))}
-                {poinconsInternesActifs.map((t) => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600 }}>{t.employe.nom}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>🛠️ {t.tacheInterne.nom} (interne)</div>
-                    </div>
-                    <span style={{ fontSize: 11, color: "var(--accent)", alignSelf: "center" }}>● en cours</span>
-                  </div>
-                ))}
+          <div style={stylePanneau}>
+            <TitrePanneau
+              icone="horloge" teinte={TEINTES.vert} titre="Poinçons actifs"
+              sousTitre={nbEquipe === 0 ? "Personne n'est poinçonné actuellement." : "Qui travaille sur quoi, en ce moment."}
+              droite={<Pastille couleur="var(--success)" fond="var(--success-fond)">{nbEquipe}</Pastille>}
+            />
+            {[...poinconsActifs.map((t) => ({ id: t.id, nom: t.employe.nom, detail: `Bon #${t.bon.numero} — ${t.tache.description}`, interne: false })),
+              ...poinconsInternesActifs.map((t) => ({ id: t.id, nom: t.employe.nom, detail: `${t.tacheInterne.nom} (interne)`, interne: true }))].map((t, i) => (
+              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: TEINTES.ambre.fond, color: TEINTES.ambre.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>
+                  {t.nom.charAt(0).toUpperCase()}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{t.nom}</div>
+                  <div style={{ fontSize: 12.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.detail}</div>
+                </div>
+                <Pastille couleur="var(--success)" fond="var(--success-fond)">{t.interne ? "Interne" : "En cours"}</Pastille>
               </div>
-            )}
+            ))}
           </div>
         )}
 
         <SectionTachesInternes taches={tachesInternes} monId={session.id} />
 
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>
-          Bons de travail actifs ({bonsActifs.length})
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.16)">{bonsActifs.length}</Pastille>}>Bons de travail actifs</TitreGroupe>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
           {bonsActifs.map((b) => (
-            <div key={b.id} className="carte carte-m">
-              <EnTeteBon b={b} />
+            <CarteBon key={b.id} b={b}>
               {CLIENT.horodateurBonsReplies ? <BonReplie b={b} monId={session.id} /> : <TachesBon b={b} monId={session.id} />}
-            </div>
+            </CarteBon>
           ))}
-          {bonsActifs.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Aucun bon actif en ce moment.</p>}
+          {bonsActifs.length === 0 && <p style={{ ...stylePanneau, color: "var(--text-muted)", fontSize: 13.5, textAlign: "center" }}>Aucun bon actif en ce moment.</p>}
         </div>
 
         {nbAVenir > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", color: "#9A7FC7", marginBottom: 8 }}>
-              📅 À venir ({nbAVenir})
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ marginBottom: 24 }}>
+            <TitreGroupe couleur={VIOLET} droite={<Pastille couleur={VIOLET} fond="rgba(154,127,199,0.15)">{nbAVenir}</Pastille>}>À venir</TitreGroupe>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {groupesAVenir.map((g) => (
-                <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>{g.libelle}</span>
-                    <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>({g.elements.length})</span>
+                <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: VIOLET }}>{g.libelle}</span>
+                    <span style={{ fontSize: 12, color: "var(--text-muted)" }}>({g.elements.length})</span>
                     <span style={{ flex: 1, height: 1, background: "var(--border)" }} />
                   </div>
                   {g.elements.map((b) => (
-                    <div key={b.id} className="carte carte-m" style={{ borderLeft: "3px solid #9A7FC7" }}>
-                      <EnTeteBon b={b} />
+                    <CarteBon key={b.id} b={b} couleur={VIOLET}>
                       {CLIENT.horodateurBonsReplies ? <ResumeTaches b={b} /> : (
-                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-muted)" }}>
+                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 13, color: "var(--text-muted)" }}>
                           {b.problemes.map((pr) => <li key={pr.id}>{pr.description}</li>)}
                         </ul>
                       )}
                       {/* Le véhicule arrive d'avance : on peut poinçonner quand même,
                           ce qui fait passer le bon « En cours ». */}
-                      <details style={{ marginTop: 8 }}>
-                        <summary style={{ fontSize: 11, color: "var(--accent)", cursor: "pointer" }}>Commencer maintenant</summary>
+                      <details style={{ marginTop: 10 }}>
+                        <summary style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)", cursor: "pointer" }}>Commencer maintenant</summary>
                         <TachesBon b={b} monId={session.id} />
                       </details>
-                    </div>
+                    </CarteBon>
                   ))}
                 </div>
               ))}
@@ -183,30 +186,39 @@ export default async function EspaceMecanicien() {
   );
 }
 
+// Carte d'un bon : bande de couleur à gauche, en-tête, puis le contenu
+function CarteBon({ b, couleur = "var(--accent)", children }) {
+  return (
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 14px 14px 18px" }}>
+      <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleur }} />
+      <EnTeteBon b={b} />
+      {children}
+    </div>
+  );
+}
+
 function EnTeteBon({ b }) {
   return (
-    <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-muted)", fontFamily: "monospace" }}>#{b.numero}</span>
-        {b.datePrevue && (
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-            🕒 {libelleJour(cleJourQuebec(b.datePrevue))} à {heureQuebec(b.datePrevue)}
-          </span>
-        )}
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>Bon #{b.numero}</span>
+          {b.datePrevue && (
+            <Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>{libelleJour(cleJourQuebec(b.datePrevue))} à {heureQuebec(b.datePrevue)}</Pastille>
+          )}
+        </div>
+        {/* Véhicule à côté du nom — année, marque, modèle, version seulement
+            (pas de NIV ni de plaque) */}
+        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>
+          {b.client.nom}
+          {libelleVehicule(b.vehicule) && <span style={{ fontWeight: 400, color: "var(--text-muted)" }}> · {libelleVehicule(b.vehicule)}</span>}
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Créé le {dateCourteQuebec(b.creeLe)}</div>
       </div>
-      {/* Véhicule à côté du nom — année, marque, modèle, version seulement
-          (pas de NIV ni de plaque) */}
-      <div style={{ fontWeight: 600 }}>
-        {b.client.nom}
-        {libelleVehicule(b.vehicule) && (
-          <span style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: 12 }}>{libelleVehicule(b.vehicule)}</span>
-        )}
-      </div>
-      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Créé le {dateCourteQuebec(b.creeLe)}</div>
-      <Link href={`/bons/${b.id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>
-        Voir la fiche complète →
+      <Link href={`/bons/${b.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)", textDecoration: "none", whiteSpace: "nowrap" }}>
+        Fiche <Icone nom="chevron" taille={14} couleur="var(--accent-ombre)" />
       </Link>
-    </>
+    </div>
   );
 }
 
@@ -217,7 +229,7 @@ const TACHES_RESUME = 3;
 function ResumeTaches({ b }) {
   const reste = b.problemes.length - TACHES_RESUME;
   return (
-    <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-muted)" }}>
+    <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 13, color: "var(--text-muted)" }}>
       {b.problemes.slice(0, TACHES_RESUME).map((pr) => (
         <li key={pr.id} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pr.description}</li>
       ))}
@@ -236,19 +248,19 @@ function BonReplie({ b, monId }) {
     <>
       <ResumeTaches b={b} />
       {enCours.length > 0 && (
-        <div style={{ fontSize: 11, color: "var(--accent)", marginTop: 6 }}>
+        <div style={{ fontSize: 12.5, color: "var(--success)", fontWeight: 600, marginTop: 8 }}>
           {mien && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg)", border: "1px solid var(--accent)", borderRadius: 8, padding: "6px 8px", marginBottom: 4 }}>
-              <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>⏱️ {mien.tache.description}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--success-fond)", border: "1px solid var(--success)", borderRadius: 12, padding: "8px 10px", marginBottom: 6, color: "var(--text)" }}>
+              <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 700 }}>{mien.tache.description}</span>
               <TachePoincon problemeId={mien.problemeId} actif debut={mien.debut} />
             </div>
           )}
           {autres > 0 && <div>● {autres} autre{autres > 1 ? "s" : ""} chrono{autres > 1 ? "s" : ""} en cours</div>}
         </div>
       )}
-      <details style={{ marginTop: 8 }}>
-        <summary style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", cursor: "pointer" }}>
-          ⏱️ {b.problemes.length > 1 ? `Les ${b.problemes.length} tâches et leurs chronos` : "La tâche et ses chronos"}
+      <details style={{ marginTop: 10 }}>
+        <summary style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)", cursor: "pointer" }}>
+          {b.problemes.length > 1 ? `Les ${b.problemes.length} tâches et leurs chronos` : "La tâche et ses chronos"}
         </summary>
         <TachesBon b={b} monId={monId} />
       </details>
@@ -264,10 +276,13 @@ function TachesBon({ b, monId }) {
         const finies = pr.entreesTemps.filter((t) => t.employeId === monId && t.fin);
         const totalFini = finies.reduce((s, t) => s + dureeHeures(t.debut, t.fin), 0);
         return (
-          <div key={pr.id} style={{ background: "var(--bg)", border: monEntree ? "1px solid var(--accent)" : "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
-            <div style={{ fontSize: 13 }}><strong style={{ color: "var(--text-muted)" }}>{idxTache + 1}.</strong> {pr.description}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          <div key={pr.id} style={{ background: monEntree ? "var(--success-fond)" : "var(--bg)", border: `1px solid ${monEntree ? "var(--success)" : "var(--border)"}`, borderRadius: 12, padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <span style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: TEINTES.ambre.fond, color: TEINTES.ambre.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800 }}>{idxTache + 1}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, paddingTop: 3 }}>{pr.description}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
                 {totalFini > 0 ? `Ton temps : ${fmtHeures(totalFini)}` : "Non commencé"}
               </span>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginLeft: "auto" }}>

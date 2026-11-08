@@ -86,7 +86,7 @@ export default function ActivationNotifications({ clePublique }) {
   const actif = etat === "actif";
 
   return (
-    <div className="carte carte-m" style={{ marginBottom: 12, borderLeft: `3px solid ${actif ? "#6FA96B" : "#C9A227"}` }}>
+    <div style={{ background: "var(--surface)", border: `1.5px solid ${actif ? "var(--success)" : "var(--avertissement)"}`, borderRadius: 18, padding: 16, marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>{actif ? "🔔 Notifications activées" : "🔕 Notifications désactivées"}</div>

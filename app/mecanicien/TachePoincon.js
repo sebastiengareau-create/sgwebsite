@@ -17,7 +17,7 @@ function LiveTimer({ debut }) {
     const id = setInterval(() => setT(tempsEcoule(debut)), 1000);
     return () => clearInterval(id);
   }, [debut]);
-  return <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontFamily: "monospace", marginRight: 8 }}>{t}</span>;
+  return <span style={{ fontSize: 13, fontWeight: 800, color: "var(--success)", fontVariantNumeric: "tabular-nums", marginRight: 8 }}>{t}</span>;
 }
 
 export default function TachePoincon({ problemeId, actif, debut }) {
@@ -45,14 +45,16 @@ export default function TachePoincon({ problemeId, actif, debut }) {
         onClick={toggle}
         disabled={chargement}
         style={{
-          padding: "6px 12px", borderRadius: 999, border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer",
-          background: actif ? "#3a2620" : "var(--accent)",
-          color: actif ? "var(--danger)" : "#17150f",
+          display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+          background: actif ? "var(--danger-fond)" : "var(--success)",
+          color: actif ? "var(--danger)" : "#fff",
+          border: `1px solid ${actif ? "var(--danger)" : "var(--success)"}`,
         }}
       >
+        <span style={{ width: 8, height: 8, borderRadius: actif ? 2 : 999, background: "currentColor" }} />
         {chargement ? "…" : actif ? "Arrêter" : "Démarrer"}
       </button>
-      {erreur && <div style={{ color: "var(--danger)", fontSize: 10.5, marginTop: 4 }}>{erreur}</div>}
+      {erreur && <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{erreur}</div>}
     </div>
   );
 }
