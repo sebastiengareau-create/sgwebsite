@@ -1,19 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import MenuNavigation, { CarteUtilisateur, lienActif } from "./MenuNavigation";
 
 // Menu permanent à gauche sur ordinateur (masqué sous 1100 px par le CSS —
-// voir .barre-laterale dans globals.css). Mêmes liens que le menu hamburger.
-export default function BarreLaterale({ liens, nomEntreprise, version }) {
+// voir .barre-laterale dans globals.css). Mêmes liens, mêmes groupes que le
+// menu hamburger (MenuNavigation).
+export default function BarreLaterale({ liens, nomEntreprise, version, nom, role }) {
   const pathname = usePathname();
   const router = useRouter();
-
-  // Lien actif = le plus long préfixe correspondant (ex. /secretaire/clients
-  // plutôt que /secretaire quand on est sur la fiche d'un client)
-  const actif = liens
-    .filter((l) => pathname === l.href || pathname.startsWith(`${l.href}/`))
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   async function seDeconnecter() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -23,27 +18,11 @@ export default function BarreLaterale({ liens, nomEntreprise, version }) {
 
   return (
     <nav className="barre-laterale" aria-label="Menu principal">
-      <div style={{ fontSize: 14, fontWeight: 800, padding: "4px 12px 14px", color: "var(--accent)" }}>{nomEntreprise}</div>
-      {liens.map((l) => (
-        <Link
-          key={l.href}
-          href={l.href}
-          className={`barre-laterale-lien${l.href === actif ? " actif" : ""}${l.accent ? " accentue" : ""}`}
-        >
-          <span style={{ fontSize: 16 }}>{l.icone}</span>
-          {l.label}
-        </Link>
-      ))}
-      <div style={{ flex: 1 }} />
-      <button
-        onClick={seDeconnecter}
-        className="barre-laterale-lien"
-        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger)", width: "100%", textAlign: "left" }}
-      >
-        <span style={{ fontSize: 16 }}>🚪</span>
-        Déconnexion
-      </button>
-      {version && <div style={{ fontSize: 10.5, color: "var(--text-muted)", padding: "8px 12px 0", fontFamily: "monospace" }}>{version}</div>}
+      <div style={{ fontSize: 15, fontWeight: 800, padding: "4px 12px 16px", color: "var(--text)", letterSpacing: "-0.01em" }}>{nomEntreprise}</div>
+      <div style={{ flex: 1, overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>
+        <MenuNavigation liens={liens} actif={lienActif(liens, pathname)} />
+      </div>
+      <CarteUtilisateur nom={nom} role={role} onDeconnexion={seDeconnecter} version={version} />
     </nav>
   );
 }
