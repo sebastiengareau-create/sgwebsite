@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent } from "@/lib/format";
+import BandeauSection from "../../../components/BandeauSection";
+import { Icone, TEINTES, CarteChiffre, BoutonPlein, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../../components/StyleSection";
 
 export default function ImmobilisationsClient({ immobilisations, amortissements }) {
   const router = useRouter();
@@ -44,78 +46,132 @@ export default function ImmobilisationsClient({ immobilisations, amortissements 
     router.refresh();
   }
 
+  const actives = immobilisations.filter((im) => im.actif);
+  const coutTotal = actives.reduce((s, im) => s + im.coutAcquisition, 0);
+  const enAmortissement = actives.filter((im) => im.amortissementCumule < Math.max(0, im.coutAcquisition - im.valeurResiduelle) - 0.005);
+  const amortissementMensuelTotal = enAmortissement.reduce((s, im) => s + im.amortissementMensuel, 0);
+
   return (
     <div className="conteneur-page">
-      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au plan comptable</Link>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>🏗️ Immobilisations</h1>
-        <button onClick={() => setAfficherFormulaire((v) => !v)} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-          {afficherFormulaire ? "Annuler" : "+ Ajouter"}
-        </button>
+      <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection
+          icone="🏗️" titre="Immobilisations"
+          sousTitre="Équipement significatif (pont élévateur, outils dispendieux, véhicule) — sa valeur s'étale sur sa durée de vie plutôt que d'être une dépense d'un coup."
+        />
       </div>
-      <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 16 }}>
-        Équipement significatif (pont élévateur, outils dispendieux, véhicule) — sa valeur s'étale sur sa durée de vie
-        plutôt que d'être une dépense d'un coup.
-      </p>
 
-      <div className="carte carte-s" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 18, fontWeight: 700 }}>{argent(valeurNetteTotale)}</div>
-        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Valeur nette totale (après amortissement à ce jour)</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <BoutonPlein icone={afficherFormulaire ? null : "plus"} onClick={() => setAfficherFormulaire((v) => !v)}>
+          {afficherFormulaire ? "Annuler" : "Nouvelle immobilisation"}
+        </BoutonPlein>
       </div>
 
       {afficherFormulaire && <FormulaireImmobilisation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />}
 
-      <div className="carte carte-m" style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Comptabiliser l'amortissement</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input type="month" max="9999-12" value={moisAmortir} onChange={(e) => setMoisAmortir(e.target.value)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }} />
-          <button onClick={comptabiliserAmortissement} disabled={amortissementEnCours || dejaAmorti} className="bouton-3d" style={{ padding: "0 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, opacity: dejaAmorti ? 0.5 : 1 }}>
-            {amortissementEnCours ? "…" : dejaAmorti ? "Déjà fait" : "Comptabiliser"}
+      <div className="grille-trois" style={{ marginBottom: 28 }}>
+        <CarteChiffre titre="Valeur nette" montant={argent(valeurNetteTotale)} teinte="var(--accent)" note="Après amortissement à ce jour" />
+        <CarteChiffre titre="Coût d'achat" montant={argent(coutTotal)} teinte="var(--bleu)" note={`${actives.length} immobilisation${actives.length !== 1 ? "s" : ""} active${actives.length !== 1 ? "s" : ""}`} />
+        <CarteChiffre
+          titre="Amortissement mensuel" montant={argent(amortissementMensuelTotal)} teinte="var(--success)"
+          note={enAmortissement.length > 0 ? `${enAmortissement.length} en cours d'amortissement` : "Rien à amortir"}
+        />
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="calculatrice" teinte={TEINTES.vert} titre="Comptabiliser l'amortissement"
+          sousTitre="Une écriture par mois pour toutes les immobilisations actives."
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <input type="month" max="9999-12" value={moisAmortir} onChange={(e) => { setMoisAmortir(e.target.value); setMessage(null); }} style={{ ...champStyle, marginBottom: 0, padding: "11px 12px", fontSize: 14, borderRadius: 12 }} />
+          <button
+            onClick={comptabiliserAmortissement} disabled={amortissementEnCours || dejaAmorti}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 12px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+              cursor: dejaAmorti ? "default" : "pointer",
+              color: dejaAmorti ? "var(--success)" : "#fff", background: dejaAmorti ? "var(--success-fond)" : "var(--success)", border: "1px solid var(--success)",
+            }}
+          >
+            <Icone nom="crochet" taille={18} couleur={dejaAmorti ? "var(--success)" : "#fff"} />
+            {amortissementEnCours ? "…" : dejaAmorti ? "Déjà comptabilisé" : "Comptabiliser"}
           </button>
         </div>
         {message && (
-          <p style={{ fontSize: 12, marginTop: 8, color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
+          <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0", color: message.type === "succes" ? "var(--success)" : "var(--danger)" }}>{message.texte}</p>
         )}
       </div>
 
-      <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Immobilisations</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {immobilisations.map((im) => (
-          <div key={im.id} className="carte carte-s" style={{ opacity: im.actif ? 1 : 0.5 }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontWeight: 600, fontSize: 13 }}>{im.nom}</span>
-              <span style={{ fontWeight: 700, fontSize: 13 }}>{argent(im.valeurNette)}</span>
-            </div>
-            {im.description && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{im.description}</div>}
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4 }}>
-              Acheté {new Date(im.dateAcquisition).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} à {argent(im.coutAcquisition)} ·
-              Durée de vie {im.dureeVieAns} ans · Amortissement {argent(im.amortissementMensuel)}/mois
-            </div>
-            {im.actif && (
-              <button onClick={() => retirer(im.id)} style={{ marginTop: 6, fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
-                Retirer (vendue / mise au rebut)
-              </button>
-            )}
+      <Panneau titre="Immobilisations">
+        {immobilisations.length > 0 && (
+          <div style={{ display: "flex", padding: "0 4px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: "2px solid var(--accent)", marginBottom: 4 }}>
+            <span style={{ flex: 1 }}>{immobilisations.length} immobilisation{immobilisations.length !== 1 ? "s" : ""}</span>
+            <span>Valeur nette</span>
           </div>
-        ))}
-        {immobilisations.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucune immobilisation encore.</p>}
-      </div>
+        )}
+        {immobilisations.map((im, i) => {
+          const base = Math.max(0, im.coutAcquisition - im.valeurResiduelle);
+          const pourcent = base > 0 ? Math.min(100, Math.round((im.amortissementCumule / base) * 100)) : 100;
+          return (
+            <div key={im.id} style={{ padding: "14px 4px", borderTop: i === 0 ? "none" : "1px solid var(--border)", opacity: im.actif ? 1 : 0.55 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icone nom="outils" taille={20} couleur={TEINTES.ambre.couleur} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>{im.nom}</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(im.valeurNette)}</span>
+                  </div>
+                  {im.description && <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{im.description}</div>}
+                  <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+                    Achetée le {new Date(im.dateAcquisition).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} à {argent(im.coutAcquisition)} · {im.dureeVieAns} an{im.dureeVieAns > 1 ? "s" : ""} · {argent(im.amortissementMensuel)}/mois
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                    <div style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--surface-alt)", overflow: "hidden" }}>
+                      <div style={{ width: `${pourcent}%`, height: "100%", borderRadius: 999, background: pourcent >= 100 ? "var(--success)" : "var(--accent)" }} />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{pourcent} % amorti</span>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 10 }}>
+                    {!im.actif && <Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Retirée</Pastille>}
+                    {im.actif && pourcent >= 100 && <Pastille couleur="var(--success)" fond="var(--success-fond)">Entièrement amortie</Pastille>}
+                    {im.actif && (
+                      <button onClick={() => retirer(im.id)} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--danger)", background: "var(--surface)", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 10, cursor: "pointer" }}>
+                        <Icone nom="poubelle" taille={14} couleur="var(--danger)" /> Retirer (vendue / mise au rebut)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {immobilisations.length === 0 && (
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucune immobilisation encore — ajoute-en une avec « Nouvelle immobilisation ».</p>
+        )}
+      </Panneau>
 
       {amortissements.length > 0 && (
-        <>
-          <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 20, marginBottom: 8 }}>Historique des amortissements</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {amortissements.map((a) => (
-              <div key={a.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "8px 10px" }}>
-                <span style={{ color: "var(--text-muted)" }}>{a.mois}</span>
-                <span style={{ fontWeight: 700 }}>{argent(a.montant)}</span>
-              </div>
-            ))}
-          </div>
-        </>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="calendrier" teinte={TEINTES.bleu} titre="Historique des amortissements" sousTitre="Les 12 derniers mois comptabilisés." />
+          {amortissements.map((a, i) => (
+            <div key={a.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 4px", borderTop: i === 0 ? "none" : "1px solid var(--border)", fontSize: 14 }}>
+              <span style={{ color: "var(--text-muted)", textTransform: "capitalize" }}>{nomMois(a.mois)}</span>
+              <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{argent(a.montant)}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
+}
+
+// "2026-10" → "octobre 2026"
+function nomMois(mois) {
+  const [a, m] = mois.split("-").map(Number);
+  if (!a || !m) return mois;
+  return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-CA", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 function FormulaireImmobilisation({ onCree }) {
@@ -147,7 +203,8 @@ function FormulaireImmobilisation({ onCree }) {
   }
 
   return (
-    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 16 }}>
+    <form onSubmit={creer} style={stylePanneau}>
+      <TitrePanneau icone="outils" titre="Nouvelle immobilisation" sousTitre="L'achat est comptabilisé, puis amorti chaque mois sur sa durée de vie." />
       <input required placeholder="Nom (ex : Pont élévateur 2 colonnes)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
       <input placeholder="Description (optionnel)" value={description} onChange={(e) => setDescription(e.target.value)} style={champStyle} />
       <div style={{ display: "flex", gap: 8 }}>
@@ -171,7 +228,7 @@ function FormulaireImmobilisation({ onCree }) {
         </div>
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
-      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
         {enCours ? "Enregistrement…" : "Ajouter l'immobilisation"}
       </button>
     </form>
