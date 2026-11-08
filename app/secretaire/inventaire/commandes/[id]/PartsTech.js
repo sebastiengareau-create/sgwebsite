@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { pieceExistante, prixVentePropose } from "@/lib/recherchePieces";
 import { argent } from "@/lib/format";
+import { stylePanneau } from "../../../../components/StyleSection";
 
 const fmt = (n) => `${argent(n)}`;
 const CREER = "__creer";
@@ -63,7 +64,7 @@ export function AttentePanierPartsTech() {
     return () => clearTimeout(t);
   }, [essais, router]);
   return (
-    <div className="carte" style={{ marginBottom: 12, fontSize: 12.5, color: "var(--text-muted)" }}>
+    <div style={{ ...stylePanneau, fontSize: 12.5, color: "var(--text-muted)" }}>
       {essais < 10
         ? "🔌 En attente du panier PartsTech…"
         : "Aucun panier reçu de PartsTech. Retournes-y et clique « Submit Quote » pour l'envoyer ici."}
@@ -119,7 +120,7 @@ export function PanierPartsTech({ commande, panier, fournisseurs, inventaire }) 
 
   if (resultats) {
     return (
-      <div className="carte" style={{ marginBottom: 12, border: "1px solid var(--success)" }}>
+      <div style={{ ...stylePanneau, border: "1px solid var(--success)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>✓ Panier PartsTech ajouté</div>
         {resultats.map((r) => (
           <div key={r.commandeId} style={{ fontSize: 12.5, marginBottom: 4 }}>
@@ -133,7 +134,7 @@ export function PanierPartsTech({ commande, panier, fournisseurs, inventaire }) 
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 12, border: "1px solid var(--accent)" }}>
+    <div style={{ ...stylePanneau, border: "1px solid var(--accent)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>🔌 Panier PartsTech reçu</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{fmt(total)} avant taxes</div>
