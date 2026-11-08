@@ -46,6 +46,9 @@ const ICONES = {
   personne: <><circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 0 0-16 0" /></>,
   bouclier: <><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></>,
   sortie: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></>,
+  telephone: <><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></>,
+  courriel: <><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></>,
+  cadeau: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13" /><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" /><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5" /></>,
   epingle: <><path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></>,
 };
 
@@ -175,6 +178,31 @@ export function GroupeLiens({ titre, teinte, liens }) {
         {liens.map((l) => <CarteLien key={l.href || l.label} {...l} teinte={teinte} />)}
       </div>
     </section>
+  );
+}
+
+// Bouton d'action de même largeur que ses voisins (mettre dans une grille) :
+// lien interne, lien tel:/mailto:, ou bouton.
+export function BoutonAction({ icone, couleur = "var(--text)", fond = "var(--surface)", bordure = "var(--border)", href, onClick, disabled, children }) {
+  const style = {
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 12,
+    fontSize: 13.5, fontWeight: 700, cursor: disabled ? "default" : "pointer", color: couleur, background: fond,
+    border: `1px solid ${bordure}`, textDecoration: "none", opacity: disabled ? 0.6 : 1, boxSizing: "border-box", minWidth: 0,
+    fontFamily: "inherit", lineHeight: 1.2, textAlign: "center",
+  };
+  const contenu = <>{icone && <Icone nom={icone} taille={16} couleur={couleur} />}<span style={{ minWidth: 0 }}>{children}</span></>;
+  if (href && /^(tel|mailto):/.test(href)) return <a href={href} style={style}>{contenu}</a>;
+  if (href) return <Link href={href} style={style}>{contenu}</Link>;
+  return <button type="button" onClick={onClick} disabled={disabled} style={style}>{contenu}</button>;
+}
+
+// Ligne « libellé … valeur » d'un panneau de fiche, séparée par un trait.
+export function LigneDetail({ label, valeur, premiere }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", fontSize: 13.5 }}>
+      <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>{label}</span>
+      <span style={{ fontWeight: 700, textAlign: "right", minWidth: 0, overflowWrap: "anywhere" }}>{valeur ?? "—"}</span>
+    </div>
   );
 }
 

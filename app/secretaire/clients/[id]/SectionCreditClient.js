@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TitreSection } from "../../../components/ui";
+import { Icone, TEINTES, TitrePanneau, BoutonAction, stylePanneau } from "../../../components/StyleSection";
 import SelecteurCompteMode, { compteParDefaut } from "../../../components/SelecteurCompteMode";
 import { LABEL_MODE_PAIEMENT } from "@/lib/modesPaiement";
 import { argent } from "@/lib/format";
@@ -80,30 +80,33 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <TitreSection>🎟️ Crédit client</TitreSection>
-      <div style={{ fontSize: 18, fontWeight: 700, color: solde > 0.005 ? "var(--success)" : "var(--text-muted)" }}>{argent(solde)}</div>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "2px 0 8px" }}>
-        {solde > 0.005 ? "À appliquer sur une prochaine facture (bouton sur la facture du bon), ou à rembourser." : "Aucun crédit disponible."}
-      </p>
+    <div style={stylePanneau}>
+      <TitrePanneau
+        icone="etiquette" teinte={TEINTES.bleu} titre="Crédit client"
+        sousTitre={solde > 0.005 ? "À appliquer sur une prochaine facture (bouton sur la facture du bon), ou à rembourser." : "Aucun crédit disponible."}
+        droite={<span style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: solde > 0.005 ? "var(--bleu)" : "var(--text-muted)", paddingTop: 2 }}>{argent(solde)}</span>}
+      />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        {credits.map((c) => {
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {credits.map((c, i) => {
           const factureNumero = c.facture?.numero || c.paiementFacture?.facture?.numero;
           const bonId = c.facture?.bonId || c.paiementFacture?.facture?.bonId;
           return (
-            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, fontSize: 12, padding: "4px 8px", borderRadius: 6, background: "var(--bg)" }}>
-              <span style={{ color: "var(--text-muted)", minWidth: 0 }}>
-                {dateCourte(c.date)} — <strong style={{ color: "var(--text)" }}>{LABEL_TYPE[c.type] || c.type}</strong>
+            <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+              <span style={{ fontSize: 12.5, color: "var(--text-muted)", minWidth: 0 }}>
+                <strong style={{ display: "block", fontSize: 14, color: "var(--text)" }}>{LABEL_TYPE[c.type] || c.type}</strong>
+                {dateCourte(c.date)}
                 {factureNumero && bonId && <> · <Link href={`/bons/${bonId}`} style={{ color: "inherit" }}>#{factureNumero}</Link></>}
                 {c.modePaiement && LABEL_MODE_PAIEMENT[c.modePaiement] ? ` · ${LABEL_MODE_PAIEMENT[c.modePaiement]}` : ""}
                 {c.compteTresorerie ? ` · ${c.compteTresorerie.nom}` : ""}{c.reference ? ` · réf. ${c.reference}` : ""}
                 {c.note && <> · <em>{c.note}</em></>}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-                <strong style={{ color: c.montant >= 0 ? "var(--success)" : "var(--text)" }}>{c.montant >= 0 ? "+" : "−"}{argent(Math.abs(c.montant))}</strong>
+              <span style={{ display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
+                <strong style={{ fontSize: 14, fontVariantNumeric: "tabular-nums", color: c.montant >= 0 ? "var(--success)" : "var(--text)" }}>{c.montant >= 0 ? "+" : "−"}{argent(Math.abs(c.montant))}</strong>
                 {peutModifier && !c.paiementFactureId && ( // un crédit lié à un paiement se retire sur la facture
-                  <button onClick={() => retirer(c)} disabled={enCours} aria-label="Retirer ce mouvement" style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 13, padding: 0 }}>✕</button>
+                  <button onClick={() => retirer(c)} disabled={enCours} aria-label="Retirer ce mouvement" title="Retirer ce mouvement" style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
+                  </button>
                 )}
               </span>
             </div>
@@ -111,82 +114,77 @@ export default function SectionCreditClient({ clientId, credits, comptesTresorer
         })}
       </div>
 
-      {peutModifier && solde > 0.005 && (
-        ouvert ? (
-          <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input
-                type="number" inputMode="decimal" min={0} step="0.01" placeholder="Montant" value={montant}
-                onChange={(e) => setMontant(e.target.value)} style={{ ...champStyle, width: 110, fontWeight: 700 }}
-              />
-              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>$</span>
-              <input placeholder="Réf. / no de chèque (opt.)" value={reference} onChange={(e) => setReference(e.target.value)} style={{ ...champStyle, flex: 1, minWidth: 0 }} />
-            </div>
-            <SelecteurCompteMode
-              comptes={comptesTresorerie}
-              compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
-              modePaiement={modePaiement} setModePaiement={setModePaiement}
+      {(() => {
+        const peutRembourser = peutModifier && solde > 0.005;
+        const boutons = [
+          peutRembourser && { cle: "rembourser", icone: "banque", label: "Rembourser", onClick: () => { setGesteOuvert(false); setMontant(solde.toFixed(2)); setOuvert(true); } },
+          peutAccorderGeste && { cle: "geste", icone: "cadeau", label: "Geste commercial", onClick: () => { setOuvert(false); setGesteOuvert(true); } },
+        ].filter(Boolean);
+        if (boutons.length === 0 || ouvert || gesteOuvert) return null;
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${boutons.length}, 1fr)`, gap: 8, marginTop: 12 }}>
+            {boutons.map((b) => <BoutonAction key={b.cle} icone={b.icone} couleur="var(--bleu)" onClick={b.onClick}>{b.label}</BoutonAction>)}
+          </div>
+        );
+      })()}
+
+      {peutModifier && solde > 0.005 && ouvert && (
+        <div style={boiteFormulaire}>
+          <div style={{ fontSize: 14, fontWeight: 800 }}>Rembourser le client</div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input
+              type="number" inputMode="decimal" min={0} step="0.01" placeholder="Montant" value={montant}
+              onChange={(e) => setMontant(e.target.value)} style={{ ...champStyle, width: 120, fontWeight: 700 }}
             />
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={rembourser} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-                {enCours ? "…" : `✓ Rembourser ${argent((Number(montant) || 0))}`}
-              </button>
-              <button onClick={() => setOuvert(false)} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
-                Annuler
-              </button>
-            </div>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>$</span>
+            <input placeholder="Réf. / no de chèque (opt.)" value={reference} onChange={(e) => setReference(e.target.value)} style={{ ...champStyle, flex: 1, minWidth: 0 }} />
           </div>
-        ) : (
-          <button
-            onClick={() => { setMontant(solde.toFixed(2)); setOuvert(true); }}
-            style={{ width: "100%", marginTop: 8, padding: 9, borderRadius: 8, border: "1px solid var(--border)", background: "none", color: "var(--accent)", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}
-          >
-            💵 Rembourser le client
-          </button>
-        )
-      )}
-      {peutAccorderGeste && (
-        gesteOuvert ? (
-          <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input
-                type="number" inputMode="decimal" min={0} step="0.01" placeholder="Montant" value={gesteMontant}
-                onChange={(e) => setGesteMontant(e.target.value)} style={{ ...champStyle, width: 110, fontWeight: 700 }}
-              />
-              <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>$</span>
-              <input
-                placeholder="Raison (ex. retard de livraison)" value={gesteRaison} maxLength={300}
-                onChange={(e) => setGesteRaison(e.target.value)} style={{ ...champStyle, flex: 1, minWidth: 0 }}
-              />
-            </div>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
-              Crédit offert, à utiliser sur une prochaine facture (dépense « Gestes commerciaux »). Les taxes de cette facture restent normales — pour réduire le prix d'un travail précis, utilise plutôt l'escompte du bon.
-            </p>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={accorderGeste} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-                {enCours ? "…" : `✓ Accorder ${argent((Number(gesteMontant) || 0))}`}
-              </button>
-              <button onClick={() => setGesteOuvert(false)} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
-                Annuler
-              </button>
-            </div>
+          <SelecteurCompteMode
+            comptes={comptesTresorerie}
+            compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
+            modePaiement={modePaiement} setModePaiement={setModePaiement}
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button onClick={rembourser} disabled={enCours} className="bouton-3d" style={{ padding: 10, borderRadius: 12, fontSize: 13.5, fontWeight: 700 }}>
+              {enCours ? "…" : `✓ Rembourser ${argent((Number(montant) || 0))}`}
+            </button>
+            <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setOuvert(false)}>Annuler</BoutonAction>
           </div>
-        ) : (
-          <button
-            onClick={() => setGesteOuvert(true)}
-            style={{ width: "100%", marginTop: 8, padding: 9, borderRadius: 8, border: "1px dashed var(--border)", background: "none", color: "var(--text-muted)", fontWeight: 700, fontSize: 12, cursor: "pointer" }}
-          >
-            🎁 Geste commercial
-          </button>
-        )
+        </div>
       )}
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: "6px 0 0" }}>{erreur}</p>}
-      {avertissement && <p style={{ color: "var(--accent)", fontSize: 11, margin: "6px 0 0" }}>⚠️ {avertissement}</p>}
+      {peutAccorderGeste && gesteOuvert && (
+        <div style={boiteFormulaire}>
+          <div style={{ fontSize: 14, fontWeight: 800 }}>Geste commercial</div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input
+              type="number" inputMode="decimal" min={0} step="0.01" placeholder="Montant" value={gesteMontant}
+              onChange={(e) => setGesteMontant(e.target.value)} style={{ ...champStyle, width: 120, fontWeight: 700 }}
+            />
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>$</span>
+            <input
+              placeholder="Raison (ex. retard de livraison)" value={gesteRaison} maxLength={300}
+              onChange={(e) => setGesteRaison(e.target.value)} style={{ ...champStyle, flex: 1, minWidth: 0 }}
+            />
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+            Crédit offert, à utiliser sur une prochaine facture (dépense « Gestes commerciaux »). Les taxes de cette facture restent normales — pour réduire le prix d'un travail précis, utilise plutôt l'escompte du bon.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button onClick={accorderGeste} disabled={enCours} className="bouton-3d" style={{ padding: 10, borderRadius: 12, fontSize: 13.5, fontWeight: 700 }}>
+              {enCours ? "…" : `✓ Accorder ${argent((Number(gesteMontant) || 0))}`}
+            </button>
+            <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setGesteOuvert(false)}>Annuler</BoutonAction>
+          </div>
+        </div>
+      )}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 12.5, fontWeight: 700, margin: "8px 0 0" }}>{erreur}</p>}
+      {avertissement && <p style={{ color: "var(--accent-ombre)", fontSize: 12, margin: "8px 0 0" }}>⚠️ {avertissement}</p>}
     </div>
   );
 }
 
+const boiteFormulaire = { background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginTop: 12, display: "flex", flexDirection: "column", gap: 8 };
 const champStyle = {
-  padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)",
+  padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
   background: "var(--surface)", color: "var(--text)", fontSize: 12.5, boxSizing: "border-box",
 };
