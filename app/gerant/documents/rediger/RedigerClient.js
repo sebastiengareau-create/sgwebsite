@@ -6,6 +6,8 @@ import Link from "next/link";
 import { DESTINATAIRES, remplirModele, passagesACompleter, sujetParDefaut } from "@/lib/documents";
 import { image } from "@/lib/client";
 import { correspondRecherche } from "@/lib/recherche";
+import BandeauSection from "../../../components/BandeauSection";
+import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "../../../components/StyleSection";
 
 // Choix de l'employé ou du client, texte rempli modifiable, puis impression
 // de la lettre sur l'en-tête de l'entreprise, ou envoi par courriel. Le
@@ -37,44 +39,60 @@ export default function RedigerClient({ modele, personnes, choisi, valeurs, entr
 
       <div className="cacher-impression conteneur-page" style={{ paddingBottom: 0 }}>
         <Link href="/gerant/documents" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux documents</Link>
-        <h1 style={{ fontSize: 20, margin: "10px 0 14px" }}>✍️ {modele.nom}</h1>
+        <div style={{ marginTop: 8 }}>
+          <BandeauSection icone="✍️" titre={modele.nom} sousTitre={`Lettre pour un ${libelle} — remplie avec sa fiche, à imprimer ou à envoyer par courriel.`} />
+        </div>
 
-        <div className="carte" style={{ marginBottom: 16 }}>
-          <label className="etiquette" style={{ marginTop: 0 }}>{choisi ? `Pour : ${choisi.nom}` : `Choisis le ${libelle}`}</label>
-          <input
-            type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} className="champ"
-            placeholder={choisi ? `🔍 Changer de ${libelle}…` : `🔍 Rechercher un ${libelle} par nom${modele.destinataire === "CLIENT" ? " ou téléphone" : ""}…`}
+        <div style={stylePanneau}>
+          <TitrePanneau
+            icone="personne" teinte={TEINTES.bleu} titre={choisi ? choisi.nom : `Choisis le ${libelle}`}
+            sousTitre={choisi ? `${DESTINATAIRES[modele.destinataire].libelle}${choisi.courriel ? ` · ${choisi.courriel}` : ""}` : "La lettre se remplit avec sa fiche."}
+            droite={choisi && choisi.desabonne && modele.destinataire === "CLIENT" ? <Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Désabonné</Pastille> : undefined}
           />
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
+              <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+            </span>
+            <input
+              type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} className="champ"
+              placeholder={choisi ? `Changer de ${libelle}…` : `Rechercher un ${libelle} par nom${modele.destinataire === "CLIENT" ? " ou téléphone" : ""}…`}
+              style={{ paddingLeft: 40, marginBottom: 0 }}
+            />
+          </div>
           {resultats.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-              {resultats.map((p) => (
-                <button key={p.id} onClick={() => choisir(p.id)} style={{ textAlign: "left", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}>
-                  {p.nom}
-                  {p.telephone && <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · {p.telephone}</span>}
-                  {p.actif === false && <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · inactif</span>}
+            <div style={{ display: "flex", flexDirection: "column", marginTop: 8 }}>
+              {resultats.map((p, i) => (
+                <button key={p.id} onClick={() => choisir(p.id)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "9px 4px", border: "none", borderTop: i === 0 ? "none" : "1px solid var(--border)", background: "none", color: "var(--text)", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, background: TEINTES.bleu.fond, color: TEINTES.bleu.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800 }}>{p.nom.charAt(0).toUpperCase()}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <strong>{p.nom}</strong>
+                    {p.telephone && <span style={{ color: "var(--text-muted)", fontSize: 12.5 }}> · {p.telephone}</span>}
+                    {p.actif === false && <span style={{ color: "var(--text-muted)", fontSize: 12.5 }}> · inactif</span>}
+                  </span>
+                  <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
                 </button>
               ))}
             </div>
           )}
-          {terme && resultats.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "6px 0 0" }}>Aucun {libelle} ne correspond.</p>}
-
-          {choisi && (
-            <>
-              <label className="etiquette">Texte de la lettre — modifiable avant d'imprimer (le modèle ne change pas)</label>
-              <textarea value={texte} onChange={(e) => setTexte(e.target.value)} className="champ" rows={16} style={{ fontFamily: "inherit", lineHeight: 1.5, resize: "vertical" }} />
-              {aCompleter.length > 0 && (
-                <p style={{ fontSize: 12, color: "var(--avertissement)", margin: "8px 0 0" }}>
-                  ⚠️ À compléter avant d'imprimer : {aCompleter.join(" · ")}
-                </p>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <button onClick={() => window.print()} className="bouton-3d" style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>🖨️ Imprimer / PDF</button>
-                <button onClick={() => setTexte(remplirModele(modele.contenu, valeurs, modele.destinataire))} className="bouton-3d-sombre" style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>Recommencer à partir du modèle</button>
-              </div>
-              <EnvoiCourriel modele={modele} choisi={choisi} texte={texte} aCompleter={aCompleter} courrielConfigure={courrielConfigure} />
-            </>
-          )}
+          {terme && resultats.length === 0 && <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "8px 0 0" }}>Aucun {libelle} ne correspond.</p>}
         </div>
+
+        {choisi && (
+          <div style={stylePanneau}>
+            <TitrePanneau icone="document" teinte={TEINTES.ambre} titre="Texte de la lettre" sousTitre="Modifiable avant d'imprimer — le modèle, lui, ne change pas." />
+            <textarea value={texte} onChange={(e) => setTexte(e.target.value)} className="champ" rows={16} style={{ fontFamily: "inherit", lineHeight: 1.5, resize: "vertical", marginBottom: 0 }} />
+            {aCompleter.length > 0 && (
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--avertissement)", margin: "10px 0 0", padding: "8px 12px", borderRadius: 12, background: "var(--avertissement-fond)" }}>
+                ⚠️ À compléter avant d'imprimer : {aCompleter.join(" · ")}
+              </p>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+              <BoutonAction icone="imprimante" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={() => window.print()}>Imprimer / PDF</BoutonAction>
+              <BoutonAction icone="echange" onClick={() => setTexte(remplirModele(modele.contenu, valeurs, modele.destinataire))}>Recommencer</BoutonAction>
+            </div>
+            <EnvoiCourriel modele={modele} choisi={choisi} texte={texte} aCompleter={aCompleter} courrielConfigure={courrielConfigure} />
+          </div>
+        )}
       </div>
 
       {choisi && (
@@ -103,8 +121,8 @@ function EnvoiCourriel({ modele, choisi, texte, aCompleter, courrielConfigure })
   const [sujet, setSujet] = useState(() => sujetParDefaut(texte, modele.nom));
   const [etat, setEtat] = useState({ enCours: false, message: "", erreur: "" });
 
-  if (!courrielConfigure) return <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "10px 0 0" }}>L'envoi par courriel n'est pas configuré sur cette installation.</p>;
-  if (choisi.desabonne && modele.destinataire === "CLIENT") return <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "10px 0 0" }}>✉️ Ce client s'est désabonné de nos courriels — impression seulement.</p>;
+  if (!courrielConfigure) return <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>L'envoi par courriel n'est pas configuré sur cette installation.</p>;
+  if (choisi.desabonne && modele.destinataire === "CLIENT") return <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Ce client s'est désabonné de nos courriels — impression seulement.</p>;
 
   async function envoyer() {
     if (aCompleter.length > 0 && !window.confirm(`Il reste à compléter : ${aCompleter.join(" · ")}\n\nEnvoyer quand même ?`)) return;
@@ -120,25 +138,25 @@ function EnvoiCourriel({ modele, choisi, texte, aCompleter, courrielConfigure })
 
   if (!ouvert) {
     return (
-      <button onClick={() => setOuvert(true)} className="bouton-3d-sombre" style={{ marginTop: 8, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
-        ✉️ Envoyer par courriel
-      </button>
+      <BoutonAction icone="courriel" couleur="var(--bleu)" bordure="var(--bleu)" onClick={() => setOuvert(true)} style={{ width: "100%", marginTop: 8 }}>Envoyer par courriel</BoutonAction>
     );
   }
   return (
-    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+    <div style={{ marginTop: 12, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800, marginBottom: 8 }}><Icone nom="courriel" taille={18} couleur="var(--bleu)" /> Envoyer par courriel</div>
       <label className="etiquette" style={{ marginTop: 0 }}>Courriel du destinataire</label>
       <input type="email" value={a} onChange={(e) => setA(e.target.value)} className="champ" placeholder="adresse@exemple.com" />
       <label className="etiquette">Sujet</label>
       <input value={sujet} onChange={(e) => setSujet(e.target.value)} className="champ" />
       {modele.destinataire === "CLIENT" && (
-        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "6px 0 0" }}>Vos coordonnées et un lien de désabonnement sont ajoutés au bas du courriel (exigé par la loi anti-pourriel).</p>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "6px 0 0" }}>Vos coordonnées et un lien de désabonnement sont ajoutés au bas du courriel (exigé par la loi anti-pourriel).</p>
       )}
-      {etat.erreur && <p style={{ color: "var(--danger)", fontSize: 12, margin: "8px 0 0" }}>{etat.erreur}</p>}
-      {etat.message && <p style={{ color: "var(--success)", fontSize: 12, margin: "8px 0 0" }}>{etat.message}</p>}
-      <button onClick={envoyer} disabled={etat.enCours || !a.trim() || !sujet.trim()} className="bouton-3d" style={{ marginTop: 10, padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
-        {etat.enCours ? "Envoi…" : "✉️ Envoyer"}
-      </button>
+      {etat.erreur && <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 700, margin: "8px 0 0" }}>{etat.erreur}</p>}
+      {etat.message && <p style={{ color: "var(--success)", fontSize: 13, fontWeight: 700, margin: "8px 0 0" }}>{etat.message}</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+        <BoutonAction icone="courriel" couleur="#fff" fond="var(--bleu)" bordure="var(--bleu)" onClick={envoyer} disabled={etat.enCours || !a.trim() || !sujet.trim()}>{etat.enCours ? "Envoi…" : "Envoyer"}</BoutonAction>
+        <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setOuvert(false)}>Annuler</BoutonAction>
+      </div>
     </div>
   );
 }
