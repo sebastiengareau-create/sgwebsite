@@ -40,6 +40,9 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
   const [filtre, setFiltre] = useState("IMPAYEE");
   const [recherche, setRecherche] = useState("");
   const [fournisseurFiltre, setFournisseurFiltre] = useState(fournisseurInitial || null);
+  // Paiement groupé : factures impayées cochées, toutes du même fournisseur
+  const [selection, setSelection] = useState([]);
+  const [paiementGroupe, setPaiementGroupe] = useState(false);
 
   const impayees = depenses.filter((d) => d.statut === "IMPAYEE");
   const totalDu = impayees.reduce((s, d) => s + d.montant, 0);
@@ -73,6 +76,21 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
     .sort(filtre === "IMPAYEE" || filtre === "EN_RETARD" ? trierParUrgence : (a, b) => new Date(b.dateFacture) - new Date(a.dateFacture));
   const totalFiltre = depensesFiltrees.reduce((s, d) => s + d.montant, 0);
   const nomFournisseurFiltre = fournisseurFiltre && (fournisseurs.find((f) => f.id === fournisseurFiltre)?.nom || soldesParFournisseur.find((f) => f.id === fournisseurFiltre)?.nom);
+
+  const selectionnees = impayees.filter((d) => selection.includes(d.id));
+  const fournisseurSelection = selectionnees[0]?.fournisseur || null;
+  const totalSelection = selectionnees.reduce((s, d) => s + d.montant, 0);
+  const autresDuFournisseur = fournisseurSelection ? impayees.filter((d) => d.fournisseurId === fournisseurSelection.id && !selection.includes(d.id)) : [];
+  const impayeesFournisseurFiltre = fournisseurFiltre ? impayees.filter((d) => d.fournisseurId === fournisseurFiltre) : [];
+
+  function basculerSelection(d) {
+    setPaiementGroupe(false);
+    setSelection((prev) => (prev.includes(d.id) ? prev.filter((id) => id !== d.id) : [...prev.filter((id) => impayees.some((x) => x.id === id && x.fournisseurId === d.fournisseurId)), d.id]));
+  }
+  function viderSelection() {
+    setSelection([]);
+    setPaiementGroupe(false);
+  }
 
   async function supprimerDepense(id) {
     if (!window.confirm("Supprimer cette dépense ? Retire aussi les écritures comptables liées.")) return;
@@ -204,6 +222,21 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
           </div>
         )}
 
+        {impayeesFournisseurFiltre.length > 1 && filtre !== "PAYEE" && impayeesFournisseurFiltre.some((d) => !selection.includes(d.id)) && (
+          <button
+            type="button"
+            onClick={() => { setPaiementGroupe(false); setSelection(impayeesFournisseurFiltre.map((d) => d.id)); }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "10px 12px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer", color: "var(--success)", background: "var(--success-fond)", border: "1.5px dashed var(--success)", marginBottom: 12 }}
+          >
+            <Icone nom="crochet" taille={16} couleur="var(--success)" />
+            Tout sélectionner ({impayeesFournisseurFiltre.length}) · {argent(impayeesFournisseurFiltre.reduce((s, d) => s + d.montant, 0))}
+          </button>
+        )}
+        {impayees.length > 1 && selection.length === 0 && filtre !== "PAYEE" && (
+          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+            Coche plusieurs factures d'un même fournisseur pour les payer ensemble (un seul chèque ou virement).
+          </p>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: "2px solid var(--accent)", marginBottom: 10 }}>
           <span>{depensesFiltrees.length} facture{depensesFiltrees.length !== 1 ? "s" : ""}</span>
           <span style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{argent(totalFiltre)}</span>
@@ -216,17 +249,26 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
             const couleur = payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "var(--avertissement)";
             const fond = payee ? "var(--success-fond)" : echeance?.enRetard ? "var(--danger-fond)" : "var(--avertissement-fond)";
             const actionsVisibles = depenseAPayer !== d.id && depenseEnEdition !== d.id;
+            const cochee = selection.includes(d.id);
+            const cochable = !payee && (!fournisseurSelection || fournisseurSelection.id === d.fournisseurId);
             return (
               <div
                 key={d.id}
                 role="link" tabIndex={0}
                 onClick={() => router.push(lienDepense(d.id))}
                 onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) router.push(lienDepense(d.id)); }}
-                style={{ position: "relative", overflow: "hidden", cursor: "pointer", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 14px 14px 18px" }}
+                style={{ position: "relative", overflow: "hidden", cursor: "pointer", background: cochee ? "var(--success-fond)" : "var(--surface)", border: `1px solid ${cochee ? "var(--success)" : "var(--border)"}`, borderRadius: 14, padding: "14px 14px 14px 18px" }}
               >
                 <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleur }} />
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                  <div style={{ minWidth: 0 }}>
+                  {!payee && (
+                    <CaseACocher
+                      cochee={cochee} desactivee={!cochable}
+                      titre={cochable ? "Sélectionner pour un paiement groupé" : `Seulement les factures de ${fournisseurSelection?.nom} dans ce paiement`}
+                      onClick={(e) => { e.stopPropagation(); if (cochable) basculerSelection(d); }}
+                    />
+                  )}
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 15, fontWeight: 700 }}>{d.fournisseur.nom}</div>
                     <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{d.description} · {d.lignes.map((l) => l.categorieDepense.nom).join(", ")}</div>
                   </div>
@@ -276,6 +318,39 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         </div>
       </Panneau>
 
+      {selectionnees.length > 0 && (
+        <div style={{ position: "sticky", bottom: 88, zIndex: 20, background: "var(--surface)", border: "1.5px solid var(--success)", borderRadius: 16, padding: 14, marginBottom: 24, boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800 }}>
+                {selectionnees.length} facture{selectionnees.length !== 1 ? "s" : ""} sélectionnée{selectionnees.length !== 1 ? "s" : ""}
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fournisseurSelection?.nom}</div>
+            </div>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "var(--success)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(totalSelection)}</span>
+          </div>
+          {autresDuFournisseur.length > 0 && !paiementGroupe && (
+            <button
+              type="button" onClick={() => setSelection((prev) => [...prev, ...autresDuFournisseur.map((d) => d.id)])}
+              style={{ marginTop: 6, padding: 0, fontSize: 12.5, fontWeight: 700, color: "var(--success)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+            >
+              + Ajouter {autresDuFournisseur.length === 1 ? "l'autre facture impayée" : `les ${autresDuFournisseur.length} autres factures impayées`} de ce fournisseur
+            </button>
+          )}
+          {paiementGroupe ? (
+            <FormulairePaiementDepense
+              depenses={selectionnees} comptesTresorerie={comptesTresorerie}
+              onTermine={() => { viderSelection(); router.refresh(); }} onAnnuler={() => setPaiementGroupe(false)}
+            />
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+              <BoutonAction icone="crochet" couleur="#fff" fond="var(--success)" bordure="var(--success)" onClick={() => setPaiementGroupe(true)}>Payer la sélection</BoutonAction>
+              <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={viderSelection}>Désélectionner</BoutonAction>
+            </div>
+          )}
+        </div>
+      )}
+
       <GroupeLiens
         titre="Outils" teinte={TEINTES.bleu}
         liens={[
@@ -289,6 +364,25 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
       {ongletGestion === "fournisseurs" && <GestionFournisseurs fournisseurs={fournisseurs} onModifie={() => router.refresh()} />}
       {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => router.refresh()} />}
     </div>
+  );
+}
+
+function CaseACocher({ cochee, desactivee, titre, onClick }) {
+  return (
+    <button
+      type="button" role="checkbox" aria-checked={cochee} aria-disabled={desactivee} title={titre} aria-label={titre}
+      onClick={onClick} onKeyDown={(e) => e.stopPropagation()}
+      style={{
+        flexShrink: 0, width: 24, height: 24, marginTop: 1, borderRadius: 7, padding: 0,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        cursor: desactivee ? "not-allowed" : "pointer", opacity: desactivee ? 0.35 : 1,
+        background: cochee ? "var(--success)" : "var(--surface)", border: `2px solid ${cochee ? "var(--success)" : "var(--border)"}`,
+      }}
+    >
+      {cochee && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+      )}
+    </button>
   );
 }
 
@@ -322,7 +416,11 @@ export function formaterDate(date) {
   return new Date(date).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 }
 
-export function FormulairePaiementDepense({ depense, comptesTresorerie, onTermine, onAnnuler }) {
+// Paie une facture (`depense`) ou, avec `depenses`, plusieurs factures du
+// même fournisseur d'un coup (même compte, mode et référence).
+export function FormulairePaiementDepense({ depense, depenses, comptesTresorerie, onTermine, onAnnuler }) {
+  const groupe = Array.isArray(depenses);
+  const totalGroupe = groupe ? depenses.reduce((s, d) => s + d.montant, 0) : 0;
   const [reference, setReference] = useState("");
   const [compteTresorerieId, setCompteTresorerieId] = useState(compteParDefaut(comptesTresorerie));
   const [modePaiement, setModePaiement] = useState("VIREMENT");
@@ -333,11 +431,17 @@ export function FormulairePaiementDepense({ depense, comptesTresorerie, onTermin
     if (!compteTresorerieId) { setErreur("Aucun compte de trésorerie disponible."); return; }
     setErreur("");
     setEnCours(true);
-    const res = await fetch(`/api/depenses/${depense.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statut: "PAYEE", reference, compteTresorerieId, modePaiement }),
-    });
+    const res = groupe
+      ? await fetch("/api/depenses/payer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ depenseIds: depenses.map((d) => d.id), reference, compteTresorerieId, modePaiement }),
+        })
+      : await fetch(`/api/depenses/${depense.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ statut: "PAYEE", reference, compteTresorerieId, modePaiement }),
+        });
     setEnCours(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -362,7 +466,7 @@ export function FormulairePaiementDepense({ depense, comptesTresorerie, onTermin
       {erreur && <p style={{ color: "var(--danger)", fontSize: 11.5, margin: 0 }}>{erreur}</p>}
       <div style={{ display: "flex", gap: 6 }}>
         <button onClick={confirmer} disabled={enCours} className="bouton-3d" style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
-          {enCours ? "…" : "✓ Confirmer le paiement"}
+          {enCours ? "…" : groupe ? `✓ Payer ${argent(totalGroupe)}` : "✓ Confirmer le paiement"}
         </button>
         <button onClick={onAnnuler} style={{ flex: 1, padding: 8, borderRadius: 6, fontSize: 12, background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", cursor: "pointer" }}>
           Annuler
