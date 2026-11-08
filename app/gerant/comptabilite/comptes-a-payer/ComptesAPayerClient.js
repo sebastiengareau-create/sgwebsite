@@ -11,6 +11,8 @@ import { PROVINCE_DEFAUT, adresseComplete } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
 import { argent } from "@/lib/format";
+import BandeauSection from "../../../components/BandeauSection";
+import { Icone, TEINTES, CarteChiffre, BoutonPlein, GroupeLiens, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../../components/StyleSection";
 
 const STATUTS_DEPENSE = {
   IMPAYEE: { label: "Impayées", color: "#C9A227" },
@@ -89,26 +91,14 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
   return (
     <div className="conteneur-page">
       <Link href="/gerant/fournisseurs" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour aux fournisseurs</Link>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, marginBottom: 4 }}>
-        <h1 style={{ fontSize: 20 }}>💳 Comptes à payer</h1>
-        <button onClick={() => setAfficherFormulaire((v) => !v)} className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
-          {afficherFormulaire ? "Annuler" : "+ Dépense"}
-        </button>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="💳" titre="Comptes à payer" sousTitre="Saisis les factures de tes fournisseurs et note leur paiement — touche une facture pour la voir." />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
-        <CarteResume
-          valeur={totalDu} libelle={`Total dû · ${impayees.length} facture${impayees.length !== 1 ? "s" : ""}`} couleur="var(--text)"
-          actif={filtre === "IMPAYEE" && !fournisseurFiltre} onClick={() => { setFiltre("IMPAYEE"); setFournisseurFiltre(null); }}
-        />
-        <CarteResume
-          valeur={totalEnRetard} libelle={`En retard · ${enRetard.length}`} couleur={enRetard.length > 0 ? "var(--danger)" : "var(--text-muted)"}
-          actif={filtre === "EN_RETARD"} onClick={() => setFiltre("EN_RETARD")}
-        />
-        <CarteResume
-          valeur={totalCetteSemaine} libelle={`Dû sous 7 jours · ${dusCetteSemaine.length}`} couleur={dusCetteSemaine.length > 0 ? "#C9A227" : "var(--text-muted)"}
-          actif={false} onClick={() => setFiltre("IMPAYEE")}
-        />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <BoutonPlein icone={afficherFormulaire ? null : "plus"} onClick={() => setAfficherFormulaire((v) => !v)}>
+          {afficherFormulaire ? "Annuler" : "Nouvelle dépense"}
+        </BoutonPlein>
       </div>
 
       {afficherFormulaire && (
@@ -121,149 +111,180 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         />
       )}
 
+      <div className="grille-trois" style={{ marginBottom: 28 }}>
+        <CarteChiffre
+          titre="Total dû" montant={argent(totalDu)} teinte="var(--accent)"
+          note={`${impayees.length} facture${impayees.length !== 1 ? "s" : ""} impayée${impayees.length !== 1 ? "s" : ""}`}
+          actif={filtre === "IMPAYEE" && !fournisseurFiltre} onClick={() => { setFiltre("IMPAYEE"); setFournisseurFiltre(null); }}
+        />
+        <CarteChiffre
+          titre="En retard" montant={argent(totalEnRetard)}
+          couleur={enRetard.length > 0 ? "var(--danger)" : "var(--text)"} teinte={enRetard.length > 0 ? "var(--danger)" : "var(--success)"}
+          note={enRetard.length > 0 ? `${enRetard.length} facture${enRetard.length !== 1 ? "s" : ""} passée${enRetard.length !== 1 ? "s" : ""} d'échéance` : "Aucune facture en retard"}
+          actif={filtre === "EN_RETARD"} onClick={() => setFiltre("EN_RETARD")}
+        />
+        <CarteChiffre
+          titre="Dû sous 7 jours" montant={argent(totalCetteSemaine)}
+          couleur={dusCetteSemaine.length > 0 ? "var(--avertissement)" : "var(--text)"} teinte="var(--avertissement)"
+          note={dusCetteSemaine.length > 0 ? `${dusCetteSemaine.length} facture${dusCetteSemaine.length !== 1 ? "s" : ""} à prévoir` : "Rien d'ici une semaine"}
+          onClick={() => setFiltre("IMPAYEE")}
+        />
+      </div>
+
       {soldesParFournisseur.length > 0 && (
-        <div className="carte carte-s" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>Solde dû par fournisseur</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {soldesParFournisseur.map((f) => (
+        <div style={stylePanneau}>
+          <TitrePanneau
+            icone="immeuble" teinte={TEINTES.bleu} titre="Solde dû par fournisseur"
+            sousTitre="Touche un fournisseur pour ne voir que ses factures."
+          />
+          {soldesParFournisseur.map((f, i) => {
+            const choisi = fournisseurFiltre === f.id;
+            return (
               <button
                 key={f.id}
-                onClick={() => setFournisseurFiltre(fournisseurFiltre === f.id ? null : f.id)}
+                onClick={() => setFournisseurFiltre(choisi ? null : f.id)}
                 style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, width: "100%", textAlign: "left",
-                  fontSize: 12.5, padding: "6px 8px", borderRadius: 6, cursor: "pointer", color: "var(--text)",
-                  background: fournisseurFiltre === f.id ? "var(--bg)" : "none",
-                  border: fournisseurFiltre === f.id ? "1px solid var(--accent)" : "1px solid transparent",
+                  display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", font: "inherit",
+                  padding: "10px 8px", cursor: "pointer", color: "var(--text)", borderRadius: 12,
+                  background: choisi ? "rgba(232,163,61,0.16)" : "none",
+                  border: "none", borderTop: i === 0 || choisi ? "none" : "1px solid var(--border)",
                 }}
               >
-                <span>{f.nom} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>({f.nombre})</span></span>
-                <span style={{ fontWeight: 700 }}>{argent(f.total)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <input
-        type="search" placeholder="🔍 Rechercher (fournisseur, description, poste, montant, réf.)"
-        value={recherche} onChange={(e) => setRecherche(e.target.value)}
-        style={{ ...champStyle, marginBottom: 8 }}
-      />
-      <div style={{ display: "flex", gap: 6, marginBottom: 10, overflowX: "auto" }}>
-        {["IMPAYEE", "EN_RETARD", "PAYEE", "TOUTES"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFiltre(f)}
-            style={{
-              fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, whiteSpace: "nowrap", cursor: "pointer",
-              background: filtre === f ? "var(--accent)" : "var(--surface)",
-              color: filtre === f ? "#17150f" : "var(--text-muted)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            {f === "TOUTES" ? "Toutes" : STATUTS_DEPENSE[f].label}
-          </button>
-        ))}
-      </div>
-      {fournisseurFiltre && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, marginBottom: 8, gap: 8 }}>
-          <span>
-            Fournisseur : <Link href={`/gerant/fournisseurs/${fournisseurFiltre}`} style={{ fontWeight: 700, color: "var(--accent)" }}>{nomFournisseurFiltre || "—"}</Link>
-          </span>
-          <button onClick={() => setFournisseurFiltre(null)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "4px 8px", borderRadius: 6, cursor: "pointer" }}>
-            ✕ Tous les fournisseurs
-          </button>
-        </div>
-      )}
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}>
-        <span>{depensesFiltrees.length} facture{depensesFiltrees.length !== 1 ? "s" : ""} — touche une facture pour la voir</span>
-        <span style={{ fontWeight: 700 }}>{argent(totalFiltre)}</span>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {depensesFiltrees.map((d) => {
-          const echeance = etatEcheance(d);
-          return (
-            <div
-              key={d.id}
-              role="link" tabIndex={0}
-              onClick={() => router.push(lienDepense(d.id))}
-              onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) router.push(lienDepense(d.id)); }}
-              style={{ cursor: "pointer", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, borderLeft: `3px solid ${d.statut === "PAYEE" ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "#C9A227"}` }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{d.fournisseur.nom}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: d.statut === "PAYEE" ? "var(--success)" : (echeance?.couleur || "var(--danger)"), whiteSpace: "nowrap" }}>
-                  {d.statut === "PAYEE" ? "Payée" : (echeance?.texte || "Impayée")}
+                <span style={{
+                  width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: TEINTES.bleu.fond, color: TEINTES.bleu.couleur,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800,
+                }}>
+                  {f.nom.charAt(0).toUpperCase()}
                 </span>
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{d.description} · {d.lignes.map((l) => l.categorieDepense.nom).join(", ")}</div>
-              <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                Facture du {formaterDate(d.dateFacture)}
-                {d.statut === "PAYEE" && d.datePaiement && ` · payée le ${formaterDate(d.datePaiement)}`}
-                {d.statut === "PAYEE" && d.referenceVersement && ` · réf. ${d.referenceVersement}`}
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>{argent(d.montant)}</span>
-                <div style={{ display: "flex", gap: 8 }} onClick={arreter}>
-                  {d.statut === "IMPAYEE" && depenseAPayer !== d.id && depenseEnEdition !== d.id && (
-                    <button onClick={() => setDepenseAPayer(d.id)} className="bouton-3d" style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 8 }}>
-                      Marquer payée
-                    </button>
-                  )}
-                  {depenseAPayer !== d.id && (
-                    <button onClick={() => setDepenseEnEdition(depenseEnEdition === d.id ? null : d.id)} style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
-                      ✏️
-                    </button>
-                  )}
-                  <button onClick={() => supprimerDepense(d.id)} style={{ fontSize: 11, color: "var(--danger)", background: "none", border: "1px solid var(--border)", padding: "6px 10px", borderRadius: 8, cursor: "pointer" }}>
-                    🗑️
-                  </button>
-                </div>
-              </div>
-              {depenseAPayer === d.id && (
-                <div onClick={arreter} style={{ cursor: "default" }}>
-                  <FormulairePaiementDepense depense={d} comptesTresorerie={comptesTresorerie} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
-                </div>
-              )}
-              {depenseEnEdition === d.id && (
-                <div onClick={arreter} style={{ cursor: "default" }}>
-                  <FormulaireEditionDepense
-                    depense={d} fournisseurs={fournisseurs} categories={categories} tpsTaux={tpsTaux} tvqTaux={tvqTaux}
-                    onTermine={() => { setDepenseEnEdition(null); router.refresh(); }} onAnnuler={() => setDepenseEnEdition(null)}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {depensesFiltrees.length === 0 && (
-          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-            {depenses.length === 0 ? "Aucune dépense encore." : filtre === "IMPAYEE" && !terme && !fournisseurFiltre ? "🎉 Rien à payer — tous les fournisseurs sont à jour." : "Aucune dépense pour ce filtre."}
-          </p>
-        )}
-        {filtre !== "IMPAYEE" && filtre !== "EN_RETARD" && (
-          <p style={{ color: "var(--text-muted)", fontSize: 10.5, margin: 0 }}>Les 50 dernières factures payées sont affichées ; toutes les impayées le sont.</p>
-        )}
-      </div>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nom}</span>
+                  <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{f.nombre} facture{f.nombre !== 1 ? "s" : ""}</span>
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(f.total)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      <h2 style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8, marginTop: 20 }}>Outils</h2>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <Link href="/gerant/fournisseurs" className="bouton-3d-sombre" style={{ flex: 1, textAlign: "center", padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>
-          🏢 Fiches fournisseurs
-        </Link>
-        <Link href="/gerant/comptabilite/rapports/comptes-fournisseurs" target="_blank" className="bouton-3d-sombre" style={{ flex: 1, textAlign: "center", padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>
-          📄 Rapport chronologique
-        </Link>
-      </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <button onClick={() => setOngletGestion(ongletGestion === "fournisseurs" ? null : "fournisseurs")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
-          ⚙️ Gérer les fournisseurs
-        </button>
-        <button onClick={() => setOngletGestion(ongletGestion === "categories" ? null : "categories")} className="bouton-3d-sombre" style={{ flex: 1, padding: 9, borderRadius: 8, fontSize: 11.5, fontWeight: 700 }}>
-          📂 Postes de dépenses
-        </button>
-      </div>
+      <Panneau titre="Factures">
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
+            <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+          </span>
+          <input
+            type="search" placeholder="Fournisseur, description, poste, montant, réf."
+            value={recherche} onChange={(e) => setRecherche(e.target.value)}
+            style={{ ...champStyle, marginBottom: 0, padding: "11px 12px 11px 40px", fontSize: 14, borderRadius: 12 }}
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)", marginBottom: 12 }}>
+          {["IMPAYEE", "EN_RETARD", "PAYEE", "TOUTES"].map((f) => (
+            <button
+              key={f} onClick={() => setFiltre(f)}
+              style={{
+                padding: "9px 4px", borderRadius: 9, fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", whiteSpace: "nowrap",
+                background: filtre === f ? "var(--accent)" : "transparent", color: filtre === f ? "#221f18" : "var(--text-muted)",
+              }}
+            >
+              {f === "TOUTES" ? "Toutes" : STATUTS_DEPENSE[f].label}
+            </button>
+          ))}
+        </div>
+
+        {fournisseurFiltre && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "8px 12px", borderRadius: 12, background: "var(--bleu-fond)", marginBottom: 12, fontSize: 13 }}>
+            <span>
+              Fournisseur : <Link href={`/gerant/fournisseurs/${fournisseurFiltre}`} style={{ fontWeight: 700, color: "var(--bleu)" }}>{nomFournisseurFiltre || "—"}</Link>
+            </span>
+            <button onClick={() => setFournisseurFiltre(null)} style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", padding: "5px 10px", borderRadius: 8, cursor: "pointer" }}>
+              ✕ Tous les fournisseurs
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 8px", fontSize: 12, fontWeight: 700, color: "var(--text-muted)", borderBottom: "2px solid var(--accent)", marginBottom: 10 }}>
+          <span>{depensesFiltrees.length} facture{depensesFiltrees.length !== 1 ? "s" : ""}</span>
+          <span style={{ color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>{argent(totalFiltre)}</span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {depensesFiltrees.map((d) => {
+            const echeance = etatEcheance(d);
+            const payee = d.statut === "PAYEE";
+            const couleur = payee ? "var(--success)" : echeance?.enRetard ? "var(--danger)" : "var(--avertissement)";
+            const fond = payee ? "var(--success-fond)" : echeance?.enRetard ? "var(--danger-fond)" : "var(--avertissement-fond)";
+            const actionsVisibles = depenseAPayer !== d.id && depenseEnEdition !== d.id;
+            return (
+              <div
+                key={d.id}
+                role="link" tabIndex={0}
+                onClick={() => router.push(lienDepense(d.id))}
+                onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) router.push(lienDepense(d.id)); }}
+                style={{ position: "relative", overflow: "hidden", cursor: "pointer", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 14px 14px 18px" }}
+              >
+                <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleur }} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>{d.fournisseur.nom}</div>
+                    <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{d.description} · {d.lignes.map((l) => l.categorieDepense.nom).join(", ")}</div>
+                  </div>
+                  <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(d.montant)}</span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 8 }}>
+                  <Pastille couleur={couleur} fond={fond}>{payee ? "Payée" : (echeance?.texte || "Impayée")}</Pastille>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Facture du {formaterDate(d.dateFacture)}
+                    {payee && d.datePaiement && ` · payée le ${formaterDate(d.datePaiement)}`}
+                    {payee && d.referenceVersement && ` · réf. ${d.referenceVersement}`}
+                  </span>
+                </div>
+                {actionsVisibles && (
+                  <div onClick={arreter} style={{ display: "grid", gridTemplateColumns: `repeat(${payee ? 2 : 3}, 1fr)`, gap: 8, marginTop: 12 }}>
+                    {!payee && (
+                      <BoutonAction icone="crochet" couleur="#fff" fond="var(--success)" bordure="var(--success)" onClick={() => setDepenseAPayer(d.id)}>Payer</BoutonAction>
+                    )}
+                    <BoutonAction icone="crayon" onClick={() => setDepenseEnEdition(d.id)}>Corriger</BoutonAction>
+                    <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={() => supprimerDepense(d.id)}>Supprimer</BoutonAction>
+                  </div>
+                )}
+                {depenseAPayer === d.id && (
+                  <div onClick={arreter} style={{ cursor: "default" }}>
+                    <FormulairePaiementDepense depense={d} comptesTresorerie={comptesTresorerie} onTermine={() => { setDepenseAPayer(null); router.refresh(); }} onAnnuler={() => setDepenseAPayer(null)} />
+                  </div>
+                )}
+                {depenseEnEdition === d.id && (
+                  <div onClick={arreter} style={{ cursor: "default" }}>
+                    <FormulaireEditionDepense
+                      depense={d} fournisseurs={fournisseurs} categories={categories} tpsTaux={tpsTaux} tvqTaux={tvqTaux}
+                      onTermine={() => { setDepenseEnEdition(null); router.refresh(); }} onAnnuler={() => setDepenseEnEdition(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {depensesFiltrees.length === 0 && (
+            <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0, textAlign: "center", padding: "12px 0" }}>
+              {depenses.length === 0 ? "Aucune dépense encore." : filtre === "IMPAYEE" && !terme && !fournisseurFiltre ? "🎉 Rien à payer — tous les fournisseurs sont à jour." : "Aucune dépense pour ce filtre."}
+            </p>
+          )}
+          {filtre !== "IMPAYEE" && filtre !== "EN_RETARD" && (
+            <p style={{ color: "var(--text-muted)", fontSize: 11.5, margin: 0 }}>Les 50 dernières factures payées sont affichées ; toutes les impayées le sont.</p>
+          )}
+        </div>
+      </Panneau>
+
+      <GroupeLiens
+        titre="Outils" teinte={TEINTES.bleu}
+        liens={[
+          { href: "/gerant/fournisseurs", icone: "immeuble", label: "Fiches fournisseurs", detail: "Coordonnées et historique" },
+          { href: "/gerant/comptabilite/rapports/comptes-fournisseurs", target: "_blank", icone: "imprimante", label: "Rapport chronologique", detail: "Comptes fournisseurs, PDF ou imprimer" },
+          { onClick: () => setOngletGestion(ongletGestion === "fournisseurs" ? null : "fournisseurs"), icone: "reglages", label: "Gérer les fournisseurs", detail: "Ajouter, corriger ou retirer" },
+          { onClick: () => setOngletGestion(ongletGestion === "categories" ? null : "categories"), icone: "liste", label: "Postes de dépenses", detail: "Postes et leur compte" },
+        ]}
+      />
 
       {ongletGestion === "fournisseurs" && <GestionFournisseurs fournisseurs={fournisseurs} onModifie={() => router.refresh()} />}
       {ongletGestion === "categories" && <GestionCategories categories={categories} comptesDepense={comptesDepense} onModifie={() => router.refresh()} />}
@@ -271,15 +292,28 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
   );
 }
 
-function CarteResume({ valeur, libelle, couleur, actif, onClick }) {
+function BoutonIcone({ icone, titre, couleur = "var(--text-muted)", onClick }) {
   return (
     <button
-      onClick={onClick}
-      className="carte carte-s"
-      style={{ textAlign: "left", cursor: "pointer", border: actif ? "1px solid var(--accent)" : undefined, color: "var(--text)", minWidth: 0 }}
+      type="button" onClick={onClick} title={titre} aria-label={titre}
+      style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
     >
-      <div style={{ fontSize: 15, fontWeight: 700, color: couleur }}>{argent(valeur)}</div>
-      <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{libelle}</div>
+      <Icone nom={icone} taille={16} couleur={couleur} />
+    </button>
+  );
+}
+
+function BoutonAction({ icone, couleur = "var(--text)", fond = "var(--surface)", bordure = "var(--border)", onClick, children }) {
+  return (
+    <button
+      type="button" onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 8px", borderRadius: 10,
+        fontSize: 13, fontWeight: 700, cursor: "pointer", color: couleur, background: fond, border: `1px solid ${bordure}`,
+      }}
+    >
+      <Icone nom={icone} taille={16} couleur={couleur} />
+      {children}
     </button>
   );
 }
@@ -314,7 +348,7 @@ export function FormulairePaiementDepense({ depense, comptesTresorerie, onTermin
   }
 
   return (
-    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
       <SelecteurCompteMode
         comptes={comptesTresorerie}
         compteTresorerieId={compteTresorerieId} setCompteTresorerieId={setCompteTresorerieId}
@@ -394,7 +428,7 @@ export function FormulaireEditionDepense({ depense, fournisseurs, categories, tp
   }
 
   return (
-    <div style={{ background: "var(--bg)", borderRadius: 8, padding: 10, marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
       <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
         {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
       </select>
@@ -612,23 +646,23 @@ function GestionFournisseurs({ fournisseurs, onModifie }) {
   }
 
   return (
-    <div className="carte carte-m" style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Fournisseurs</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="reglages" teinte={TEINTES.bleu} titre="Gérer les fournisseurs" sousTitre="Ajouter, corriger ou retirer un fournisseur de la liste." />
+      <div style={{ display: "flex", flexDirection: "column", marginBottom: 12, borderBottom: "1px solid var(--border)" }}>
         {fournisseurs.map((f) =>
           modificationId === f.id ? (
             <LigneEditionFournisseur key={f.id} fournisseur={f} onTermine={() => { setModificationId(null); onModifie(); }} onAnnuler={() => setModificationId(null)} />
           ) : (
-            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12 }}>
-              <div>
-                <div>{f.nom}</div>
-                <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
+            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 2px", borderTop: "1px solid var(--border)" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{f.nom}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   {[f.telephone, adresseComplete(f)].filter(Boolean).join(" · ") || "Aucune coordonnée"}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={() => setModificationId(f.id)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer" }}>✏️</button>
-                <button onClick={() => desactiver(f.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }}>✕</button>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <BoutonIcone icone="crayon" titre="Corriger" onClick={() => setModificationId(f.id)} />
+                <BoutonIcone icone="poubelle" titre="Retirer" couleur="var(--danger)" onClick={() => desactiver(f.id)} />
               </div>
             </div>
           )
@@ -749,14 +783,14 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
   }
 
   return (
-    <div className="carte carte-m" style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 8 }}>Postes de dépenses</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="liste" teinte={TEINTES.bleu} titre="Postes de dépenses" sousTitre="Chaque poste est relié à un compte de dépense." />
+      <div style={{ display: "flex", flexDirection: "column", marginBottom: 12, borderBottom: "1px solid var(--border)" }}>
         {categories.map((c) => (
-          <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-            <span>{c.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>→ {c.compteDepenseNumero}</span></span>
+          <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, minHeight: 34, padding: "4px 2px", borderTop: "1px solid var(--border)" }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{c.nom} <span style={{ color: "var(--text-muted)", fontFamily: "monospace", fontWeight: 400 }}>→ {c.compteDepenseNumero}</span></span>
             {c.code !== "GENERAL" && (
-              <button onClick={() => desactiver(c.id)} style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer" }}>✕</button>
+              <BoutonIcone icone="poubelle" titre="Retirer" couleur="var(--danger)" onClick={() => desactiver(c.id)} />
             )}
           </div>
         ))}
@@ -888,11 +922,12 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   }
 
   if (fournisseurs.length === 0) {
-    return <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Ajoute d'abord un fournisseur (bouton « ⚙️ Gérer les fournisseurs » plus bas).</p>;
+    return <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Ajoute d'abord un fournisseur (« Gérer les fournisseurs », dans les outils plus bas).</p>;
   }
 
   return (
-    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 16 }}>
+    <form onSubmit={creer} style={stylePanneau}>
+      <TitrePanneau icone="presse" titre="Nouvelle dépense" sousTitre="Facture d'un fournisseur, répartie sur un ou plusieurs postes." />
       <label style={labelStyle}>Fournisseur</label>
       <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
         {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
@@ -912,26 +947,22 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
           />
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button type="button" onClick={ajouterLigne} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "1px dashed var(--border)", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}>
-          + Ajouter une ligne (autre poste)
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+        <button type="button" onClick={ajouterLigne} style={boutonPointille}>
+          + Ajouter une ligne
         </button>
-        {afficherNouveauPoste ? (
-          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+        <button type="button" onClick={() => setAfficherNouveauPoste((v) => !v)} style={boutonPointille}>
+          {afficherNouveauPoste ? "Annuler le poste" : "+ Nouveau poste"}
+        </button>
+      </div>
+      {afficherNouveauPoste && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
             <input placeholder="Nom du nouveau poste" value={nomNouveauPoste} onChange={(e) => setNomNouveauPoste(e.target.value)} style={{ ...champStyle, marginBottom: 0, flex: 1 }} />
             <button type="button" onClick={creerPoste} disabled={creationPosteEnCours} style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "none", border: "1px solid var(--border)", padding: "0 10px", borderRadius: 6, cursor: "pointer" }}>
               {creationPosteEnCours ? "…" : "✓ Créer"}
             </button>
-            <button type="button" onClick={() => setAfficherNouveauPoste(false)} style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "1px solid var(--border)", padding: "0 10px", borderRadius: 6, cursor: "pointer" }}>
-              Annuler
-            </button>
           </div>
-        ) : (
-          <button type="button" onClick={() => setAfficherNouveauPoste(true)} className="bouton-3d-sombre" style={{ padding: "0 12px", borderRadius: 8, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-            + Nouveau poste
-          </button>
-        )}
-      </div>
+      )}
 
       <div style={{ display: "flex", gap: 8 }}>
         <div style={{ flex: 1 }}>
@@ -968,12 +999,12 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
           <input type="number" min={0} step="0.01" placeholder={`TVQ (${tvqTaux}%)`} value={tvqPayee} onChange={(e) => setTvqPayee(e.target.value)} style={champStyle} />
         </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8 }}>
-        <span style={{ color: "var(--text-muted)" }}>Total dû au fournisseur</span>
-        <span style={{ fontWeight: 700 }}>{argent(grandTotal)}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, background: "rgba(232,163,61,0.16)", marginBottom: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)" }}>Total dû au fournisseur</span>
+        <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(grandTotal)}</span>
       </div>
       {erreur && <p style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</p>}
-      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 10, borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
         {enCours ? "Enregistrement…" : "Enregistrer la dépense"}
       </button>
     </form>
@@ -983,5 +1014,9 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
 const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
+};
+const boutonPointille = {
+  padding: "9px 8px", borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+  color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)",
 };
 const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 3 };
