@@ -4,12 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent } from "@/lib/format";
+import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../../../../components/StyleSection";
 
 const NOMS_MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 const STATUT_INFO = {
-  OUVERTE: { icone: "🟢", label: "Ouverte", couleur: "var(--success)" },
-  VERROUILLEE: { icone: "🟡", label: "Verrouillée", couleur: "#C9A227" },
-  FERMEE: { icone: "🔴", label: "Fermée", couleur: "var(--danger)" },
+  OUVERTE: { label: "Ouverte", couleur: "var(--success)", fond: "var(--success-fond)", teinte: TEINTES.vert },
+  VERROUILLEE: { label: "Verrouillée", couleur: "var(--avertissement)", fond: "var(--avertissement-fond)", teinte: TEINTES.ambre },
+  FERMEE: { label: "Fermée", couleur: "var(--danger)", fond: "var(--danger-fond)", teinte: TEINTES.rouge },
 };
 
 export default function AssistantFermetureClient({ annee, mois, statut, statutParNom, statutLe, resume, checklist, estGerantOuDev }) {
@@ -68,114 +69,120 @@ export default function AssistantFermetureClient({ annee, mois, statut, statutPa
     router.refresh();
   }
 
+  const benefice = resume.beneficeNet;
+
   return (
     <div className="conteneur-page">
-      <Link href={`/gerant/comptabilite/fermeture?annee=${annee}`} style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour</Link>
-      <h1 style={{ fontSize: 20, margin: "8px 0 4px" }}>Fermeture — {NOMS_MOIS[mois - 1]} {annee}</h1>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: info.couleur }}>{info.icone} {info.label}</span>
-        {statutParNom && statutLe && (
-          <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
-            par {statutParNom}, le {new Date(statutLe).toLocaleString("fr-CA", { timeZone: "America/Toronto" })}
-          </span>
+      <Link href={`/gerant/comptabilite/fermeture?annee=${annee}`} style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la fermeture de période</Link>
+
+      {/* Carte de la période */}
+      <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: "20px 20px 20px 24px", marginTop: 10, marginBottom: 14 }}>
+        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: info.couleur }} />
+        <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: info.couleur, opacity: 0.08 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: info.teinte.fond, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icone nom="cadenas" taille={28} couleur={info.teinte.couleur} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>Fermeture — {NOMS_MOIS[mois - 1]} {annee}</div>
+            {statutParNom && statutLe && (
+              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
+                Par {statutParNom}, le {new Date(statutLe).toLocaleString("fr-CA", { timeZone: "America/Toronto", dateStyle: "short", timeStyle: "short" })}
+              </div>
+            )}
+            <div style={{ marginTop: 8 }}><Pastille couleur={info.couleur} fond={info.fond}>{info.label}</Pastille></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grille-trois" style={{ marginBottom: 20 }}>
+        <CarteChiffre titre="Revenus" montant={argent(resume.revenus)} teinte="var(--success)" note="Du mois" />
+        <CarteChiffre titre="Dépenses" montant={argent(resume.depenses)} teinte="var(--danger)" note="Du mois" />
+        <CarteChiffre
+          titre="Bénéfice net" montant={argent(benefice)} teinte={benefice >= 0 ? "var(--success)" : "var(--danger)"}
+          couleur={benefice >= 0 ? "var(--success)" : "var(--danger)"} note="Revenus − dépenses"
+        />
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau
+          icone="crochet" teinte={checklist.peutFermer ? TEINTES.vert : TEINTES.rouge} titre="Checklist de fermeture"
+          sousTitre={checklist.peutFermer ? "Tout est prêt pour fermer la période." : "Règle les points en rouge avant de fermer la période."}
+          droite={<span style={{ fontSize: 17, fontWeight: 800, color: checklist.peutFermer ? "var(--success)" : "var(--danger)", whiteSpace: "nowrap", paddingTop: 2 }}>{checklist.pourcentage} %</span>}
+        />
+        <div style={{ height: 8, borderRadius: 999, background: "var(--surface-alt)", overflow: "hidden", marginBottom: 10 }}>
+          <div style={{ width: `${checklist.pourcentage}%`, height: "100%", borderRadius: 999, background: checklist.peutFermer ? "var(--success)" : "var(--accent)" }} />
+        </div>
+        {checklist.blocages.map((b, i) => (
+          <div key={b.cle} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600 }}>
+              <span style={{ width: 24, height: 24, borderRadius: 999, flexShrink: 0, background: b.ok ? "var(--success-fond)" : "var(--danger-fond)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <Icone nom={b.ok ? "crochet" : "alerte"} taille={14} couleur={b.ok ? "var(--success)" : "var(--danger)"} />
+              </span>
+              {b.label}
+            </span>
+            {b.detail && <span style={{ color: "var(--danger)", fontSize: 12.5, fontWeight: 700, textAlign: "right" }}>{b.detail}</span>}
+          </div>
+        ))}
+        {checklist.informatifs.length > 0 && (
+          <div style={{ marginTop: 10, padding: "4px 12px", borderRadius: 12, background: "var(--avertissement-fond)" }}>
+            {checklist.informatifs.map((inf, i) => (
+              <div key={inf.cle} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, padding: "8px 0", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                <span style={{ color: "var(--text-muted)" }}>{inf.label}</span>
+                <span style={{ fontWeight: 700 }}>{inf.valeur}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
-      <div className="carte carte-m" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 10 }}>
-          Checklist de fermeture — {checklist.pourcentage}% complétée
-        </div>
-        {checklist.blocages.map((b) => (
-          <div key={b.cle} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-            <span>{b.ok ? "🟢" : "🔴"} {b.label}</span>
-            {b.detail && <span style={{ color: "var(--danger)", fontSize: 11.5 }}>{b.detail}</span>}
-          </div>
-        ))}
-        <div style={{ fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 10, marginBottom: 6 }}>Informatif</div>
-        {checklist.informatifs.map((i) => (
-          <div key={i.cle} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--text-muted)", marginBottom: 4 }}>
-            <span>🟡 {i.label}</span>
-            <span>{i.valeur}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="carte carte-m" style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, marginBottom: 10 }}>Résumé</div>
-        <LigneResume label="Revenus" valeur={resume.revenus} />
-        <LigneResume label="Dépenses" valeur={resume.depenses} />
-        <LigneResume label="Bénéfice net" valeur={resume.beneficeNet} gras />
-        <LigneResume label="TPS à remettre" valeur={resume.tpsARemettre} />
-        <LigneResume label="TVQ à remettre" valeur={resume.tvqARemettre} />
-        <LigneResume label="Clients à recevoir" valeur={resume.clientsARecevoir} />
-        <LigneResume label="Fournisseurs à payer" valeur={resume.fournisseursAPayer} />
-        <LigneResume label="Solde bancaire" valeur={resume.soldeBancaire} />
+      <div style={stylePanneau}>
+        <TitrePanneau icone="balance" teinte={TEINTES.bleu} titre="Soldes à la fin du mois" />
+        <LigneDetail premiere label="TPS à remettre" valeur={argent(resume.tpsARemettre)} />
+        <LigneDetail label="TVQ à remettre" valeur={argent(resume.tvqARemettre)} />
+        <LigneDetail label="Clients à recevoir" valeur={argent(resume.clientsARecevoir)} />
+        <LigneDetail label="Fournisseurs à payer" valeur={argent(resume.fournisseursAPayer)} />
+        <LigneDetail label="Solde bancaire" valeur={argent(resume.soldeBancaire)} />
       </div>
 
       {statut !== "FERMEE" && (
-        <p style={{ fontSize: 11.5, color: "var(--danger)", marginBottom: 12 }}>
+        <p style={{ fontSize: 12.5, color: "var(--danger)", fontWeight: 600, margin: "0 0 12px", padding: "10px 12px", borderRadius: 12, background: "var(--danger-fond)" }}>
           ⚠️ Après fermeture, les écritures de cette période ne pourront plus être modifiées ni supprimées, et aucune nouvelle pièce datée dedans ne sera acceptée. Une correction nécessitera une écriture d'ajustement ou une réouverture autorisée.
         </p>
       )}
 
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{erreur}</p>}
 
-      {statut === "OUVERTE" && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <button onClick={verrouiller} disabled={enCours} className="bouton-3d-sombre" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-            🟡 Verrouiller
-          </button>
-          <button onClick={fermer} disabled={enCours || !checklist.peutFermer} className="bouton-3d" style={{ flex: 1, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-            🔴 Fermer la période
-          </button>
+      {statut !== "FERMEE" && (
+        <div style={{ display: "grid", gridTemplateColumns: statut === "OUVERTE" ? "1fr 1fr" : "1fr", gap: 8, marginBottom: 16 }}>
+          {statut === "OUVERTE" && (
+            <BoutonAction icone="cadenas" couleur="var(--avertissement)" bordure="var(--avertissement)" onClick={verrouiller} disabled={enCours}>Verrouiller</BoutonAction>
+          )}
+          <BoutonAction icone="cadenas" couleur="#fff" fond="var(--danger)" bordure="var(--danger)" onClick={fermer} disabled={enCours || !checklist.peutFermer}>Fermer la période</BoutonAction>
         </div>
-      )}
-      {statut === "VERROUILLEE" && (
-        <button onClick={fermer} disabled={enCours || !checklist.peutFermer} className="bouton-3d" style={{ width: "100%", padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13, marginBottom: 16 }}>
-          🔴 Fermer la période
-        </button>
       )}
 
       {estGerantOuDev && statut !== "OUVERTE" && (
-        <div className="carte carte-m">
-          {!afficherReouverture ? (
-            <button onClick={() => setAfficherReouverture(true)} style={{ background: "none", border: "1px dashed var(--danger)", color: "var(--danger)", width: "100%", padding: 10, borderRadius: 8, fontSize: 12.5, cursor: "pointer" }}>
-              🔄 Rouvrir la période
-            </button>
-          ) : (
-            <>
-              <p style={{ fontSize: 11.5, color: "var(--danger)", marginBottom: 8 }}>
-                ⚠️ La réouverture peut modifier les états financiers et les rapports fiscaux déjà produits.
-              </p>
-              <textarea
-                required
-                placeholder="Motif de la réouverture (obligatoire)"
-                value={motif}
-                onChange={(e) => setMotif(e.target.value)}
-                rows={3}
-                style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box" }}
-              />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={reouvrir} disabled={enCours} style={{ flex: 1, padding: 10, borderRadius: 8, border: "none", background: "var(--danger)", color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                  Confirmer la réouverture
-                </button>
-                <button onClick={() => setAfficherReouverture(false)} style={{ padding: "0 14px", borderRadius: 8, border: "1px solid var(--border)", background: "none", color: "var(--text-muted)", cursor: "pointer" }}>
-                  Annuler
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        !afficherReouverture ? (
+          <BoutonAction icone="echange" couleur="var(--danger)" onClick={() => setAfficherReouverture(true)} style={{ width: "100%", marginBottom: 16 }}>Rouvrir la période</BoutonAction>
+        ) : (
+          <div style={{ ...stylePanneau, border: "1.5px solid var(--danger)" }}>
+            <TitrePanneau icone="echange" teinte={TEINTES.rouge} titre="Rouvrir la période" sousTitre="La réouverture peut modifier les états financiers et les rapports fiscaux déjà produits." />
+            <textarea
+              required
+              placeholder="Motif de la réouverture (obligatoire)"
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              rows={3}
+              style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, marginBottom: 10, boxSizing: "border-box", resize: "vertical" }}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <BoutonAction icone="echange" couleur="#fff" fond="var(--danger)" bordure="var(--danger)" onClick={reouvrir} disabled={enCours}>Confirmer</BoutonAction>
+              <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={() => setAfficherReouverture(false)}>Annuler</BoutonAction>
+            </div>
+          </div>
+        )
       )}
-    </div>
-  );
-}
-
-function LigneResume({ label, valeur, gras }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", fontSize: gras ? 14 : 13, fontWeight: gras ? 700 : 400, marginBottom: 6 }}>
-      <span style={{ color: gras ? "var(--text)" : "var(--text-muted)" }}>{label}</span>
-      <span>{argent(valeur)}</span>
     </div>
   );
 }
