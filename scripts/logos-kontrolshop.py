@@ -107,3 +107,29 @@ for id_, (libelle, accent) in SECTEURS.items():
             a = SOMBRE.get(id_, accent) if th == "sombre" else accent
             open(os.path.join(sortie, nom_fichier), "w").write(fn(t, a, libelle))
 print("ok", len(os.listdir(sortie)))
+
+def declinaisons(t, rangees=None):
+    """Logo principal (K à gauche du nom) et, dessous, la liste des secteurs."""
+    F = 130; T = 30; M = 50; ecart = 44
+    hk = 230; wk = hk * 240 / 292
+    wn = largeur_nom(F)
+    haut = wk + 30 + wn
+    items = [(l, a) for l, a in SECTEURS.values() if l]
+    rangees = rangees or [items[:3], items[3:]]
+    largeurs = [sum(largeur_badge(l, T) for l, _ in r) + ecart * (len(r) - 1) for r in rangees]
+    W = max(haut, *largeurs) + 2 * M
+    x = (W - haut) / 2
+    corps = marque_k(t, SECTEURS["kontrolshop"][1], x, M, hk)
+    n, _ = nom(t, x + wk + 30, M + hk * 0.5 + F * 0.36, F); corps += n
+    y = M + hk + 46
+    corps += f'<line x1="{M:.0f}" y1="{y:.0f}" x2="{W - M:.0f}" y2="{y:.0f}" stroke="{t["arc"]}" stroke-width="2"/>'
+    y += 38
+    for r, lr in zip(rangees, largeurs):
+        bx = (W - lr) / 2; base = y + T * 0.72
+        for l, a in r:
+            b, wb = badge(t, a, l, bx, base, T); corps += b; bx += wb + ecart
+        y += T + 26
+    return svg(W, y - 26 + M, corps, "kontrolshop — Garage, Ferme, Copropriété, Boutique, Premium")
+
+for th, t in THEMES.items():
+    open(os.path.join(sortie, f"kontrolshop-declinaisons-{th}.svg"), "w").write(declinaisons(t))
