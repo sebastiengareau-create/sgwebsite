@@ -226,23 +226,45 @@ a { color: inherit; }
   .cacher-sur-bureau { display: none !important; }
 }
 
-.barre-laterale-lien {
+/* Liens du menu (gauche et hamburger — voir MenuNavigation.js) */
+.menu-lien {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 7px 12px;
   border-radius: 10px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   text-decoration: none;
 }
-.barre-laterale-lien:hover { background: var(--bg); }
-.barre-laterale-lien.actif {
-  background: linear-gradient(180deg, var(--accent-clair), var(--accent));
-  color: #17150f;
+.menu-lien:hover { background: var(--bg); }
+.menu-lien.actif {
+  background: rgba(232, 163, 61, 0.16);
+  color: var(--text);
+  font-weight: 700;
 }
-.barre-laterale-lien.accentue:not(.actif) { color: var(--accent); }
+.menu-lien.actif::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.menu-lien.accentue:not(.actif) { color: var(--accent-ombre); }
+
+/* Ouverture du menu hamburger : le fond apparaît, le tiroir glisse */
+@keyframes menu-fond-apparait { from { opacity: 0; } to { opacity: 1; } }
+@keyframes menu-tiroir-glisse { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.menu-fond { animation: menu-fond-apparait 0.18s ease-out; }
+.menu-tiroir { animation: menu-tiroir-glisse 0.22s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .menu-fond, .menu-tiroir { animation: none; }
+}
 
 @media print {
   .barre-laterale, .bouton-flottant { display: none !important; }
