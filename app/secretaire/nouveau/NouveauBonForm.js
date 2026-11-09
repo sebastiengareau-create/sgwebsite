@@ -42,6 +42,9 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
   const [clientVille, setClientVille] = useState("");
   const [clientProvince, setClientProvince] = useState(PROVINCE_DEFAUT);
   const [clientCodePostal, setClientCodePostal] = useState("");
+  // Numéro de contrat de garantie prolongée : saisi ici quand le dossier du
+  // client n'en a pas encore, et enregistré à son dossier avec le bon
+  const [clientGarantieProlongee, setClientGarantieProlongee] = useState("");
   const remplirAdresse = remplisseurAdresse({ ville: clientVille, setAdresse: setClientAdresse, setVille: setClientVille, setProvince: setClientProvince, setCodePostal: setClientCodePostal });
 
   // Véhicule du bon : un véhicule du dossier du client (son id), "nouveau"
@@ -90,6 +93,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setClientSelectionne(c);
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
+    setClientGarantieProlongee("");
     // Véhicule obligatoire : le premier du dossier est présélectionné
     const parDefaut = c.vehicules.length === 1 || (CLIENT.vehiculeObligatoire && c.vehicules.length) ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau";
     setChoixVehicule(parDefaut);
@@ -105,6 +109,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setClientVille("");
     setClientProvince(PROVINCE_DEFAUT);
     setClientCodePostal("");
+    setClientGarantieProlongee("");
     setChoixVehicule("nouveau");
     setVehicule(VEHICULE_VIDE);
   }
@@ -159,6 +164,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
+        clientGarantieProlongee: clientGarantieProlongee.trim(),
         problemes: lignesValides,
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
@@ -257,7 +263,19 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
               Changer
             </button>
           </div>
-        ) : (
+        ) : null}
+        {clientSelectionne && !clientSelectionne.garantieProlongee && (
+          <div style={{ marginTop: 12 }}>
+            <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
+            <input
+              value={clientGarantieProlongee}
+              onChange={(e) => setClientGarantieProlongee(e.target.value)}
+              placeholder="Facultatif — enregistré au dossier du client"
+              style={{ ...champInput, marginBottom: 0 }}
+            />
+          </div>
+        )}
+        {clientSelectionne ? null : (
           <>
             <div ref={boiteRechercheRef} style={{ position: "relative" }}>
               <label style={labelStyle}>Nom du client</label>
@@ -307,6 +325,13 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
                 <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={{ ...champInput, marginBottom: 0 }} />
               </div>
             </div>
+            <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
+            <input
+              value={clientGarantieProlongee}
+              onChange={(e) => setClientGarantieProlongee(e.target.value)}
+              placeholder="Facultatif"
+              style={{ ...champInput, marginBottom: 0 }}
+            />
           </>
         )}
       </div>
