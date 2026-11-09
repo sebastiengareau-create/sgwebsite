@@ -364,3 +364,9 @@ a { color: inherit; }
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Logo du client en deux versions (app/components/LogoClient.js) : la
+   version sombre par défaut (thème sombre), la claire en thème clair */
+.logo-clair { display: none; }
+html[data-theme="light"] .logo-clair { display: inline-block; }
+html[data-theme="light"] .logo-sombre { display: none; }

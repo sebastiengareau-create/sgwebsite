@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { image } from "@/lib/client";
+import LogoClient from "../components/LogoClient";
 import { SignatureKontrolshop } from "../components/LogoKontrolshop";
 
 export default function LoginForm({ nomEntreprise }) {
@@ -39,7 +38,7 @@ export default function LoginForm({ nomEntreprise }) {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <form onSubmit={seConnecter} style={{ width: "100%", maxWidth: 340 }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          <Image src={image("logo.png")} alt={nomEntreprise} width={220} height={147} priority style={{ objectFit: "contain" }} />
+          <LogoClient alt={nomEntreprise} width={220} height={147} priority />
         </div>
         <h1 style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>{nomEntreprise}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>Connecte-toi pour continuer</p>
