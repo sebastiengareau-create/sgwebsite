@@ -11,7 +11,7 @@ import { useOrdreFiches } from "../../components/NavigationFiches";
 import { PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
-import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, GroupeLiens, Panneau, Pastille } from "../../components/StyleSection";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonAction, GroupeLiens, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 
 export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignables, peutImporter }) {
   const router = useRouter();
@@ -42,16 +42,15 @@ export default function EmployesClient({ employes, moi, nomsRoles, rolesAssignab
     <div className="conteneur-page">
       <BandeauSection icone="👥" titre="Gestion des employés" sousTitre="Touche un employé pour voir sa fiche complète — coordonnées, rémunération, historique de paie." />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-        <BoutonPlein icone={afficherFormulaire ? null : "utilisateurPlus"} onClick={() => setAfficherFormulaire((v) => !v)}>
-          {afficherFormulaire ? "Annuler" : "Nouveau compte"}
-        </BoutonPlein>
-        {peutImporter && <BoutonImporterFichier apiUrl="/api/employes/importer" libelle="depuis Excel" libellePluriel="employé" />}
-      </div>
-
-      {afficherFormulaire && (
-        <div style={{ marginBottom: 14 }}>
-          <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
+      {/* Formulaire ouvert : il a son propre bouton Annuler */}
+      {afficherFormulaire ? (
+        <div style={{ marginBottom: 20 }}>
+          <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} onAnnuler={() => setAfficherFormulaire(false)} nomsRoles={nomsRoles} rolesAssignables={rolesAssignables} />
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+          <BoutonPlein icone="utilisateurPlus" onClick={() => setAfficherFormulaire(true)}>Nouveau compte</BoutonPlein>
+          {peutImporter && <BoutonImporterFichier apiUrl="/api/employes/importer" libelle="depuis Excel" libellePluriel="employé" />}
         </div>
       )}
 
@@ -158,7 +157,7 @@ function CarteEmploye({ employe: e, moi, nomsRoles, teinte, premier }) {
   );
 }
 
-function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
+function FormulaireCreation({ onCree, onAnnuler, nomsRoles, rolesAssignables }) {
   const [nom, setNom] = useState("");
   const [courriel, setCourriel] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -203,69 +202,122 @@ function FormulaireCreation({ onCree, nomsRoles, rolesAssignables }) {
   }
 
   return (
-    <form onSubmit={creer} className="carte" style={{ marginBottom: 4 }}>
-      <SectionTitreForm>Profil</SectionTitreForm>
-      <input required placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-      <input required type="email" placeholder="Courriel" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-      <input required type="password" minLength={4} maxLength={12} placeholder="Mot de passe (4 à 12 caractères)" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} style={champStyle} />
-      <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
-        {rolesAssignables.map((r) => (
-          <option key={r} value={r}>{nomsRoles[r]}</option>
-        ))}
-      </select>
-      <input placeholder="NIP (optionnel, 4 chiffres)" inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} style={champStyle} />
-      <input placeholder="Téléphone" value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
-      <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
-      <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
-      <div style={{ display: "flex", gap: 8 }}>
-        <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1 }} />
-        <ChampCodePostal placeholder="Code postal" valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={{ ...champStyle, width: 110 }} />
+    <form onSubmit={creer}>
+      <div style={{ ...stylePanneau, border: "1.5px solid var(--accent)" }}>
+        <TitrePanneau icone="cadenas" teinte={TEINTES.ambre} titre="Nouveau compte" sousTitre="Ce qu'il faut pour se connecter à l'appli." />
+        <label style={labelStyle}>Nom complet *</label>
+        <input required value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. : Marc Lévesque" style={champStyle} />
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          <div>
+            <label style={labelStyle}>Courriel *</label>
+            <input required type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Mot de passe * (4 à 12 caractères)</label>
+            <input required type="password" minLength={4} maxLength={12} value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} style={champStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Rôle</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} style={champStyle}>
+              {rolesAssignables.map((r) => (
+                <option key={r} value={r}>{nomsRoles[r]}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>NIP (4 chiffres, optionnel)</label>
+            <input inputMode="numeric" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" style={{ ...champStyle, letterSpacing: "0.2em" }} />
+          </div>
+        </div>
       </div>
-      <input placeholder="Assignation (poste, spécialité, secteur…)" value={assignation} onChange={(e) => setAssignation(e.target.value)} style={champStyle} />
-      <label style={labelStyle}>Date d'embauche</label>
-      <input type="date" max="9999-12-31" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={champStyle} />
 
-      <SectionTitreForm>Configuration de paie</SectionTitreForm>
-      <label style={labelStyle}>Type de rémunération</label>
-      <select value={typeRemuneration} onChange={(e) => setTypeRemuneration(e.target.value)} style={champStyle}>
-        <option value="HORAIRE">Payé à l'heure</option>
-        <option value="SALAIRE">Salarié (montant fixe)</option>
-      </select>
-      {typeRemuneration === "HORAIRE" ? (
-        <>
-          <label style={labelStyle}>Taux horaire spécifique (vide = taux global des Paramètres)</label>
-          <input type="number" min={0} step="0.01" value={tauxHoraireEmploye} onChange={(e) => setTauxHoraireEmploye(e.target.value)} style={champStyle} />
-        </>
-      ) : (
-        <>
-          <label style={labelStyle}>Salaire annuel</label>
-          <input type="number" min={0} step="0.01" value={salaireAnnuel} onChange={(e) => setSalaireAnnuel(e.target.value)} style={champStyle} />
-        </>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="personne" teinte={TEINTES.bleu} titre="Coordonnées" sousTitre="Optionnelles — utiles pour la paie et les relevés." />
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          <div>
+            <label style={labelStyle}>Téléphone</label>
+            <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Assignation</label>
+            <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Poste, spécialité, secteur…" style={champStyle} />
+          </div>
+        </div>
+        <label style={labelStyle}>Adresse</label>
+        <ChampAdresse valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
+        <label style={labelStyle}>Ville</label>
+        <ChampVille valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label style={labelStyle}>Province</label>
+            <SelectProvince valeur={province} onChange={setProvince} style={champStyle} />
+          </div>
+          <div style={{ width: 120 }}>
+            <label style={labelStyle}>Code postal</label>
+            <ChampCodePostal valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={champStyle} />
+          </div>
+        </div>
+        <label style={labelStyle}>Date d'embauche</label>
+        <input type="date" max="9999-12-31" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="banque" teinte={TEINTES.vert} titre="Paie" sousTitre="Modifiable ensuite dans la fiche de l'employé." />
+        <label style={labelStyle}>Type de rémunération</label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", marginBottom: 8 }}>
+          {[["HORAIRE", "Payé à l'heure"], ["SALAIRE", "Salarié"]].map(([code, libelle]) => {
+            const actif = typeRemuneration === code;
+            return (
+              <button key={code} type="button" onClick={() => setTypeRemuneration(code)} style={{ padding: "9px 6px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, background: actif ? "var(--accent)" : "transparent", color: actif ? "#221f18" : "var(--text-muted)" }}>
+                {libelle}
+              </button>
+            );
+          })}
+        </div>
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          {typeRemuneration === "HORAIRE" ? (
+            <div>
+              <label style={labelStyle}>Taux horaire ($/h) — vide = taux global</label>
+              <input type="number" min={0} step="0.01" value={tauxHoraireEmploye} onChange={(e) => setTauxHoraireEmploye(e.target.value)} className="champ-sans-fleches" style={champStyle} />
+            </div>
+          ) : (
+            <div>
+              <label style={labelStyle}>Salaire annuel ($)</label>
+              <input type="number" min={0} step="0.01" value={salaireAnnuel} onChange={(e) => setSalaireAnnuel(e.target.value)} className="champ-sans-fleches" style={champStyle} />
+            </div>
+          )}
+          <div>
+            <label style={labelStyle}>Fréquence de paie</label>
+            <select value={frequencePaie} onChange={(e) => setFrequencePaie(e.target.value)} style={champStyle}>
+              <option value="HEBDOMADAIRE">Chaque semaine</option>
+              <option value="BIHEBDOMADAIRE">Aux 2 semaines</option>
+              <option value="BIMENSUEL">2 fois par mois</option>
+              <option value="MENSUEL">Chaque mois</option>
+            </select>
+          </div>
+        </div>
+        <label style={labelStyle}>Taux de vacances (%)</label>
+        <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} className="champ-sans-fleches" style={{ ...champStyle, marginBottom: 6 }} />
+        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Minimum légal au Québec : 4 %, ou 6 % après 3 ans de service.</p>
+      </div>
+
+      {erreur && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-fond)", border: "1px solid var(--danger)", borderRadius: 12, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>
+          <Icone nom="alerte" taille={16} couleur="var(--danger)" /> {erreur}
+        </div>
       )}
-      <label style={labelStyle}>Fréquence de paie</label>
-      <select value={frequencePaie} onChange={(e) => setFrequencePaie(e.target.value)} style={champStyle}>
-        <option value="HEBDOMADAIRE">Chaque semaine</option>
-        <option value="BIHEBDOMADAIRE">Aux 2 semaines</option>
-        <option value="BIMENSUEL">2 fois par mois</option>
-        <option value="MENSUEL">Chaque mois</option>
-      </select>
-      <label style={labelStyle}>Taux de vacances (%) — minimum légal QC : 4% (ou 6% après 3 ans)</label>
-      <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} style={{ ...champStyle, marginBottom: 0 }} />
-
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}
-      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 10, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-        {enCours ? "Création…" : "Créer le compte"}
-      </button>
+      <div style={{ display: "grid", gridTemplateColumns: onAnnuler ? "1fr 1fr" : "1fr", gap: 8 }}>
+        <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
+          {enCours ? "Création…" : "Créer le compte"}
+        </button>
+        {onAnnuler && <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={onAnnuler}>Annuler</BoutonAction>}
+      </div>
     </form>
   );
 }
 
-function SectionTitreForm({ children }) {
-  return <div style={{ fontSize: 10.5, textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.04em", marginTop: 12, marginBottom: 8 }}>{children}</div>;
-}
-
 const champStyle = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
-const labelStyle = { fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 4 };
+const labelStyle = { fontSize: 12, color: "var(--text-muted)", display: "block", marginBottom: 4, marginTop: 10 };
