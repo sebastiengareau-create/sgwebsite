@@ -42,6 +42,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
 
   const [clientNom, setClientNom] = useState("");
   const [clientTelephone, setClientTelephone] = useState("");
+  // Nouveau client, ou client au dossier sans courriel : enregistré au dossier
+  const [clientCourriel, setClientCourriel] = useState("");
   const [clientAdresse, setClientAdresse] = useState("");
   const [clientVille, setClientVille] = useState("");
   const [clientProvince, setClientProvince] = useState(PROVINCE_DEFAUT);
@@ -98,6 +100,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
     setClientGarantieProlongee("");
+    setClientCourriel("");
     // Véhicule obligatoire : le premier du dossier est présélectionné
     const parDefaut = c.vehicules.length === 1 || (CLIENT.vehiculeObligatoire && c.vehicules.length) ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau";
     setChoixVehicule(parDefaut);
@@ -110,6 +113,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
+    setClientCourriel("");
     setClientAdresse("");
     setClientVille("");
     setClientProvince(PROVINCE_DEFAUT);
@@ -170,6 +174,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
         clientGarantieProlongee: clientGarantieProlongee.trim(),
+        clientCourriel: clientPassage && !clientSelectionne ? "" : clientCourriel.trim(),
         problemes: comptoir ? [] : lignesValides,
         comptoir, clientPassage: comptoir && !clientSelectionne && clientPassage,
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
@@ -274,6 +279,17 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
             </button>
           </div>
         ) : null}
+        {clientSelectionne && !clientSelectionne.courriel && (
+          <div style={{ marginTop: 12 }}>
+            <label style={labelStyle}>Courriel</label>
+            <input
+              type="email" value={clientCourriel}
+              onChange={(e) => setClientCourriel(e.target.value)}
+              placeholder="Facultatif — enregistré au dossier du client"
+              style={{ ...champInput, marginBottom: 0 }}
+            />
+          </div>
+        )}
         {clientSelectionne && !clientSelectionne.garantieProlongee && !comptoir && (
           <div style={{ marginTop: 12 }}>
             <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
@@ -340,6 +356,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
             </div>
             <label style={labelStyle}>Téléphone</label>
             <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+            <label style={labelStyle}>Courriel</label>
+            <input value={clientCourriel} type="email" onChange={(e) => setClientCourriel(e.target.value)} placeholder="Facultatif — pour envoyer le bon et la facture" style={champInput} />
             <label style={labelStyle}>Adresse</label>
             <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
             <label style={labelStyle}>Ville</label>

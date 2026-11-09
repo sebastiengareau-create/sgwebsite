@@ -9,11 +9,12 @@ import ScannerCodeBarres from "../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../components/ImpressionEtiquettes";
 import RecherchePieces from "../../components/RecherchePieces";
 import { useOrdreFiches } from "../../components/NavigationFiches";
-import { trouverPieceParScan, extraireIdEtiquette, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
+import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
 import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } from "@/lib/rapportInventaire";
 import { CLIENT } from "@/lib/client";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "./FormulaireKit";
+import ChampsPiece from "./ChampsPiece";
 import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, BoutonAction, GroupeLiens, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 import { argent } from "@/lib/format";
 
@@ -515,37 +516,30 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   );
 }
 
+// Mêmes champs que « Modifier la pièce » (ChampsPiece)
 function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeBarreInitial = "" }) {
-  const [nom, setNom] = useState("");
-  const [numero, setNumero] = useState("");
-  const [codeBarre, setCodeBarre] = useState(codeBarreInitial);
-  const [scannerOuvert, setScannerOuvert] = useState(false);
-  const [qte, setQte] = useState("0");
-  const [qteMin, setQteMin] = useState("0");
-  const [qteMax, setQteMax] = useState("");
-  const [emplacement, setEmplacement] = useState("");
-  const [fournisseurId, setFournisseurId] = useState("");
-  const [prix, setPrix] = useState("");
-  const [coutant, setCoutant] = useState("");
+  const [valeurs, setValeurs] = useState({
+    nom: "", numero: "", autresNumeros: "", codeBarre: codeBarreInitial, qte: "0", qteMin: "0", qteMax: "",
+    coutant: "", prix: "", emplacement: "", fournisseurId: "", categorie: categories[0]?.code || "PIECE",
+  });
   // Prix de vente saisi à la main : la proposition calculée du coûtant ne
   // l'écrase plus (vider le champ la rétablit)
   const [prixManuel, setPrixManuel] = useState(false);
-  const [categorie, setCategorie] = useState(categories[0]?.code || "PIECE");
   const marge = CLIENT.margePrixVente;
-
-  function changerCoutant(valeur) {
-    setCoutant(valeur);
-    if (marge == null || prixManuel) return;
-    const c = parseFloat(valeur);
-    setPrix(Number.isFinite(c) && c >= 0 ? (c / (1 - marge / 100)).toFixed(2) : "");
-  }
-
-  function changerPrix(valeur) {
-    setPrix(valeur);
-    setPrixManuel(valeur !== "");
-  }
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
+
+  function changer(champ, valeur) {
+    setValeurs((v) => {
+      const suivant = { ...v, [champ]: valeur };
+      if (champ === "coutant" && marge != null && !prixManuel) {
+        const c = parseFloat(valeur);
+        suivant.prix = Number.isFinite(c) && c >= 0 ? (c / (1 - marge / 100)).toFixed(2) : "";
+      }
+      return suivant;
+    });
+    if (champ === "prix") setPrixManuel(valeur !== "");
+  }
 
   async function creer(e) {
     e.preventDefault();
@@ -554,7 +548,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeB
     const res = await fetch("/api/inventaire", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom, numero, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie }),
+      body: JSON.stringify(valeurs),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -570,113 +564,23 @@ function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeB
   }
 
   // Marge réelle (sur le prix de vente) dès que les deux prix sont connus
-  const c = parseFloat(coutant), pv = parseFloat(prix);
+  const c = parseFloat(valeurs.coutant), pv = parseFloat(valeurs.prix);
   const margeReelle = Number.isFinite(c) && Number.isFinite(pv) && pv > 0 ? ((pv - c) / pv) * 100 : null;
-  const champCoutant = (
-    <div>
-      <label style={labelForm}>Prix coûtant ($){marge == null ? " — optionnel" : ""}</label>
-      <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} className="champ-sans-fleches" style={champForm} />
-    </div>
-  );
-  const champPrix = (
-    <div>
-      <label style={labelForm}>{marge == null ? "Prix unitaire ($) *" : `Prix de vente ($) — marge de ${marge} % proposée`}</label>
-      <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} className="champ-sans-fleches" style={champForm} />
-    </div>
-  );
 
   return (
-    <form onSubmit={creer} style={{ marginBottom: 20 }}>
-      <div style={{ ...stylePanneau, border: "1.5px solid var(--accent)" }}>
-        <TitrePanneau icone="boite" teinte={TEINTES.ambre} titre="Nouvelle pièce" sousTitre="Ce qui l'identifie — tout est modifiable ensuite dans sa fiche." />
-        <label style={labelForm}>Description *</label>
-        <input required placeholder="Ex. : Filtre à huile" value={nom} onChange={(e) => setNom(e.target.value)} style={champForm} />
-        <div className="grille-deux" style={{ gap: "0 12px" }}>
-          <div>
-            <label style={labelForm}>Numéro de référence *</label>
-            <input required placeholder="Ex. : FO-2201" value={numero} onChange={(e) => setNumero(e.target.value)} style={champForm} />
-          </div>
-          <div>
-            <label style={labelForm}>Code-barres du fabricant (UPC/EAN)</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" style={{ ...champForm, flex: 1, minWidth: 0 }} />
-              <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner le code de la boîte" aria-label="Scanner le code de la boîte" style={boutonIconeForm}>
-                <Icone nom="camera" taille={17} couleur="var(--accent-ombre)" />
-              </button>
-            </div>
-          </div>
-        </div>
-        {scannerOuvert && (
-          <ScannerCodeBarres
-            titre="Code-barres de la boîte"
-            onFermer={() => setScannerOuvert(false)}
-            onDetecte={(texte) => {
-              setScannerOuvert(false);
-              if (extraireIdEtiquette(texte)) return setErreur("C'est une étiquette de l'appli, pas le code du fabricant — scanne le code-barres imprimé sur la boîte.");
-              setCodeBarre(texte.trim());
-            }}
-          />
-        )}
-        <div className="grille-deux" style={{ gap: "0 12px" }}>
-          <div>
-            <label style={labelForm}>Catégorie</label>
-            <select value={categorie} onChange={(e) => setCategorie(e.target.value)} style={champForm}>
-              {categories.map((x) => <option key={x.code} value={x.code}>{x.nom}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={labelForm}>Fournisseur habituel</label>
-            <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champForm}>
-              <option value="">Aucun</option>
-              {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div style={stylePanneau}>
-        <TitrePanneau icone="grille" teinte={TEINTES.bleu} titre="Stock" sousTitre="Sous le seuil minimum, la pièce s'affiche à commander." />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
-          <div>
-            <label style={labelForm}>En stock</label>
-            <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} className="champ-sans-fleches" style={champForm} />
-          </div>
-          <div>
-            <label style={labelForm}>Minimum</label>
-            <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} className="champ-sans-fleches" style={champForm} />
-          </div>
-          <div>
-            <label style={labelForm}>Maximum</label>
-            <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="—" className="champ-sans-fleches" style={champForm} />
-          </div>
-        </div>
-        <label style={labelForm}>Emplacement</label>
-        <div style={{ position: "relative" }}>
-          <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
-            <Icone nom="epingle" taille={16} couleur="var(--text-muted)" />
-          </span>
-          <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="Ex. : A-03-02 (optionnel)" style={{ ...champForm, paddingLeft: 38, marginBottom: 0 }} />
-        </div>
-      </div>
-
-      <div style={stylePanneau}>
-        <TitrePanneau icone="etiquette" teinte={TEINTES.vert} titre="Prix" sousTitre={marge == null ? "Le coûtant sert au calcul de la marge." : "Le prix de vente se calcule du coûtant — modifiable."} />
-        <div className="grille-deux" style={{ gap: "0 12px" }}>
-          {marge == null ? <>{champPrix}{champCoutant}</> : <>{champCoutant}{champPrix}</>}
-        </div>
-        {margeReelle != null && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, marginTop: 4, background: margeReelle < 0 ? "var(--danger-fond)" : "var(--success-fond)" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: margeReelle < 0 ? "var(--danger)" : "var(--success)" }}>Marge sur le prix de vente</span>
-            <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{margeReelle.toFixed(1).replace(".", ",")} % · {argent(pv - c)}</span>
-          </div>
-        )}
-      </div>
-
-      {erreur && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-fond)", border: "1px solid var(--danger)", borderRadius: 12, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>
-          <Icone nom="alerte" taille={16} couleur="var(--danger)" /> {erreur}
+    <form onSubmit={creer} style={{ ...stylePanneau, border: "1.5px solid var(--accent)", marginBottom: 20 }}>
+      <TitrePanneau icone="boite" titre="Nouvelle pièce" />
+      <ChampsPiece
+        valeurs={valeurs} onChange={changer} onErreur={setErreur} categories={categories} fournisseurs={fournisseurs} requis
+        libelleCoutant="Prix coûtant ($)" libellePrix={marge == null ? "Prix de vente ($)" : `Prix de vente ($) — marge ${marge} % proposée`}
+      />
+      {margeReelle != null && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, marginBottom: 14, background: margeReelle < 0 ? "var(--danger-fond)" : "var(--success-fond)" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: margeReelle < 0 ? "var(--danger)" : "var(--success)" }}>Marge sur le prix de vente</span>
+          <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{margeReelle.toFixed(1).replace(".", ",")} % · {argent(pv - c)}</span>
         </div>
       )}
+      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>{erreur}</p>}
       <div style={{ display: "grid", gridTemplateColumns: onAnnuler ? "1fr 1fr" : "1fr", gap: 8 }}>
         <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
           {enCours ? "Création…" : "Ajouter la pièce"}
@@ -686,16 +590,6 @@ function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeB
     </form>
   );
 }
-
-const labelForm = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
-const champForm = {
-  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
-  background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
-};
-const boutonIconeForm = {
-  width: 38, height: 38, flexShrink: 0, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)",
-  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
-};
 
 const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",

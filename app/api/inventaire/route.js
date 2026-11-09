@@ -9,7 +9,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { nom, numero, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie } = await request.json();
+  const { nom, numero, autresNumeros, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie } = await request.json();
   if (!nom || !numero || prix === undefined) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
   }
@@ -35,11 +35,15 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Ce code-barres est déjà associé à une autre pièce." }, { status: 409 });
   }
 
+  // Autres numéros (UGS), comme à la modification de la fiche
+  const autres = String(autresNumeros || "").split(/[,;\n]+/).map((n) => n.trim())
+    .filter((n, i, t) => n && t.findIndex((x) => x.toLowerCase() === n.toLowerCase()) === i);
   const qteInitiale = Number(qte) || 0;
   const piece = await prisma.piece.create({
     data: {
       nom,
       numero,
+      autresNumeros: autres,
       codeBarre: code,
       qte: qteInitiale,
       qteMin: Number(qteMin) || 0,
