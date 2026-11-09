@@ -1,4 +1,4 @@
-import Image from "next/image";
+import LogoClient from "./LogoClient";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
@@ -8,7 +8,6 @@ import BarreLaterale from "./BarreLaterale";
 import MinuteurInactivite from "./MinuteurInactivite";
 import Cloche from "./Cloche";
 import AssistantSG from "./AssistantSG";
-import { image } from "@/lib/client";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { destinatairesPermis } from "@/lib/documentsServeur";
 
@@ -97,7 +96,7 @@ export default async function EnTete({ nom, role }) {
           <div className="cacher-sur-bureau">
             <MenuHamburger liens={liens} version={versionEnLigne()} nomEntreprise={nomEntreprise} nom={nom} role={labelRole} />
           </div>
-          <Image src={image("logo.png")} alt={nomEntreprise} width={72} height={48} style={{ objectFit: "contain" }} />
+          <LogoClient alt={nomEntreprise} width={72} height={48} />
           <div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{nom}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{labelRole}</div>

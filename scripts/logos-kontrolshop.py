@@ -110,7 +110,7 @@ print("ok", len(os.listdir(sortie)))
 
 def declinaisons(t, rangees=None):
     """Logo principal (K à gauche du nom) et, dessous, la liste des secteurs."""
-    F = 130; T = 30; M = 50; ecart = 44
+    F = 130; T = 30; M = 12; ecart = 44
     hk = 230; wk = hk * 240 / 292
     wn = largeur_nom(F)
     haut = wk + 30 + wn

@@ -35,7 +35,9 @@ on décide quand et à qui une modification s'applique.
   `lib/client.js`. Le code lit le profil ; il n'y a jamais de copie du code
   propre à un client.
 - **Logos et icônes** : `public/clients/<id>/` (listés dans `images` du
-  profil). Les images absentes viennent de `public/`.
+  profil). Les images absentes viennent de `public/`. `logo-sombre.png`
+  (facultatif) : logo transparent pour le thème sombre ; `logo.png` sert
+  au thème clair et aux documents.
 - **Nom, adresse, téléphone…** : dans l'appli (Administrateur →
   Informations de l'entreprise), donc dans la base du client.
 - **Modules** (Administrateur → Modules) : sections entières activées ou non
