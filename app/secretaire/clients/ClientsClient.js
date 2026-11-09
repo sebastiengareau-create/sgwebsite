@@ -14,7 +14,7 @@ import { ligneVille, PROVINCE_DEFAUT } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
 import { argent } from "@/lib/format";
-import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, GroupeLiens, Panneau, Pastille } from "../../components/StyleSection";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonAction, GroupeLiens, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 
 // Clients affichés d'un coup, puis par tranche avec « Afficher plus » : des
 // milliers de fiches à l'écran alourdissent la page, surtout sur cellulaire.
@@ -60,16 +60,15 @@ export default function ClientsClient({ clients, peutImporter, nouveauInitial })
     <div className="conteneur-page">
       <BandeauSection icone="🧑‍🤝‍🧑" titre="Clients" sousTitre="Touche un client pour voir sa fiche complète — coordonnées, bons de commande, soumissions." />
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-        <BoutonPlein icone={afficherFormulaire ? null : "utilisateurPlus"} onClick={() => setAfficherFormulaire((v) => !v)}>
-          {afficherFormulaire ? "Annuler" : "Nouveau client"}
-        </BoutonPlein>
-        {peutImporter && <BoutonImporterFichier apiUrl="/api/clients/importer" libelle="depuis Excel" libellePluriel="client" />}
-      </div>
-
-      {afficherFormulaire && (
-        <div style={{ marginBottom: 14 }}>
-          <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
+      {/* Formulaire ouvert : il a son propre bouton Annuler */}
+      {afficherFormulaire ? (
+        <div style={{ marginBottom: 20 }}>
+          <FormulaireCreation onCree={() => { setAfficherFormulaire(false); router.refresh(); }} onAnnuler={() => setAfficherFormulaire(false)} />
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+          <BoutonPlein icone="utilisateurPlus" onClick={() => setAfficherFormulaire(true)}>Nouveau client</BoutonPlein>
+          {peutImporter && <BoutonImporterFichier apiUrl="/api/clients/importer" libelle="depuis Excel" libellePluriel="client" />}
         </div>
       )}
 
@@ -210,7 +209,7 @@ function FiltrePill({ actif, onClick, label, nombre }) {
   );
 }
 
-function FormulaireCreation({ onCree }) {
+function FormulaireCreation({ onCree, onAnnuler }) {
   const [nom, setNom] = useState("");
   const [telephone, setTelephone] = useState("");
   const [courriel, setCourriel] = useState("");
@@ -247,33 +246,66 @@ function FormulaireCreation({ onCree }) {
   }
 
   return (
-    <form onSubmit={creer} className="carte" style={{ marginBottom: 4 }}>
-      <input required placeholder="Nom complet" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-      <input placeholder="Téléphone" value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
-      <input placeholder="Courriel" type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
-      <ChampAdresse placeholder="Adresse" valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
-      <ChampVille placeholder="Ville" valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
-      <div style={{ display: "flex", gap: 8 }}>
-        <SelectProvince valeur={province} onChange={setProvince} style={{ ...champStyle, flex: 1 }} />
-        <ChampCodePostal placeholder="Code postal" valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={{ ...champStyle, width: 110 }} />
+    <form onSubmit={creer}>
+      <div style={{ ...stylePanneau, border: "1.5px solid var(--accent)" }}>
+        <TitrePanneau icone="utilisateurPlus" teinte={TEINTES.ambre} titre="Nouveau client" sousTitre="Ses coordonnées — tout est modifiable ensuite dans sa fiche." />
+        <label style={labelStyle}>Nom complet *</label>
+        <input required value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex. : Jean Tremblay" style={champStyle} />
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          <div>
+            <label style={labelStyle}>Téléphone</label>
+            <input value={telephone} type="tel" onChange={(e) => setTelephone(e.target.value)} onBlur={(e) => setTelephone(formaterTelephone(e.target.value))} style={champStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Courriel</label>
+            <input type="email" value={courriel} onChange={(e) => setCourriel(e.target.value)} style={champStyle} />
+          </div>
+        </div>
+        <label style={labelStyle}>Adresse</label>
+        <ChampAdresse valeur={adresse} onChange={setAdresse} onChoisir={remplir.onChoisir} style={champStyle} />
+        <label style={labelStyle}>Ville</label>
+        <ChampVille valeur={ville} onChange={setVille} codePostal={codePostal} style={champStyle} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label style={labelStyle}>Province</label>
+            <SelectProvince valeur={province} onChange={setProvince} style={champStyle} />
+          </div>
+          <div style={{ width: 120 }}>
+            <label style={labelStyle}>Code postal</label>
+            <ChampCodePostal valeur={codePostal} onChange={setCodePostal} onSecteur={remplir.onSecteur} style={champStyle} />
+          </div>
+        </div>
+        <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
+            <Icone nom="bouclier" taille={16} couleur="var(--text-muted)" />
+          </span>
+          <input value={garantieProlongee} onChange={(e) => setGarantieProlongee(e.target.value)} placeholder="Optionnel" style={{ ...champStyle, paddingLeft: 38, marginBottom: 0 }} />
+        </div>
       </div>
-      <input
-        placeholder="Garantie prolongée — numéro de contrat (optionnel)"
-        value={garantieProlongee}
-        onChange={(e) => setGarantieProlongee(e.target.value)}
-        style={champStyle}
-      />
-      <div className="titre-section" style={{ marginTop: 10 }}>🚗 Véhicule (optionnel — d'autres pourront s'ajouter à la fiche)</div>
-      <ChampsVehicule valeur={vehicule} onChange={setVehicule} />
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{erreur}</p>}
-      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 8, padding: 11, borderRadius: 10, fontWeight: 700, fontSize: 13 }}>
-        {enCours ? "Création…" : "Créer le client"}
-      </button>
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="vehicule" teinte={TEINTES.bleu} titre="Véhicule" sousTitre="Optionnel — d'autres pourront s'ajouter à la fiche." />
+        <ChampsVehicule valeur={vehicule} onChange={setVehicule} />
+      </div>
+
+      {erreur && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-fond)", border: "1px solid var(--danger)", borderRadius: 12, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>
+          <Icone nom="alerte" taille={16} couleur="var(--danger)" /> {erreur}
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: onAnnuler ? "1fr 1fr" : "1fr", gap: 8 }}>
+        <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
+          {enCours ? "Création…" : "Créer le client"}
+        </button>
+        {onAnnuler && <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={onAnnuler}>Annuler</BoutonAction>}
+      </div>
     </form>
   );
 }
 
+const labelStyle = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
 const champStyle = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
   background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
