@@ -38,11 +38,13 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
+    clientGarantieProlongee,
     problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
     vehiculeId, vehicule, confirmerBonNonFacture,
   } = await request.json();
 
   const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
+  const garantieProlongee = String(clientGarantieProlongee || "").trim() || null;
 
   if ((!clientId && !clientNom) || lignesValides.length === 0) {
     return NextResponse.json({ erreur: "Champs manquants (au moins une tâche requise)." }, { status: 400 });
@@ -98,6 +100,7 @@ export async function POST(request) {
         ville: clientVille || null,
         province: normaliserProvince(clientProvince),
         codePostal: normaliserCodePostal(clientCodePostal),
+        garantieProlongee,
       },
     });
     idClientFinal = client.id;
@@ -123,6 +126,12 @@ export async function POST(request) {
     vehiculeDuBon = v;
   } else if (!nouveauVehicule.vide) {
     vehiculeDuBon = await prisma.vehicule.create({ data: { ...nouveauVehicule.data, clientId: idClientFinal } });
+  }
+
+  // Garantie prolongée entrée sur le bon : complète le dossier d'un client
+  // existant qui n'en a pas encore (jamais d'écrasement d'un numéro au dossier)
+  if (clientId && garantieProlongee) {
+    await prisma.client.updateMany({ where: { id: idClientFinal, garantieProlongee: null }, data: { garantieProlongee } });
   }
 
   const client = await prisma.client.findUnique({ where: { id: idClientFinal } });
