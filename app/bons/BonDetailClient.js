@@ -406,6 +406,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 <a href={`tel:${bon.client.telephone}`} style={{ color: "inherit", textDecoration: "none" }}>📞 {bon.client.telephone}</a>
               </div>
             )}
+            {/* Garantie prolongée au dossier du client */}
+            {bon.client.garantieProlongee && (
+              <div style={{ marginTop: 6 }}>
+                <Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>Garantie prolongée #{bon.client.garantieProlongee}</Pastille>
+              </div>
+            )}
           </div>
         </div>
 
