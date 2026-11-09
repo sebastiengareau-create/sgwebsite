@@ -7,13 +7,14 @@ import ScannerCodeBarres from "./ScannerCodeBarres";
 import useBulleDeplacable from "./useBulleDeplacable";
 
 // Bouton « + » en bas à droite, sur toutes les pages (voir app/layout.js) :
-// nouvelle soumission, nouveau bon, nouvelle pièce, nouveau client, scan.
+// nouvelle soumission, nouveau bon, facture comptoir, nouvelle pièce, nouveau client, scan.
 // Chaque choix n'apparaît qu'à qui a accès à sa section (Administrateur →
 // Rôles et accès) ; sans aucun choix permis, le bouton n'est pas affiché.
 // On le déplace en le glissant (position mémorisée sur l'appareil).
 const OPTIONS = [
   { href: "/secretaire/operations/soumissions/nouvelle", label: "Nouvelle soumission", icone: "📝", section: "operations" },
   { href: "/secretaire/nouveau", label: "Nouveau bon", icone: "🔧", section: "operations" },
+  { href: "/secretaire/comptoir", label: "Facture comptoir", icone: "🧾", section: "operations" },
   { href: "/secretaire/inventaire?nouveau=1", label: "Nouvelle pièce", icone: "📦", section: "inventaire" },
   { href: "/secretaire/clients?nouveau=1", label: "Nouveau client", icone: "🧑‍🤝‍🧑", section: "clients" },
   { scanner: true, label: "Scanner une pièce", icone: "📷", section: "inventaire" },

@@ -71,6 +71,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
   // Il faut au moins le NIV, ou la marque et le modèle, pour chercher
+  // Facture comptoir (lib/comptoir.js) : sans véhicule ni main-d'œuvre
+  const comptoir = !!bon.comptoir;
   const vehiculeRecherchable = !!bon.vehicule && !!(bon.vehicule.niv || (bon.vehicule.marque && bon.vehicule.modele));
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -387,12 +389,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: STATUTS[bon.statut].color }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>Bon #{bon.numero}</span>
+          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{comptoir ? "Facture comptoir" : "Bon"} #{bon.numero}</span>
           <StatusPill statut={bon.statut} />
         </div>
-        <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
+        {!comptoir && <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />}
 
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 14, paddingTop: 14, borderTop: comptoir ? "none" : "1px solid var(--border)" }}>
           <span style={tuileIcone(TEINTES.ambre)}><Icone nom="utilisateurs" taille={20} couleur={TEINTES.ambre.couleur} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <ClientBon bon={bon} clients={clientsChoix} peutModifierNom={peutModifier && !factureExiste} />
@@ -415,7 +417,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        {!comptoir && <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           <span style={tuileIcone(TEINTES.bleu)}><Icone nom="vehicule" taille={20} couleur={TEINTES.bleu.couleur} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
@@ -430,7 +432,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </button>
             )}
           </div>
-        </div>
+        </div>}
         {rechercheWeb !== null && (
           <RecherchePieces
             vehicule={bon.vehicule}
@@ -456,18 +458,20 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
       {/* Actions : boutons de même largeur, sur une ou deux rangées */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-        <Link href={`/bons/${bon.id}/commande`} target="_blank" style={boutonActionBon}>
-          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer bon de travail
-        </Link>
+        {!comptoir && (
+          <Link href={`/bons/${bon.id}/commande`} target="_blank" style={boutonActionBon}>
+            <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer bon de travail
+          </Link>
+        )}
         <Link href={`/bons/${bon.id}/imprimer`} target="_blank" style={boutonActionBon}>
-          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> {bon.facture ? "Imprimer facture" : "Imprimer bon de commande"}
+          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> {bon.facture || comptoir ? "Imprimer facture" : "Imprimer bon de commande"}
         </Link>
         {/* Le bon de commande en PDF au client ; une fois facturé, l'envoi
             de la facture se fait dans la section Facture */}
         {peutModifier && !bon.facture && (
-          <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle="📧 Envoyer le bon" style={boutonActionBon} />
+          <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle={comptoir ? "📧 Envoyer l'aperçu" : "📧 Envoyer le bon"} style={boutonActionBon} />
         )}
-        {peutEnvoyer && !factureExiste && (
+        {peutEnvoyer && !factureExiste && !comptoir && (
           <Link href={`/gerant/jobs-deplacement?bon=${bon.id}`} style={boutonActionBon}>
             <Icone nom="vehicule" taille={17} couleur="var(--accent-ombre)" /> En déplacement
           </Link>
@@ -494,7 +498,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       )}
 
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
-        Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise.
+        {comptoir
+          ? "Ajoute les pièces de l'inventaire à une ligne, ou change le poste d'une ligne pour facturer un service à prix fixe, puis émets la facture."
+          : "Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise."}
       </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}>
@@ -512,10 +518,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </div>
               <StatutFacturePill statut={bon.facture.statut} />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-              <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {argent(bon.facture.tauxHoraireUtilise)}/h)</span>
-              <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalMainOeuvre)}</span>
-            </div>
+            {!(comptoir && bon.facture.totalMainOeuvre <= 0.005) && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {argent(bon.facture.tauxHoraireUtilise)}/h)</span>
+                <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalMainOeuvre)}</span>
+              </div>
+            )}
             {bon.facture.totalAutresRevenus > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                 <span style={{ color: "var(--text-muted)" }}>Autres services</span>
@@ -720,7 +728,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           </>
         ) : (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+            {/* Facture comptoir : pas de main-d'œuvre, sauf du temps entré quand même */}
+            {!(comptoir && totalMainOeuvre <= 0.005 && !heuresEnCours) && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>
                 Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {argent(tauxHoraireEffectif)}/h){heuresEnCours ? " *" : ""}
                 {peutModifier && (
@@ -728,7 +737,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 )}
               </span>
               <span style={{ fontWeight: 600 }}>{argent(totalMainOeuvre)}</span>
-            </div>
+            </div>}
             {afficherTauxHoraire && (
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
                 <input
@@ -860,7 +869,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
       <div style={{ marginTop: 24 }}>
         <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{tachesAffichees.length} tâche{tachesAffichees.length > 1 ? "s" : ""}</Pastille>}>
-          Tâches
+          {comptoir ? "Lignes" : "Tâches"}
         </TitreGroupe>
       </div>
 
@@ -878,6 +887,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             postesRevenu={postesRevenu}
             peutModifier={peutModifier}
             peutPoinconner={peutPoinconner}
+            comptoir={comptoir}
             estGerant={estGerant}
             moi={moi}
             verrouille={factureExiste}
@@ -897,7 +907,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           <input
             value={nouveauProbleme}
             onChange={(e) => setNouveauProbleme(e.target.value)}
-            placeholder="Ajouter une tâche…"
+            placeholder={comptoir ? "Ajouter une ligne…" : "Ajouter une tâche…"}
             style={{ ...champStyle, padding: "11px 12px", borderRadius: 12, fontSize: 14 }}
           />
           <button onClick={ajouterProbleme} disabled={enCours} aria-label="Ajouter la tâche" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
@@ -911,7 +921,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, comptoir = false, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
   const [erreurPhoto, setErreurPhoto] = useState("");
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [suppressionPhoto, setSuppressionPhoto] = useState(null); // id de la photo en cours de suppression
@@ -1229,8 +1239,9 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
         </div>
       )}
 
-      {/* Horodateur propre à cette tâche */}
-      <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
+      {/* Horodateur propre à cette tâche — pas sur une facture comptoir
+          (sauf du temps déjà entré, pour pouvoir le corriger) */}
+      {!(comptoir && probleme.entreesTemps.length === 0) && <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lignesTemps.length > 0 ? 6 : 0 }}>
           <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>
             ⏱ Temps sur cette tâche · <TotalTemps heuresTerminees={heuresTerminees} debutsActifs={debutsActifs} />{(probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE") ? " (pour la paie — ne facture pas le client)" : tacheAuForfait(probleme) ? " (pour la paie — main-d'œuvre comprise dans le kit)" : ""}
@@ -1317,7 +1328,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Photos */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>

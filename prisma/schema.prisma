@@ -154,6 +154,10 @@ model BonTravail {
   // demandée par le client) ; vide = le nom du dossier. Le dossier, le
   // véhicule et le reste ne changent pas. Voir lib/nomClient.js.
   clientNomAffiche    String?
+  // Facture comptoir : vente de pièces ou de services sans véhicule ni
+  // main-d'œuvre (pas de poinçon, absent de la vue des mécaniciens). Même
+  // fiche et même facture qu'un bon. Voir lib/comptoir.js.
+  comptoir            Boolean        @default(false)
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])

@@ -87,6 +87,7 @@ export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
     <div className="conteneur-page-large" style={{ padding: 16, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein href="/secretaire/nouveau" icone="plus">Nouveau bon</BoutonPlein>
+        <BoutonPlein href="/secretaire/comptoir" icone="document">Facture comptoir</BoutonPlein>
         <div style={{ position: "relative", flex: "1 1 100%", minWidth: 0, order: 3 }}>
           <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
             <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
@@ -197,7 +198,7 @@ function CarteBonCompacte({ b }) {
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: infos.color }} />
         <BanderoleBo bon={b} compact style={{ marginBottom: 6 }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>#{b.numero}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{b.comptoir ? "🧾 " : ""}#{b.numero}</span>
           {b.datePrevue && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--text-muted)" }}><Icone nom="horloge" taille={13} /> {heureQuebec(b.datePrevue)}</span>}
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
@@ -224,7 +225,7 @@ function CarteBon({ b }) {
         <PastilleDate date={date} couleur={infos.color} heure={b.datePrevue ? heureQuebec(b.datePrevue) : null} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>#{b.numero}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{b.comptoir ? "🧾 Comptoir " : ""}#{b.numero}</span>
             <Pastille couleur={infos.color} fond={`${infos.color}22`}>{infos.label}</Pastille>
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
