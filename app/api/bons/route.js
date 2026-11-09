@@ -39,7 +39,7 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
-    clientGarantieProlongee,
+    clientGarantieProlongee, clientCourriel,
     problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
     vehiculeId, vehicule, confirmerBonNonFacture, comptoir, clientPassage,
   } = await request.json();
@@ -49,6 +49,10 @@ export async function POST(request) {
   const estComptoir = !!comptoir;
   let lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
   if (estComptoir && lignesValides.length === 0) lignesValides = [LIGNE_COMPTOIR_DEFAUT];
+  const courriel = String(clientCourriel || "").trim() || null;
+  if (courriel && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(courriel)) {
+    return NextResponse.json({ erreur: "Courriel du client invalide." }, { status: 400 });
+  }
   const garantieProlongee = estComptoir ? null : String(clientGarantieProlongee || "").trim() || null;
 
   if ((!clientId && !clientNom && !(estComptoir && clientPassage)) || lignesValides.length === 0) {
@@ -88,7 +92,7 @@ export async function POST(request) {
     // Homonyme ou même téléphone : avertir, et créer quand même si
     // l'utilisateur confirme que c'est une autre personne.
     if (!confirmerDoublon) {
-      const doublons = await trouverDoublonsClient({ nom: clientNom, telephone: clientTelephone });
+      const doublons = await trouverDoublonsClient({ nom: clientNom, telephone: clientTelephone, courriel });
       if (doublons.length > 0) {
         return NextResponse.json(
           { erreur: `${messageDoublons(doublons)} Utilise la recherche pour le sélectionner, ou confirme qu'il s'agit d'un autre client.`, doublonPossible: true },
@@ -102,6 +106,7 @@ export async function POST(request) {
         numero: await prochainNumeroClient(),
         nom: clientNom,
         telephone: clientTelephone || null,
+        courriel,
         adresse: clientAdresse || null,
         ville: clientVille || null,
         province: normaliserProvince(clientProvince),
@@ -136,6 +141,10 @@ export async function POST(request) {
 
   // Garantie prolongée entrée sur le bon : complète le dossier d'un client
   // existant qui n'en a pas encore (jamais d'écrasement d'un numéro au dossier)
+  // Courriel entré sur le bon : même règle, pour un dossier qui n'en a pas
+  if (clientId && courriel) {
+    await prisma.client.updateMany({ where: { id: idClientFinal, OR: [{ courriel: null }, { courriel: "" }] }, data: { courriel } });
+  }
   if (clientId && garantieProlongee) {
     await prisma.client.updateMany({ where: { id: idClientFinal, garantieProlongee: null }, data: { garantieProlongee } });
   }

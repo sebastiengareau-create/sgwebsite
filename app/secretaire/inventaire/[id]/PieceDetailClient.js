@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../../components/StyleSection";
-import ScannerCodeBarres from "../../../components/ScannerCodeBarres";
 import ImpressionEtiquettes from "../../../components/ImpressionEtiquettes";
-import { extraireIdEtiquette, pieceCorrespond } from "@/lib/codesBarres";
+import ChampsPiece from "../ChampsPiece";
+import { pieceCorrespond } from "@/lib/codesBarres";
 import { argent, nombre } from "@/lib/format";
 
 const ONGLETS = [
@@ -33,7 +33,6 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
   const [erreur, setErreur] = useState("");
   const [onglet, setOnglet] = useState("resume");
   const [afficherEtiquettes, setAfficherEtiquettes] = useState(false);
-  const [scannerOuvert, setScannerOuvert] = useState(false);
   const [afficherFusion, setAfficherFusion] = useState(false);
 
   const [nom, setNom] = useState(piece.nom);
@@ -48,6 +47,10 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
   const [prix, setPrix] = useState(piece.prix);
   const [coutant, setCoutant] = useState(piece.coutant || 0);
   const [categorie, setCategorie] = useState(piece.categorie || "PIECE");
+  const SETTERS = {
+    nom: setNom, numero: setNumero, autresNumeros: setAutresNumeros, codeBarre: setCodeBarre, qte: setQte, qteMin: setQteMin,
+    qteMax: setQteMax, coutant: setCoutant, prix: setPrix, emplacement: setEmplacement, fournisseurId: setFournisseurId, categorie: setCategorie,
+  };
 
   const marge = piece.prix - (piece.coutant || 0);
   const margePct = piece.prix > 0 ? (marge / piece.prix) * 100 : 0;
@@ -148,75 +151,11 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
       {modeEdition ? (
         <div style={stylePanneau}>
           <TitrePanneau icone="crayon" titre="Modifier la pièce" />
-          <label className="etiquette">Description</label>
-          <input value={nom} onChange={(e) => setNom(e.target.value)} className="champ" />
-          <label className="etiquette">Numéro de référence</label>
-          <input value={numero} onChange={(e) => setNumero(e.target.value)} className="champ" />
-          <label className="etiquette">Autres numéros (UGS) — séparés par des virgules, trouvés en recherche</label>
-          <input value={autresNumeros} onChange={(e) => setAutresNumeros(e.target.value)} placeholder="ex. ABC-123, 4567" className="champ" />
-          <label className="etiquette">Code-barres du fabricant (UPC/EAN) — optionnel</label>
-          <div style={{ display: "flex", gap: 6 }}>
-            <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" className="champ" style={{ flex: 1 }} />
-            <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner le code de la boîte" aria-label="Scanner le code de la boîte" style={{ width: 44, borderRadius: 10, alignSelf: "stretch", marginBottom: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Icone nom="camera" taille={18} couleur="var(--accent-ombre)" />
-            </button>
-          </div>
-          {scannerOuvert && (
-            <ScannerCodeBarres
-              titre="Code-barres de la boîte"
-              onFermer={() => setScannerOuvert(false)}
-              onDetecte={(texte) => {
-                setScannerOuvert(false);
-                if (extraireIdEtiquette(texte)) {
-                  setErreur("C'est une étiquette de l'appli, pas le code du fabricant — scanne le code-barres imprimé sur la boîte.");
-                  return;
-                }
-                setErreur("");
-                setCodeBarre(texte.trim());
-              }}
-            />
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-            <div>
-              <label className="etiquette">Stock</label>
-              <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} className="champ" />
-            </div>
-            <div>
-              <label className="etiquette">Seuil min.</label>
-              <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} className="champ" />
-            </div>
-            <div>
-              <label className="etiquette">Seuil max.</label>
-              <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" className="champ" />
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div>
-              <label className="etiquette">Coût moyen ($)</label>
-              <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => setCoutant(e.target.value)} className="champ" />
-            </div>
-            <div>
-              <label className="etiquette">Prix de vente ($)</label>
-              <input type="number" min={0} step="0.01" value={prix} onChange={(e) => setPrix(e.target.value)} className="champ" />
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div>
-              <label className="etiquette">Emplacement</label>
-              <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="ex. A-03-02" className="champ" />
-            </div>
-            <div>
-              <label className="etiquette">Fournisseur habituel</label>
-              <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} className="champ">
-                <option value="">Aucun</option>
-                {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-              </select>
-            </div>
-          </div>
-          <label className="etiquette">Catégorie</label>
-          <select value={categorie} onChange={(e) => setCategorie(e.target.value)} className="champ" style={{ marginBottom: 14 }}>
-            {categories.map((c) => <option key={c.code} value={c.code}>{c.nom}</option>)}
-          </select>
+          <ChampsPiece
+            valeurs={{ nom, numero, autresNumeros, codeBarre, qte, qteMin, qteMax, coutant, prix, emplacement, fournisseurId, categorie }}
+            onChange={(champ, valeur) => SETTERS[champ](valeur)}
+            onErreur={setErreur} categories={categories} fournisseurs={fournisseurs}
+          />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <button onClick={sauvegarder} disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
               {enCours ? "…" : "Sauvegarder"}
