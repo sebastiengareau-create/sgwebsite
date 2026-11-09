@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kontrolshop — Tout est sous kontrol.</title>
+<meta name="description" content="kontrolshop, le logiciel de gestion québécois qui s'adapte à votre métier : garage, ferme, copropriété et VR. Bons de travail, inventaire, facturation, paie et comptabilité au même endroit.">
+<link rel="canonical" href="https://www.kontrolshop.com/">
+<meta property="og:title" content="kontrolshop — Tout est sous kontrol.">
+<meta property="og:description" content="Un logiciel de gestion, quatre déclinaisons : Garage, Ferme, Copropriété et Premium.">
+<meta property="og:image" content="https://www.kontrolshop.com/img/hero.webp">
+<meta property="og:url" content="https://www.kontrolshop.com/">
+<meta name="theme-color" content="#0f1216">
+<link rel="icon" href="img/icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<style>
+:root{
+  --fond:#0f1216; --fond-2:#151a20; --carte:#1a2028; --carte-2:#202833;
+  --ligne:#2a3340; --texte:#e9edf2; --doux:#a3adba; --pale:#77828f;
+  --garage:#e07338; --ferme:#4f9a43; --copro:#3b82d6; --premium:#c9a03a; --boutique:#c2416b;
+  --accent:var(--garage);
+  --rayon:16px; --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fond);color:var(--texte);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;overflow-x:hidden}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+h1,h2,h3{line-height:1.15;margin:0 0 .5em;letter-spacing:-.02em}
+h2{font-size:clamp(1.8rem,3.6vw,2.6rem)}
+h3{font-size:1.2rem}
+p{margin:0 0 1em}
+.conteneur{max-width:var(--max);margin:0 auto;padding:0 24px}
+.surtitre{display:inline-block;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.9em}
+.intro{color:var(--doux);font-size:1.12rem;max-width:680px}
+section{padding:96px 0}
+.btn{display:inline-flex;align-items:center;gap:.5em;padding:.85em 1.4em;border-radius:999px;font-weight:650;text-decoration:none;border:1px solid transparent;transition:transform .15s,background .15s,border-color .15s;cursor:pointer;font-size:1rem}
+.btn:hover{transform:translateY(-1px)}
+.btn-plein{background:var(--accent);color:#fff}
+.btn-plein:hover{filter:brightness(1.08)}
+.btn-contour{border-color:var(--ligne);color:var(--texte);background:transparent}
+.btn-contour:hover{border-color:var(--doux)}
+
+/* En-tête */
+.entete{position:sticky;top:0;z-index:20;background:rgba(15,18,22,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(42,51,64,.6)}
+.entete .conteneur{display:flex;align-items:center;justify-content:space-between;height:68px;gap:16px}
+.entete .logo img{height:38px;width:auto}
+.nav{display:flex;align-items:center;gap:28px}
+.nav a{text-decoration:none;color:var(--doux);font-size:.95rem}
+.nav a:hover{color:var(--texte)}
+.nav .btn{color:#fff;padding:.6em 1.15em}
+@media (max-width:820px){.nav a:not(.btn){display:none}}
+
+/* Accueil */
+.hero{position:relative;padding:72px 0 88px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-30% -10% auto auto;width:780px;height:780px;background:radial-gradient(closest-side,rgba(224,115,56,.22),transparent);pointer-events:none}
+.hero .conteneur{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;position:relative}
+.hero h1{font-size:clamp(2.4rem,5.4vw,4.1rem);font-weight:800}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--garage),var(--premium));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .intro{margin-bottom:1.8em}
+.hero .actions{display:flex;flex-wrap:wrap;gap:12px}
+.puces-secteurs{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.puce{display:inline-flex;align-items:center;gap:.45em;font-size:.82rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.4em .85em;border-radius:999px;border:1px solid var(--ligne);color:var(--doux);text-decoration:none}
+.puce i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.puce:hover{border-color:var(--c);color:var(--texte)}
+.hero-visuel{position:relative}
+.hero-visuel img{filter:drop-shadow(0 30px 50px rgba(0,0,0,.55));animation:flotte 7s ease-in-out infinite}
+@keyframes flotte{50%{transform:translateY(-10px)}}
+@media (prefers-reduced-motion:reduce){.hero-visuel img{animation:none}html{scroll-behavior:auto}}
+@media (max-width:900px){.hero .conteneur{grid-template-columns:1fr}.hero-visuel{order:-1;max-width:520px;margin:0 auto}}
+
+/* Chiffres */
+.chiffres{border-top:1px solid var(--ligne);border-bottom:1px solid var(--ligne);background:var(--fond-2);padding:36px 0}
+.chiffres .conteneur{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.chiffre strong{display:block;font-size:1.9rem;font-weight:800;letter-spacing:-.02em}
+.chiffre span{color:var(--doux);font-size:.92rem}
+@media (max-width:760px){.chiffres .conteneur{grid-template-columns:1fr 1fr}}
+
+/* Déclinaisons */
+.onglets{display:flex;flex-wrap:wrap;gap:10px;margin:36px 0 28px}
+.onglet{--c:var(--garage);display:flex;align-items:center;gap:.6em;padding:.75em 1.2em;border-radius:12px;border:1px solid var(--ligne);background:var(--carte);color:var(--doux);font:inherit;font-weight:650;cursor:pointer;transition:.15s}
+.onglet i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.onglet:hover{color:var(--texte)}
+.onglet[aria-selected="true"]{border-color:var(--c);color:var(--texte);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 18%,var(--carte)),var(--carte))}
+.panneau{--c:var(--garage);display:grid;grid-template-columns:1fr 1.25fr;gap:40px;align-items:start;background:var(--carte);border:1px solid var(--ligne);border-top:3px solid var(--c);border-radius:var(--rayon);padding:40px}
+.panneau + .panneau{margin-top:24px}
+.js .panneau[hidden]{display:none}
+.panneau .logo-secteur{background:radial-gradient(closest-side,color-mix(in srgb,var(--c) 22%,transparent),transparent);border-radius:var(--rayon);padding:12px}
+.panneau h3{font-size:1.65rem;margin-top:.2em}
+.panneau .pour{color:var(--c);font-weight:700;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase}
+.panneau p{color:var(--doux)}
+.liste{list-style:none;padding:0;margin:0 0 1.4em;display:grid;gap:12px}
+.liste li{position:relative;padding-left:30px}
+.liste li::before{content:"";position:absolute;left:0;top:.38em;width:18px;height:18px;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.5l3 3 7-7' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.liste li b{color:var(--texte)}
+.exemple{background:var(--fond-2);border:1px dashed color-mix(in srgb,var(--c) 55%,var(--ligne));border-radius:12px;padding:16px 18px;font-size:.95rem;color:var(--doux)}
+.exemple strong{color:var(--c);display:block;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3em}
+@media (max-width:860px){.panneau{grid-template-columns:1fr;padding:24px}.panneau .logo-secteur{max-width:420px}}
+.autre-secteur{margin-top:28px;color:var(--doux);text-align:center}
+.autre-secteur a{color:var(--texte)}
+
+/* Points forts */
+.forts{background:var(--fond-2)}
+.grille{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.fort{background:var(--carte);border:1px solid var(--ligne);border-radius:var(--rayon);padding:28px;transition:border-color .2s,transform .2s}
+.fort:hover{border-color:#3b4656;transform:translateY(-2px)}
+.fort .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--carte-2);margin-bottom:16px;font-size:1.35rem}
+.fort p{color:var(--doux);margin:0}
+.fort .ex{margin-top:14px;padding-top:14px;border-top:1px solid var(--ligne);font-size:.9rem;color:var(--pale)}
+.fort .ex b{color:var(--doux)}
+@media (max-width:980px){.grille{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.grille{grid-template-columns:1fr}}
+
+/* Démonstration : une journée */
+.journee .conteneur{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.etapes{list-style:none;margin:28px 0 0;padding:0;position:relative}
+.etapes::before{content:"";position:absolute;left:39px;top:8px;bottom:8px;width:2px;background:linear-gradient(var(--garage),var(--premium))}
+.etapes li{display:grid;grid-template-columns:80px 1fr;gap:16px;padding:10px 0;position:relative}
+.etapes time{font-weight:800;font-variant-numeric:tabular-nums;color:var(--texte);background:var(--fond);border:1px solid var(--ligne);border-radius:999px;text-align:center;height:30px;line-height:28px;font-size:.88rem;position:relative;z-index:1}
+.etapes p{margin:0;color:var(--doux)}
+.etapes b{color:var(--texte)}
+/* Maquette d'un bon de travail */
+.bon{background:#f7f8fa;color:#1d232b;border-radius:18px;padding:24px;box-shadow:0 40px 80px rgba(0,0,0,.45);font-size:.92rem;transform:rotate(1.2deg)}
+.bon-tete{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid #e3e6ea;padding-bottom:14px;margin-bottom:14px}
+.bon-tete b{font-size:1.15rem;display:block}
+.bon-tete small{color:#6b7480}
+.statut{background:#fff1e8;color:#b5541f;font-weight:700;font-size:.75rem;padding:.35em .8em;border-radius:999px;white-space:nowrap}
+.bon table{width:100%;border-collapse:collapse}
+.bon td{padding:7px 0;border-bottom:1px solid #eef0f3}
+.bon td:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bon .mini{color:#6b7480;font-size:.82rem}
+.poincon{display:flex;align-items:center;gap:10px;background:#1d232b;color:#fff;border-radius:12px;padding:10px 14px;margin:14px 0}
+.poincon .pt{width:10px;height:10px;border-radius:50%;background:#3ccf6e;box-shadow:0 0 0 4px rgba(60,207,110,.25);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px rgba(60,207,110,.08)}}
+.poincon span{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:1.1rem;padding-top:12px}
+@media (max-width:900px){.journee .conteneur{grid-template-columns:1fr}.bon{transform:none}}
+
+/* Démarche */
+.demarche .grille{grid-template-columns:repeat(3,1fr)}
+.num{font-size:2.6rem;font-weight:800;line-height:1;background:linear-gradient(180deg,var(--texte),#5a6470);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:12px}
+@media (max-width:860px){.demarche .grille{grid-template-columns:1fr}}
+
+/* Questions */
+.faq{background:var(--fond-2)}
+.faq .conteneur{max-width:860px}
+details{border-bottom:1px solid var(--ligne);padding:18px 0}
+summary{cursor:pointer;font-weight:650;font-size:1.08rem;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--accent);font-size:1.4rem;line-height:1}
+details[open] summary::after{content:"–"}
+details p{color:var(--doux);margin:12px 0 0}
+
+/* Contact */
+.contact .boite{background:linear-gradient(135deg,#1c232c,#141920);border:1px solid var(--ligne);border-radius:24px;padding:56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;overflow:hidden}
+.contact .boite::after{content:"";position:absolute;right:-120px;bottom:-160px;width:420px;height:420px;background:radial-gradient(closest-side,rgba(224,115,56,.2),transparent)}
+form{display:grid;gap:12px;position:relative;z-index:1}
+label{font-size:.85rem;color:var(--doux);display:grid;gap:6px}
+input,select,textarea{font:inherit;color:var(--texte);background:var(--fond);border:1px solid var(--ligne);border-radius:10px;padding:.75em .9em;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+textarea{min-height:96px;resize:vertical}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:860px){.contact .boite{grid-template-columns:1fr;padding:28px}.deux{grid-template-columns:1fr}}
+
+/* Pied */
+.pied{padding:40px 0;border-top:1px solid var(--ligne);color:var(--pale);font-size:.9rem}
+.pied .conteneur{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
+.pied img{height:30px;width:auto;opacity:.85}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (max-width:520px){.conteneur{padding:0 16px}section{padding:68px 0}}
+</style>
+</head>
+<body>
+
+<header class="entete">
+  <div class="conteneur">
+    <a class="logo" href="#haut" aria-label="kontrolshop — accueil"><img src="img/logo.svg" alt="kontrolshop" width="811" height="244"></a>
+    <nav class="nav" aria-label="Navigation principale">
+      <a href="#declinaisons">Déclinaisons</a>
+      <a href="#points-forts">Points forts</a>
+      <a href="#exemple">En action</a>
+      <a href="#questions">Questions</a>
+      <a class="btn btn-plein" href="#contact">Demander une démo</a>
+    </nav>
+  </div>
+</header>
+
+<main id="haut">
+
+<section class="hero">
+  <div class="conteneur">
+    <div>
+      <span class="surtitre">Logiciel de gestion conçu au Québec</span>
+      <h1>Tout est sous <em>kontrol.</em></h1>
+      <p class="intro">Bons de travail, inventaire, facturation, paie et comptabilité réunis dans un seul logiciel — décliné pour votre métier. Que vous répariez des véhicules, éleviez du bétail ou gériez un immeuble, kontrolshop parle votre langage.</p>
+      <div class="actions">
+        <a class="btn btn-plein" href="#contact">Demander une démo</a>
+        <a class="btn btn-contour" href="#declinaisons">Voir les déclinaisons</a>
+      </div>
+      <div class="puces-secteurs" aria-label="Déclinaisons">
+        <a class="puce" style="--c:var(--garage)" href="#declinaisons" data-va="garage"><i></i>Garage</a>
+        <a class="puce" style="--c:var(--ferme)" href="#declinaisons" data-va="ferme"><i></i>Ferme</a>
+        <a class="puce" style="--c:var(--copro)" href="#declinaisons" data-va="copropriete"><i></i>Copropriété</a>
+        <a class="puce" style="--c:var(--premium)" href="#declinaisons" data-va="premium"><i></i>Premium</a>
+      </div>
+    </div>
+    <div class="hero-visuel">
+      <img src="img/hero.webp" alt="Logo kontrolshop : la lettre K en métal brossé et une aiguille de cadran" width="1400" height="700" fetchpriority="high">
+    </div>
+  </div>
+</section>
+
+<div class="chiffres">
+  <div class="conteneur">
+    <div class="chiffre"><strong>4</strong><span>déclinaisons prêtes, un seul logiciel</span></div>
+    <div class="chiffre"><strong>1</strong><span>endroit pour l'atelier, le bureau et la comptabilité</span></div>
+    <div class="chiffre"><strong>100&nbsp;%</strong><span>à votre image : votre logo sur vos documents</span></div>
+    <div class="chiffre"><strong>TPS · TVQ</strong><span>taxes, paie et remises pensées pour le Québec</span></div>
+  </div>
+</div>
+
+<section id="declinaisons">
+  <div class="conteneur">
+    <span class="surtitre">Nos déclinaisons</span>
+    <h2>Un logiciel, taillé pour votre métier.</h2>
+    <p class="intro">Le cœur est le même partout — clients, facturation, employés, comptabilité. Chaque déclinaison ajoute les outils précis de votre secteur, avec ses mots et ses règles.</p>
+
+    <div class="onglets" role="tablist" aria-label="Déclinaisons de kontrolshop">
+      <button class="onglet" role="tab" id="t-garage" aria-controls="p-garage" aria-selected="true" style="--c:var(--garage)"><i></i>Garage</button>
+      <button class="onglet" role="tab" id="t-ferme" aria-controls="p-ferme" aria-selected="false" tabindex="-1" style="--c:var(--ferme)"><i></i>Ferme</button>
+      <button class="onglet" role="tab" id="t-copropriete" aria-controls="p-copropriete" aria-selected="false" tabindex="-1" style="--c:var(--copro)"><i></i>Copropriété</button>
+      <button class="onglet" role="tab" id="t-premium" aria-controls="p-premium" aria-selected="false" tabindex="-1" style="--c:var(--premium)"><i></i>Premium</button>
+    </div>
+
+    <article class="panneau" role="tabpanel" id="p-garage" aria-labelledby="t-garage" style="--c:var(--garage)">
+      <div class="logo-secteur"><img src="img/metal-garage.webp" alt="kontrolshop Garage" width="820" height="410" loading="lazy"></div>
+      <div>
+        <span class="pour">Ateliers mécaniques et garages</span>
+        <h3>kontrolshop Garage</h3>
+        <p>De l'arrivée du véhicule jusqu'à la facture payée, chaque étape est suivie — sans papier qui se perd entre le comptoir et l'atelier.</p>
+        <ul class="liste">
+          <li><b>Bons de travail complets</b> : tâches, photos à l'arrivée, véhicule et historique du client au même endroit.</li>
+          <li><b>Poinçon des mécaniciens</b> sur chaque bon, en temps réel, depuis le téléphone ou la tablette.</li>
+          <li><b>Inventaire de pièces</b> avec codes-barres, étiquettes QR imprimables et alertes de stock bas.</li>
+          <li><b>Recherche de pièces PartsTech</b> : comparez prix et disponibilité chez vos fournisseurs, sans quitter la commande.</li>
+          <li><b>Kits</b> (ex. changement d'huile) facturés à prix fixe, qui sortent chaque pièce du stock.</li>
+          <li><b>Rendez-vous en ligne</b>, soumissions, et courriel « votre véhicule est prêt » au client.</li>
+        </ul>
+        <div class="exemple"><strong>Exemple</strong>Un client réserve en ligne un changement d'huile. Le bon est prêt à son arrivée ; le mécanicien poinçonne, ajoute le kit — filtre et huile sortent de l'inventaire — et la facture part par courriel dès que c'est fini.</div>
+      </div>
+    </article>
+
+    <article class="panneau" role="tabpanel" id="p-ferme" aria-labelledby="t-ferme" style="--c:var(--ferme)">
+      <div class="logo-secteur"><img src="img/metal-ferme.webp" alt="kontrolshop Ferme" width="820" height="410" loading="lazy"></div>
+      <div>
+        <span class="pour">Élevages et vente de viande à la ferme</span>
+        <h3>kontrolshop Ferme</h3>
+        <p>Conçu avec un élevage de bœuf wagyu : de la naissance à l'assiette, chaque bête, chaque coupe et chaque paquet est retracé.</p>
+        <ul class="liste">
+          <li><b>Fiche de chaque bête</b> : mère, génétique, pesées et gain moyen quotidien calculé.</li>
+          <li><b>Coût de revient par animal</b> : moulée, soins et frais rattachés à la bonne bête.</li>
+          <li><b>Abattage et découpe</b> : à partir du poids de carcasse, les paquets attendus par coupe, puis ceux reçus du boucher.</li>
+          <li><b>Vente en boutique ou en ligne</b> : les lots les plus anciens sortent en premier, automatiquement.</li>
+          <li><b>Traçabilité complète</b> : chaque paquet vendu reste relié à la bête dont il provient.</li>
+        </ul>
+        <div class="exemple"><strong>Exemple</strong>La bête BT-014 part à l'abattoir avec une carcasse de 410&nbsp;kg. kontrolshop prévoit le nombre de paquets de faux-filet, de bavette et de haché ; à la réception, l'écart avec le boucher saute aux yeux.</div>
+      </div>
+    </article>
+
+    <article class="panneau" role="tabpanel" id="p-copropriete" aria-labelledby="t-copropriete" style="--c:var(--copro)">
+      <div class="logo-secteur"><img src="img/metal-copropriete.webp" alt="kontrolshop Copropriété" width="820" height="410" loading="lazy"></div>
+      <div>
+        <span class="pour">Syndicats de copropriété et gestionnaires</span>
+        <h3>kontrolshop Copropriété</h3>
+        <p>Les finances, l'entretien et les communications du syndicat, clairs pour le conseil d'administration comme pour les copropriétaires.</p>
+        <ul class="liste">
+          <li><b>Unités et quotes-parts</b> : stationnements, rangements, occupants, locataires et historique des propriétaires.</li>
+          <li><b>Charges communes</b> : budget annuel réparti selon les quotes-parts, cotisations générées chaque mois, solde de chaque unité.</li>
+          <li><b>Demandes de réparation</b> avec photos, transformées en bons de travail confiés aux fournisseurs.</li>
+          <li><b>Entretien préventif</b> et calendrier des inspections : rien n'est oublié.</li>
+          <li><b>Portail sécurisé des copropriétaires</b> : leur solde, leurs documents (procès-verbaux, règlements, états financiers) et le suivi de leurs demandes.</li>
+        </ul>
+        <div class="exemple"><strong>Exemple</strong>Un copropriétaire signale une infiltration d'eau depuis son portail, photo à l'appui. Le gestionnaire crée le bon pour le couvreur ; le copropriétaire voit la progression sans téléphoner.</div>
+      </div>
+    </article>
+
+    <article class="panneau" role="tabpanel" id="p-premium" aria-labelledby="t-premium" style="--c:var(--premium)">
+      <div class="logo-secteur"><img src="img/metal-premium.webp" alt="kontrolshop Premium" width="820" height="410" loading="lazy"></div>
+      <div>
+        <span class="pour">Véhicules récréatifs et commerces haut de gamme</span>
+        <h3>kontrolshop Premium</h3>
+        <p>Toute la force de la déclinaison Garage, avec les outils pour entretenir, préparer et vendre des véhicules récréatifs.</p>
+        <ul class="liste">
+          <li><b>Catalogue de VR</b> : marques et modèles de motorisés et de roulottes — classe A, B, C, sellette…</li>
+          <li><b>Véhicules à vendre</b> : coûtant d'achat, prix demandé et profit prévu sur chaque fiche.</li>
+          <li><b>Préparation au coûtant</b> : les travaux faits sur un VR en stock s'ajoutent à son coût, sans fausser vos ventes.</li>
+          <li><b>Facture de vente</b> avec TPS/TVQ et profit réel figé ; le dossier du VR suit son nouveau propriétaire.</li>
+          <li><b>Marge proposée automatiquement</b> sur chaque nouvelle pièce, selon votre politique de prix.</li>
+        </ul>
+        <div class="exemple"><strong>Exemple</strong>Un VR acheté 48&nbsp;000&nbsp;$ reçoit 2&nbsp;300&nbsp;$ de préparation à l'atelier. À la vente, kontrolshop connaît son vrai coûtant — 50&nbsp;300&nbsp;$ — et affiche le profit réel, sans calcul à la main.</div>
+      </div>
+    </article>
+
+    <p class="autre-secteur">Votre secteur n'y est pas&nbsp;? La déclinaison <b style="color:var(--boutique)">Boutique</b> est en préparation, et d'autres suivront. <a href="#contact">Parlons de votre réalité.</a></p>
+  </div>
+</section>
+
+<section class="forts" id="points-forts">
+  <div class="conteneur">
+    <span class="surtitre">Nos points forts</span>
+    <h2>Inclus dans chaque déclinaison.</h2>
+    <p class="intro">Fini les cinq logiciels qui ne se parlent pas. Ce qui se passe à l'atelier, à l'étable ou dans l'immeuble arrive directement dans vos livres.</p>
+    <div class="grille">
+      <div class="fort">
+        <div class="ico" aria-hidden="true">📒</div>
+        <h3>Comptabilité intégrée</h3>
+        <p>Plan comptable, journal, bilan, état des résultats, comptes à payer et immobilisations — alimentés automatiquement.</p>
+        <div class="ex"><b>Exemple :</b> une facture payée crée elle-même son écriture ; la conciliation bancaire se fait en pointant les lignes du relevé.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">🧾</div>
+        <h3>Paie et remises du Québec</h3>
+        <p>Heures tirées des poinçons, retenues RRQ, RQAP, AE et impôts, feuillets de fin d'année.</p>
+        <div class="ex"><b>Exemple :</b> le montant à remettre au gouvernement — TPS, TVQ et retenues — est calculé pour vous, prêt à payer.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">📈</div>
+        <h3>Prévisions de trésorerie</h3>
+        <p>Vos comptes, ce que les clients vous doivent, vos factures à payer et la paie à venir, réunis en une seule projection.</p>
+        <div class="ex"><b>Exemple :</b> vous voyez dès lundi si la paie de jeudi et la remise du mois passent sans toucher à la marge.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">⏱️</div>
+        <h3>Productivité des employés</h3>
+        <p>Temps facturable, présence et rentabilité par employé et par travail, en rapports clairs.</p>
+        <div class="ex"><b>Exemple :</b> un poinçon oublié ouvert toute la nuit est repéré et signalé avant de fausser la paie.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">✨</div>
+        <h3>Assistant SG intégré</h3>
+        <p>Un assistant intelligent toujours à portée de clic, dans le haut de chaque page, qui connaît votre logiciel.</p>
+        <div class="ex"><b>Exemple :</b> « Trouve le bon de la Civic de Jean Tremblay » — la réponse, sans fouiller dans les menus.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">📱</div>
+        <h3>Partout, sur tous les écrans</h3>
+        <p>Ordinateur au bureau, tablette à l'atelier, téléphone sur la route. S'installe comme une appli, avec notifications.</p>
+        <div class="ex"><b>Exemple :</b> le gérant reçoit une notification dès qu'un bon est terminé, où qu'il soit.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">🏷️</div>
+        <h3>À votre image</h3>
+        <p>Votre nom, votre logo et vos coordonnées sur les factures, soumissions et courriels. kontrolshop reste discret.</p>
+        <div class="ex"><b>Exemple :</b> vos clients reçoivent une facture PDF à votre marque, jamais à la nôtre.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">🔐</div>
+        <h3>Vos données, à vous seuls</h3>
+        <p>Chaque entreprise a sa propre installation et sa propre base de données. Rôles et accès réglés par employé, sauvegardes planifiées.</p>
+        <div class="ex"><b>Exemple :</b> la secrétaire voit la facturation, le mécanicien ses bons — et rien d'autre.</div>
+      </div>
+      <div class="fort">
+        <div class="ico" aria-hidden="true">🔗</div>
+        <h3>Branché sur vos outils</h3>
+        <p>Connexion à QuickBooks, recherche PartsTech, envoi de courriels, import de fichiers Excel existants.</p>
+        <div class="ex"><b>Exemple :</b> votre liste de clients ou d'inventaire actuelle s'importe dès le premier jour.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="journee" id="exemple">
+  <div class="conteneur">
+    <div>
+      <span class="surtitre">En action</span>
+      <h2>Une journée sous kontrol.</h2>
+      <p class="intro">Voici le parcours d'un bon de travail dans un garage — sans ressaisie, du rendez-vous jusqu'aux livres.</p>
+      <ol class="etapes">
+        <li><time>7 h 45</time><p><b>Rendez-vous en ligne.</b> Le client a réservé la veille sur votre site ; il apparaît au calendrier.</p></li>
+        <li><time>8 h 02</time><p><b>Arrivée du véhicule.</b> Photos prises à la tablette, bon créé, mécanicien assigné.</p></li>
+        <li><time>8 h 10</time><p><b>Poinçon.</b> Le mécanicien démarre son temps sur le bon depuis son téléphone.</p></li>
+        <li><time>9 h 30</time><p><b>Pièces.</b> Plaquettes sorties de l'inventaire ; les disques manquants s'ajoutent en un clic à la commande du fournisseur.</p></li>
+        <li><time>11 h 15</time><p><b>Facture et avis.</b> Le client reçoit sa facture et le courriel « votre véhicule est prêt ».</p></li>
+        <li><time>11 h 16</time><p><b>Dans les livres.</b> Revenus, taxes, coût des pièces et heures pour la paie sont déjà comptabilisés.</p></li>
+      </ol>
+    </div>
+    <div class="bon" role="img" aria-label="Aperçu d'un bon de travail dans kontrolshop : remplacement des freins avant, poinçon en cours, total 612,75 $">
+      <div class="bon-tete">
+        <div><b>Bon #2418</b><small>Honda Civic 2019 · Marie Tremblay</small></div>
+        <span class="statut">En cours</span>
+      </div>
+      <table>
+        <tr><td>Freins avant — plaquettes et disques<div class="mini">Main-d'œuvre · 2,0 h</div></td><td>240,00&nbsp;$</td></tr>
+        <tr><td>Plaquettes céramique<div class="mini">Inventaire · stock 3 → 2</div></td><td>89,95&nbsp;$</td></tr>
+        <tr><td>Disques avant (×2)<div class="mini">Inventaire · commandé chez le fournisseur</div></td><td>172,00&nbsp;$</td></tr>
+        <tr><td>Kit changement d'huile<div class="mini">Prix fixe</div></td><td>30,99&nbsp;$</td></tr>
+      </table>
+      <div class="poincon"><i class="pt" aria-hidden="true"></i>Alex poinçonné sur ce bon<span>01:24:07</span></div>
+      <table>
+        <tr><td class="mini">Sous-total</td><td>532,94&nbsp;$</td></tr>
+        <tr><td class="mini">TPS 5&nbsp;%</td><td>26,65&nbsp;$</td></tr>
+        <tr><td class="mini">TVQ 9,975&nbsp;%</td><td>53,16&nbsp;$</td></tr>
+      </table>
+      <div class="total"><span>Total</span><span>612,75&nbsp;$</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="demarche">
+  <div class="conteneur">
+    <span class="surtitre">Comment ça marche</span>
+    <h2>En place en quelques jours.</h2>
+    <div class="grille">
+      <div class="fort"><div class="num">01</div><h3>Démonstration</h3><p>On vous montre kontrolshop avec des exemples de votre secteur et on regarde ensemble votre façon de travailler.</p></div>
+      <div class="fort"><div class="num">02</div><h3>Installation à votre image</h3><p>Votre installation privée, votre logo, vos taxes, vos employés et vos accès. On importe vos clients et votre inventaire.</p></div>
+      <div class="fort"><div class="num">03</div><h3>Accompagnement</h3><p>Formation de l'équipe, soutien en français, et des nouveautés appliquées au moment qui vous convient — jamais en pleine journée chargée.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="faq" id="questions">
+  <div class="conteneur">
+    <span class="surtitre">Questions fréquentes</span>
+    <h2>Bon à savoir.</h2>
+    <details>
+      <summary>Est-ce que je dois installer quelque chose&nbsp;?</summary>
+      <p>Non. kontrolshop fonctionne dans le navigateur, sur ordinateur, tablette et téléphone. Il peut aussi s'ajouter à l'écran d'accueil comme une application, avec notifications.</p>
+    </details>
+    <details>
+      <summary>Mes données sont-elles mélangées à celles d'autres entreprises&nbsp;?</summary>
+      <p>Jamais. Chaque entreprise a sa propre installation et sa propre base de données. Les accès se règlent employé par employé, et des sauvegardes sont planifiées.</p>
+    </details>
+    <details>
+      <summary>Puis-je combiner plusieurs déclinaisons&nbsp;?</summary>
+      <p>Oui. Les sections s'activent selon vos besoins : une ferme peut avoir un atelier de réparation, un garage peut gérer la paie de ses employés, et ainsi de suite.</p>
+    </details>
+    <details>
+      <summary>J'utilise déjà QuickBooks. Est-ce un problème&nbsp;?</summary>
+      <p>Pas du tout. kontrolshop peut se brancher à QuickBooks, ou vous pouvez utiliser sa comptabilité intégrée et simplifier vos outils.</p>
+    </details>
+    <details>
+      <summary>Est-ce adapté aux règles du Québec&nbsp;?</summary>
+      <p>Oui : TPS et TVQ, retenues RRQ, RQAP et AE, remises gouvernementales, municipalités et adresses du Québec. Le logiciel est conçu et soutenu en français, ici.</p>
+    </details>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <div class="conteneur">
+    <div class="boite">
+      <div style="position:relative;z-index:1">
+        <span class="surtitre">Démonstration gratuite</span>
+        <h2>Voyez kontrolshop avec votre réalité.</h2>
+        <p class="intro">Dites-nous qui vous êtes et ce que vous voulez simplifier. On vous revient rapidement pour planifier une démonstration.</p>
+        <p style="color:var(--doux)">Ou écrivez-nous directement : <a href="mailto:info@sgwebsite.online">info@sgwebsite.online</a></p>
+      </div>
+      <form id="formulaire" action="mailto:info@sgwebsite.online" method="post" enctype="text/plain">
+        <div class="deux">
+          <label>Votre nom<input name="nom" autocomplete="name" required></label>
+          <label>Entreprise<input name="entreprise" autocomplete="organization"></label>
+        </div>
+        <div class="deux">
+          <label>Courriel<input type="email" name="courriel" autocomplete="email" required></label>
+          <label>Téléphone<input type="tel" name="telephone" autocomplete="tel"></label>
+        </div>
+        <label>Votre secteur
+          <select name="secteur" id="choix-secteur">
+            <option value="Garage">Garage</option>
+            <option value="Ferme">Ferme</option>
+            <option value="Copropriété">Copropriété</option>
+            <option value="Premium (VR)">Premium (VR)</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </label>
+        <label>Ce que vous aimeriez simplifier<textarea name="message"></textarea></label>
+        <button class="btn btn-plein" type="submit">Demander ma démo</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="pied">
+  <div class="conteneur">
+    <img src="img/logo.svg" alt="kontrolshop" width="811" height="244">
+    <span>Tout est sous kontrol. · © <span id="annee">2026</span> kontrolshop</span>
+  </div>
+</footer>
+
+<script>
+document.documentElement.classList.add("js");
+document.getElementById("annee").textContent = new Date().getFullYear();
+
+// Onglets des déclinaisons (sans JavaScript, toutes les fiches s'affichent)
+const onglets = [...document.querySelectorAll('[role="tab"]')];
+const couleurs = { garage: "var(--garage)", ferme: "var(--ferme)", copropriete: "var(--copro)", premium: "var(--premium)" };
+const libelles = { garage: "Garage", ferme: "Ferme", copropriete: "Copropriété", premium: "Premium (VR)" };
+function choisir(id, focus) {
+  onglets.forEach(o => {
+    const actif = o.id === "t-" + id;
+    o.setAttribute("aria-selected", actif);
+    o.tabIndex = actif ? 0 : -1;
+    document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
+    if (actif && focus) o.focus();
+  });
+  document.documentElement.style.setProperty("--accent", couleurs[id]);
+  const choix = document.getElementById("choix-secteur");
+  if (choix) choix.value = libelles[id];
+}
+onglets.forEach((o, i) => {
+  o.addEventListener("click", () => choisir(o.id.slice(2)));
+  o.addEventListener("keydown", e => {
+    const d = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    choisir(onglets[(i + d + onglets.length) % onglets.length].id.slice(2), true);
+  });
+});
+document.querySelectorAll("[data-va]").forEach(a => a.addEventListener("click", () => choisir(a.dataset.va)));
+choisir("garage");
+
+// Le formulaire ouvre le courriel de la personne, déjà rempli
+document.getElementById("formulaire").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const corps = [
+    "Nom : " + f.get("nom"), "Entreprise : " + f.get("entreprise"),
+    "Courriel : " + f.get("courriel"), "Téléphone : " + f.get("telephone"),
+    "Secteur : " + f.get("secteur"), "", f.get("message")
+  ].join("\n");
+  location.href = "mailto:info@sgwebsite.online?subject=" + encodeURIComponent("Démo kontrolshop — " + f.get("secteur")) + "&body=" + encodeURIComponent(corps);
+});
+</script>
+</body>
+</html>

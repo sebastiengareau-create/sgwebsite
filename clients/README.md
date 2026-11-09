@@ -55,7 +55,8 @@ on décide quand et à qui une modification s'applique.
   jamais sur les documents du client. Le badge (GARAGE, FERME, COPROPRIÉTÉ,
   BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
   dans le profil. Logos en fichiers pour les pages d'accueil :
-  `public/marque/`.
+  `public/marque/`. Site de vente www.kontrolshop.com (page statique, à part
+  de l'appli) : `site-kontrolshop/`.
 - **Contexte** : `clients/<id>/CLIENT.md` — qui est le client, ce qui le
   distingue et pourquoi.
 
