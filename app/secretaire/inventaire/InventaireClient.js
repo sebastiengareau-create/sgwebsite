@@ -14,7 +14,7 @@ import { libelleNumerosFournisseurs, comparateurPieces, TRIS_PIECES as TRIS } fr
 import { CLIENT } from "@/lib/client";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "./FormulaireKit";
-import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, GroupeLiens, Panneau, Pastille } from "../../components/StyleSection";
+import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, BoutonAction, GroupeLiens, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 import { argent } from "@/lib/format";
 
 const CLE_TRI = "inventaire_tri";
@@ -155,10 +155,10 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
         <BoutonPlein icone="camera" onClick={() => { setCodeInconnu(null); setScannerOuvert(true); }}>Scanner une pièce</BoutonPlein>
         <BoutonContour icone="plus" actif={afficherFormulaire} onClick={() => { setAfficherFormulaire((v) => !v); setAfficherFormulaireKit(false); setCodeBarreNouvelle(""); }}>
-          {afficherFormulaire ? "Annuler" : "Nouvelle pièce"}
+          Nouvelle pièce
         </BoutonContour>
         <BoutonContour icone="outils" actif={afficherFormulaireKit} onClick={() => { setAfficherFormulaireKit((v) => !v); setAfficherFormulaire(false); }}>
-          {afficherFormulaireKit ? "Annuler" : "Nouveau kit"}
+          Nouveau kit
         </BoutonContour>
         <BoutonContour icone="etiquette" actif={modeEtiquettes} onClick={() => { setModeEtiquettes((v) => !v); setSelection(new Set()); }}>
           {modeEtiquettes ? "Terminer les étiquettes" : "Étiquettes"}
@@ -180,7 +180,7 @@ export default function InventaireClient({ pieces: toutes, coutHoraireDefaut, en
       )}
 
       {afficherFormulaire && (
-        <FormulaireCreation key={codeBarreNouvelle} codeBarreInitial={codeBarreNouvelle} categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} />
+        <FormulaireCreation key={codeBarreNouvelle} codeBarreInitial={codeBarreNouvelle} categories={categories.filter((c) => c.actif)} fournisseurs={fournisseurs} onCree={() => { setAfficherFormulaire(false); router.refresh(); }} onAnnuler={() => setAfficherFormulaire(false)} />
       )}
 
       {afficherFormulaireKit && (
@@ -515,7 +515,7 @@ function GestionCategories({ categories, comptesRevenu, onModifie }) {
   );
 }
 
-function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial = "" }) {
+function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeBarreInitial = "" }) {
   const [nom, setNom] = useState("");
   const [numero, setNumero] = useState("");
   const [codeBarre, setCodeBarre] = useState(codeBarreInitial);
@@ -569,79 +569,133 @@ function FormulaireCreation({ categories, fournisseurs, onCree, codeBarreInitial
     onCree();
   }
 
+  // Marge réelle (sur le prix de vente) dès que les deux prix sont connus
+  const c = parseFloat(coutant), pv = parseFloat(prix);
+  const margeReelle = Number.isFinite(c) && Number.isFinite(pv) && pv > 0 ? ((pv - c) / pv) * 100 : null;
+  const champCoutant = (
+    <div>
+      <label style={labelForm}>Prix coûtant ($){marge == null ? " — optionnel" : ""}</label>
+      <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} className="champ-sans-fleches" style={champForm} />
+    </div>
+  );
+  const champPrix = (
+    <div>
+      <label style={labelForm}>{marge == null ? "Prix unitaire ($) *" : `Prix de vente ($) — marge de ${marge} % proposée`}</label>
+      <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} className="champ-sans-fleches" style={champForm} />
+    </div>
+  );
+
   return (
-    <form onSubmit={creer} className="carte carte-m" style={{ marginBottom: 4 }}>
-      <input required placeholder="Description (ex : Filtre à huile)" value={nom} onChange={(e) => setNom(e.target.value)} style={champStyle} />
-      <input required placeholder="Numéro de référence (ex : FO-2201)" value={numero} onChange={(e) => setNumero(e.target.value)} style={champStyle} />
-      <label style={labelStyle}>Code-barres du fabricant (UPC/EAN) — optionnel</label>
-      <div style={{ display: "flex", gap: 6 }}>
-        <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" style={{ ...champStyle, flex: 1 }} />
-        <button type="button" onClick={() => setScannerOuvert(true)} className="bouton-3d-sombre" title="Scanner le code de la boîte" style={{ padding: "0 12px", borderRadius: 8, fontSize: 15, marginBottom: 8 }}>📷</button>
+    <form onSubmit={creer} style={{ marginBottom: 20 }}>
+      <div style={{ ...stylePanneau, border: "1.5px solid var(--accent)" }}>
+        <TitrePanneau icone="boite" teinte={TEINTES.ambre} titre="Nouvelle pièce" sousTitre="Ce qui l'identifie — tout est modifiable ensuite dans sa fiche." />
+        <label style={labelForm}>Description *</label>
+        <input required placeholder="Ex. : Filtre à huile" value={nom} onChange={(e) => setNom(e.target.value)} style={champForm} />
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          <div>
+            <label style={labelForm}>Numéro de référence *</label>
+            <input required placeholder="Ex. : FO-2201" value={numero} onChange={(e) => setNumero(e.target.value)} style={champForm} />
+          </div>
+          <div>
+            <label style={labelForm}>Code-barres du fabricant (UPC/EAN)</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={codeBarre} onChange={(e) => setCodeBarre(e.target.value)} placeholder="Scanne la boîte d'origine" style={{ ...champForm, flex: 1, minWidth: 0 }} />
+              <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner le code de la boîte" aria-label="Scanner le code de la boîte" style={boutonIconeForm}>
+                <Icone nom="camera" taille={17} couleur="var(--accent-ombre)" />
+              </button>
+            </div>
+          </div>
+        </div>
+        {scannerOuvert && (
+          <ScannerCodeBarres
+            titre="Code-barres de la boîte"
+            onFermer={() => setScannerOuvert(false)}
+            onDetecte={(texte) => {
+              setScannerOuvert(false);
+              if (extraireIdEtiquette(texte)) return setErreur("C'est une étiquette de l'appli, pas le code du fabricant — scanne le code-barres imprimé sur la boîte.");
+              setCodeBarre(texte.trim());
+            }}
+          />
+        )}
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          <div>
+            <label style={labelForm}>Catégorie</label>
+            <select value={categorie} onChange={(e) => setCategorie(e.target.value)} style={champForm}>
+              {categories.map((x) => <option key={x.code} value={x.code}>{x.nom}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelForm}>Fournisseur habituel</label>
+            <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champForm}>
+              <option value="">Aucun</option>
+              {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+            </select>
+          </div>
+        </div>
       </div>
-      {scannerOuvert && (
-        <ScannerCodeBarres
-          titre="Code-barres de la boîte"
-          onFermer={() => setScannerOuvert(false)}
-          onDetecte={(texte) => {
-            setScannerOuvert(false);
-            if (extraireIdEtiquette(texte)) return setErreur("C'est une étiquette de l'appli, pas le code du fabricant — scanne le code-barres imprimé sur la boîte.");
-            setCodeBarre(texte.trim());
-          }}
-        />
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="grille" teinte={TEINTES.bleu} titre="Stock" sousTitre="Sous le seuil minimum, la pièce s'affiche à commander." />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+          <div>
+            <label style={labelForm}>En stock</label>
+            <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} className="champ-sans-fleches" style={champForm} />
+          </div>
+          <div>
+            <label style={labelForm}>Minimum</label>
+            <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} className="champ-sans-fleches" style={champForm} />
+          </div>
+          <div>
+            <label style={labelForm}>Maximum</label>
+            <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="—" className="champ-sans-fleches" style={champForm} />
+          </div>
+        </div>
+        <label style={labelForm}>Emplacement</label>
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
+            <Icone nom="epingle" taille={16} couleur="var(--text-muted)" />
+          </span>
+          <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="Ex. : A-03-02 (optionnel)" style={{ ...champForm, paddingLeft: 38, marginBottom: 0 }} />
+        </div>
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="etiquette" teinte={TEINTES.vert} titre="Prix" sousTitre={marge == null ? "Le coûtant sert au calcul de la marge." : "Le prix de vente se calcule du coûtant — modifiable."} />
+        <div className="grille-deux" style={{ gap: "0 12px" }}>
+          {marge == null ? <>{champPrix}{champCoutant}</> : <>{champCoutant}{champPrix}</>}
+        </div>
+        {margeReelle != null && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderRadius: 12, marginTop: 4, background: margeReelle < 0 ? "var(--danger-fond)" : "var(--success-fond)" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: margeReelle < 0 ? "var(--danger)" : "var(--success)" }}>Marge sur le prix de vente</span>
+            <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{margeReelle.toFixed(1).replace(".", ",")} % · {argent(pv - c)}</span>
+          </div>
+        )}
+      </div>
+
+      {erreur && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-fond)", border: "1px solid var(--danger)", borderRadius: 12, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>
+          <Icone nom="alerte" taille={16} couleur="var(--danger)" /> {erreur}
+        </div>
       )}
-      <div style={{ display: "flex", gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Quantité en stock</label>
-          <input type="number" min={0} value={qte} onChange={(e) => setQte(e.target.value)} style={champStyle} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Seuil minimum</label>
-          <input type="number" min={0} value={qteMin} onChange={(e) => setQteMin(e.target.value)} style={champStyle} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Seuil maximum</label>
-          <input type="number" min={0} value={qteMax} onChange={(e) => setQteMax(e.target.value)} placeholder="optionnel" style={champStyle} />
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: onAnnuler ? "1fr 1fr" : "1fr", gap: 8 }}>
+        <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 14 }}>
+          {enCours ? "Création…" : "Ajouter la pièce"}
+        </button>
+        {onAnnuler && <BoutonAction icone="bloque" couleur="var(--text-muted)" onClick={onAnnuler}>Annuler</BoutonAction>}
       </div>
-      {marge == null ? (
-        <>
-          <label style={labelStyle}>Prix unitaire ($)</label>
-          <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Prix coûtant ($) — optionnel, pour le calcul de marge</label>
-          <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} style={champStyle} />
-        </>
-      ) : (
-        <>
-          <label style={labelStyle}>Prix coûtant ($)</label>
-          <input type="number" min={0} step="0.01" value={coutant} onChange={(e) => changerCoutant(e.target.value)} style={champStyle} />
-          <label style={labelStyle}>Prix de vente ($) — proposé pour une marge de {marge} %, modifiable</label>
-          <input required type="number" min={0} step="0.01" value={prix} onChange={(e) => changerPrix(e.target.value)} style={champStyle} />
-        </>
-      )}
-      <div style={{ display: "flex", gap: 8 }}>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Emplacement — optionnel</label>
-          <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="ex. A-03-02" style={champStyle} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <label style={labelStyle}>Fournisseur habituel — optionnel</label>
-          <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
-            <option value="">Aucun</option>
-            {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
-          </select>
-        </div>
-      </div>
-      <label style={labelStyle}>Catégorie</label>
-      <select value={categorie} onChange={(e) => setCategorie(e.target.value)} style={{ ...champStyle, marginBottom: 0 }}>
-        {categories.map((c) => <option key={c.code} value={c.code}>{c.nom}</option>)}
-      </select>
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>{erreur}</p>}
-      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", marginTop: 10, padding: 10, borderRadius: 8, fontWeight: 700 }}>
-        {enCours ? "Création…" : "Ajouter la pièce"}
-      </button>
     </form>
   );
 }
+
+const labelForm = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
+const champForm = {
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
+};
+const boutonIconeForm = {
+  width: 38, height: 38, flexShrink: 0, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)",
+  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
+};
 
 const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
