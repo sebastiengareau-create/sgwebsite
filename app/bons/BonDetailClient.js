@@ -73,6 +73,10 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   // Il faut au moins le NIV, ou la marque et le modèle, pour chercher
   // Facture comptoir (lib/comptoir.js) : sans véhicule ni main-d'œuvre
   const comptoir = !!bon.comptoir;
+  // Pièces de l'inventaire dans une section en haut (profil
+  // piecesEnHautDuBon) — toujours sur une facture comptoir, pour y arriver
+  // directement plutôt que dans la carte de sa ligne
+  const piecesEnHaut = CLIENT.piecesEnHautDuBon || comptoir;
   const vehiculeRecherchable = !!bon.vehicule && !!(bon.vehicule.niv || (bon.vehicule.marque && bon.vehicule.modele));
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -381,9 +385,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   const sectionLignes = (
     <>
       {/* Bon d'une soumission facturée : ses pièces sont dans la section « Pièces » ci-dessous */}
-      {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
+      {piecesEnHaut && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
         <PiecesBon
-          titre="Pièces du bon"
+          titre={comptoir ? "Pièces de l'inventaire" : "Pièces du bon"}
           style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
           bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
           inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
@@ -420,6 +424,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             peutModifier={peutModifier}
             peutPoinconner={peutPoinconner}
             comptoir={comptoir}
+            piecesEnHaut={piecesEnHaut}
             estGerant={estGerant}
             moi={moi}
             verrouille={factureExiste}
@@ -931,7 +936,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, comptoir = false, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, comptoir = false, piecesEnHaut = CLIENT.piecesEnHautDuBon, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
   const [erreurPhoto, setErreurPhoto] = useState("");
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [suppressionPhoto, setSuppressionPhoto] = useState(null); // id de la photo en cours de suppression
@@ -1375,7 +1380,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
         </div>
       )}
 
-      {peutModifier && !CLIENT.piecesEnHautDuBon && (
+      {peutModifier && !piecesEnHaut && (
         <PiecesBon
           titre="Pièces pour cette tâche" style={{ marginTop: 12, paddingTop: 10, borderTop: "1px dashed var(--border)" }}
           bonId={bonId} problemeId={probleme.id} pieces={probleme.pieces} inventaire={inventaire} fournisseurs={fournisseurs}
