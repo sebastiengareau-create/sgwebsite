@@ -16,6 +16,8 @@ import { CLIENT } from "@/lib/client";
 import { messageBonsNonFactures, QUESTION_BON_NON_FACTURE } from "@/lib/bonsNonFactures";
 import { formaterTelephone } from "@/lib/telephone";
 import { correspondRecherche } from "@/lib/recherche";
+import BandeauSection from "@/app/components/BandeauSection";
+import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "@/app/components/StyleSection";
 
 export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
   const router = useRouter();
@@ -217,178 +219,197 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       <button
         type="button"
         onClick={() => (window.history.length > 1 ? router.back() : router.push("/secretaire"))}
-        style={{ background: "none", border: "none", padding: 0, color: "var(--text-muted)", fontSize: 12, cursor: "pointer" }}
+        style={{ background: "none", border: "none", padding: 0, color: "var(--text-muted)", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
       >
         ← Retour
       </button>
-      <h1 style={{ fontSize: 20, marginTop: 8, marginBottom: 16 }}>Nouveau bon de travail</h1>
+      <div style={{ marginTop: 8 }}>
+        <BandeauSection icone="🔧" titre="Nouveau bon de travail" sousTitre="Le client, son véhicule et les problèmes à régler — le bon s'ouvre ensuite pour l'équipe." />
+      </div>
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 4, marginBottom: 4 }}>Client</div>
-
-      {clientSelectionne ? (
-        <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 8, padding: 10, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{clientSelectionne.nom}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-              {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
-              {clientSelectionne.garantieProlongee && <> · 🛡️ Garantie #{clientSelectionne.garantieProlongee}</>}
+      <div style={stylePanneau}>
+        <TitrePanneau icone="personne" teinte={TEINTES.bleu} titre="Client" sousTitre={clientSelectionne ? undefined : "Cherche un client existant (nom ou plaque) ou entre un nouveau client."} />
+        {clientSelectionne ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, background: TEINTES.bleu.fond, border: `1px solid ${TEINTES.bleu.couleur}` }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "var(--surface)", color: TEINTES.bleu.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800 }}>
+              {clientSelectionne.nom.charAt(0).toUpperCase()}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>{clientSelectionne.nom}</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
+                {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
+              </div>
+              {(clientSelectionne.garantieProlongee || (CLIENT.avertirBonNonFacture && clientSelectionne.bons?.length > 0)) && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                  {clientSelectionne.garantieProlongee && <Pastille couleur={TEINTES.bleu.couleur} fond="var(--surface)">Garantie prolongée #{clientSelectionne.garantieProlongee}</Pastille>}
+                  {CLIENT.avertirBonNonFacture && clientSelectionne.bons?.length > 0 && (
+                    <Pastille couleur="var(--accent-ombre)" fond={TEINTES.ambre.fond}>
+                      Non facturé{clientSelectionne.bons.length > 1 ? "s" : ""} :{" "}
+                      {clientSelectionne.bons.map((b, i) => (
+                        <span key={b.id}>{i > 0 && ", "}<a href={`/bons/${b.id}`} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>#{b.numero}</a></span>
+                      ))}
+                    </Pastille>
+                  )}
+                </div>
+              )}
             </div>
-            {CLIENT.avertirBonNonFacture && clientSelectionne.bons?.length > 0 && (
-              <div style={{ fontSize: 11, color: "#C9A227", marginTop: 3 }}>
-                ⚠️ Non facturé{clientSelectionne.bons.length > 1 ? "s" : ""} en cours :{" "}
-                {clientSelectionne.bons.map((b, i) => (
-                  <span key={b.id}>{i > 0 && ", "}<a href={`/bons/${b.id}`} target="_blank" rel="noreferrer" style={{ color: "inherit" }}>#{b.numero}</a></span>
-                ))}
-              </div>
-            )}
+            <button type="button" onClick={changerClientPourNouveau} style={{ ...boutonLien, whiteSpace: "nowrap", alignSelf: "flex-start" }}>
+              Changer
+            </button>
           </div>
-          <button type="button" onClick={changerClientPourNouveau} style={{ fontSize: 11, color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
-            Changer
-          </button>
-        </div>
-      ) : (
-        <div ref={boiteRechercheRef} style={{ position: "relative" }}>
-          <label style={labelStyle}>Nom du client</label>
-          <input
-            required
-            value={rechercheClient}
-            onChange={(e) => { setRechercheClient(e.target.value); setClientNom(e.target.value); setAfficherSuggestions(true); }}
-            onFocus={() => setAfficherSuggestions(true)}
-            placeholder="Tape un nom (ou une plaque) pour trouver un client existant, ou en créer un nouveau"
-            style={champInput}
-          />
-          {afficherSuggestions && suggestions.length > 0 && (
-            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: -4, maxHeight: 320, overflowY: "auto" }}>
-              <div style={{ padding: "6px 10px", fontSize: 11, color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
-                {suggestions.length} client{suggestions.length > 1 ? "s" : ""}{rechercheClient.trim() ? "" : " — tape un nom pour filtrer"}
+        ) : (
+          <>
+            <div ref={boiteRechercheRef} style={{ position: "relative" }}>
+              <label style={labelStyle}>Nom du client</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 12, top: 19, transform: "translateY(-50%)", display: "flex", pointerEvents: "none" }}>
+                  <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
+                </span>
+                <input
+                  required
+                  value={rechercheClient}
+                  onChange={(e) => { setRechercheClient(e.target.value); setClientNom(e.target.value); setAfficherSuggestions(true); }}
+                  onFocus={() => setAfficherSuggestions(true)}
+                  placeholder="Nom ou plaque — recherche ou nouveau client"
+                  style={{ ...champInput, paddingLeft: 40 }}
+                />
               </div>
-              {suggestions.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => choisirClient(c)}
-                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 13, cursor: "pointer" }}
-                >
-                  <div style={{ fontWeight: 600 }}>{c.nom}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    {[c.telephone, c.ville].filter(Boolean).join(" · ")}
+              {afficherSuggestions && suggestions.length > 0 && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, zIndex: 10, marginTop: -4, maxHeight: 320, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}>
+                  <div style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
+                    {suggestions.length} client{suggestions.length > 1 ? "s" : ""}{rechercheClient.trim() ? "" : " — tape un nom pour filtrer"}
                   </div>
-                </button>
-              ))}
+                  {suggestions.map((c) => (
+                    <button
+                      key={c.id} type="button" onClick={() => choisirClient(c)}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", background: "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      <div style={{ fontWeight: 700 }}>{c.nom}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{[c.telephone, c.ville].filter(Boolean).join(" · ")}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+            <label style={labelStyle}>Téléphone</label>
+            <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+            <label style={labelStyle}>Adresse</label>
+            <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
+            <label style={labelStyle}>Ville</label>
+            <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Province</label>
+                <SelectProvince valeur={clientProvince} onChange={setClientProvince} style={{ ...champInput, marginBottom: 0 }} />
+              </div>
+              <div style={{ width: 120 }}>
+                <label style={labelStyle}>Code postal</label>
+                <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={{ ...champInput, marginBottom: 0 }} />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
-      {!clientSelectionne && (
-        <>
-          <Champ label="Téléphone" type="tel" value={clientTelephone} onChange={setClientTelephone} onBlur={(v) => setClientTelephone(formaterTelephone(v))} />
-          <label style={labelStyle}>Adresse</label>
-          <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
-          <label style={labelStyle}>Ville</label>
-          <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={champInput} />
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Province</label>
-              <SelectProvince valeur={clientProvince} onChange={setClientProvince} style={champInput} />
-            </div>
-            <div style={{ width: 110 }}>
-              <label style={labelStyle}>Code postal</label>
-              <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={champInput} />
-            </div>
-          </div>
-        </>
-      )}
-
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Véhicule</div>
-      <ChoixVehiculeClient
-        key={clientSelectionne?.id || "nouveau-client"}
-        vehicules={clientSelectionne?.vehicules || []}
-        choix={choixVehicule} onChoix={setChoixVehicule}
-        vehicule={vehicule} onVehicule={setVehicule}
-        onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
-        permettreNonPrecise={!CLIENT.vehiculeObligatoire}
-      />
+      <div style={stylePanneau}>
+        <TitrePanneau icone="vehicule" teinte={TEINTES.bleu} titre="Véhicule" />
+        <ChoixVehiculeClient
+          key={clientSelectionne?.id || "nouveau-client"}
+          vehicules={clientSelectionne?.vehicules || []}
+          choix={choixVehicule} onChoix={setChoixVehicule}
+          vehicule={vehicule} onVehicule={setVehicule}
+          onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
+          permettreNonPrecise={!CLIENT.vehiculeObligatoire}
+        />
+      </div>
 
       {CLIENT.photosArrivee && (
-        <>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Photos du véhicule à l'arrivée</div>
-          <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 6px" }}>Gardées en référence en haut du bon, jamais imprimées.</p>
+        <div style={stylePanneau}>
+          <TitrePanneau icone="camera" teinte={TEINTES.neutre} titre="Photos à l'arrivée" sousTitre="Gardées en référence en haut du bon, jamais imprimées." />
           <PrisePhotosArrivee valeurs={photosArrivee} onChange={setPhotosArrivee} />
-        </>
+        </div>
       )}
 
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 14, marginBottom: 4 }}>Problèmes signalés</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 6 }}>
-        {problemes.map((valeur, i) => (
-          <div key={i}>
-          <div style={{ display: "flex", gap: 6 }}>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", alignSelf: "center", width: 14 }}>{i + 1}.</span>
-            <input
-              required={i === 0}
-              value={valeur}
-              onChange={(e) => changerProbleme(i, e.target.value)}
-              placeholder={i === 0 ? "Ex : Bruit de freinage à l'avant" : "Ajouter un autre problème…"}
-              style={{ ...champInput, marginBottom: 0, flex: 1 }}
-            />
-            {CLIENT.photosTachesCreation && (
-              <BoutonPhotoProbleme onFichiers={(f) => ajouterPhotosProbleme(i, f)} />
-            )}
-            {problemes.length > 1 && (
-              <button type="button" onClick={() => supprimerLigneProbleme(i)} style={boutonTexte}>✕</button>
-            )}
-          </div>
-          {(photosProblemes[i] || []).length > 0 && (
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "4px 0 0 20px" }}>
-              {photosProblemes[i].map((src, k) => (
-                <div key={k} style={{ position: "relative" }}>
-                  <img src={src} alt={`Photo ${k + 1}`} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)", display: "block" }} />
-                  <button type="button" onClick={() => retirerPhotoProbleme(i, k)} aria-label="Retirer la photo"
-                    style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: 999, border: "none", background: "var(--danger)", color: "#fff", fontSize: 10, lineHeight: "18px", padding: 0, cursor: "pointer" }}>✕</button>
+      <div style={stylePanneau}>
+        <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Problèmes signalés" sousTitre="Chaque ligne devient une tâche du bon." />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+          {problemes.map((valeur, i) => (
+            <div key={i}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: TEINTES.ambre.fond, color: "var(--accent-ombre)", fontSize: 12.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</span>
+                <input
+                  required={i === 0}
+                  value={valeur}
+                  onChange={(e) => changerProbleme(i, e.target.value)}
+                  placeholder={i === 0 ? "Ex : Bruit de freinage à l'avant" : "Ajouter un autre problème…"}
+                  style={{ ...champInput, marginBottom: 0, flex: 1, minWidth: 0 }}
+                />
+                {CLIENT.photosTachesCreation && (
+                  <BoutonPhotoProbleme onFichiers={(f) => ajouterPhotosProbleme(i, f)} />
+                )}
+                {problemes.length > 1 && (
+                  <button type="button" onClick={() => supprimerLigneProbleme(i)} aria-label="Retirer la ligne" style={boutonIcone}>
+                    <Icone nom="poubelle" taille={16} couleur="var(--danger)" />
+                  </button>
+                )}
+              </div>
+              {(photosProblemes[i] || []).length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0 0 34px" }}>
+                  {photosProblemes[i].map((src, k) => (
+                    <div key={k} style={{ position: "relative" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`Photo ${k + 1}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)", display: "block" }} />
+                      <button type="button" onClick={() => retirerPhotoProbleme(i, k)} aria-label="Retirer la photo"
+                        style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: 999, border: "none", background: "var(--danger)", color: "#fff", fontSize: 10, lineHeight: "18px", padding: 0, cursor: "pointer" }}>✕</button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-          </div>
-        ))}
-        {erreurPhotoProbleme && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{erreurPhotoProbleme}</p>}
-      </div>
-      <button type="button" onClick={ajouterLigneProbleme} style={boutonAjoutLigne}>
-        + Ajouter une autre ligne de problème
-      </button>
-
-      <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginTop: 18, marginBottom: 6 }}>Date prévue</div>
-      <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
-
-      {calendrierActif && <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
-          <input type="checkbox" checked={ajouterAuCalendrier} onChange={(e) => setAjouterAuCalendrier(e.target.checked)} />
-          📅 Inscrire au calendrier
-        </label>
-        {ajouterAuCalendrier && (
-          <select value={dureeMinutes} onChange={(e) => setDureeMinutes(e.target.value)} style={{ ...champInput, width: "auto", marginBottom: 0 }}>
-            <option value="30">30 min</option>
-            <option value="60">1 heure</option>
-            <option value="90">1h30</option>
-            <option value="120">2 heures</option>
-            <option value="180">3 heures</option>
-            <option value="240">4 heures</option>
-            <option value="480">Journée (8 h)</option>
-          </select>
-        )}
-      </div>}
-
-      {erreur && <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 10, marginTop: 10 }}>{erreur}</p>}
-      {horsDisponibilite && (
-        <button type="button" onClick={() => creer(null, true)} disabled={enCours} style={{ width: "100%", marginBottom: 6, padding: 10, borderRadius: 8, border: "1px solid var(--danger)", background: "none", color: "var(--danger)", fontWeight: 700, cursor: "pointer" }}>
-          Créer et inscrire au calendrier quand même
+          ))}
+          {erreurPhotoProbleme && <p style={{ color: "var(--danger)", fontSize: 12.5, fontWeight: 700, margin: 0 }}>{erreurPhotoProbleme}</p>}
+        </div>
+        <button type="button" onClick={ajouterLigneProbleme} style={boutonPointille}>
+          + Ajouter une autre ligne de problème
         </button>
+      </div>
+
+      <div style={stylePanneau}>
+        <TitrePanneau icone="calendrier" teinte={TEINTES.vert} titre="Date prévue" />
+        <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
+        {calendrierActif && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 12, padding: "10px 12px", borderRadius: 12, background: ajouterAuCalendrier ? TEINTES.vert.fond : "var(--bg)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              <input type="checkbox" checked={ajouterAuCalendrier} onChange={(e) => setAjouterAuCalendrier(e.target.checked)} style={{ width: 17, height: 17, accentColor: "var(--success)" }} />
+              Inscrire au calendrier
+            </label>
+            {ajouterAuCalendrier && (
+              <select value={dureeMinutes} onChange={(e) => setDureeMinutes(e.target.value)} style={{ ...champInput, width: 118, marginBottom: 0, background: "var(--surface)" }}>
+                <option value="30">30 min</option>
+                <option value="60">1 heure</option>
+                <option value="90">1h30</option>
+                <option value="120">2 heures</option>
+                <option value="180">3 heures</option>
+                <option value="240">4 heures</option>
+                <option value="480">Journée (8 h)</option>
+              </select>
+            )}
+          </div>
+        )}
+      </div>
+
+      {erreur && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-fond)", border: "1px solid var(--danger)", borderRadius: 12, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>
+          <Icone nom="alerte" taille={16} couleur="var(--danger)" /> {erreur}
+        </div>
+      )}
+      {horsDisponibilite && (
+        <BoutonAction icone="calendrier" couleur="var(--danger)" bordure="var(--danger)" onClick={() => creer(null, true)} disabled={enCours} style={{ width: "100%", marginBottom: 8 }}>
+          Créer et inscrire au calendrier quand même
+        </BoutonAction>
       )}
 
-      <button
-        type="submit" disabled={enCours}
-        style={{ width: "100%", padding: 12, borderRadius: 8, border: "none", background: "var(--accent)", color: "#17150f", fontWeight: 700, cursor: "pointer", marginTop: 10 }}
-      >
+      <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 13, borderRadius: 12, fontWeight: 700, fontSize: 15, marginBottom: 16 }}>
         {enCours ? "Création…" : "Créer le bon de travail"}
       </button>
     </form>
@@ -399,33 +420,25 @@ function BoutonPhotoProbleme({ onFichiers }) {
   const photo = useChoixPhoto(onFichiers, { multiple: true });
   return (
     <>
-      <button type="button" title="Photo du problème" onClick={photo.ouvrir} style={{ ...boutonTexte, alignSelf: "center", fontSize: 17, padding: "0 2px" }}>📷</button>
+      <button type="button" title="Photo du problème" aria-label="Photo du problème" onClick={photo.ouvrir} style={boutonIcone}>
+        <Icone nom="camera" taille={17} couleur="var(--accent-ombre)" />
+      </button>
       {photo.element}
     </>
   );
 }
 
-function Champ({ label, value, onChange, onBlur, requis, type = "text", style }) {
-  return (
-    <div style={style}>
-      <label style={labelStyle}>{label}</label>
-      <input
-        type={type} required={requis} value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur && ((e) => onBlur(e.target.value))}
-        style={champInput}
-      />
-    </div>
-  );
-}
-
-const labelStyle = { display: "block", fontSize: 11, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
+const labelStyle = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
 const champInput = {
-  width: "100%", padding: "9px 10px", borderRadius: 8, border: "1px solid var(--border)",
-  background: "var(--surface)", color: "var(--text)", fontSize: 13, marginBottom: 6, boxSizing: "border-box",
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
 };
-const boutonTexte = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 13 };
-const boutonAjoutLigne = {
-  background: "none", border: "1px dashed var(--border)", color: "var(--accent)", fontSize: 12,
-  padding: "6px 10px", borderRadius: 8, cursor: "pointer", width: "100%",
+const boutonLien = { fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" };
+const boutonIcone = {
+  width: 38, height: 38, flexShrink: 0, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)",
+  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
+};
+const boutonPointille = {
+  width: "100%", padding: "10px 8px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)",
 };
