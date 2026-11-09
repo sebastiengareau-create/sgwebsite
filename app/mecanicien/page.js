@@ -40,7 +40,8 @@ export default async function EspaceMecanicien() {
   // Tous les mécaniciens voient tous les bons non terminés — n'importe qui
   // peut travailler sur n'importe quel bon, dépendant de la tâche.
   const bons = await prisma.bonTravail.findMany({
-    where: { statut: { not: "TERMINE" } },
+    // Facture comptoir (lib/comptoir.js) : rien à faire pour l'atelier
+    where: { statut: { not: "TERMINE" }, comptoir: false },
     include: {
       client: true,
       vehicule: true,

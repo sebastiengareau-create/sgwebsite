@@ -66,6 +66,12 @@ export async function POST(request, props) {
         texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${argent(f.totalAvecTaxes)}\n\nMerci de votre confiance,\n${nomEntreprise}`,
         nomFichier: `facture-${f.numero}.pdf`,
       }
+    : bon.comptoir
+    ? {
+        sujet: `Facture comptoir ${bon.numero} — ${nomEntreprise}`,
+        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture comptoir ${bon.numero} (aperçu), en pièce jointe.\n\nMerci de votre confiance,\n${nomEntreprise}`,
+        nomFichier: `comptoir-${bon.numero}.pdf`,
+      }
     : {
         sujet: `Bon de commande ${bon.numero} — ${nomEntreprise}`,
         texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre bon de commande ${bon.numero}, en pièce jointe : les travaux prévus et le total estimé. Les montants peuvent changer selon les travaux réels; la facture finale suivra.\n\nMerci de votre confiance,\n${nomEntreprise}`,
