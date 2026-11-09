@@ -170,7 +170,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
         clientGarantieProlongee: clientGarantieProlongee.trim(),
-        problemes: lignesValides,
+        problemes: comptoir ? [] : lignesValides,
         comptoir, clientPassage: comptoir && !clientSelectionne && clientPassage,
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
@@ -388,25 +388,23 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
         </div>
       )}
 
-      <div style={stylePanneau}>
-        {comptoir ? (
-          <TitrePanneau icone="document" teinte={TEINTES.ambre} titre="Lignes de la facture" sousTitre="Facultatif — chaque ligne regroupe des pièces de l'inventaire ou un service à prix fixe, ajoutés sur la fiche." />
-        ) : (
-          <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Problèmes signalés" sousTitre="Chaque ligne devient une tâche du bon." />
-        )}
+      {/* Facture comptoir : pas de lignes à entrer ici — la fiche s'ouvre
+          directement sur les pièces (ligne « Vente au comptoir » créée d'office) */}
+      {!comptoir && <div style={stylePanneau}>
+        <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Problèmes signalés" sousTitre="Chaque ligne devient une tâche du bon." />
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
           {problemes.map((valeur, i) => (
             <div key={i}>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: TEINTES.ambre.fond, color: "var(--accent-ombre)", fontSize: 12.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</span>
                 <input
-                  required={i === 0 && !comptoir}
+                  required={i === 0}
                   value={valeur}
                   onChange={(e) => changerProbleme(i, e.target.value)}
-                  placeholder={comptoir ? (i === 0 ? "Ex : Vente au comptoir (par défaut)" : "Ajouter une autre ligne…") : i === 0 ? "Ex : Bruit de freinage à l'avant" : "Ajouter un autre problème…"}
+                  placeholder={i === 0 ? "Ex : Bruit de freinage à l'avant" : "Ajouter un autre problème…"}
                   style={{ ...champInput, marginBottom: 0, flex: 1, minWidth: 0 }}
                 />
-                {CLIENT.photosTachesCreation && !comptoir && (
+                {CLIENT.photosTachesCreation && (
                   <BoutonPhotoProbleme onFichiers={(f) => ajouterPhotosProbleme(i, f)} />
                 )}
                 {problemes.length > 1 && (
@@ -432,9 +430,9 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true, c
           {erreurPhotoProbleme && <p style={{ color: "var(--danger)", fontSize: 12.5, fontWeight: 700, margin: 0 }}>{erreurPhotoProbleme}</p>}
         </div>
         <button type="button" onClick={ajouterLigneProbleme} style={boutonPointille}>
-          {comptoir ? "+ Ajouter une autre ligne" : "+ Ajouter une autre ligne de problème"}
+          + Ajouter une autre ligne de problème
         </button>
-      </div>
+      </div>}
 
       {!comptoir && <div style={stylePanneau}>
         <TitrePanneau icone="calendrier" teinte={TEINTES.vert} titre="Date prévue" />

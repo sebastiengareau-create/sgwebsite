@@ -376,6 +376,81 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
     router.refresh();
   }
 
+  // Lignes du bon (pièces, pièces hors inventaire, tâches) — sous la
+  // facturation pour un bon, au-dessus pour une facture comptoir
+  const sectionLignes = (
+    <>
+      {/* Bon d'une soumission facturée : ses pièces sont dans la section « Pièces » ci-dessous */}
+      {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
+        <PiecesBon
+          titre="Pièces du bon"
+          style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
+          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
+          inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
+          onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
+        />
+      )}
+
+      {/* Pièces à ligne fixe : d'une soumission facturée, ou hors inventaire
+          (achetées pour ce bon seulement) — au début, avant les tâches */}
+      <PiecesHorsInventaire bonId={bon.id} lignes={piecesSoumission} modifiable={peutModifier && !factureExiste} onRafraichir={() => router.refresh()} />
+
+      {CLIENT.noteInterneBon && (
+        <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />
+      )}
+
+      <div style={{ marginTop: 24 }}>
+        <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{tachesAffichees.length} tâche{tachesAffichees.length > 1 ? "s" : ""}</Pastille>}>
+          {comptoir ? "Lignes" : "Tâches"}
+        </TitreGroupe>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {tachesAffichees.map((pr, idx) => (
+          <LigneTache
+            key={pr.id}
+            probleme={pr}
+            index={idx}
+            bonId={bon.id}
+            inventaire={inventaire}
+            fournisseurs={fournisseurs}
+            peutCommander={peutCommander}
+            employes={employes}
+            postesRevenu={postesRevenu}
+            peutModifier={peutModifier}
+            peutPoinconner={peutPoinconner}
+            comptoir={comptoir}
+            estGerant={estGerant}
+            moi={moi}
+            verrouille={factureExiste}
+            peutSupprimer={peutModifier && !factureExiste && tachesAffichees.length > 1}
+            onSupprimer={() => {
+              if (pr.pieces.length > 0 && !window.confirm(`Supprimer la tâche « ${pr.description} » ? Ses pièces retourneront en stock.`)) return;
+              supprimerProbleme(pr.id);
+            }}
+            onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb(pr.description) : null}
+            onRafraichir={() => router.refresh()}
+          />
+        ))}
+      </div>
+
+      {peutModifier && !factureExiste && (
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <input
+            value={nouveauProbleme}
+            onChange={(e) => setNouveauProbleme(e.target.value)}
+            placeholder={comptoir ? "Ajouter une ligne…" : "Ajouter une tâche…"}
+            style={{ ...champStyle, padding: "11px 12px", borderRadius: 12, fontSize: 14 }}
+          />
+          <button onClick={ajouterProbleme} disabled={enCours} aria-label="Ajouter la tâche" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
+            <Icone nom="plus" taille={20} />
+          </button>
+        </div>
+      )}
+
+    </>
+  );
+
   return (
     <div className="conteneur-page">
       <button onClick={() => router.back()} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: 10 }}>
@@ -503,6 +578,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           : "Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise."}
       </div>
 
+      {/* Facture comptoir : les lignes de pièces d'abord, la facturation ensuite */}
+      {comptoir && <div style={{ marginBottom: 20 }}>{sectionLignes}</div>}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <span style={tuileIcone(TEINTES.vert)}><Icone nom="banque" taille={18} couleur={TEINTES.vert.couleur} /></span>
@@ -848,74 +925,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         )}
       </div>
 
-      {/* Bon d'une soumission facturée : ses pièces sont dans la section « Pièces » ci-dessous */}
-      {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
-        <PiecesBon
-          titre="Pièces du bon"
-          style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
-          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
-          inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
-          onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
-        />
-      )}
-
-      {/* Pièces à ligne fixe : d'une soumission facturée, ou hors inventaire
-          (achetées pour ce bon seulement) — au début, avant les tâches */}
-      <PiecesHorsInventaire bonId={bon.id} lignes={piecesSoumission} modifiable={peutModifier && !factureExiste} onRafraichir={() => router.refresh()} />
-
-      {CLIENT.noteInterneBon && (
-        <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />
-      )}
-
-      <div style={{ marginTop: 24 }}>
-        <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{tachesAffichees.length} tâche{tachesAffichees.length > 1 ? "s" : ""}</Pastille>}>
-          {comptoir ? "Lignes" : "Tâches"}
-        </TitreGroupe>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {tachesAffichees.map((pr, idx) => (
-          <LigneTache
-            key={pr.id}
-            probleme={pr}
-            index={idx}
-            bonId={bon.id}
-            inventaire={inventaire}
-            fournisseurs={fournisseurs}
-            peutCommander={peutCommander}
-            employes={employes}
-            postesRevenu={postesRevenu}
-            peutModifier={peutModifier}
-            peutPoinconner={peutPoinconner}
-            comptoir={comptoir}
-            estGerant={estGerant}
-            moi={moi}
-            verrouille={factureExiste}
-            peutSupprimer={peutModifier && !factureExiste && tachesAffichees.length > 1}
-            onSupprimer={() => {
-              if (pr.pieces.length > 0 && !window.confirm(`Supprimer la tâche « ${pr.description} » ? Ses pièces retourneront en stock.`)) return;
-              supprimerProbleme(pr.id);
-            }}
-            onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb(pr.description) : null}
-            onRafraichir={() => router.refresh()}
-          />
-        ))}
-      </div>
-
-      {peutModifier && !factureExiste && (
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <input
-            value={nouveauProbleme}
-            onChange={(e) => setNouveauProbleme(e.target.value)}
-            placeholder={comptoir ? "Ajouter une ligne…" : "Ajouter une tâche…"}
-            style={{ ...champStyle, padding: "11px 12px", borderRadius: 12, fontSize: 14 }}
-          />
-          <button onClick={ajouterProbleme} disabled={enCours} aria-label="Ajouter la tâche" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
-            <Icone nom="plus" taille={20} />
-          </button>
-        </div>
-      )}
-
+      {!comptoir && sectionLignes}
       <PiecesACommander bon={bon} lignes={bon.piecesACommander || []} inventaire={inventaire.filter((p) => !p.estKit)} fournisseurs={fournisseurs} modifiable={peutModifier} peutCommander={peutCommander} verrouille={factureExiste} />
     </div>
   );
