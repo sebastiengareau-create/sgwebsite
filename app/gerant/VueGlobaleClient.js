@@ -374,7 +374,7 @@ function CarteRentabilite({ rentabilite, nomMois, annee, periode, onChangerPerio
         style={{ ...(seuilCalculable ? {} : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }), paddingTop: 14, borderTop: "1px solid var(--border)" }}
       >
         <Metrique label="Bénéfice" valeur={fmt(benefice)} niveau={benefice >= 0 ? "bon" : "danger"} />
-        <Metrique label="Marge" valeur={`${fmtNombre(margePct)} %`} niveau={totalRevenus > 0 ? niveauMarge(margePct).niveau : undefined} />
+        <Metrique label="Marge nette" valeur={`${fmtNombre(margePct)} %`} niveau={totalRevenus > 0 ? niveauMarge(margePct).niveau : undefined} />
         {seuilCalculable ? (
           <>
             <Metrique label="Seuil de rentabilité" valeur={fmt(seuilRentabilite)} sousLabel="Revenu min. pour couvrir charges fixes et variables" />
