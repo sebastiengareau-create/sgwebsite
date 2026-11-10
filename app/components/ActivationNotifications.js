@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icone, TEINTES, BoutonAction } from "./StyleSection";
 
 // Clé publique VAPID (texte base64url) → octets attendus par le navigateur
 function enOctets(base64) {
@@ -85,12 +86,17 @@ export default function ActivationNotifications({ clePublique }) {
   if (etat === "…") return null;
   const actif = etat === "actif";
 
+  const teinte = actif ? TEINTES.vert : { couleur: "var(--avertissement)", fond: "var(--avertissement-fond)" };
+
   return (
-    <div style={{ background: "var(--surface)", border: `1.5px solid ${actif ? "var(--success)" : "var(--avertissement)"}`, borderRadius: 18, padding: 16, marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>{actif ? "🔔 Notifications activées" : "🔕 Notifications désactivées"}</div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+    <div style={{ background: "var(--surface)", border: `1.5px solid ${teinte.couleur}`, borderRadius: 18, padding: 16, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: teinte.fond, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Icone nom={actif ? "cloche" : "bloque"} taille={20} couleur={teinte.couleur} />
+        </span>
+        <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>{actif ? "Notifications activées" : "Notifications désactivées"}</div>
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
             {etat === "actif" && "Tes notifications arrivent sur ce téléphone, même l'app fermée."}
             {etat === "inactif" && "Active-les pour être averti sur ce téléphone, même l'app fermée."}
             {etat === "refuse" && "Bloquées pour ce site : autorise les notifications dans les réglages du navigateur, puis reviens ici."}
@@ -99,15 +105,15 @@ export default function ActivationNotifications({ clePublique }) {
           </div>
         </div>
         {etat === "inactif" && (
-          <button className="bouton-3d" disabled={occupe} onClick={activer} style={{ fontSize: 12, padding: "8px 12px", borderRadius: 10, whiteSpace: "nowrap" }}>
+          <button className="bouton-3d" disabled={occupe} onClick={activer} style={{ fontSize: 13.5, fontWeight: 700, padding: "10px 16px", borderRadius: 12, whiteSpace: "nowrap" }}>
             {occupe ? "…" : "Activer"}
           </button>
         )}
         {actif && (
-          <button className="bouton-3d-sombre" disabled={occupe} onClick={tester} style={{ fontSize: 11, padding: "6px 10px", borderRadius: 8 }}>Tester</button>
+          <BoutonAction icone="cloche" couleur="var(--success)" compact disabled={occupe} onClick={tester} style={{ padding: "8px 12px" }}>Tester</BoutonAction>
         )}
       </div>
-      {info && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 0 0" }}>{info}</p>}
+      {info && <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>{info}</p>}
     </div>
   );
 }
