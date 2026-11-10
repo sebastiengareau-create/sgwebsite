@@ -6,6 +6,7 @@ import { dateAujourdhuiQuebec } from "@/lib/temps";
 import { VEHICULE_VIDE } from "../../../components/ChampsVehicule";
 import ChoixVehiculeClient from "../../../components/ChoixVehiculeClient";
 import { formaterTelephone } from "@/lib/telephone";
+import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from "../../../components/ChampsAdresse";
 import { correspondRecherche } from "@/lib/recherche";
 import BandeauSection from "@/app/components/BandeauSection";
 import { Icone, TEINTES, TitrePanneau, BoutonAction, stylePanneau } from "@/app/components/StyleSection";
@@ -19,6 +20,13 @@ export default function RendezVousForm({ clientsExistants }) {
 
   const [clientNom, setClientNom] = useState("");
   const [clientTelephone, setClientTelephone] = useState("");
+  // Nouveau client : coordonnées gardées avec le rendez-vous, copiées dans son
+  // dossier à la conversion en bon (la province vient du code postal)
+  const [clientCourriel, setClientCourriel] = useState("");
+  const [clientAdresse, setClientAdresse] = useState("");
+  const [clientVille, setClientVille] = useState("");
+  const [clientCodePostal, setClientCodePostal] = useState("");
+  const remplirAdresse = remplisseurAdresse({ ville: clientVille, setAdresse: setClientAdresse, setVille: setClientVille, setCodePostal: setClientCodePostal });
   // Véhicule : un véhicule du dossier du client (son id), "nouveau"
   // (formulaire ci-dessous) ou "" (non précisé)
   const [choixVehicule, setChoixVehicule] = useState("nouveau");
@@ -75,6 +83,10 @@ export default function RendezVousForm({ clientsExistants }) {
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
+    setClientCourriel("");
+    setClientAdresse("");
+    setClientVille("");
+    setClientCodePostal("");
     setChoixVehicule("nouveau");
     setVehicule(VEHICULE_VIDE);
   }
@@ -96,6 +108,7 @@ export default function RendezVousForm({ clientsExistants }) {
       body: JSON.stringify({
         clientId: clientSelectionne?.id,
         clientNom: nomFinal, clientTelephone, note,
+        ...(clientSelectionne ? {} : { clientCourriel: clientCourriel.trim(), clientAdresse, clientVille, clientCodePostal }),
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
         vehicule: choixVehicule === "nouveau" ? vehicule : null,
         date: `${date}T${heure}:00`,
@@ -128,15 +141,18 @@ export default function RendezVousForm({ clientsExistants }) {
       <div style={stylePanneau}>
         <TitrePanneau icone="personne" teinte={TEINTES.bleu} titre="Client" sousTitre={clientSelectionne ? undefined : "Cherche un client existant (nom ou plaque) ou entre un nouveau client."} />
         {clientSelectionne ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, background: TEINTES.bleu.fond, border: `1px solid ${TEINTES.bleu.couleur}` }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: 12, borderRadius: 12, background: TEINTES.bleu.fond, border: `1px solid ${TEINTES.bleu.couleur}` }}>
             <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "var(--surface)", color: TEINTES.bleu.couleur, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800 }}>
               {clientSelectionne.nom.charAt(0).toUpperCase()}
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, fontWeight: 800 }}>{clientSelectionne.nom}</div>
-              <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
-                {[clientSelectionne.telephone, clientSelectionne.ville].filter(Boolean).join(" · ") || "Client existant"}
-              </div>
+              <InfoClient icone="telephone" texte={clientSelectionne.telephone} />
+              <InfoClient icone="courriel" texte={clientSelectionne.courriel} />
+              <InfoClient icone="epingle" texte={[clientSelectionne.adresse, [clientSelectionne.ville, clientSelectionne.province, clientSelectionne.codePostal].filter(Boolean).join(" ")].filter(Boolean).join(", ")} />
+              {!clientSelectionne.telephone && !clientSelectionne.courriel && !clientSelectionne.adresse && !clientSelectionne.ville && (
+                <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Aucune coordonnée au dossier</div>
+              )}
             </div>
             <button type="button" onClick={changerClientPourNouveau} style={{ ...boutonLien, whiteSpace: "nowrap", alignSelf: "flex-start" }}>
               Changer
@@ -177,7 +193,22 @@ export default function RendezVousForm({ clientsExistants }) {
               )}
             </div>
             <label style={labelStyle}>Téléphone</label>
-            <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={{ ...champInput, marginBottom: 0 }} />
+            <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+            <label style={labelStyle}>Courriel</label>
+            <input value={clientCourriel} type="email" onChange={(e) => setClientCourriel(e.target.value)} placeholder="Facultatif — pour envoyer le bon et la facture" style={champInput} />
+            <label style={labelStyle}>Adresse</label>
+            <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 120px", gap: 8 }}>
+              <div>
+                <label style={labelStyle}>Ville</label>
+                <ChampVille valeur={clientVille} onChange={setClientVille} codePostal={clientCodePostal} style={{ ...champInput, marginBottom: 0 }} />
+              </div>
+              <div>
+                <label style={labelStyle}>Code postal</label>
+                <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={{ ...champInput, marginBottom: 0 }} />
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "8px 0 0" }}>Ajouté au dossier des clients quand le rendez-vous devient un bon de travail.</p>
           </>
         )}
       </div>
@@ -257,6 +288,17 @@ export default function RendezVousForm({ clientsExistants }) {
         {enCours ? "Création…" : "Créer le rendez-vous"}
       </button>
     </form>
+  );
+}
+
+// Une coordonnée du client choisi, avec son icône (rien si vide)
+function InfoClient({ icone, texte }) {
+  if (!texte) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12.5, color: "var(--text-muted)", marginTop: 3, overflowWrap: "anywhere" }}>
+      <span style={{ display: "flex", marginTop: 1, flexShrink: 0 }}><Icone nom={icone} taille={14} couleur="var(--text-muted)" /></span>
+      <span style={{ minWidth: 0 }}>{texte}</span>
+    </div>
   );
 }
 

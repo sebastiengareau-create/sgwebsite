@@ -4,6 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { verifierCreneau } from "@/lib/disponibilites";
 import { normaliserVehicule, libelleVehicule } from "@/lib/vehicules";
+import { normaliserCodePostal } from "@/lib/adresse";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -11,7 +12,9 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { clientId, clientNom, clientTelephone, vehiculeInfo, vehiculeId, vehicule, note, date, dureeMinutes, motif, forcer } = await request.json();
+  const {
+    clientId, clientNom, clientTelephone, clientCourriel, clientAdresse, clientVille, clientCodePostal, vehiculeInfo, vehiculeId, vehicule, note, date, dureeMinutes, motif, forcer,
+  } = await request.json();
   if (!clientNom || !date || !motif) {
     return NextResponse.json({ erreur: "Nom du client, date et motif requis." }, { status: 400 });
   }
@@ -44,6 +47,11 @@ export async function POST(request) {
       clientId: clientId || null,
       clientNom,
       clientTelephone: clientTelephone || null,
+      // Nouveau client : copiées dans son dossier à la conversion en bon
+      clientCourriel: String(clientCourriel || "").trim() || null,
+      clientAdresse: String(clientAdresse || "").trim() || null,
+      clientVille: String(clientVille || "").trim() || null,
+      clientCodePostal: normaliserCodePostal(clientCodePostal),
       vehiculeInfo: (vehiculeDetails && libelleVehicule(vehiculeDetails)) || vehiculeInfo || null,
       vehiculeDetails: vehiculeDetails || undefined,
       note: note || null,
