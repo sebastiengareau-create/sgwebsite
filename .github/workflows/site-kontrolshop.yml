@@ -35,9 +35,20 @@ jobs:
         id: acces
         env:
           SERVEUR: ${{ secrets.FTP_SERVEUR }}
+          UTILISATEUR: ${{ secrets.FTP_UTILISATEUR }}
+          MOT_DE_PASSE: ${{ secrets.FTP_MOT_DE_PASSE }}
+          # Seulement les NOMS, pour repérer une faute de frappe — jamais les valeurs
+          NOMS_SECRETS: ${{ toJSON(secrets) }}
+          NOMS_VARIABLES: ${{ toJSON(vars) }}
         run: |
-          if [ -z "$SERVEUR" ]; then
-            echo "::warning::Accès FTP pas encore réglés (secrets FTP_SERVEUR, FTP_UTILISATEUR, FTP_MOT_DE_PASSE) : rien n'est publié. Voir site-kontrolshop/README.md."
+          manque=""
+          [ -n "$SERVEUR" ] || manque="$manque FTP_SERVEUR"
+          [ -n "$UTILISATEUR" ] || manque="$manque FTP_UTILISATEUR"
+          [ -n "$MOT_DE_PASSE" ] || manque="$manque FTP_MOT_DE_PASSE"
+          if [ -n "$manque" ]; then
+            echo "::warning::Secrets introuvables :$manque — rien n'est publié. Voir site-kontrolshop/README.md."
+            echo "Secrets trouvés (noms) : $(echo "$NOMS_SECRETS" | jq -r 'keys - ["github_token"] | join(", ")')"
+            echo "Variables trouvées (noms) : $(echo "$NOMS_VARIABLES" | jq -r 'keys | join(", ")')"
             echo "pret=non" >> "$GITHUB_OUTPUT"
           else
             echo "pret=oui" >> "$GITHUB_OUTPUT"
