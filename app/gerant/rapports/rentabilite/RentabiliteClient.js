@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { argent, nombre } from "@/lib/format";
+import { argent } from "@/lib/format";
 import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { CarteChiffre, GrilleChiffres, TitreGroupe } from "../../../components/StyleSection";
@@ -31,7 +31,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
   const totalInternes = donnees.reduce((s, d) => s + d.heuresInternes, 0);
   const totalCoutInternes = donnees.reduce((s, d) => s + d.coutInternes, 0);
 
-  const tauxEquipe = totalCout > 0 ? (totalRevenu / totalCout) * 100 : null;
+  const tauxEquipe = totalRevenu > 0 ? (totalMarge / totalRevenu) * 100 : null;
 
   return (
     <div className="conteneur-page">
@@ -71,7 +71,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
         <CarteChiffre
           titre="Taux de rentabilité" montant={tauxEquipe === null ? "—" : `${Math.round(tauxEquipe)} %`}
           couleur={couleurTaux(tauxEquipe)} teinte={couleurTaux(tauxEquipe)}
-          note="Revenu ÷ coût · rentable au-dessus de 100 %"
+          note="Marge ÷ revenu · rentable au-dessus de 0 %"
         />
       </GrilleChiffres>
 
@@ -92,7 +92,7 @@ export default function RentabiliteClient({ donnees, debutStr, finStr }) {
 
 function couleurTaux(taux) {
   if (taux === null) return "var(--text-muted)";
-  return taux >= 125 ? "var(--success)" : taux >= 100 ? "var(--avertissement)" : "var(--danger)";
+  return taux >= 20 ? "var(--success)" : taux >= 0 ? "var(--avertissement)" : "var(--danger)";
 }
 
 function CarteEmploye({ d }) {
@@ -103,7 +103,7 @@ function CarteEmploye({ d }) {
 
   return (
     <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleurTaux(d.coutReel > 0 ? (d.revenuGenere / d.coutReel) * 100 : null) }} />
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleurTaux(margePct) }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
           <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "50%", background: "rgba(232,163,61,0.16)", color: "var(--accent-ombre)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>
@@ -141,7 +141,6 @@ function CarteEmploye({ d }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 12.5, color: "var(--text-muted)", paddingTop: 8, borderTop: "1px solid var(--border)" }}>
         <span>{fmtHeures(d.heuresFacturables)} facturables sur {fmtHeures(d.heuresPayees)} réelles</span>
-        {margePct !== null && <span>Marge {nombre(margePct, 0)} %</span>}
       </div>
 
       <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>
@@ -155,7 +154,7 @@ function CarteEmploye({ d }) {
         </div>
       )}
 
-      <TauxRentabilite cout={d.coutReel} revenu={d.revenuGenere} libelle="Taux de rentabilité" />
+      <TauxRentabilite marge={d.marge} revenu={d.revenuGenere} libelle="Taux de rentabilité" />
 
       {d.heuresEstimees > 0 && (
         <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 4, fontStyle: "italic" }}>
@@ -166,27 +165,27 @@ function CarteEmploye({ d }) {
   );
 }
 
-// Revenu généré ÷ coût réel : au-dessus de 100 %, les employés rapportent
-// plus qu'ils ne coûtent (rentable) ; en dessous, ils coûtent plus qu'ils
-// ne rapportent (perte).
-function TauxRentabilite({ cout, revenu, libelle }) {
-  if (cout <= 0) {
+// Marge ÷ revenu généré : la part du revenu qui reste une fois le coût réel
+// payé. Au-dessus de 0 %, l'employé rapporte plus qu'il ne coûte (rentable) ;
+// en dessous, il coûte plus qu'il ne rapporte (perte).
+function TauxRentabilite({ marge, revenu, libelle }) {
+  if (revenu <= 0) {
     return (
       <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 8 }}>
-        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun coût réel sur la période)</span>
+        {libelle} : — <span style={{ fontStyle: "italic" }}>(aucun revenu généré sur la période)</span>
       </div>
     );
   }
-  const taux = (revenu / cout) * 100;
+  const taux = (marge / revenu) * 100;
   const couleur = couleurTaux(taux);
   return (
     <div
-      title="Revenu généré ÷ coût réel — au-dessus de 100 % : rentable ; en dessous : perte"
+      title="Marge ÷ revenu généré — au-dessus de 0 % : rentable ; en dessous : perte"
       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 10, padding: "8px 12px", borderRadius: 12, background: "var(--bg)" }}
     >
       <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-muted)" }}>
         {libelle}
-        <span style={{ display: "block", fontSize: 11.5, fontWeight: 400 }}>{argent(revenu)} de revenu généré pour {argent(cout)} de coût réel</span>
+        <span style={{ display: "block", fontSize: 11.5, fontWeight: 400 }}>{argent(marge)} de marge sur {argent(revenu)} de revenu généré</span>
       </span>
       <span style={{ fontSize: 20, fontWeight: 800, color: couleur, whiteSpace: "nowrap" }}>{Math.round(taux)} %</span>
     </div>
