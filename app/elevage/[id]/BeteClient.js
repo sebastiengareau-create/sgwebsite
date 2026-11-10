@@ -336,19 +336,31 @@ function Decoupe({ bete }) {
       {ventes.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Ventes de sa viande</div>
-          {ventes.map((v, i) => (
-            <LigneDetail
-              key={v.id} premiere={i === 0}
-              label={<>{dateCourte(v.date)} · {CANAUX.find((c) => c.code === v.canal)?.icone} {v.nbPaquets} × {v.coupe} ({kg(v.poids, 2)}){v.note && ` — ${v.note}`}</>}
-              valeur={argent(v.montant)}
-            />
-          ))}
+          {ventes.map((v, i) => <LigneVente key={v.id} vente={v} premiere={i === 0} />)}
         </div>
       )}
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>Élevage → Viande</Link> : les paquets les plus anciens partent en premier.</p>
       <Erreur texte={erreur} />
       {ventes.length === 0 && <div style={{ marginTop: 12 }}><BoutonAction icone="echange" couleur="var(--danger)" onClick={annuler} disabled={enCours} style={{ width: "100%" }}>Annuler l'abattage</BoutonAction></div>}
     </Section>
+  );
+}
+
+// Une vente sur deux lignes : coupe et montant, puis date, canal, poids et
+// note en petit. Le texte passe à la ligne au lieu de pousser le montant hors
+// de l'écran sur un téléphone.
+function LigneVente({ vente: v, premiere }) {
+  const canal = CANAUX.find((c) => c.code === v.canal);
+  return (
+    <div style={{ padding: "9px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", fontSize: 13.5 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{v.nbPaquets} × {v.coupe}</span>
+        <span style={{ fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{argent(v.montant)}</span>
+      </div>
+      <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2, overflowWrap: "anywhere" }}>
+        {dateCourte(v.date)} · {canal?.icone} {canal?.label} · {kg(v.poids, 2)}{v.note && ` — ${v.note}`}
+      </div>
+    </div>
   );
 }
 
