@@ -1,0 +1,60 @@
+# Publie le site www.kontrolshop.com (dossier site-kontrolshop/) sur
+# l'hébergement WHC, par FTP sécurisé (FTPS), dès qu'une modification du
+# site arrive dans main. Aussi lancé à la main : Actions → « Publier
+# kontrolshop.com » → Run workflow. N'envoie que les fichiers changés.
+#
+# À régler une fois dans GitHub → Settings → Secrets and variables → Actions :
+#   Secrets   FTP_SERVEUR        ex. ftp.kontrolshop.com
+#             FTP_UTILISATEUR    compte FTP créé dans cPanel
+#             FTP_MOT_DE_PASSE   son mot de passe
+#   Variable  FTP_DOSSIER        (facultatif) dossier du site vu par ce compte
+#                                FTP, ex. public_html/ — défaut ./ (compte FTP
+#                                limité au dossier du site, recommandé)
+# Voir site-kontrolshop/README.md.
+name: Publier kontrolshop.com
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site-kontrolshop/**"
+      - ".github/workflows/site-kontrolshop.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: site-kontrolshop
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier les accès FTP
+        id: acces
+        env:
+          SERVEUR: ${{ secrets.FTP_SERVEUR }}
+        run: |
+          if [ -z "$SERVEUR" ]; then
+            echo "::warning::Accès FTP pas encore réglés (secrets FTP_SERVEUR, FTP_UTILISATEUR, FTP_MOT_DE_PASSE) : rien n'est publié. Voir site-kontrolshop/README.md."
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.acces.outputs.pret == 'oui'
+
+      - name: Envoyer le site
+        if: steps.acces.outputs.pret == 'oui'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVEUR }}
+          username: ${{ secrets.FTP_UTILISATEUR }}
+          password: ${{ secrets.FTP_MOT_DE_PASSE }}
+          protocol: ftps
+          local-dir: ./site-kontrolshop/
+          server-dir: ${{ vars.FTP_DOSSIER || './' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            README.md

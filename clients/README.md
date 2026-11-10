@@ -56,7 +56,7 @@ on décide quand et à qui une modification s'applique.
   BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
   dans le profil. Logos en fichiers pour les pages d'accueil :
   `public/marque/`. Site de vente www.kontrolshop.com (page statique, à part
-  de l'appli) : `site-kontrolshop/`.
+  de l'appli, publiée chez WHC par GitHub Actions) : `site-kontrolshop/`.
 - **Contexte** : `clients/<id>/CLIENT.md` — qui est le client, ce qui le
   distingue et pourquoi.
 
