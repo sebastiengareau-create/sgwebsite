@@ -15,7 +15,9 @@ name: Publier kontrolshop.com
 
 on:
   push:
-    branches: [main]
+    # main publie ; une branche claude/… fait seulement un essai (dry-run) :
+    # connexion FTP et liste de ce qui serait envoyé, sans rien changer.
+    branches: [main, "claude/**"]
     paths:
       - "site-kontrolshop/**"
       - ".github/workflows/site-kontrolshop.yml"
@@ -54,6 +56,8 @@ jobs:
           protocol: ftps
           local-dir: ./site-kontrolshop/
           server-dir: ${{ vars.FTP_DOSSIER || './' }}
+          dry-run: ${{ github.ref != 'refs/heads/main' }}
+          log-level: verbose
           exclude: |
             **/.git*
             **/.git*/**
