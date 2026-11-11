@@ -440,6 +440,9 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
   const finEdition = (modifie) => { setEditionHeures(null); if (modifie) router.refresh(); };
   const totalRevenuEquipe = parMecanicien.reduce((s, m) => s + m.heuresPoinconnees, 0) * tauxHoraireClient;
   const margeEquipe = totalRevenuEquipe - totalCoutEquipe;
+  // En pourcentage du revenu du jour (comme le taux de la rentabilité par
+  // période) ; sans revenu, pas de pourcentage
+  const margeEquipePct = totalRevenuEquipe > 0 ? (margeEquipe / totalRevenuEquipe) * 100 : null;
   const couleurs = construireCarteCouleurs(parMecanicien);
 
   return (
@@ -479,9 +482,9 @@ export default function RapportsClient({ dateStr, parMecanicien, heuresAttendues
             : `Heures travaillées des ${presents.length} présent${presents.length > 1 ? "s" : ""}`}
         />
         <CarteChiffre
-          titre="Marge de l'équipe" montant={argent(margeEquipe)}
+          titre="Marge de l'équipe" montant={margeEquipePct === null ? "—" : `${Math.round(margeEquipePct)} %`}
           couleur={margeEquipe >= 0 ? "var(--success)" : "var(--danger)"} teinte={margeEquipe >= 0 ? "var(--success)" : "var(--danger)"}
-          note="Revenu − coût"
+          note={`${argent(margeEquipe)} · marge ÷ revenu du jour`}
         />
       </GrilleChiffres>
 
