@@ -53,12 +53,18 @@ Chaque client a son **propre projet Railway complet** :
    un
 6. Pour Assistant SG, génère une clé Gemini gratuite sur aistudio.google.com
    (une par client) et ajoute `GEMINI_API_KEY` + `GEMINI_MODEL` (voir le
-   `.env` local pour la valeur recommandée du modèle)
+   `.env` local pour la valeur recommandée du modèle). La même clé sert à
+   la lecture automatique des factures de fournisseurs (Comptes à payer →
+   Nouvelle dépense → « 📷 Remplir à partir d'une photo ») ; sans clé, le
+   bouton n'apparaît pas. `GEMINI_MODEL_FACTURES` change le modèle utilisé
+   pour cette lecture (voir `lib/lectureFacture.js`).
 7. Section « Jobs en déplacement » : à activer dans Administrateur →
    Modules. Les employés sont avertis gratuitement par notification sur
    leur téléphone (rien à configurer — voir `lib/notifications.js`), sinon
    par courriel. Le lien du courriel vers « Mes tâches » utilise
-   `APP_URL` (adresse publique de l'installation).
+   `APP_URL` (adresse publique de l'installation). Le lien d'approbation
+   en ligne d'une soumission (courriel au client, bouton « 🔗 Lien ») s'en
+   sert aussi : sans `APP_URL`, le lien pointe vers localhost.
 8. PartsTech (facultatif — « 🔌 Chercher dans PartsTech » des commandes de
    pièces en brouillon) : ajoute `PARTSTECH_PARTNER_ID` et
    `PARTSTECH_PARTNER_KEY` (identifiants partenaire, entente avec

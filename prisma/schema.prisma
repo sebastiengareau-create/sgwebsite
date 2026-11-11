@@ -687,6 +687,16 @@ model Soumission {
   taches          TacheSoumission[]
   depots          DepotClient[] // dépôts encaissés sur la soumission (lib/depots.js)
   creeLe          DateTime          @default(now())
+  // Approbation en ligne par le client (lib/approbationSoumission.js) : lien
+  // secret de la page publique, puis sa réponse. La réponse ne change pas le
+  // statut : c'est l'atelier qui transforme ensuite la soumission en bon.
+  jetonClient     String?           @unique
+  envoyeeLe       DateTime? // dernier envoi du lien par courriel
+  reponseClient   String? // "APPROUVEE" | "REFUSEE" — vide tant que le client n'a pas répondu
+  reponseLe       DateTime?
+  signataireNom   String? // nom entré par le client en signant
+  signatureClient String? // image PNG de la signature (data URL)
+  noteClient      String? // message laissé par le client avec sa réponse
 
   @@index([statut])
   @@index([clientId])
@@ -700,6 +710,7 @@ model TacheSoumission {
   soumissionId String
   soumission   Soumission     @relation(fields: [soumissionId], references: [id], onDelete: Cascade)
   pieces       PieceEstimee[]
+  refusee      Boolean        @default(false) // tâche décochée par le client à l'approbation en ligne — pas reprise sur le bon
 
   @@index([soumissionId])
 }
@@ -1856,4 +1867,15 @@ model FichierCopro {
 
   @@index([demandeId])
   @@index([travailId])
+}
+
+// Essais de connexion ratés (lib/protectionConnexion.js) : trop d'essais pour
+// un même courriel ou une même adresse IP bloquent la connexion un moment.
+// Les lignes de plus d'un jour sont effacées au fil des connexions.
+model TentativeConnexion {
+  id     String   @id @default(cuid())
+  cle    String // "courriel:<adresse>" ou "ip:<adresse>"
+  creeLe DateTime @default(now())
+
+  @@index([cle, creeLe])
 }

@@ -31,7 +31,7 @@ function trierParUrgence(a, b) {
   return new Date(a.dateFacture) - new Date(b.dateFacture);
 }
 
-export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces, categorieInventaireId, fournisseurInitial }) {
+export default function ComptesAPayerClient({ fournisseurs, categories, comptesDepense, depenses, tpsTaux, tvqTaux, comptesTresorerie, pieces, categorieInventaireId, fournisseurInitial, lectureFacture = false }) {
   const router = useRouter();
   const [ongletGestion, setOngletGestion] = useState(null); // null | "fournisseurs" | "categories"
   const [afficherFormulaire, setAfficherFormulaire] = useState(false);
@@ -123,7 +123,7 @@ export default function ComptesAPayerClient({ fournisseurs, categories, comptesD
         <FormulaireDepense
           fournisseurs={fournisseurs} categoriesInitiales={categories} comptesDepense={comptesDepense} pieces={pieces}
           categorieInventaireId={categorieInventaireId}
-          tpsTaux={tpsTaux} tvqTaux={tvqTaux} fournisseurInitial={fournisseurFiltre}
+          tpsTaux={tpsTaux} tvqTaux={tvqTaux} fournisseurInitial={fournisseurFiltre} lectureFacture={lectureFacture}
           onCree={() => { setAfficherFormulaire(false); router.refresh(); }}
           onCategorieCreee={() => router.refresh()}
         />
@@ -928,7 +928,7 @@ function GestionCategories({ categories, comptesDepense, onModifie }) {
   );
 }
 
-function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, categorieInventaireId, tpsTaux, tvqTaux, fournisseurInitial, onCree, onCategorieCreee }) {
+function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, pieces, categorieInventaireId, tpsTaux, tvqTaux, fournisseurInitial, lectureFacture, onCree, onCategorieCreee }) {
   const [categories, setCategories] = useState(categoriesInitiales);
   const [piecesDisponibles, setPiecesDisponibles] = useState(pieces);
   const [fournisseurId, setFournisseurId] = useState(fournisseurs.some((f) => f.id === fournisseurInitial) ? fournisseurInitial : (fournisseurs[0]?.id || ""));
@@ -943,6 +943,34 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   const [dateEcheancePrecise, setDateEcheancePrecise] = useState("");
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
+
+  // Lecture automatique d'une facture (photo ou PDF) — lib/lectureFacture.js :
+  // remplit le formulaire, à vérifier avant d'enregistrer
+  const [lecture, setLecture] = useState(null); // null | { enCours } | { erreur } | { avertissements }
+  async function lireFichierFacture(e) {
+    const fichier = e.target.files?.[0];
+    e.target.value = ""; // permet de rechoisir le même fichier
+    if (!fichier) return;
+    setErreur("");
+    setLecture({ enCours: true });
+    const envoi = new FormData();
+    envoi.append("fichier", fichier);
+    if (categories[0]?.id) envoi.append("categorieDefautId", lignes[0]?.categorieDepenseId || categories[0].id);
+    const res = await fetch("/api/depenses/lire-facture", { method: "POST", body: envoi }).catch(() => null);
+    const data = await res?.json().catch(() => null);
+    if (!res?.ok || !data) return setLecture({ erreur: data?.erreur || "La lecture a échoué. Réessaie, ou entre la facture à la main." });
+    if (data.fournisseurId) setFournisseurId(data.fournisseurId);
+    if (data.description) setDescription(data.description);
+    if (data.lignes.length > 0) setLignes(data.lignes.map((l) => ({ ...l, pieceId: null, qteRecue: "" })));
+    setTpsPayee(data.tpsPayee);
+    setTvqPayee(data.tvqPayee);
+    if (data.dateFacture) setDateFacture(data.dateFacture);
+    if (data.dateEcheance) {
+      setCondition("DATE");
+      setDateEcheancePrecise(data.dateEcheance);
+    }
+    setLecture({ avertissements: data.avertissements });
+  }
 
   const joursCondition = CONDITIONS_PAIEMENT.find((c) => c.valeur === condition)?.jours;
   const dateEcheance = condition === "DATE" ? dateEcheancePrecise : joursCondition != null && dateFacture ? ajouterJours(dateFacture, joursCondition) : "";
@@ -1032,6 +1060,21 @@ function FormulaireDepense({ fournisseurs, categoriesInitiales, comptesDepense, 
   return (
     <form onSubmit={creer} style={stylePanneau}>
       <TitrePanneau icone="presse" titre="Nouvelle dépense" sousTitre="Facture d'un fournisseur, répartie sur un ou plusieurs postes." />
+      {lectureFacture && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ ...boutonPointille, display: "block", textAlign: "center", padding: "12px 8px", fontSize: 13.5, cursor: lecture?.enCours ? "wait" : "pointer", opacity: lecture?.enCours ? 0.7 : 1 }}>
+            {lecture?.enCours ? "Lecture de la facture…" : "📷 Remplir à partir d'une photo ou d'un PDF de la facture"}
+            <input type="file" accept="image/*,application/pdf" onChange={lireFichierFacture} disabled={!!lecture?.enCours} style={{ display: "none" }} />
+          </label>
+          {lecture?.erreur && <p role="alert" style={{ color: "var(--danger)", fontSize: 12.5, margin: "6px 0 0" }}>{lecture.erreur}</p>}
+          {lecture?.avertissements && (
+            <div role="status" style={{ marginTop: 6, padding: "8px 10px", borderRadius: 10, border: "1px solid var(--accent)", background: "rgba(232,163,61,0.12)", fontSize: 12.5 }}>
+              <strong>Facture lue — vérifie chaque champ avant d&apos;enregistrer.</strong>
+              {lecture.avertissements.map((a) => <div key={a} style={{ marginTop: 4 }}>⚠️ {a}</div>)}
+            </div>
+          )}
+        </div>
+      )}
       <label style={labelStyle}>Fournisseur</label>
       <select value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} style={champStyle}>
         {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}

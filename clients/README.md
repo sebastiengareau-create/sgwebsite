@@ -51,6 +51,9 @@ on décide quand et à qui une modification s'applique.
   copropriétaires et historique des propriétaires, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents
   et portail sécurisé des copropriétaires, `lib/copropriete.js`).
+  **Double vérification à la connexion** (inactive par défaut : gérants et
+  niveau 4 reçoivent un code par courriel après leur mot de passe,
+  `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
   tous — discrète (bas de la page de connexion, Paramètres → À propos),

@@ -60,12 +60,16 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
 
   async function toggle(moduleId, nouveauStatut) {
     setEnCoursId(moduleId);
-    await fetch("/api/administrateur/modules", {
+    const res = await fetch("/api/administrateur/modules", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ module: moduleId, actif: nouveauStatut }),
     });
     setEnCoursId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.erreur || "Le changement n'a pas pu être enregistré.");
+    }
     router.refresh();
   }
 

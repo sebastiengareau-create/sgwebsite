@@ -9,6 +9,7 @@ import { correspondRecherche } from "@/lib/recherche";
 import SectionDepots from "../../../components/SectionDepots";
 import BoutonEnvoiCourriel from "../../../components/BoutonEnvoiCourriel";
 import { argent, nombre } from "@/lib/format";
+import { totauxTaches } from "@/lib/approbationCalculs";
 import { Icone, BoutonPlein, Pastille } from "../../../components/StyleSection";
 
 const STATUTS = {
@@ -28,6 +29,18 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
   const [recherche, setRecherche] = useState("");
   const [enCoursId, setEnCoursId] = useState(null);
   const [erreurId, setErreurId] = useState(null);
+  const [lienCopie, setLienCopie] = useState(null); // { id, lien, copie } : lien d'approbation en ligne affiché
+
+  // Lien de la page où le client approuve et signe (lib/approbationSoumission.js) :
+  // copié pour l'envoyer par texto ; affiché aussi, au cas où la copie est refusée
+  async function copierLien(s) {
+    setErreurId(null);
+    const res = await fetch(`/api/soumissions/${s.id}/lien-client`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return setErreurId({ id: s.id, message: data.erreur || "Erreur." });
+    const copie = await navigator.clipboard?.writeText(data.lien).then(() => true).catch(() => false);
+    setLienCopie({ id: s.id, lien: data.lien, copie: !!copie });
+  }
 
   const filtrees = soumissions.filter((s) => {
     const q = recherche.trim().toLowerCase();
@@ -36,7 +49,10 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
   });
 
   async function accepter(s, confirmerBonNonFacture = false) {
-    if (!confirmerBonNonFacture && !window.confirm(`Accepter la soumission #${s.numero} ? Ça va créer un vrai bon de commande avec ces tâches.${aDesPiecesInventaire(s) ? " Les pièces de l'inventaire passent sur le bon et sont déduites du stock." : ""}`)) return;
+    const retenues = s.reponseClient === "APPROUVEE" ? s.taches.filter((t) => !t.refusee).length : s.taches.length;
+    const partiel = retenues < s.taches.length ? ` Seuls les ${retenues} travaux approuvés par le client (sur ${s.taches.length}) sont repris.` : "";
+    const refus = s.reponseClient === "REFUSEE" ? " Attention : le client a refusé cette soumission en ligne." : "";
+    if (!confirmerBonNonFacture && !window.confirm(`Accepter la soumission #${s.numero} ? Ça va créer un vrai bon de commande avec ces tâches.${partiel}${refus}${aDesPiecesInventaire(s) ? " Les pièces de l'inventaire passent sur le bon et sont déduites du stock." : ""}`)) return;
     setErreurId(null);
     setEnCoursId(s.id);
     const res = await fetch(`/api/soumissions/${s.id}/accepter`, {
@@ -154,6 +170,8 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                 </div>
               </Link>
 
+              <ReponseClient s={s} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
+
               {dejaTransformee || peutRemettreEnAttente ? (
                 <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", flexWrap: "wrap" }}>
                   {dejaTransformee && (
@@ -183,10 +201,19 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                     <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer
                   </Link>
                   <BoutonEnvoiCourriel url={`/api/soumissions/${s.id}/envoyer`} courrielDefaut={s.client?.courriel} libelle="📧 Envoyer" style={boutonSoumission} />
+                  <button onClick={() => copierLien(s)} title="Copier le lien où le client approuve et signe en ligne (à envoyer par texto)" style={boutonSoumission}>
+                    🔗 Lien
+                  </button>
                   <button onClick={(e) => supprimer(s.id, e)} aria-label="Supprimer la soumission" style={{ ...boutonSoumission, color: "var(--danger)" }}>
                     <Icone nom="poubelle" taille={17} /> Supprimer
                   </button>
                 </div>
+              )}
+              {lienCopie?.id === s.id && (
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6, wordBreak: "break-all" }}>
+                  {lienCopie.copie ? "Lien copié ✓ — colle-le dans un texto au client : " : "Copie ce lien et envoie-le au client : "}
+                  <a href={lienCopie.lien} target="_blank" rel="noreferrer" style={{ color: "var(--accent-ombre)" }}>{lienCopie.lien}</a>
+                </p>
               )}
               {erreurId?.id === s.id && <p style={{ fontSize: 12, color: "var(--danger)", marginTop: 6 }}>{erreurId.message}</p>}
               {/* Dépôts (lib/depots.js) : une fois la soumission transformée en
@@ -213,6 +240,42 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+const DATE_COURTE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
+
+// Suivi de l'approbation en ligne : lien envoyé, puis réponse du client
+// (travaux approuvés, signature) — lib/approbationSoumission.js
+function ReponseClient({ s, tauxHoraireClient, tpsTaux, tvqTaux }) {
+  if (!s.reponseClient) {
+    if (!s.envoyeeLe || s.statut !== "EN_ATTENTE" || s.bonId) return null;
+    return <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>📧 Envoyée au client le {DATE_COURTE.format(new Date(s.envoyeeLe))} — en attente de sa réponse.</p>;
+  }
+  const approuvee = s.reponseClient === "APPROUVEE";
+  const couleur = approuvee ? "var(--success)" : "var(--danger)";
+  const retenues = approuvee ? s.taches.filter((t) => !t.refusee) : [];
+  const refusees = approuvee ? s.taches.filter((t) => t.refusee) : [];
+  const totalApprouve = totauxTaches(retenues, { tauxHoraire: tauxHoraireClient, tpsTaux, tvqTaux }).total;
+  return (
+    <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, border: `1px solid ${couleur}`, background: "var(--bg)" }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: couleur }}>
+        {approuvee ? `✍️ Approuvée en ligne${s.signataireNom ? ` par ${s.signataireNom}` : ""}` : "✕ Refusée en ligne par le client"}
+        {s.reponseLe && <span style={{ fontWeight: 400, color: "var(--text-muted)" }}> · {DATE_COURTE.format(new Date(s.reponseLe))}</span>}
+      </div>
+      {refusees.length > 0 && (
+        <div style={{ fontSize: 12.5, marginTop: 4 }}>
+          {retenues.length} travaux approuvés sur {s.taches.length} — {argent(totalApprouve)} taxes incluses.
+          <span style={{ color: "var(--text-muted)" }}> Non retenu : {refusees.map((t) => t.description).join(" ; ")}.</span>
+        </div>
+      )}
+      {s.noteClient && <div style={{ fontSize: 12.5, marginTop: 4 }}>Message du client : « {s.noteClient} »</div>}
+      {approuvee && s.jetonClient && (
+        <a href={`/soumission/${s.jetonClient}`} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 4, fontSize: 12.5, color: "var(--accent-ombre)" }}>
+          Voir la signature →
+        </a>
+      )}
     </div>
   );
 }
