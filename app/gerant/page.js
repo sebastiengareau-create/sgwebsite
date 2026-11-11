@@ -8,6 +8,8 @@ import EnTete from "../components/EnTete";
 import LiveTimer from "../components/LiveTimer";
 import VueGlobaleClient from "./VueGlobaleClient";
 import { productiviteActif } from "@/lib/productivite";
+import { totalAvantTaxesBon } from "@/lib/totalBon";
+import { argent } from "@/lib/format";
 import { NIVEAUX, niveauHorodateur } from "./niveaux";
 import { TEINTES, CarteChiffre, Pastille, TitrePanneau, stylePanneau } from "../components/StyleSection";
 
@@ -96,7 +98,7 @@ export default async function EspaceGerant(props) {
     detailMois, detailAnnee,
     facturesImpayeesCount, fournisseursImpayesDistincts,
     facturesEnRetard, depensesEcheanceProche, dernierePaie, modulePaie,
-    enAttente, enCours, inventaire, poinconsActifs, poinconsInternesActifs,
+    enAttente, enCours, bonsOuverts, tauxHoraireParam, inventaire, poinconsActifs, poinconsInternesActifs,
   ] = await Promise.all([
     calculerResumeFermeture({ debut, fin }),
     calculerResumeFermeture({ debut: debutPrec, fin: finPrec }),
@@ -112,6 +114,14 @@ export default async function EspaceGerant(props) {
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
+    // Bons pas encore facturés, avec de quoi calculer leur montant (Travaux
+    // en cours) — sans les bons internes sur un véhicule à vendre, qui ne
+    // seront pas facturés à un client (leur montant va au coûtant du véhicule)
+    prisma.bonTravail.findMany({
+      where: { statut: { in: ["EN_ATTENTE", "EN_COURS"] }, facture: null, vehiculeVenteId: null },
+      include: { problemes: { include: { pieces: { select: { qte: true, prix: true, kit: true } }, entreesTemps: { select: { debut: true, fin: true } } } } },
+    }),
+    prisma.parametre.findUnique({ where: { cle: "taux_horaire_client" } }),
     prisma.piece.findMany({ where: { actif: true, estKit: false }, select: { qte: true, qteMin: true } }),
     prisma.entreeTemps.findMany({
       where: { fin: null },
@@ -126,6 +136,10 @@ export default async function EspaceGerant(props) {
   ]);
 
   const stockBas = inventaire.filter((p) => p.qte <= p.qteMin);
+  // Valeur avant taxes des bons en attente et en cours — à titre informatif
+  // seulement (rien n'est comptabilisé avant la facture)
+  const tauxHoraireClient = Number(tauxHoraireParam?.valeur || 195);
+  const travauxEnCours = bonsOuverts.reduce((s, b) => s + totalAvantTaxesBon(b, tauxHoraireClient), 0);
   const totalPoinconsActifs = poinconsActifs.length + poinconsInternesActifs.length;
 
   function variation(actuel, precedent) {
@@ -210,9 +224,10 @@ export default async function EspaceGerant(props) {
       />
 
       <div className="conteneur-page" style={{ paddingTop: 0 }}>
-        <div className="grille-trois" style={{ marginBottom: 20 }}>
+        <div className="grille-deux" style={{ marginBottom: 20 }}>
           <Carte href="/secretaire?statut=EN_ATTENTE" label="Bons en attente" valeur={enAttente} niveau={enAttente > 0 ? "avertissement" : "neutre"} note={enAttente > 0 ? "À commencer" : "Aucun bon en attente"} />
           <Carte href="/secretaire?statut=EN_COURS" label="Bons en cours" valeur={enCours} niveau={enCours > 0 ? "bleu" : "neutre"} note={enCours > 0 ? "Au travail en ce moment" : "Aucun bon en cours"} />
+          <Carte href="/secretaire" label="Travaux en cours" valeur={argent(travauxEnCours)} niveau="neutre" note="Bons en attente et en cours, avant taxes, sans les bons internes · à titre informatif" />
           <Carte href="/secretaire/inventaire" label="Pièces sous le seuil" valeur={stockBas.length} niveau={stockBas.length > 0 ? "danger" : "bon"} note={stockBas.length > 0 ? "À recommander" : "Stock suffisant"} />
         </div>
 
