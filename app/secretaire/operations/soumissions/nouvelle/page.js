@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { inventairePourSoumission } from "@/lib/soumissions";
 import EnTete from "../../../../components/EnTete";
@@ -11,7 +11,8 @@ export default async function NouvelleSoumissionPage() {
   const [clients, parametres, inventaire] = await Promise.all([
     prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: { orderBy: { creeLe: "desc" } } } }),
     prisma.parametre.findMany(),
-    inventairePourSoumission(),
+    // Gérant : coûtants des pièces, pour la rentabilité de la soumission
+    inventairePourSoumission({ avecCoutant: estGerantOuDev(session) }),
   ]);
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
@@ -21,7 +22,7 @@ export default async function NouvelleSoumissionPage() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} />
+      <SoumissionForm estGerant={estGerantOuDev(session)} coutHoraireMecanicien={Number(dict.cout_horaire_mecanicien || 95)} clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} />
     </div>
   );
 }

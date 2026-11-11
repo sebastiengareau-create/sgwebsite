@@ -19,6 +19,7 @@ import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, tacheAuForfait, libelleContenuKit } from "@/lib/kits";
+import TableauRentabilite from "@/app/components/TableauRentabilite";
 import { separerPiecesSoumission, totauxLignesFixes, coutLignesPieces } from "@/lib/piecesSoumission";
 import { nomClientBon } from "@/lib/nomClient";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
@@ -32,7 +33,7 @@ import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
 import { correspondRecherche } from "@/lib/recherche";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
-import { argent, nombre } from "@/lib/format";
+import { argent } from "@/lib/format";
 import { Icone, TEINTES, Pastille, TitreGroupe } from "../components/StyleSection";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
@@ -349,7 +350,7 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
   const tvqEstime = totalFacture * (tvqTaux / 100);
   const totalAvecTaxesEstime = totalFacture + tpsEstime + tvqEstime;
 
-  // Rentabilité de la facture : coûtant réel des pièces vendues + coût réel
+  // Rentabilité de la facture (ou du bon pas encore facturé) : coûtant réel des pièces vendues + coût réel
   // de la main-d'œuvre (heures poinçonnées sur ce bon × vrai taux horaire de
   // chaque employé, pas le taux facturé au client) — comparé au montant
   // facturé avant taxes.
@@ -366,10 +367,7 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
       .reduce((s2, t) => s2 + dureeHeures(t.debut, t.fin) * (t.employe?.tauxHoraireEmploye || coutHoraireMecanicien), 0),
     0
   );
-  const totalDepensesFacture = coutPieces + coutMainOeuvre;
-  const factureAvantTaxesPourRentabilite = bon.facture ? bon.facture.totalFacture : totalFacture;
-  const ratioDepenses = factureAvantTaxesPourRentabilite > 0 ? (totalDepensesFacture / factureAvantTaxesPourRentabilite) * 100 : 0;
-  const rentabilitePourcent = 100 - ratioDepenses;
+  const libelleCoutMainOeuvre = coutMainOeuvreFixe > 0 ? "Coût main-d'œuvre (heures estimées × coûtant horaire)" : "Coût réel main-d'œuvre (taux employés)";
 
   async function sauvegarderEscompte() {
     setEnCours(true);
@@ -648,31 +646,11 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
             </div>
 
             {estGerant && bon.facture.totalFacture > 0 && ( // facture de retour (négative) : pas de rentabilité
-              <div style={{ marginTop: 4, marginBottom: 12, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>
-                  📊 Rentabilité de cette facture
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Coûtant des pièces vendues</span>
-                  <span>{argent(coutPieces)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                  <span style={{ color: "var(--text-muted)" }}>{coutMainOeuvreFixe > 0 ? "Coût main-d'œuvre (heures estimées × coûtant horaire)" : "Coût réel main-d'œuvre (taux employés)"}</span>
-                  <span>{argent(coutMainOeuvre)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)", marginBottom: 6 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Total des dépenses</span>
-                  <span style={{ fontWeight: 600 }}>{argent(totalDepensesFacture)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    Rentabilité (dépenses = {nombre(ratioDepenses, 0)} % de la facture avant taxes)
-                  </span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: rentabilitePourcent >= 0 ? "var(--success)" : "var(--danger)" }}>
-                    {nombre(rentabilitePourcent, 0)} %
-                  </span>
-                </div>
-              </div>
+              <TableauRentabilite
+                titre="Rentabilité de cette facture" document="de la facture"
+                coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}
+                avantTaxes={bon.facture.totalFacture} style={{ marginTop: 4, marginBottom: 12 }}
+              />
             )}
 
             {peutModifier && !payeeParCoutant && (
@@ -897,6 +875,15 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
               <span style={{ fontWeight: 800, fontSize: 20, color: "var(--accent-ombre)", fontVariantNumeric: "tabular-nums" }}>{argent(totalAvecTaxesEstime)}</span>
             </div>
             {heuresEnCours && <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>* Un poinçon est encore actif — le total augmentera une fois arrêté.</p>}
+
+            {/* Même tableau que sous la facture, sur l'estimé du bon */}
+            {estGerant && totalFacture > 0 && (
+              <TableauRentabilite
+                titre="Rentabilité bon" document="du bon"
+                coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}
+                avantTaxes={totalFacture} style={{ marginTop: 12 }}
+              />
+            )}
 
             {/* Dépôts (lib/depots.js) : appliqués à la facture à son émission */}
             {!bon.vehiculeVente && (
