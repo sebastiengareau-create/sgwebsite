@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { lireVehiculeSoumission, adresseClientSoumission, tachesSoumissionPourPrisma } from "@/lib/soumissions";
+import { REPONSE_VIDE } from "@/lib/approbationSoumission";
 
 export async function PUT(request, props) {
   const params = await props.params;
@@ -34,6 +35,8 @@ export async function PUT(request, props) {
       // Pièces de l'inventaire : liées seulement — le stock n'est touché
       // qu'au transfert en bon ou en facture
       taches: { create: tachesPrisma },
+      // Le client avait répondu à une autre version : sa réponse ne vaut plus
+      ...REPONSE_VIDE,
     },
   });
 
