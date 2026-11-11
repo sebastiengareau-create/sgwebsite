@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { obtenirInfosEntreprise } from "@/lib/config";
 import EnTete from "../../../components/EnTete";
 import OperationsTabs from "../../../components/OperationsTabs";
 import FacturationPeriodes from "../../../components/FacturationPeriodes";
@@ -17,7 +18,7 @@ export default async function ListeSoumissions() {
     prisma.soumission.findMany({
       include: {
         taches: { include: { pieces: true } },
-        client: { select: { courriel: true } }, // envoi par courriel
+        client: { select: { courriel: true, telephone: true } }, // envoi par courriel ou texto
         // Dépôts reçus (lib/depots.js)
         depots: {
           include: { compteTresorerie: { select: { nom: true } }, paiementFacture: { select: { montant: true } }, creditClient: { select: { montant: true } } },
@@ -37,6 +38,7 @@ export default async function ListeSoumissions() {
     select: { bonId: true },
   })).map((f) => f.bonId));
   const soumissionsAvecFacture = soumissions.map((s) => ({ ...s, factureEnVigueur: s.statut === "FACTUREE" && facturesEnVigueur.has(s.bonId) }));
+  const { nomEntreprise } = await obtenirInfosEntreprise();
   await assurerComptesTresorerie();
   const comptesTresorerie = await obtenirComptesTresoreriePourSelection();
   const tauxHoraireClient = Number(dict.taux_horaire_client || 195);
@@ -49,7 +51,7 @@ export default async function ListeSoumissions() {
       <OperationsTabs />
       <FacturationPeriodes />
       <ResumeOperations />
-      <SoumissionsListe soumissions={soumissionsAvecFacture} comptesTresorerie={comptesTresorerie} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} />
+      <SoumissionsListe soumissions={soumissionsAvecFacture} comptesTresorerie={comptesTresorerie} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} nomEntreprise={nomEntreprise} />
     </div>
   );
 }

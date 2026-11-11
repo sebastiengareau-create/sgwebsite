@@ -9,6 +9,8 @@ import ReglementRetour from "../components/ReglementRetour";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 import { libelleVehicule, texteKilometrage } from "@/lib/vehicules";
+import BoutonTexto from "../components/BoutonTexto";
+import { MESSAGES_TEXTO } from "@/lib/textos";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
 import { PhotosArriveeBon } from "../components/PhotosArrivee";
@@ -65,7 +67,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -676,7 +678,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             {peutModifier && !payeeParCoutant && (
               <div style={{ marginBottom: 12 }}>
                 <AvisVehiculePret
-                  bon={bon}
+                  bon={bon} nomEntreprise={nomEntreprise}
                   boutonCourriel={
                     <button
                       onClick={declencherEnvoiCourriel}
@@ -2256,7 +2258,7 @@ function DatePrevueBon({ bon, modifiable }) {
 // même ligne, moitié-moitié, que « 📧 Envoyer par courriel » (boutonCourriel).
 // Profil envoiPhotosCourriel : en dessous, « 📷 Envoyer les photos » des
 // tâches en pièces jointes (POST /api/bons/[id]/envoyer-photos).
-function AvisVehiculePret({ bon, boutonCourriel }) {
+function AvisVehiculePret({ bon, boutonCourriel, nomEntreprise }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(null); // null | "avis" | "photos"
   const [courriel, setCourriel] = useState(bon.client.courriel || "");
@@ -2301,6 +2303,14 @@ function AvisVehiculePret({ bon, boutonCourriel }) {
         <button onClick={() => basculer("avis")} disabled={!!enCours} title="Courriel au client : son véhicule est prêt" className="bouton-3d-sombre" style={styleBouton}>
           {enCours === "avis" ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau" : "🚗 Aviser le client"}
         </button>
+      </div>
+      {/* Texto « véhicule prêt » : ouvre Messages, sans abonnement (lib/textos.js) */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+        <BoutonTexto
+          telephone={bon.client.telephone}
+          message={MESSAGES_TEXTO.vehiculePret({ nom: bon.clientNomAffiche || bon.client.nom, vehicule: bon.vehicule ? libelleVehicule(bon.vehicule) : "", nomEntreprise })}
+          libelle="💬 Aviser par texto" className="bouton-3d-sombre" style={{ ...styleBouton, flex: "1 1 100%" }}
+        />
       </div>
       {CLIENT.envoiPhotosCourriel && (
         <button
