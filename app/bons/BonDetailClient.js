@@ -876,8 +876,8 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
             </div>
             {heuresEnCours && <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>* Un poinçon est encore actif — le total augmentera une fois arrêté.</p>}
 
-            {/* Même tableau que sous la facture, sur l'estimé du bon */}
-            {estGerant && totalFacture > 0 && (
+            {/* Même tableau que sous la facture, sur l'estimé du bon (profil rentabiliteBonEtSoumission) */}
+            {CLIENT.rentabiliteBonEtSoumission && estGerant && totalFacture > 0 && (
               <TableauRentabilite
                 titre="Rentabilité bon" document="du bon"
                 coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}

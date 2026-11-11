@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CLIENT } from "@/lib/client";
 import { inventairePourSoumission } from "@/lib/soumissions";
 import EnTete from "../../../../../components/EnTete";
 import SoumissionForm from "../../nouvelle/SoumissionForm";
@@ -19,8 +20,8 @@ export default async function ModifierSoumissionPage(props) {
     }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: { orderBy: { creeLe: "desc" } } } }),
     prisma.parametre.findMany(),
-    // Gérant : coûtants des pièces, pour la rentabilité de la soumission
-    inventairePourSoumission({ avecCoutant: estGerantOuDev(session) }),
+    // Profil rentabiliteBonEtSoumission, gérant : coûtants des pièces, pour la rentabilité de la soumission
+    inventairePourSoumission({ avecCoutant: CLIENT.rentabiliteBonEtSoumission && estGerantOuDev(session) }),
   ]);
   if (!soumissionExistante) notFound();
 
@@ -32,7 +33,7 @@ export default async function ModifierSoumissionPage(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm estGerant={estGerantOuDev(session)} coutHoraireMecanicien={Number(dict.cout_horaire_mecanicien || 95)} clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
+      <SoumissionForm rentabilite={CLIENT.rentabiliteBonEtSoumission && estGerantOuDev(session)} coutHoraireMecanicien={Number(dict.cout_horaire_mecanicien || 95)} clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
     </div>
   );
 }

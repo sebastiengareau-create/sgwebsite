@@ -143,6 +143,14 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   **annulée** revient aussi en attente : le bon et la facture annulée restent
   comme historique (seulement détachés), et la soumission peut être
   refacturée.
+- `rentabiliteBonEtSoumission: true` — le tableau de rentabilité de la
+  facture (gérant et niveau 4) s'affiche aussi sous le total estimé d'un bon
+  pas encore facturé (**Rentabilité bon**) et sous le total d'une soumission
+  (**Rentabilité soumission** : coûtant des pièces choisies dans
+  l'inventaire + heures estimées × « Coûtant horaire des mécaniciens »).
+  Une pièce estimée en texte libre n'a pas de coûtant : elle compte à 0 $,
+  signalé par une note sous le tableau
+  (`app/components/TableauRentabilite.js`).
 - `signatureFacture: true` — au bas des factures (facture d'un bon,
   facture de vente d'un véhicule, PDF envoyé par courriel), une ligne
   **« Signature : ______ »** pour signer, au lieu de la mention « VR
