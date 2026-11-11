@@ -1,6 +1,7 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { versionEnLigne } from "@/lib/version";
-import { NOM_LOGICIEL, SLOGAN, COURRIEL_SOUTIEN, SECTEUR } from "@/lib/marque";
+import Image from "next/image";
+import { NOM_LOGICIEL, SLOGAN, COURRIEL_SOUTIEN, SECTEUR, LOGO_METAL } from "@/lib/marque";
 import { LogoKontrolshop } from "../../components/LogoKontrolshop";
 import { TEINTES, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 
@@ -20,7 +21,10 @@ export default async function AProposSection() {
       <div style={stylePanneau}>
         <TitrePanneau icone="reglages" teinte={TEINTES.neutre} titre="À propos" sousTitre="Le logiciel et comment nous joindre" />
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "10px 0 18px" }}>
-          <LogoKontrolshop taille={64} />
+          {/* Logo métal du secteur (kontrolshop Premium, Garage…) ; sinon le logo dessiné */}
+          {LOGO_METAL
+            ? <Image src={LOGO_METAL} alt={`${NOM_LOGICIEL} ${SECTEUR.libelle}`} width={300} height={150} style={{ width: "min(300px, 80%)", height: "auto" }} />
+            : <LogoKontrolshop taille={64} />}
           <div style={{ fontSize: 15, fontWeight: 600 }}>{SLOGAN}</div>
         </div>
         <dl style={{ margin: 0, borderTop: "1px solid var(--border)" }}>

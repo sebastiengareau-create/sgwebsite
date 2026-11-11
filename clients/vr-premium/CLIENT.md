@@ -158,6 +158,12 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   (sans fiche) garde son nom seul.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
 
+- `secteurMarque: "premium"` — la marque du logiciel en **déclinaison
+  Premium** : logo kontrolshop métal or (`public/marque/kontrolshop-metal-premium.png`)
+  dans Paramètres → À propos, aiguille et badge « PREMIUM » or dans la
+  signature au bas de la page de connexion. Le logo de VR Premium reste en
+  vedette partout ailleurs.
+
 ## Historique
 
 - Novembre 2026 : la **sauvegarde automatique** par courriel ne partait plus
