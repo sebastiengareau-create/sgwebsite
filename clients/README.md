@@ -42,7 +42,9 @@ on décide quand et à qui une modification s'applique.
   Informations de l'entreprise), donc dans la base du client.
 - **Modules** (Administrateur → Modules) : sections entières activées ou non
   dans l'appli de chaque installation, sans changer le profil — ex. Paie,
-  Jobs en déplacement, **Élevage** (troupeau de bœuf wagyu, découpe et vente
+  Jobs en déplacement, **Productivité par employés** (rapport de
+  productivité et rentabilité par employé, actif par défaut,
+  `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
   de viande, `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
   **Copropriété** (syndicat de copropriété : unités et quotes-parts,

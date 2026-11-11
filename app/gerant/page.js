@@ -7,6 +7,7 @@ import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailR
 import EnTete from "../components/EnTete";
 import LiveTimer from "../components/LiveTimer";
 import VueGlobaleClient from "./VueGlobaleClient";
+import { productiviteActif } from "@/lib/productivite";
 import { NIVEAUX, niveauHorodateur } from "./niveaux";
 import { TEINTES, CarteChiffre, Pastille, TitrePanneau, stylePanneau } from "../components/StyleSection";
 
@@ -205,6 +206,7 @@ export default async function EspaceGerant(props) {
         sante={sante}
         alertes={alertes}
         rentabilite={{ mois: detailMois, annee: detailAnnee }}
+        afficherRapports={(await productiviteActif()) && (await aAccesSection(session, "jobs-temps-reel"))}
       />
 
       <div className="conteneur-page" style={{ paddingTop: 0 }}>

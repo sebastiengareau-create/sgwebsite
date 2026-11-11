@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import { chargerHoraireOuverture } from "@/lib/paie";
 import { chargerHeuresJour, heuresJoursTravailles } from "@/lib/heuresJour";
+import { productiviteActif } from "@/lib/productivite";
 import EnTete from "../../../components/EnTete";
 import RentabiliteClient from "./RentabiliteClient";
 
@@ -15,6 +16,7 @@ export default async function RapportRentabilite(props) {
   const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!estGerantOuDev(session)) redirect("/gerant");
+  if (!(await productiviteActif())) redirect("/gerant");
 
   const aujourdhui = dateAujourdhuiQuebec();
   const [an, mois] = aujourdhui.split("-");

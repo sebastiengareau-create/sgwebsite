@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { productiviteActif } from "@/lib/productivite";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 
@@ -9,7 +10,7 @@ import { bonEstVerrouille, MESSAGE_BON_VERROUILLE } from "@/lib/bons";
 // interne (type "interne"). Ferme aussi un poinçon encore ouvert.
 export async function PATCH(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "jobs-temps-reel"))) {
+  if (!(await aAccesSection(session, "jobs-temps-reel")) || !(await productiviteActif())) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 

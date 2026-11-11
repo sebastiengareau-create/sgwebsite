@@ -37,7 +37,7 @@ function niveauVariation(variation) {
   return variation >= 0 ? { niveau: "bon", etat: "En hausse" } : { niveau: "avertissement", etat: "En baisse" };
 }
 
-export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes, rentabilite }) {
+export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes, rentabilite, afficherRapports }) {
   const [vueGraphique, setVueGraphique] = useState("comparaison"); // "comparaison" | "benefice"
   const [periodeRentabilite, setPeriodeRentabilite] = useState("mois"); // "mois" | "annee"
 
@@ -198,7 +198,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
           ) : (
             <BoutonAction icone="calculatrice" label="Employé / Paie" href="/gerant/paie" />
           )}
-          <BoutonAction icone="graphique" label="Rapports" href="/gerant/rapports" />
+          {afficherRapports && <BoutonAction icone="graphique" label="Rapports" href="/gerant/rapports" />}
         </div>
       </section>
     </div>
