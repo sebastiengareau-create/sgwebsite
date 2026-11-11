@@ -92,7 +92,9 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   **« 📷 Envoyer les photos »** sous la ligne « 📧 Envoyer par courriel » /
   « 🚗 Aviser le client » envoie par courriel au client les photos des tâches, en pièces
   jointes (`POST /api/bons/[id]/envoyer-photos`). Courriel du dossier
-  proposé, modifiable.
+  proposé, modifiable. Le même bouton est offert sur le **bon pas encore
+  facturé**, au-dessus de « Émettre la facture » (sauf facture comptoir et
+  bon interne).
 - `avertirBonNonFacture: true` — créer un bon pour un client qui a déjà un
   bon non facturé (en attente, planifié ou en cours) affiche un
   avertissement avec les numéros des bons : « Créer quand même un nouveau

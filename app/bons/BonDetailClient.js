@@ -893,6 +893,9 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
               />
             )}
 
+            {/* Photos des tâches au client avant la facture (profil envoiPhotosCourriel) */}
+            {CLIENT.envoiPhotosCourriel && peutModifier && !comptoir && !bon.vehiculeVente && <EnvoiPhotosBon bon={bon} />}
+
             {peutModifier && (
               <div style={{ marginTop: 12 }}>
                 <button
@@ -2326,6 +2329,64 @@ function AvisVehiculePret({ bon, boutonCourriel, nomEntreprise }) {
         <p style={{ fontSize: 11, marginTop: 6, color: "var(--text-muted)" }}>
           Avisé le {dateCourteQuebec(bon.avisPretLe)} à {heureQuebec(bon.avisPretLe)}{bon.avisPretA ? ` (${bon.avisPretA})` : ""}.
         </p>
+      )}
+      {message && (
+        <p style={{ fontSize: 12, marginTop: 8, color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>
+      )}
+    </div>
+  );
+}
+
+// « 📷 Envoyer les photos » sur un bon pas encore facturé (profil
+// envoiPhotosCourriel) : même envoi que sous la facture (AvisVehiculePret),
+// photos des tâches en pièces jointes (POST /api/bons/[id]/envoyer-photos).
+function EnvoiPhotosBon({ bon }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [courriel, setCourriel] = useState(bon.client.courriel || "");
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState(null); // { texte, erreur }
+  const nbPhotos = bon.problemes.reduce((s, pr) => s + (pr.photos?.length || 0), 0);
+
+  async function envoyer() {
+    setEnCours(true);
+    setMessage(null);
+    const res = await fetch(`/api/bons/${bon.id}/envoyer-photos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courriel }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    if (!res.ok) {
+      setMessage({ texte: data.erreur || "Erreur lors de l'envoi.", erreur: true });
+      return;
+    }
+    setOuvert(false);
+    setMessage({ texte: `${data.nombre} photo(s) envoyée(s) à ${data.destinataire} ✓` });
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        onClick={() => { setMessage(null); setOuvert(!ouvert); }}
+        disabled={enCours || nbPhotos === 0}
+        title={nbPhotos === 0 ? "Aucune photo sur les tâches de ce bon" : "Courriel au client : les photos des tâches en pièces jointes"}
+        className="bouton-3d-sombre"
+        style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+      >
+        {enCours ? "Envoi…" : `📷 Envoyer les photos${nbPhotos ? ` (${nbPhotos})` : ""}`}
+      </button>
+      {ouvert && (
+        <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+          <input
+            type="email" placeholder="courriel@client.com" value={courriel}
+            onChange={(e) => setCourriel(e.target.value)} autoFocus
+            style={{ flex: 1, minWidth: 0, padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}
+          />
+          <button onClick={envoyer} disabled={!courriel.trim() || enCours} className="bouton-3d" style={{ padding: "0 14px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+            Envoyer les photos
+          </button>
+        </div>
       )}
       {message && (
         <p style={{ fontSize: 12, marginTop: 8, color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>

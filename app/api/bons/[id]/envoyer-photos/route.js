@@ -5,7 +5,7 @@ import { envoyerPhotosTaches } from "@/lib/avisClient";
 import { CLIENT } from "@/lib/client";
 
 // Envoie au client, par courriel, les photos prises pendant les tâches du bon
-// (profil envoiPhotosCourriel) — au choix, depuis un bon facturé.
+// (profil envoiPhotosCourriel) — au choix, depuis un bon facturé ou non.
 export async function POST(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
