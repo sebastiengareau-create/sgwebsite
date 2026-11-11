@@ -39,7 +39,8 @@ export default async function EspaceMecanicien() {
 
   // Tous les mécaniciens voient tous les bons non terminés — n'importe qui
   // peut travailler sur n'importe quel bon, dépendant de la tâche.
-  const bons = await prisma.bonTravail.findMany({
+  // (bons, tâches internes et module lus en parallèle)
+  const [bons, tachesInternes, moduleDeplacement] = await Promise.all([prisma.bonTravail.findMany({
     // Facture comptoir (lib/comptoir.js) : rien à faire pour l'atelier
     where: { statut: { not: "TERMINE" }, comptoir: false },
     include: {
@@ -48,7 +49,11 @@ export default async function EspaceMecanicien() {
       problemes: { where: TACHES_SEULEMENT, orderBy: { id: "asc" }, include: { entreesTemps: { include: { employe: true } }, _count: { select: { photos: true } } } },
     },
     orderBy: { creeLe: "desc" },
-  });
+  }), prisma.tacheInterne.findMany({
+    where: { actif: true },
+    include: { entreesTemps: { include: { employe: true } } },
+    orderBy: { creeLe: "asc" },
+  }), jobsDeplacementActif()]);
 
   // Les bons planifiés pour un jour à venir sont affichés à part, sous leur
   // journée — ils rejoignent les bons actifs le jour venu.
@@ -62,16 +67,10 @@ export default async function EspaceMecanicien() {
     )
   );
 
-  const tachesInternes = await prisma.tacheInterne.findMany({
-    where: { actif: true },
-    include: { entreesTemps: { include: { employe: true } } },
-    orderBy: { creeLe: "asc" },
-  });
   const poinconsInternesActifs = tachesInternes.flatMap((t) =>
     t.entreesTemps.filter((e) => !e.fin).map((e) => ({ ...e, tacheInterne: t }))
   );
 
-  const moduleDeplacement = await jobsDeplacementActif();
   const [nbMesTaches, nbAbonnements] = moduleDeplacement
     ? await Promise.all([
         prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } }),
