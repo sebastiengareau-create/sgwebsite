@@ -114,9 +114,11 @@ export default async function EspaceGerant(props) {
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
     prisma.bonTravail.count({ where: { statut: "EN_ATTENTE" } }),
     prisma.bonTravail.count({ where: { statut: "EN_COURS" } }),
-    // Bons pas encore facturés, avec de quoi calculer leur montant (Travaux en cours)
+    // Bons pas encore facturés, avec de quoi calculer leur montant (Travaux
+    // en cours) — sans les bons internes sur un véhicule à vendre, qui ne
+    // seront pas facturés à un client (leur montant va au coûtant du véhicule)
     prisma.bonTravail.findMany({
-      where: { statut: { in: ["EN_ATTENTE", "EN_COURS"] }, facture: null },
+      where: { statut: { in: ["EN_ATTENTE", "EN_COURS"] }, facture: null, vehiculeVenteId: null },
       include: { problemes: { include: { pieces: { select: { qte: true, prix: true, kit: true } }, entreesTemps: { select: { debut: true, fin: true } } } } },
     }),
     prisma.parametre.findUnique({ where: { cle: "taux_horaire_client" } }),
@@ -225,7 +227,7 @@ export default async function EspaceGerant(props) {
         <div className="grille-deux" style={{ marginBottom: 20 }}>
           <Carte href="/secretaire?statut=EN_ATTENTE" label="Bons en attente" valeur={enAttente} niveau={enAttente > 0 ? "avertissement" : "neutre"} note={enAttente > 0 ? "À commencer" : "Aucun bon en attente"} />
           <Carte href="/secretaire?statut=EN_COURS" label="Bons en cours" valeur={enCours} niveau={enCours > 0 ? "bleu" : "neutre"} note={enCours > 0 ? "Au travail en ce moment" : "Aucun bon en cours"} />
-          <Carte href="/secretaire" label="Travaux en cours" valeur={argent(travauxEnCours)} niveau="neutre" note="Bons en attente et en cours, avant taxes · à titre informatif" />
+          <Carte href="/secretaire" label="Travaux en cours" valeur={argent(travauxEnCours)} niveau="neutre" note="Bons en attente et en cours, avant taxes, sans les bons internes · à titre informatif" />
           <Carte href="/secretaire/inventaire" label="Pièces sous le seuil" valeur={stockBas.length} niveau={stockBas.length > 0 ? "danger" : "bon"} note={stockBas.length > 0 ? "À recommander" : "Stock suffisant"} />
         </div>
 
