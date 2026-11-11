@@ -25,6 +25,7 @@ export async function POST(request) {
     const resultat = await lireFacture({
       tampon: Buffer.from(await fichier.arrayBuffer()),
       type: fichier.type,
+      nom: fichier.name,
       fournisseurs,
       categories,
       categorieDefautId: formulaire.get("categorieDefautId") || null,
