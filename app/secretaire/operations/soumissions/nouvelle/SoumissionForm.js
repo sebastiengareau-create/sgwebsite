@@ -44,7 +44,7 @@ function ajouterDeLInventaire(liste, piece) {
 }
 const ligneDuFormulaire = (p) => ({ id: p.id, nom: p.nom, prixEstime: String(p.prixEstime), qte: String(p.qte), pieceId: p.pieceId || null });
 
-export default function SoumissionForm({ clientsExistants, inventaire = [], tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee, estGerant = false, coutHoraireMecanicien = 0 }) {
+export default function SoumissionForm({ clientsExistants, inventaire = [], tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee, rentabilite = false, coutHoraireMecanicien = 0 }) {
   const router = useRouter();
   const clientDejaLie = soumissionExistante?.client
     ? clientsExistants.find((c) => c.id === soumissionExistante.client.id) || soumissionExistante.client
@@ -185,7 +185,7 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
   const tvqMontant = totalEstime * (tvqTaux / 100);
   const totalAvecTaxes = totalEstime + tpsMontant + tvqMontant;
 
-  // Rentabilité de la soumission (gérant) : coûtant des pièces de
+  // Rentabilité de la soumission (profil rentabiliteBonEtSoumission, gérant) : coûtant des pièces de
   // l'inventaire (une pièce estimée en texte libre n'a pas de coûtant) et
   // heures estimées × coûtant horaire des mécaniciens
   const piecesSoumission = PIECES_EN_HAUT ? piecesHaut : taches.flatMap((t) => t.pieces);
@@ -448,7 +448,7 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)" }}>Total estimé (taxes incl.)</span>
           <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(totalAvecTaxes)}</span>
         </div>
-        {estGerant && totalEstime > 0 && (
+        {rentabilite && totalEstime > 0 && (
           <TableauRentabilite
             titre="Rentabilité soumission" document="de la soumission"
             coutPieces={coutPieces} coutMainOeuvre={totalTemps * coutHoraireMecanicien}
