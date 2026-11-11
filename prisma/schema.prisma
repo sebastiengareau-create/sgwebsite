@@ -195,6 +195,8 @@ model PieceACommander {
   creeLe      DateTime   @default(now())
 
   @@index([bonId])
+  @@index([pieceId])
+  @@index([commandeId])
 }
 
 // ---------- VÉHICULES À VENDRE (profil vehiculesAVendre) ----------
@@ -245,6 +247,9 @@ model FactureVente {
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   referenceVersement String?
   creePar            String?
+
+  @@index([clientId])
+  @@index([compteTresorerieId])
 }
 
 // ---------- FACTURATION ----------
@@ -285,6 +290,7 @@ model Facture {
 
   @@index([statut])
   @@index([dateEmission])
+  @@index([compteTresorerieId])
 }
 
 // Un encaissement reçu sur une facture : une facture peut se payer en
@@ -310,6 +316,7 @@ model PaiementFacture {
   creditClient       CreditClient? // rempli quand ce paiement est du crédit client appliqué
 
   @@index([factureId])
+  @@index([compteTresorerieId])
 }
 
 // Dépôt encaissé avant la facture, sur une soumission ou un bon de commande
@@ -341,6 +348,7 @@ model DepotClient {
 
   @@index([soumissionId])
   @@index([bonId])
+  @@index([compteTresorerieId])
 }
 
 // Crédit client (lib/creditClient.js) : un mouvement par ligne, le solde du
@@ -376,6 +384,7 @@ model CreditClient {
 
   @@index([clientId])
   @@index([factureId])
+  @@index([compteTresorerieId])
 }
 
 model Probleme {
@@ -419,6 +428,7 @@ model Probleme {
 
   @@index([bonId])
   @@index([retourDeProblemeId])
+  @@index([retourPieceId])
 }
 
 model Photo {
@@ -431,6 +441,7 @@ model Photo {
   ajouteeLe  DateTime @default(now())
 
   @@index([problemeId])
+  @@index([employeId])
 }
 
 // Photos du véhicule à son arrivée, prises à la création du bon : une par
@@ -483,6 +494,8 @@ model Piece {
   estKit        Boolean               @default(false)
   composantsKit ComposantKit[]        @relation("ComposantsDuKit")
   dansKits      ComposantKit[]        @relation("PieceDansKit") // kits qui contiennent cette pièce
+
+  @@index([fournisseurId])
 }
 
 // Ligne d'un kit : une pièce d'inventaire (pieceId, quantité entière par
@@ -538,6 +551,8 @@ model CommandeFournisseur {
   sessionsPartsTech SessionPartsTech[]
   creePar       String?
   creeLe        DateTime                   @default(now())
+
+  @@index([fournisseurId])
 }
 
 // Recherche ouverte dans PartsTech depuis une commande en brouillon (voir
@@ -571,6 +586,7 @@ model LigneCommandeFournisseur {
   coutUnitaire      Float // prix prévu à la commande, avant taxes
 
   @@index([commandeId])
+  @@index([pieceId])
 }
 
 model PieceUtilisee {
@@ -673,6 +689,8 @@ model Soumission {
   creeLe          DateTime          @default(now())
 
   @@index([statut])
+  @@index([clientId])
+  @@index([vehiculeId])
 }
 
 model TacheSoumission {
@@ -682,6 +700,8 @@ model TacheSoumission {
   soumissionId String
   soumission   Soumission     @relation(fields: [soumissionId], references: [id], onDelete: Cascade)
   pieces       PieceEstimee[]
+
+  @@index([soumissionId])
 }
 
 model PieceEstimee {
@@ -698,6 +718,7 @@ model PieceEstimee {
   tacheSoumission   TacheSoumission @relation(fields: [tacheSoumissionId], references: [id], onDelete: Cascade)
 
   @@index([pieceId])
+  @@index([tacheSoumissionId])
 }
 
 // ---------- RENDEZ-VOUS ----------
@@ -730,6 +751,7 @@ model RendezVous {
   creeLe           DateTime    @default(now())
 
   @@index([date])
+  @@index([clientId])
 }
 
 // Fichier joint par le client sur le site de réservation (photo, devis…),
@@ -890,6 +912,7 @@ model EntreeTempsInterne {
   ajouteLe       DateTime?
 
   @@index([employeId])
+  @@index([tacheInterneId])
 }
 
 // Heures réellement travaillées par un employé une journée donnée, entrées
@@ -988,6 +1011,8 @@ model RapprochementBancaire {
   ecart              Float // relevé − (ouverture + lignes pointées) ; toujours 0 depuis la nouvelle logique, peut être ≠ 0 dans l'ancien historique
   creeLe             DateTime          @default(now())
   lignes             LigneEcriture[]
+
+  @@index([compteTresorerieId])
 }
 
 // Un fichier de relevé importé (Transactions bancaires) : copie de l'original
@@ -1076,6 +1101,8 @@ model RegleBancaire {
   creeLe              DateTime          @default(now())
 
   @@unique([signature, sens])
+  @@index([fournisseurId])
+  @@index([categorieDepenseId])
 }
 
 // ---------- COMPTES À PAYER ----------
@@ -1137,6 +1164,8 @@ model Depense {
 
   @@index([statut])
   @@index([fournisseurId])
+  @@index([compteTresorerieId])
+  @@index([commandeFournisseurId])
 }
 
 // Une ligne de fractionnement d'une dépense — chacune débite son propre
@@ -1160,6 +1189,8 @@ model LigneDepense {
   qteRecue           Int?
 
   @@index([depenseId])
+  @@index([categorieDepenseId])
+  @@index([pieceId])
 }
 
 // ---------- IMMOBILISATIONS ET AMORTISSEMENT ----------
@@ -1253,6 +1284,8 @@ model FermeturePeriodeHistorique {
   motif       String? // obligatoire pour REOUVERTURE seulement
   resumeJson  String? // JSON.stringify() du résumé, rempli seulement pour "FERMETURE"
   creeLe      DateTime         @default(now())
+
+  @@index([periodeId])
 }
 
 // ---------- TEMPS (horodateur) ----------
@@ -1405,6 +1438,8 @@ model Bete {
   abattage         Abattage?
   creePar          String?
   creeLe           DateTime    @default(now())
+
+  @@index([mereId])
 }
 
 model PeseeBete {
@@ -1477,6 +1512,7 @@ model LotViande {
   ventes         VenteViande[]
 
   @@unique([abattageId, coupeId])
+  @@index([coupeId])
 }
 
 model VenteViande {
@@ -1542,6 +1578,8 @@ model UniteCopro {
   travaux    TravailCopro[]
   documents  DocumentCopro[]
   creeLe     DateTime         @default(now())
+
+  @@index([batimentId])
 }
 
 model CoproprietaireCopro {
@@ -1613,6 +1651,8 @@ model EspaceCopro {
   creeLe       DateTime       @default(now())
 
   @@unique([type, numero])
+  @@index([batimentId])
+  @@index([uniteId])
 }
 
 // Budget annuel adopté : réparti entre les unités selon leur quote-part
@@ -1689,6 +1729,9 @@ model DemandeCopro {
   creeLe           DateTime             @default(now())
 
   @@index([statut])
+  @@index([batimentId])
+  @@index([uniteId])
+  @@index([coproprietaireId])
 }
 
 // Bon de travail : réparation ou entretien confié à un fournisseur
@@ -1724,6 +1767,11 @@ model TravailCopro {
   creeLe        DateTime            @default(now())
 
   @@index([statut])
+  @@index([demandeId])
+  @@index([entretienId])
+  @@index([batimentId])
+  @@index([uniteId])
+  @@index([fournisseurId])
 }
 
 // Journal d'un bon de travail : changements de statut et notes
@@ -1763,6 +1811,8 @@ model EntretienCopro {
   creeLe        DateTime       @default(now())
 
   @@index([prochaineDate])
+  @@index([batimentId])
+  @@index([fournisseurId])
 }
 
 // Document du syndicat (procès-verbal, règlement, états financiers…) ou
@@ -1787,6 +1837,7 @@ model DocumentCopro {
 
   @@index([categorie])
   @@index([uniteId])
+  @@index([batimentId])
 }
 
 // Photos et pièces jointes d'une demande ou d'un bon de travail

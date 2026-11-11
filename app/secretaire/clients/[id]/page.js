@@ -14,7 +14,7 @@ export default async function DetailClientPage(props) {
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "clients"))) redirect("/mecanicien");
 
-  const client = await prisma.client.findUnique({
+  const [client, ordre, peutModifierCredit, peutRedigerLettre] = await Promise.all([prisma.client.findUnique({
     where: { id: params.id },
     include: {
       bons: { include: { facture: true, vehicule: true }, orderBy: { creeLe: "desc" } },
@@ -30,10 +30,12 @@ export default async function DetailClientPage(props) {
         orderBy: { date: "desc" },
       },
     },
-  });
+  }),
+  prisma.client.findMany({ select: { id: true }, orderBy: { nom: "asc" } }),
+  aAccesSection(session, "operations"),
+  peutGererDestinataire(session, "CLIENT"),
+  ]);
   if (!client) notFound();
-  const ordre = await prisma.client.findMany({ select: { id: true }, orderBy: { nom: "asc" } });
-  const peutModifierCredit = await aAccesSection(session, "operations");
   if (peutModifierCredit && client.credits.length > 0) await assurerComptesTresorerie();
   const comptesTresorerie = peutModifierCredit && client.credits.length > 0 ? await obtenirComptesTresoreriePourSelection() : [];
 
@@ -41,7 +43,7 @@ export default async function DetailClientPage(props) {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <ClientDetailClient
-        client={client} peutRedigerLettre={await peutGererDestinataire(session, "CLIENT")}
+        client={client} peutRedigerLettre={peutRedigerLettre}
         comptesTresorerie={comptesTresorerie} peutModifierCredit={peutModifierCredit} peutAccorderGeste={estGerantOuDev(session)}
       />
       <NavigationFiches cle="clients" idCourant={client.id} base="/secretaire/clients" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), client.id)} />

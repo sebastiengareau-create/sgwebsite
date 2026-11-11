@@ -1,6 +1,6 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
-import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { lireParametre, lireParametres } from "@/lib/parametres";
+import { obtenirSession, obtenirFicheSession, aAccesSection } from "@/lib/auth";
 import BoutonFlottantNouveau from "./components/BoutonFlottantNouveau";
 import "./globals.css";
 import { image } from "@/lib/client";
@@ -9,6 +9,8 @@ import { image } from "@/lib/client";
 // métadonnées) pendant le build, avant que la base de données soit
 // accessible, ce qui fait planter le déploiement.
 export const dynamic = "force-dynamic";
+
+const SECTIONS_BOUTON = ["operations", "inventaire", "clients"];
 
 export async function generateMetadata() {
   const { nomEntreprise, descriptionCourte } = await obtenirInfosEntreprise();
@@ -34,18 +36,18 @@ export async function generateMetadata() {
 // Affichage propre à chaque employé (réglé par un gérant dans sa fiche). Le
 // développeur n'a pas de fiche employé (voir lib/auth.js) — son affichage
 // vit à part, dans Parametre (réglable dans Administrateur → Affichage).
+// La fiche et les réglages sont mémorisés le temps de la requête : rien n'est
+// relu entre generateViewport et la mise en page.
 async function obtenirPreferencesAffichage(session) {
-  const defaut = { theme: "clair", tailleTexte: "normal" };
-  if (!session) return defaut;
+  if (!session) return { theme: "clair", tailleTexte: "normal" };
   if (session.role === "DEVELOPPEUR") {
-    const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["theme_developpeur", "taille_texte_developpeur"] } } });
-    const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
+    const dict = await lireParametres(["theme_developpeur", "taille_texte_developpeur"]);
     return {
       theme: dict.theme_developpeur === "sombre" ? "sombre" : "clair",
       tailleTexte: dict.taille_texte_developpeur === "grand" ? "grand" : "normal",
     };
   }
-  const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { theme: true, tailleTexte: true } });
+  const utilisateur = await obtenirFicheSession(session);
   return {
     theme: utilisateur?.theme === "sombre" ? "sombre" : "clair",
     tailleTexte: utilisateur?.tailleTexte === "grand" ? "grand" : "normal",
@@ -68,21 +70,15 @@ export default async function RootLayout({ children }) {
   // coup, sans avoir à toucher chaque route individuellement. Le rôle
   // DEVELOPPEUR n'est jamais bloqué (sinon personne ne pourrait débloquer).
   const session = await obtenirSession();
-  let verrouille = false;
-  if (session && session.role !== "DEVELOPPEUR") {
-    const parametre = await prisma.parametre.findUnique({ where: { cle: "compte_verrouille" } });
-    verrouille = parametre?.valeur === "actif";
-  }
-
-  const { theme, tailleTexte } = await obtenirPreferencesAffichage(session);
-
-  // Sections permises pour le bouton « + » (soumission, bon, pièce, client)
-  const sectionsBouton = [];
-  if (session && !verrouille) {
-    for (const section of ["operations", "inventaire", "clients"]) {
-      if (await aAccesSection(session, section)) sectionsBouton.push(section);
-    }
-  }
+  // En parallèle : verrou, affichage et sections du bouton « + »
+  const [verrou, { theme, tailleTexte }, acces] = await Promise.all([
+    session && session.role !== "DEVELOPPEUR" ? lireParametre("compte_verrouille") : undefined,
+    obtenirPreferencesAffichage(session),
+    // Sections permises pour le bouton « + » (soumission, bon, pièce, client)
+    session ? Promise.all(SECTIONS_BOUTON.map((section) => aAccesSection(session, section))) : [],
+  ]);
+  const verrouille = verrou === "actif";
+  const sectionsBouton = verrouille ? [] : SECTIONS_BOUTON.filter((_, i) => acces[i]);
 
   return (
     <html lang="fr" data-theme={theme === "clair" ? "light" : "dark"} data-taille={tailleTexte === "grand" ? "grand" : "normal"}>
