@@ -15,6 +15,7 @@ import { correspondRecherche } from "@/lib/recherche";
 import { pieceCorrespond } from "@/lib/codesBarres";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
 import { argent } from "@/lib/format";
+import TableauRentabilite from "@/app/components/TableauRentabilite";
 import BandeauSection from "@/app/components/BandeauSection";
 import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "@/app/components/StyleSection";
 
@@ -43,7 +44,7 @@ function ajouterDeLInventaire(liste, piece) {
 }
 const ligneDuFormulaire = (p) => ({ id: p.id, nom: p.nom, prixEstime: String(p.prixEstime), qte: String(p.qte), pieceId: p.pieceId || null });
 
-export default function SoumissionForm({ clientsExistants, inventaire = [], tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee }) {
+export default function SoumissionForm({ clientsExistants, inventaire = [], tauxHoraireClient, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", soumissionExistante, vientDEtreCreee, estGerant = false, coutHoraireMecanicien = 0 }) {
   const router = useRouter();
   const clientDejaLie = soumissionExistante?.client
     ? clientsExistants.find((c) => c.id === soumissionExistante.client.id) || soumissionExistante.client
@@ -183,6 +184,14 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
   const tpsMontant = totalEstime * (tpsTaux / 100);
   const tvqMontant = totalEstime * (tvqTaux / 100);
   const totalAvecTaxes = totalEstime + tpsMontant + tvqMontant;
+
+  // Rentabilité de la soumission (gérant) : coûtant des pièces de
+  // l'inventaire (une pièce estimée en texte libre n'a pas de coûtant) et
+  // heures estimées × coûtant horaire des mécaniciens
+  const piecesSoumission = PIECES_EN_HAUT ? piecesHaut : taches.flatMap((t) => t.pieces);
+  const coutantPiece = (p) => (p.pieceId ? inventaire.find((x) => x.id === p.pieceId)?.coutant : null);
+  const coutPieces = piecesSoumission.reduce((s, p) => s + (Number(p.qte) || 0) * (coutantPiece(p) || 0), 0);
+  const piecesSansCoutant = piecesSoumission.filter((p) => coutantPiece(p) == null && (Number(p.prixEstime) || 0) * (Number(p.qte) || 0) > 0).length;
 
   async function creer(e) {
     e.preventDefault();
@@ -439,6 +448,15 @@ export default function SoumissionForm({ clientsExistants, inventaire = [], taux
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)" }}>Total estimé (taxes incl.)</span>
           <span style={{ fontSize: 18, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{argent(totalAvecTaxes)}</span>
         </div>
+        {estGerant && totalEstime > 0 && (
+          <TableauRentabilite
+            titre="Rentabilité soumission" document="de la soumission"
+            coutPieces={coutPieces} coutMainOeuvre={totalTemps * coutHoraireMecanicien}
+            libelleMainOeuvre={`Coût main-d'œuvre (${totalTemps} h estimées × ${argent(coutHoraireMecanicien)} coûtant horaire)`}
+            avantTaxes={totalEstime} style={{ marginTop: 12 }}
+            note={piecesSansCoutant > 0 ? `${piecesSansCoutant} pièce${piecesSansCoutant > 1 ? "s" : ""} hors inventaire sans coûtant connu — comptée${piecesSansCoutant > 1 ? "s" : ""} à 0 $ dans les dépenses.` : null}
+          />
+        )}
       </div>
 
       {erreur && <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 700, marginTop: 0 }}>{erreur}</p>}

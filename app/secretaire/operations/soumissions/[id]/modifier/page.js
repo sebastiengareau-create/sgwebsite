@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { redirect } from "next/navigation";
-import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { obtenirSession, aAccesSection, estGerantOuDev } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { inventairePourSoumission } from "@/lib/soumissions";
 import EnTete from "../../../../../components/EnTete";
@@ -19,7 +19,8 @@ export default async function ModifierSoumissionPage(props) {
     }),
     prisma.client.findMany({ orderBy: { nom: "asc" }, include: { vehicules: { orderBy: { creeLe: "desc" } } } }),
     prisma.parametre.findMany(),
-    inventairePourSoumission(),
+    // Gérant : coûtants des pièces, pour la rentabilité de la soumission
+    inventairePourSoumission({ avecCoutant: estGerantOuDev(session) }),
   ]);
   if (!soumissionExistante) notFound();
 
@@ -31,7 +32,7 @@ export default async function ModifierSoumissionPage(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <SoumissionForm clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
+      <SoumissionForm estGerant={estGerantOuDev(session)} coutHoraireMecanicien={Number(dict.cout_horaire_mecanicien || 95)} clientsExistants={clients} inventaire={inventaire} tauxHoraireClient={tauxHoraireClient} tpsTaux={tpsTaux} tvqTaux={tvqTaux} tpsNumero={dict.tps_numero || ""} tvqNumero={dict.tvq_numero || ""} soumissionExistante={soumissionExistante} vientDEtreCreee={searchParams?.creee === "1"} />
     </div>
   );
 }
