@@ -27,7 +27,7 @@ export default async function RappelsEntretien() {
       <EnTete nom={session.nom} role={session.role} />
       <RappelsClient
         vehicules={vehicules} reglages={reglages} apercu={apercu}
-        courrielConfigure={courrielConfigure()} peutRegler={estGerantOuDev(session)}
+        courrielConfigure={courrielConfigure()} peutRegler={estGerantOuDev(session)} nomEntreprise={entreprise.nomEntreprise}
       />
     </div>
   );

@@ -10,6 +10,8 @@ import SectionDepots from "../../../components/SectionDepots";
 import BoutonEnvoiCourriel from "../../../components/BoutonEnvoiCourriel";
 import { argent, nombre } from "@/lib/format";
 import { totauxTaches } from "@/lib/approbationCalculs";
+import BoutonTexto from "../../../components/BoutonTexto";
+import { MESSAGES_TEXTO } from "@/lib/textos";
 import { Icone, BoutonPlein, Pastille } from "../../../components/StyleSection";
 
 const STATUTS = {
@@ -24,7 +26,7 @@ const COULEUR_STATUT = (s) => STATUTS[s]?.color || (s === "REFUSEE" ? "#C15B4A" 
 // Pièces choisies dans l'inventaire (déduites du stock au transfert)
 const aDesPiecesInventaire = (s) => s.taches.some((t) => t.pieces.some((p) => p.pieceId && p.qte > 0));
 
-export default function SoumissionsListe({ soumissions, comptesTresorerie = [], tauxHoraireClient, tpsTaux, tvqTaux }) {
+export default function SoumissionsListe({ soumissions, comptesTresorerie = [], tauxHoraireClient, tpsTaux, tvqTaux, nomEntreprise = "" }) {
   const router = useRouter();
   const [recherche, setRecherche] = useState("");
   const [enCoursId, setEnCoursId] = useState(null);
@@ -33,6 +35,14 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
 
   // Lien de la page où le client approuve et signe (lib/approbationSoumission.js) :
   // copié pour l'envoyer par texto ; affiché aussi, au cas où la copie est refusée
+  // Message du texto : le lien d'approbation, créé au besoin
+  async function messageTexto(s) {
+    const res = await fetch(`/api/soumissions/${s.id}/lien-client`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.erreur || "Le lien n'a pas pu être créé.");
+    return MESSAGES_TEXTO.soumission({ nom: s.clientNom, numero: s.numero, lien: data.lien, nomEntreprise });
+  }
+
   async function copierLien(s) {
     setErreurId(null);
     const res = await fetch(`/api/soumissions/${s.id}/lien-client`, { method: "POST" });
@@ -201,6 +211,7 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                     <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer
                   </Link>
                   <BoutonEnvoiCourriel url={`/api/soumissions/${s.id}/envoyer`} courrielDefaut={s.client?.courriel} libelle="📧 Envoyer" style={boutonSoumission} />
+                  <BoutonTexto telephone={s.clientTelephone || s.client?.telephone} message={() => messageTexto(s)} style={boutonSoumission} title="Texto au client avec le lien pour consulter et approuver la soumission" />
                   <button onClick={() => copierLien(s)} title="Copier le lien où le client approuve et signe en ligne (à envoyer par texto)" style={boutonSoumission}>
                     🔗 Lien
                   </button>

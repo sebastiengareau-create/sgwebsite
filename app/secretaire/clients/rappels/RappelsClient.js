@@ -6,6 +6,8 @@ import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { Panneau, Pastille } from "../../../components/StyleSection";
 import { nombre } from "@/lib/format";
+import BoutonTexto from "../../../components/BoutonTexto";
+import { MESSAGES_TEXTO } from "@/lib/textos";
 
 const DATE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Toronto" });
 const moisDepuis = (date) => Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / (30.44 * 86400000)));
@@ -15,7 +17,7 @@ const ETATS = {
   DESABONNE: { label: "Désabonné", couleur: "var(--danger)" },
 };
 
-export default function RappelsClient({ vehicules, reglages, apercu, courrielConfigure, peutRegler }) {
+export default function RappelsClient({ vehicules, reglages, apercu, courrielConfigure, peutRegler, nomEntreprise = "" }) {
   const router = useRouter();
   const prets = vehicules.filter((v) => v.etat === "PRET");
   const autres = vehicules.filter((v) => v.etat !== "PRET");
@@ -112,10 +114,10 @@ export default function RappelsClient({ vehicules, reglages, apercu, courrielCon
       {autres.length > 0 && (
         <Panneau titre={`À joindre autrement (${autres.length})`}>
           <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 6px" }}>
-            Sans courriel au dossier, ou désabonnés des courriels : aucun rappel ne part. Un appel fait le même travail.
+            Sans courriel au dossier, ou désabonnés des courriels : aucun rappel ne part par courriel. Un appel ou un texto fait le même travail (pas de texto aux désabonnés).
           </p>
           <div style={{ display: "flex", flexDirection: "column" }}>
-            {autres.map((v) => <Ligne key={v.id} v={v} />)}
+            {autres.map((v) => <Ligne key={v.id} v={v} nomEntreprise={nomEntreprise} />)}
           </div>
         </Panneau>
       )}
@@ -123,7 +125,7 @@ export default function RappelsClient({ vehicules, reglages, apercu, courrielCon
   );
 }
 
-function Ligne({ v, coche, onBasculer }) {
+function Ligne({ v, coche, onBasculer, nomEntreprise }) {
   const etat = ETATS[v.etat];
   const mois = moisDepuis(v.derniereVisite);
   return (
@@ -146,6 +148,15 @@ function Ligne({ v, coche, onBasculer }) {
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {etat ? <Pastille couleur={etat.couleur} fond="var(--bg)">{etat.label}</Pastille> : <span>{v.client.courriel}</span>}
           {v.client.telephone && <a href={`tel:${v.client.telephone.replace(/[^\d+]/g, "")}`} style={{ color: "var(--accent-ombre)" }}>{v.client.telephone}</a>}
+          {/* Texto de relance : seulement aux clients sans courriel — un client
+              désabonné des promotions ne reçoit pas de texto de relance non plus */}
+          {!onBasculer && v.etat === "SANS_COURRIEL" && (
+            <BoutonTexto
+              telephone={v.client.telephone}
+              message={MESSAGES_TEXTO.rappelEntretien({ nom: v.client.nom, vehicule: v.vehicule, nomEntreprise })}
+              style={{ ...lienBouton, fontSize: 12 }} title="Texto de rappel d'entretien — ouvre Messages avec le message déjà écrit"
+            />
+          )}
         </div>
       </div>
     </div>

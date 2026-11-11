@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { peutGererJobsDeplacement } from "@/lib/envois";
 import { obtenirSession, estGerantOuDev, aAccesSection, ROLES_VALIDES } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { obtenirInfosEntreprise } from "@/lib/config";
 import { lireParametres } from "@/lib/parametres";
 import { assurerPlanComptable, COMPTES_REVENU_RESERVES } from "@/lib/comptabilite";
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
@@ -21,7 +22,7 @@ export default async function DetailBonPage(props) {
   // qu'une lecture après l'autre
   const [
     bon, inventaireBrut, employes, postesRevenu, comptesTresorerie, dict,
-    peutModifier, peutEnvoyer, peutCommander,
+    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise },
   ] = await Promise.all([
     prisma.bonTravail.findUnique({
       where: { id: params.id },
@@ -97,6 +98,7 @@ export default async function DetailBonPage(props) {
     peutGererJobsDeplacement(session),
     // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
     aAccesSection(session, "inventaire"),
+    obtenirInfosEntreprise(), // signe les textos au client
   ]);
   if (!bon) notFound();
 
@@ -129,6 +131,7 @@ export default async function DetailBonPage(props) {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <BonDetailClient
+        nomEntreprise={nomEntreprise}
         bon={bon}
         inventaire={inventaire}
         employes={employes}
