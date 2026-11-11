@@ -1,3 +1,4 @@
+import { ventesRecentes } from "@/lib/reapprovisionnement";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect, notFound } from "next/navigation";
@@ -26,7 +27,7 @@ export default async function DetailCommande(props) {
   });
   if (!commande) notFound();
 
-  const [pieces, fournisseurs, parametres, enCommande, peutVoirDepenses, configPartsTech, sessionsPartsTech] = await Promise.all([
+  const [pieces, fournisseurs, parametres, enCommande, ventes, peutVoirDepenses, configPartsTech, sessionsPartsTech] = await Promise.all([
     prisma.piece.findMany({
       where: { actif: true, estKit: false },
       include: { fournisseurs: { include: { fournisseur: { select: { nom: true } } } } },
@@ -35,6 +36,7 @@ export default async function DetailCommande(props) {
     prisma.fournisseur.findMany({ where: { actif: true }, orderBy: { nom: "asc" } }),
     prisma.parametre.findMany({ where: { cle: { in: ["tps_taux", "tvq_taux", CLE_SITES_PIECES] } } }),
     quantitesEnCommande(prisma, undefined, { avecBrouillons: true }),
+    ventesRecentes(prisma), // rythme des ventes (lib/reapprovisionnement.js)
     aAccesSection(session, "fournisseurs"),
     lireConfigPartsTech(),
     // Paniers PartsTech reçus pas encore ajoutés, et la session d'où l'on
@@ -57,6 +59,7 @@ export default async function DetailCommande(props) {
         pieces={pieces}
         fournisseurs={fournisseurs}
         enCommande={enCommande}
+        ventes={ventes}
         tpsTaux={Number(dict.tps_taux || 5)}
         tvqTaux={Number(dict.tvq_taux || 9.975)}
         peutVoirDepenses={peutVoirDepenses}

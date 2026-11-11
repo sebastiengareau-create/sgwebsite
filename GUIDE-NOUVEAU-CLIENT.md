@@ -65,6 +65,11 @@ Chaque client a son **propre projet Railway complet** :
    `APP_URL` (adresse publique de l'installation). Le lien d'approbation
    en ligne d'une soumission (courriel au client, bouton « 🔗 Lien ») s'en
    sert aussi : sans `APP_URL`, le lien pointe vers localhost.
+   Rappels d'entretien (Clients → Rappels d'entretien) : courriel aux
+   clients dont le véhicule n'est pas revenu depuis un certain nombre de
+   mois (6 par défaut, réglable sur la page — 12 convient mieux à des VR).
+   L'envoi automatique quotidien est inactif tant qu'un gérant ne le coche
+   pas. Exige `RESEND_API_KEY`. Voir `lib/rappelsEntretien.js`.
 8. PartsTech (facultatif — « 🔌 Chercher dans PartsTech » des commandes de
    pièces en brouillon) : ajoute `PARTSTECH_PARTNER_ID` et
    `PARTSTECH_PARTNER_KEY` (identifiants partenaire, entente avec
