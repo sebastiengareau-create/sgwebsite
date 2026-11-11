@@ -107,6 +107,7 @@ model Vehicule {
   niv           String? // numéro d'identification du véhicule — exactement 17 caractères
   plaque        String?
   kilometrage   Int? // dernier kilométrage connu (au dernier bon ou à la dernière mise à jour)
+  rappelEntretienLe DateTime? // dernier rappel d'entretien envoyé au client pour ce véhicule (lib/rappelsEntretien.js)
   bons          BonTravail[]
   soumissions   Soumission[]
   vehiculeVente VehiculeVente? // si c'est un véhicule à vendre de l'entreprise
