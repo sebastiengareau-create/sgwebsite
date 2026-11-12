@@ -7,6 +7,7 @@ import DossiersParMois, { DossiersParMoisACharger } from "../components/Dossiers
 import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 import { correspondRecherche } from "@/lib/recherche";
 import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
+import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -38,6 +39,22 @@ function dateFacturation(b) {
 // (les bons facturés se suivent par date de facture), sinon sa date prévue.
 function dateClassement(b) {
   return b.statut === "TERMINE" ? dateFacturation(b) : dateBon(b);
+}
+// Contenu d'un bon pour sa carte : les vraies tâches (sans les lignes de
+// pièces hors inventaire / de soumission, compte 4010) et le nombre de
+// pièces — quantités additionnées, pièces de l'inventaire et hors
+// inventaire ensemble (les retours, en quantité négative, ne comptent pas).
+function contenuBon(b) {
+  const { pieces, taches } = separerPiecesSoumission(b.problemes);
+  const qtes = [
+    ...taches.flatMap((pr) => pr.pieces.map((l) => l.qte)),
+    ...pieces.map((pr) => ligneDePieceSoumission(pr).qte),
+  ];
+  return {
+    taches,
+    premiere: taches[0] || b.problemes[0],
+    nbPieces: qtes.reduce((s, q) => s + Math.max(0, q || 0), 0),
+  };
 }
 function separerFactures(bons) {
   const moisCourant = cleMoisQuebec(new Date());
@@ -197,6 +214,7 @@ function TableauBons({ bons, ouvert, moisACharger, nombreACharger, chargerMois }
 
 function CarteBonCompacte({ b }) {
   const infos = infosEtape(etape(b));
+  const { taches, premiere } = contenuBon(b);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{ position: "relative", overflow: "hidden", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "9px 10px 9px 14px" }}>
@@ -207,9 +225,9 @@ function CarteBonCompacte({ b }) {
           {b.datePrevue && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--text-muted)" }}><Icone nom="horloge" taille={13} /> {heureQuebec(b.datePrevue)}</span>}
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
-        {b.problemes[0] && (
+        {premiere && (
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {b.problemes[0].description}{b.problemes.length > 1 ? ` (+${b.problemes.length - 1})` : ""}
+            {premiere.description}{taches.length > 1 ? ` (+${taches.length - 1})` : ""}
           </div>
         )}
         {b.datePrevue && cleJourQuebec(b.datePrevue) !== cleJourQuebec(b.creeLe) && (
@@ -223,7 +241,7 @@ function CarteBonCompacte({ b }) {
 function CarteBon({ b }) {
   const infos = infosEtape(etape(b));
   const date = new Date(dateClassement(b));
-  const nbPieces = b.problemes.reduce((s, p) => s + p.pieces.length, 0);
+  const { taches, premiere, nbPieces } = contenuBon(b);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "stretch", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 12 }}>
@@ -234,14 +252,14 @@ function CarteBon({ b }) {
             <Pastille couleur={infos.color} fond={`${infos.color}22`}>{infos.label}</Pastille>
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
-          {b.problemes[0] && (
+          {premiere && (
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {b.problemes[0].description}
+              {premiere.description}
             </div>
           )}
           <BanderoleBo bon={b} compact style={{ marginTop: 6 }} />
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-            {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
+            {taches.length} tâche{taches.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
           </div>
         </div>
       </div>
