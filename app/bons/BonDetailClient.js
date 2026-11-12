@@ -1010,6 +1010,18 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     onRafraichir();
   }
 
+  async function annulerChronoOublie(entree) {
+    if (!window.confirm(`Annuler le chrono de ${entree.employe?.nom || "cet employé"} ? Il est resté ouvert après la facture : ses heures ne sont ni sur la facture ni dans la paie, rien d'autre ne change.`)) return;
+    setEnCours(true);
+    const res = await fetch(`/api/entrees-temps/${entree.id}`, { method: "DELETE" });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.erreur || "Impossible d'annuler ce chrono.");
+    }
+    onRafraichir();
+  }
+
   async function supprimerEntreeTemps(id) {
     if (!window.confirm("Supprimer cette entrée de temps ?")) return;
     setEnCours(true);
@@ -1276,7 +1288,18 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
             {lignesTemps.map((l) => (
               <div key={l.employe.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                 <span style={{ color: "var(--text-muted)" }}>{l.employe.nom}</span>
-                {l.active ? <LiveTimer debut={l.active.debut} /> : <span style={{ fontWeight: 600 }}>{fmtHeures(l.termine)}</span>}
+                {l.active ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <LiveTimer debut={l.active.debut} />
+                    {/* Chrono oublié sur un bon déjà facturé : ses heures ne sont
+                        pas sur la facture, on peut seulement l'annuler */}
+                    {verrouille && peutModifier && (
+                      <button onClick={() => annulerChronoOublie(l.active)} disabled={enCours} style={{ ...boutonTexte, color: "var(--danger)" }}>
+                        Annuler ce chrono
+                      </button>
+                    )}
+                  </span>
+                ) : <span style={{ fontWeight: 600 }}>{fmtHeures(l.termine)}</span>}
               </div>
             ))}
           </div>
