@@ -89,6 +89,7 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
   const factureExiste = !!bon.facture;
   // Pièces d'une soumission facturée (lignes fixes) : section à part, au début
   const { pieces: piecesSoumission, taches: tachesAffichees } = separerPiecesSoumission(bon.problemes);
+  const piecesDesTaches = tachesAffichees.flatMap((pr) => pr.pieces);
   // Pièce commandée pas encore reçue : le bon ne se facture pas avant
   const aDesPiecesBo = piecesBo(bon).length > 0;
   // Bon interne sur un véhicule à vendre : sa facture (sans taxes) est payée
@@ -384,12 +385,15 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
   // facturation pour un bon, au-dessus pour une facture comptoir
   const sectionLignes = (
     <>
-      {/* Bon d'une soumission facturée : ses pièces sont dans la section « Pièces » ci-dessous */}
-      {piecesEnHaut && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
+      {/* Une fois facturé, la section n'est cachée que vide (ex. bon d'une
+          soumission facturée : ses pièces sont dans la section « Pièces »
+          ci-dessous). Un bon qui a des pièces hors inventaire ET des pièces de
+          l'inventaire montre les deux. */}
+      {piecesEnHaut && peutModifier && tachesAffichees.length > 0 && !(factureExiste && piecesDesTaches.length === 0) && (
         <PiecesBon
           titre={comptoir ? "Pièces de l'inventaire" : "Pièces du bon"}
           style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
-          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
+          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={piecesDesTaches}
           inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
           onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
         />
