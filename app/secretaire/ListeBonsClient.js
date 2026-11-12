@@ -34,6 +34,11 @@ const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "TERMINE"];
 function dateFacturation(b) {
   return b.facture?.dateEmission || dateBon(b);
 }
+// Date qui classe un bon dans la liste : sa facturation s'il est facturé
+// (les bons facturés se suivent par date de facture), sinon sa date prévue.
+function dateClassement(b) {
+  return b.statut === "TERMINE" ? dateFacturation(b) : dateBon(b);
+}
 function separerFactures(bons) {
   const moisCourant = cleMoisQuebec(new Date());
   const anciens = bons.filter((b) => b.statut === "TERMINE" && cleMoisQuebec(dateFacturation(b)) < moisCourant);
@@ -130,7 +135,7 @@ export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
         <EtatVide />
       ) : vue === "liste" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {regrouperParJour(recents, dateBon).map((g) => (
+          {regrouperParJour(recents, dateClassement).map((g) => (
             <section key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <EnTeteGroupe groupe={g} />
               {g.elements.map((b) => <CarteBon key={b.id} b={b} />)}
@@ -169,7 +174,7 @@ function TableauBons({ bons, ouvert, moisACharger, nombreACharger, chargerMois }
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {regrouperParJour(recents, dateBon).map((g) => (
+              {regrouperParJour(recents, dateClassement).map((g) => (
                 <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <EnTeteGroupe groupe={g} compact />
                   {g.elements.map((b) => <CarteBonCompacte key={b.id} b={b} />)}
@@ -217,7 +222,7 @@ function CarteBonCompacte({ b }) {
 
 function CarteBon({ b }) {
   const infos = infosEtape(etape(b));
-  const date = new Date(dateBon(b));
+  const date = new Date(dateClassement(b));
   const nbPieces = b.problemes.reduce((s, p) => s + p.pieces.length, 0);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
