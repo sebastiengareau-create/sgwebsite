@@ -113,11 +113,16 @@ export default async function FeuilletsFiscaux(props) {
                 ["", "Cotisations au RQAP — employés", fmt(totaux.rqap)],
                 ["", "Cotisations au RQAP — employeur", fmt(totaux.rqapEmployeur)],
                 ["", "Impôt du Québec retenu", fmt(totaux.impotQuebec)],
+                ["", "Cotisation au FSS", fmt(totaux.fss)],
+                ["", "Cotisation relative aux normes du travail", fmt(totaux.cnt)],
+                ["", "Prime CNESST (selon le taux réglé)", fmt(totaux.cnesst)],
               ]} />
             </div>
             <p style={{ fontSize: 10.5, color: "#777", margin: "0 0 4px", lineHeight: 1.45 }}>
-              Les versements déjà faits aux gouvernements (T4 Sommaire case 82), le FSS, la cotisation CNESST et la contribution au
-              développement de la main-d'œuvre ne sont pas calculés par le logiciel : prends-les dans tes relevés de versements.
+              Le FSS, les normes du travail et la CNESST sont calculés depuis leur ajout au logiciel : les paies plus anciennes n'en
+              contiennent pas. Le taux réel du FSS se confirme au sommaire, selon la masse salariale de l'année. Les versements déjà
+              faits aux gouvernements (T4 Sommaire case 82) et la contribution au développement de la main-d'œuvre ne sont pas
+              calculés par le logiciel : prends-les dans tes relevés de versements.
             </p>
 
             {feuillets.map((f) => (

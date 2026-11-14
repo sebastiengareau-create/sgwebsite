@@ -50,7 +50,7 @@ export default function JournalPaieClient({ paies, sommaireEmployes, totaux, deb
         <CarteChiffre titre="Net versé" montant={argent(totaux.net)} teinte="var(--success)" couleur="var(--success)" note="Payé aux employés" />
       </div>
       <div className="grille-trois" style={{ marginBottom: 24 }}>
-        <CarteChiffre titre="Charges employeur" montant={argent(totaux.chargesEmployeur)} teinte="var(--danger)" note="RRQ, RQAP, AE de l'employeur" />
+        <CarteChiffre titre="Charges employeur" montant={argent(totaux.chargesEmployeur)} teinte="var(--danger)" note="RRQ, RQAP, AE, FSS, CNESST, normes du travail" />
         <CarteChiffre titre="Vacances accumulées" montant={argent(totaux.vacancesAccumulees)} teinte="var(--accent)" note="Sur les paies régulières" />
         <CarteChiffre titre="Vacances versées" montant={argent(totaux.vacancesVersees)} teinte="var(--accent)" couleur="var(--accent-ombre)" note="Paies de vacances" />
       </div>

@@ -138,6 +138,28 @@ test("Fédéral, Québec — prime avec un revenu annuel de 5 000 $ ou moins : 1
   egal(r.detail.impotFederalBoni, 50, "10 % de 500 $");
 });
 
+// ---- Cotisations de l'employeur : FSS, normes du travail, CNESST ----
+test("FSS — 1,65 % par défaut (TP-1015.F, partie 5), ou le taux réglé", () => {
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026).fssEmployeur, 33, "1,65 % de 2 000 $");
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { tauxFss: 1.25 }).fssEmployeur, 25, "1,25 % de 2 000 $");
+  egal(calculerPaie(5000, "BIHEBDOMADAIRE", { gains: 200000 }, 2026).fssEmployeur, 82.5, "sans maximum annuel");
+});
+test("Normes du travail — 0,06 %, jusqu'au maximum annuel de 103 000 $", () => {
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026).cntEmployeur, 1.2, "0,06 % de 2 000 $");
+  egal(calculerPaie(5000, "BIHEBDOMADAIRE", { gains: 102000 }, 2026).cntEmployeur, 0.6, "sur les 1 000 $ restants");
+  egal(calculerPaie(5000, "BIHEBDOMADAIRE", { gains: 110000 }, 2026).cntEmployeur, 0, "maximum atteint");
+});
+test("CNESST — taux de l'employeur par 100 $, jusqu'au maximum assurable ; rien sans taux", () => {
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026).cnesstEmployeur, 0, "taux non réglé");
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { tauxCnesst: 2.1 }).cnesstEmployeur, 42, "2,10 $ par 100 $");
+  egal(calculerPaie(5000, "BIHEBDOMADAIRE", { gains: 102000 }, 2026, { tauxCnesst: 2.1 }).cnesstEmployeur, 21, "sur les 1 000 $ restants");
+});
+test("Les cotisations de l'employeur ne changent pas le net de l'employé", () => {
+  const sans = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
+  const avec = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { tauxFss: 4.26, tauxCnesst: 5 });
+  egal(avec.salaireNet, sans.salaireNet, "net");
+});
+
 // ---- Cohérence de l'impôt fédéral ----
 test("Fédéral — un boni est imposé au taux marginal, pas annualisé", () => {
   const sans = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);

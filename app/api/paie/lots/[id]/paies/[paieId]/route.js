@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { calculerPaiePourEmploye } from "@/lib/paie";
+import { calculerPaiePourEmploye, champsCalculPaie } from "@/lib/paie";
 
 // Ajuste une paie précise à l'intérieur d'un lot encore en brouillon —
 // recalcule toujours côté serveur (jamais en confiance aveugle des chiffres
@@ -41,23 +41,7 @@ export async function PATCH(request, props) {
   const misAJour = await prisma.paie.update({
     where: { id: paie.id },
     data: {
-      heuresTravaillees: resultat.heuresTravaillees,
-      heuresHorodateur: resultat.heuresHorodateur,
-      boni: resultat.boni,
-      salaireBrut: resultat.salaireBrutPeriode,
-      rrqEmploye: resultat.rrqEmploye,
-      rrq2Employe: resultat.rrq2Employe,
-      rqapEmploye: resultat.rqapEmploye,
-      aeEmploye: resultat.aeEmploye,
-      impotFederal: resultat.impotFederal,
-      impotQuebec: resultat.impotQuebec,
-      totalDeductions: resultat.totalDeductions,
-      salaireNet: resultat.salaireNet,
-      rrqEmployeur: resultat.rrqEmployeur,
-      rrq2Employeur: resultat.rrq2Employeur,
-      rqapEmployeur: resultat.rqapEmployeur,
-      aeEmployeur: resultat.aeEmployeur,
-      vacancesAccumulees: resultat.vacancesAccumulees,
+      ...champsCalculPaie(resultat),
     },
   });
 

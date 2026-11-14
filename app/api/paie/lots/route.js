@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroLotPaie, creerAvecNumero } from "@/lib/numerotation";
-import { calculerPaiePourEmploye } from "@/lib/paie";
+import { calculerPaiePourEmploye, champsCalculPaie } from "@/lib/paie";
 
 // Ces dates sont des journées civiles (Québec), pas des instants précis — on
 // les ancre à midi UTC pour qu'elles retombent sur le même jour peu importe
@@ -50,23 +50,7 @@ export async function POST(request) {
           periodeDebut: jourCivil(periodeDebut),
           periodeFin: jourCivil(periodeFin),
           dateVersement: dateVersementFinale,
-          heuresTravaillees: r.heuresTravaillees,
-          heuresHorodateur: r.heuresHorodateur,
-          boni: r.boni,
-          salaireBrut: r.salaireBrutPeriode,
-          rrqEmploye: r.rrqEmploye,
-          rrq2Employe: r.rrq2Employe,
-          rqapEmploye: r.rqapEmploye,
-          aeEmploye: r.aeEmploye,
-          impotFederal: r.impotFederal,
-          impotQuebec: r.impotQuebec,
-          totalDeductions: r.totalDeductions,
-          salaireNet: r.salaireNet,
-          rrqEmployeur: r.rrqEmployeur,
-          rrq2Employeur: r.rrq2Employeur,
-          rqapEmployeur: r.rqapEmployeur,
-          aeEmployeur: r.aeEmployeur,
-          vacancesAccumulees: r.vacancesAccumulees,
+          ...champsCalculPaie(r),
           typePaie: typePaieFinal,
           statut: "BROUILLON",
         })),

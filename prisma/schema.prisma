@@ -991,6 +991,9 @@ model Paie {
   rrq2Employeur      Float     @default(0) // même montant que rrq2Employe
   rqapEmployeur      Float     @default(0)
   aeEmployeur        Float     @default(0)
+  fssEmployeur       Float     @default(0) // cotisation de l'employeur au Fonds des services de santé
+  cntEmployeur       Float     @default(0) // cotisation de l'employeur relative aux normes du travail
+  cnesstEmployeur    Float     @default(0) // prime de l'employeur à la CNESST, au taux réglé (0 si non réglé)
   vacancesAccumulees Float     @default(0) // % du brut accumulé en vacances cette paie-ci
   typePaie           String    @default("REGULIERE") // "REGULIERE" | "VACANCES" — une paie de vacances puise dans le solde accumulé au lieu d'en créer
   statut             String    @default("BROUILLON") // "BROUILLON" | "VERSEE" | "CORRIGEE"

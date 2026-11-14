@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { calculerPaiePourEmploye } from "@/lib/paie";
+import { calculerPaiePourEmploye, champsCalculPaie } from "@/lib/paie";
 
 // Ajoute un employé à un lot déjà en brouillon (oublié à la création, ou pas
 // encore traité au moment où le lot a été calculé).
@@ -39,23 +39,7 @@ export async function POST(request, props) {
       periodeDebut: lot.periodeDebut,
       periodeFin: lot.periodeFin,
       dateVersement: lot.dateVersementPrevue || lot.periodeFin,
-      heuresTravaillees: resultat.heuresTravaillees,
-      heuresHorodateur: resultat.heuresHorodateur,
-      boni: resultat.boni,
-      salaireBrut: resultat.salaireBrutPeriode,
-      rrqEmploye: resultat.rrqEmploye,
-      rrq2Employe: resultat.rrq2Employe,
-      rqapEmploye: resultat.rqapEmploye,
-      aeEmploye: resultat.aeEmploye,
-      impotFederal: resultat.impotFederal,
-      impotQuebec: resultat.impotQuebec,
-      totalDeductions: resultat.totalDeductions,
-      salaireNet: resultat.salaireNet,
-      rrqEmployeur: resultat.rrqEmployeur,
-      rrq2Employeur: resultat.rrq2Employeur,
-      rqapEmployeur: resultat.rqapEmployeur,
-      aeEmployeur: resultat.aeEmployeur,
-      vacancesAccumulees: resultat.vacancesAccumulees,
+      ...champsCalculPaie(resultat),
       typePaie: lot.typePaie,
       statut: "BROUILLON",
     },

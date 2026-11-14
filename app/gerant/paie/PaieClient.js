@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, GroupeLiens, TitreGroupe, Panneau, Pastille } from "../../components/StyleSection";
 import { argent, nombre } from "@/lib/format";
+import CotisationsEmployeur from "./CotisationsEmployeur";
 
 const STATUT_INFO = {
   BROUILLON: { label: "Brouillon", couleur: "var(--avertissement)", fond: "var(--avertissement-fond)" },
@@ -68,7 +69,7 @@ function NoteVariation({ variation, inverserCouleur, prefixe }) {
   );
 }
 
-export default function PaieClient({ lots, employesActifs, kpis, dernierLot, alertes, prochainePaie, calendrierDates }) {
+export default function PaieClient({ lots, employesActifs, kpis, dernierLot, alertes, prochainePaie, calendrierDates, tauxEmployeur }) {
   const brouillons = lots.filter((l) => l.statut === "BROUILLON");
   const historique = lots.filter((l) => l.statut === "COMPTABILISEE");
   const libelleLot = dernierLot ? `Lot #${dernierLot.numero}` : "Dernier lot";
@@ -221,6 +222,9 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         <section style={{ marginBottom: 24 }}>
           <TitreGroupe couleur="var(--accent)">Calendrier de paie</TitreGroupe>
           <MiniCalendrier calendrierDates={calendrierDates} />
+        </section>
+        <section style={{ marginBottom: 24 }}>
+          <CotisationsEmployeur tauxFss={tauxEmployeur.fss} tauxCnesst={tauxEmployeur.cnesst} tauxFssParDefaut={tauxEmployeur.fssParDefaut} />
         </section>
       </div>
     </div>
