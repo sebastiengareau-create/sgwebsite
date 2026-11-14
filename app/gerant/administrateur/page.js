@@ -26,7 +26,7 @@ export default async function Administrateur() {
         modules={[
           { id: "calendrier", label: "Calendrier", description: "Rendez-vous, réservations en ligne", actif: dict.module_calendrier !== "inactif" },
           { id: "comptabilite", label: "Comptabilité", description: "Plan comptable, écritures automatiques, journal général", actif: dict.module_comptabilite !== "inactif" },
-          { id: "paie", label: "Paie", description: "Estimation de paie — RRQ, RQAP, AE, impôts (à valider avec WebRAS)", actif: dict.module_paie === "actif" },
+          { id: "paie", label: "Paie", description: "Paie — retenues à la source, cotisations de l'employeur, heures supplémentaires, jours fériés, talons et sommaires T4 / RL-1", actif: dict.module_paie === "actif" },
           { id: "productivite", label: "Productivité par employés", description: "Rapport de productivité (heures poinçonnées, facturables, poinçons oubliés) et rentabilité par employé", actif: dict.module_productivite !== "inactif" },
           { id: "notifications", label: "Notifications", description: "Cloche 🔔, avis automatiques (rendez-vous, pièces reçues, stock bas…) et messages aux employés", actif: dict.module_notifications !== "inactif" },
           { id: "double_verification", label: "Double vérification à la connexion", description: "Gérants et niveau 4 : après le mot de passe, un code à 6 chiffres envoyé par courriel (une fois par appareil aux 30 jours). Exige l'envoi de courriel configuré", actif: dict.module_double_verification === "actif" },

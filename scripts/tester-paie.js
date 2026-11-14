@@ -9,6 +9,7 @@ const assert = require("node:assert/strict");
 const { calculerPaie, exemptionsEmploye } = require("../lib/paie");
 const { calculerHeuresPeriode } = require("../lib/heuresPaie");
 const { joursFeriesQuebec, joursFeriesEntre } = require("../lib/joursFeries");
+const { retenuesPourPaie, cumulRetenuesAnnee } = require("../lib/retenuesPaie");
 
 let reussis = 0;
 function test(nom, fn) {
@@ -205,6 +206,39 @@ test("Forfaitaire versé à part, sans salaire de référence connu : retenue fi
   const r = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { boni: 2000, salaireReference: 0 });
   egal(r.impotQuebec, 140, "7 % de 2 000 $");
   egal(r.impotFederal, 200, "10 % de 2 000 $");
+});
+
+// ---- Retenues propres à l'employé : REER, assurance collective ----
+test("REER retenu sur la paie : réduit l'impôt, pas les cotisations ; sort du net", () => {
+  const sans = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
+  const avec = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { deductionsPeriode: 100 });
+  egal(avec.rrqEmploye, sans.rrqEmploye, "RRQ inchangé");
+  egal(avec.aeEmploye, sans.aeEmploye, "AE inchangée");
+  egal(avec.rqapEmploye, sans.rqapEmploye, "RQAP inchangé");
+  // 100 $ de moins de revenu imposable par paie, au premier palier : 14 % au Québec, 14 % moins l'abattement au fédéral
+  egal(sans.impotQuebec - avec.impotQuebec, 14, "impôt du Québec");
+  egal(sans.impotFederal - avec.impotFederal, 14 * (1 - 0.165), "impôt fédéral");
+  egal(avec.retenuesDeductibles, 100, "REER");
+  egal(avec.salaireNet, sans.salaireNet - 100 + 14 + 14 * (1 - 0.165), "net");
+  egal(avec.totalDeductions, 2000 - avec.salaireNet, "total des retenues = brut – net");
+});
+test("Assurance collective (après impôt) : aucun calcul ne change, seul le net baisse", () => {
+  const sans = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
+  const avec = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { retenuesApresImpot: 45.5 });
+  egal(avec.impotQuebec, sans.impotQuebec, "impôt du Québec");
+  egal(avec.impotFederal, sans.impotFederal, "impôt fédéral");
+  egal(avec.salaireNet, sans.salaireNet - 45.5, "net");
+});
+test("Retenues d'une fiche : totaux par type, retenues inactives ignorées, cumul par libellé", () => {
+  const r = retenuesPourPaie([
+    { libelle: "REER", type: "REER", montant: 100 },
+    { libelle: "Assurance collective", type: "APRES_IMPOT", montant: 45.5 },
+    { libelle: "Ancien prêt", type: "APRES_IMPOT", montant: 50, actif: false },
+  ]);
+  egal(r.deductibles, 100, "REER");
+  egal(r.apresImpot, 45.5, "après impôt");
+  assert.equal(r.detail.length, 2);
+  assert.deepEqual(cumulRetenuesAnnee([{ retenuesDetail: r.detail }, { retenuesDetail: r.detail }, { retenuesDetail: null }]), { REER: 200, "Assurance collective": 91 });
 });
 
 // ---- Exemptions ----

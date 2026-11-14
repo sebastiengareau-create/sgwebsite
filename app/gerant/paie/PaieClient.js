@@ -90,24 +90,9 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
         <BoutonPlein href="/gerant/paie/nouveau">Nouveau lot de paie</BoutonPlein>
         <BoutonContour href="/gerant/paie/journal" icone="livre">Journal</BoutonContour>
+        <BoutonContour href="/gerant/comptabilite/remise-gouvernementale" icone="banque">Remises à payer</BoutonContour>
       </div>
 
-      <div style={{
-        position: "relative", overflow: "hidden", display: "flex", gap: 12, alignItems: "flex-start",
-        background: "var(--danger-fond)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 14px 12px 18px", marginBottom: 22,
-      }}>
-        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--danger)" }} />
-        <Icone nom="alerte" taille={20} couleur="var(--danger)" />
-        <p style={{ fontSize: 12.5, color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
-          <strong>Logiciel non certifié.</strong> Les retenues suivent les formules publiées par Revenu Québec
-          (TP-1015.F) et l'ARC (T4127), mais certains cas ne sont pas couverts (commissions, REER retenu sur la paie,
-          exemptions). En cas de doute, valide avec{" "}
-          <a href="https://www.revenuquebec.ca/fr/services-en-ligne/outils/webras/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>
-            WebRAS
-          </a>{" "}
-          avant de verser la paie.
-        </p>
-      </div>
 
       <GrilleChiffres>
         <CarteChiffre

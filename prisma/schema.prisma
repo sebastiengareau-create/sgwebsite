@@ -66,6 +66,7 @@ model User {
   heuresJour           HeuresJourEmploye[]
   photosAjoutees       Photo[]
   paies                Paie[]
+  retenues             RetenueEmploye[] // REER, assurance collective… retenus à chaque paie
   envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (section « Jobs en déplacement »)
   positionsGps         PositionGps[]
   abonnementsPush      AbonnementPush[] // téléphones où il reçoit les notifications
@@ -996,6 +997,9 @@ model Paie {
   rrqEmployeur       Float     @default(0)
   rrq2Employeur      Float     @default(0) // même montant que rrq2Employe
   rqapEmployeur      Float     @default(0)
+  retenuesDeductibles Float    @default(0) // cotisations à un REER ou à un régime de retraite retenues sur cette paie : réduisent le revenu imposable, comprises dans totalDeductions
+  retenuesApresImpot Float     @default(0) // autres retenues propres à l'employé (assurance collective…), comprises dans totalDeductions
+  retenuesDetail     Json? // détail des deux totaux ci-dessus, tel qu'appliqué : [{ libelle, type, montant }] — voir lib/retenuesPaie.js
   aeEmployeur        Float     @default(0)
   fssEmployeur       Float     @default(0) // cotisation de l'employeur au Fonds des services de santé
   cntEmployeur       Float     @default(0) // cotisation de l'employeur relative aux normes du travail
@@ -1012,6 +1016,21 @@ model Paie {
 
   @@index([employeId])
   @@index([lotId])
+}
+
+// Retenue propre à un employé, appliquée à chaque paie régulière en plus des
+// retenues obligatoires — voir lib/retenuesPaie.js
+model RetenueEmploye {
+  id        String   @id @default(cuid())
+  employeId String
+  employe   User     @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  libelle   String // ex. « REER », « Assurance collective »
+  type      String   @default("APRES_IMPOT") // "REER" (réduit le revenu imposable) | "APRES_IMPOT"
+  montant   Float // par paie
+  actif     Boolean  @default(true)
+  creeLe    DateTime @default(now())
+
+  @@index([employeId])
 }
 
 // Catégories d'inventaire — chacune reliée à un compte de revenu, pour que

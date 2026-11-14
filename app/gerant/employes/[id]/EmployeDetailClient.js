@@ -10,8 +10,9 @@ import { ligneVille } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { formaterNas, masquerNas } from "@/lib/nas";
 import { argent } from "@/lib/format";
+import RetenuesEmploye from "./RetenuesEmploye";
 
-export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre, peutVoirNas, activite }) {
+export default function EmployeDetailClient({ employe, paies, estMoi, paieActif, soldeVacances, heures, nomsRoles, peutModifierTheme, rolesAssignables, peutGererEmploye, peutRedigerLettre, peutVoirNas, retenues = [], activite }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [enCours, setEnCours] = useState(false);
@@ -345,6 +346,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             />
             {employe.dateNaissance && <LigneDetail label="Date de naissance" valeur={dateCourte(employe.dateNaissance)} />}
           </div>
+
+          {paieActif && peutVoirNas && <RetenuesEmploye employeId={employe.id} retenues={retenues} />}
 
           {paieActif && paies.length > 0 && (
             <div style={stylePanneau}>

@@ -1,4 +1,5 @@
 import { argent, nombre } from "@/lib/format";
+import { detailRetenues } from "@/lib/retenuesPaie";
 export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, className }) {
   const estVacances = paie.typePaie === "VACANCES";
 
@@ -63,6 +64,9 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
           <LigneTalon label="Assurance-emploi" valeur={-paie.aeEmploye} cumul={-cumulatif.ae} />
           <LigneTalon label="Impôt fédéral" valeur={-paie.impotFederal} cumul={-cumulatif.impotFederal} />
           <LigneTalon label="Impôt Québec" valeur={-paie.impotQuebec} cumul={-cumulatif.impotQuebec} />
+          {detailRetenues(paie).map((r, i) => (
+            <LigneTalon key={`${r.libelle}-${i}`} label={r.libelle} valeur={-r.montant} cumul={-(cumulatif.retenues?.[r.libelle] ?? r.montant)} />
+          ))}
         </tbody>
         <tfoot>
           <tr style={{ borderTop: "2px solid #17150f" }}>

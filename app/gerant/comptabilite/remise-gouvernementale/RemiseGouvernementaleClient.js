@@ -72,7 +72,7 @@ export default function RemiseGouvernementaleClient({ soldes }) {
     <div className="conteneur-page">
       <Link href="/gerant/comptabilite" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour à la comptabilité</Link>
       <div style={{ marginTop: 8 }}>
-        <BandeauSection icone="🏛️" titre="Remise gouvernementale" sousTitre="Règle ce que tu dois déjà : TPS, TVQ et retenues sur la paie. Chaque groupe se paie séparément, avec sa propre référence." />
+        <BandeauSection icone="🏛️" titre="Remises à payer" sousTitre="Règle ce que tu dois déjà : TPS, TVQ, retenues sur la paie, REER et assurance collective des employés. Chaque groupe se paie séparément, avec sa propre référence." />
       </div>
 
       <GrilleChiffres>
