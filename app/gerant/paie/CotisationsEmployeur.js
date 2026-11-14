@@ -6,10 +6,11 @@ import { TitrePanneau, TEINTES, stylePanneau } from "../../components/StyleSecti
 // Taux propres à l'employeur, utilisés par le calcul de la paie
 // (lib/paie.js) : FSS en %, CNESST en $ par 100 $ de salaire assurable.
 // La cotisation aux normes du travail (0,06 %) est la même pour tous.
-export default function CotisationsEmployeur({ tauxFss, tauxCnesst, tauxFssParDefaut }) {
+export default function CotisationsEmployeur({ tauxFss, tauxCnesst, tauxFssParDefaut, congePaques }) {
   const router = useRouter();
   const [fss, setFss] = useState(tauxFss ?? "");
   const [cnesst, setCnesst] = useState(tauxCnesst ?? "");
+  const [paques, setPaques] = useState(congePaques === "LUNDI" ? "LUNDI" : "VENDREDI");
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -26,7 +27,7 @@ export default function CotisationsEmployeur({ tauxFss, tauxCnesst, tauxFssParDe
     const res = await fetch("/api/parametres", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paie_fss_taux: fss, paie_cnesst_taux: cnesst }),
+      body: JSON.stringify({ paie_fss_taux: fss, paie_cnesst_taux: cnesst, paie_ferie_paques: paques }),
     });
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
@@ -34,14 +35,14 @@ export default function CotisationsEmployeur({ tauxFss, tauxCnesst, tauxFssParDe
       setMessage({ erreur: true, texte: data.erreur || "Erreur lors de l'enregistrement." });
       return;
     }
-    setMessage({ texte: "Taux enregistrés ✓ — ils s'appliquent aux prochains calculs de paie." });
+    setMessage({ texte: "Réglages enregistrés ✓ — ils s'appliquent aux prochains calculs de paie." });
     router.refresh();
   }
 
   return (
     <form onSubmit={enregistrer} style={stylePanneau}>
       <TitrePanneau
-        icone="calculatrice" teinte={TEINTES.vert} titre="Cotisations de l'employeur"
+        icone="calculatrice" teinte={TEINTES.vert} titre="Cotisations de l'employeur et jours fériés"
         sousTitre="FSS, CNESST et normes du travail : calculées à chaque paie et ajoutées aux charges à remettre."
       />
       <label className="etiquette">Taux du FSS (%) — vide = {String(tauxFssParDefaut).replace(".", ",")} %</label>
@@ -57,9 +58,17 @@ export default function CotisationsEmployeur({ tauxFss, tauxCnesst, tauxFssParDe
       <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 12px", lineHeight: 1.45 }}>
         Normes du travail : 0,06 % de la rémunération, jusqu'au maximum annuel par employé — rien à régler.
       </p>
+      <label className="etiquette">Congé de Pâques</label>
+      <select value={paques} onChange={(e) => setPaques(e.target.value)} className="champ">
+        <option value="VENDREDI">Vendredi saint</option>
+        <option value="LUNDI">Lundi de Pâques</option>
+      </select>
+      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "-4px 0 12px", lineHeight: 1.45 }}>
+        L'un des deux est férié, au choix de l'employeur. Les sept autres jours fériés sont fixés par la loi.
+      </p>
       {message && <p style={{ fontSize: 12.5, fontWeight: 700, margin: "0 0 10px", color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>}
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ padding: "10px 16px", borderRadius: 10, fontWeight: 800, fontSize: 13 }}>
-        {enCours ? "Enregistrement…" : "Enregistrer les taux"}
+        {enCours ? "Enregistrement…" : "Enregistrer"}
       </button>
     </form>
   );

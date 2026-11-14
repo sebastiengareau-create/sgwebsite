@@ -975,9 +975,11 @@ model Paie {
   lot                LotPaie?  @relation(fields: [lotId], references: [id])
   periodeDebut       DateTime
   periodeFin         DateTime
-  heuresTravaillees  Float     @default(0)
+  heuresTravaillees  Float     @default(0) // heures régulières payées (sans les heures supplémentaires)
   heuresHorodateur   Float? // total réellement poinçonné, informatif seulement — heuresTravaillees peut différer (horaire d'ouverture par défaut, ou ajusté manuellement)
-  boni               Float     @default(0) // prime/extra ajouté au brut, imposé comme le reste
+  heuresSupplementaires Float  @default(0) // heures au-delà de 40 dans une semaine, payées à taux et demi (lib/heuresPaie.js) — en plus de heuresTravaillees
+  indemniteFeries    Float     @default(0) // indemnité des jours fériés de la période, en dollars, comprise dans salaireBrut
+  boni               Float     @default(0) // prime/extra ajouté au brut, imposé par la méthode des gratifications
   salaireBrut        Float
   rrqEmploye         Float     @default(0) // cotisation de base + 1re supplémentaire
   rrq2Employe        Float     @default(0) // 2e cotisation supplémentaire au RRQ (gains entre le MGA et le MSGA) — T4 case 17A, RL-1 case B.B

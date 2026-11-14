@@ -7,6 +7,8 @@
 process.env.DATABASE_URL ||= "postgresql://test:test@localhost:5432/test";
 const assert = require("node:assert/strict");
 const { calculerPaie } = require("../lib/paie");
+const { calculerHeuresPeriode } = require("../lib/heuresPaie");
+const { joursFeriesQuebec, joursFeriesEntre } = require("../lib/joursFeries");
 
 let reussis = 0;
 function test(nom, fn) {
@@ -176,6 +178,79 @@ test("Montants TD1 / TP-1015.3 plus élevés : moins d'impôt retenu", () => {
   const base = calculerPaie(2500, "BIHEBDOMADAIRE", {}, 2026);
   const plus = calculerPaie(2500, "BIHEBDOMADAIRE", {}, 2026, { montantTd1: 30000, montantTp10153: 30000 });
   assert.ok(plus.impotFederal < base.impotFederal && plus.impotQuebec < base.impotQuebec);
+});
+
+// ---- Jours fériés du Québec ----
+test("Jours fériés 2026 : les huit jours, aux bonnes dates", () => {
+  assert.deepEqual(joursFeriesQuebec(2026).map((f) => f.dateStr), [
+    "2026-01-01", "2026-04-03", "2026-05-18", "2026-06-24", "2026-07-01", "2026-09-07", "2026-10-12", "2026-12-25",
+  ]);
+  assert.equal(joursFeriesQuebec(2026, { paques: "LUNDI" })[1].dateStr, "2026-04-06");
+});
+test("Jours fériés : 24 juin et 1er juillet un dimanche reportés au lendemain (2029)", () => {
+  assert.equal(joursFeriesQuebec(2029).find((f) => f.nom === "Fête nationale").dateStr, "2029-06-25");
+  assert.equal(joursFeriesQuebec(2029).find((f) => f.nom === "Fête du Canada").dateStr, "2029-07-02");
+  assert.equal(joursFeriesQuebec(2027).find((f) => f.nom === "Journée nationale des patriotes").dateStr, "2027-05-24");
+});
+
+// ---- Heures supplémentaires et indemnité des jours fériés ----
+// Horaire d'ouverture : 8 h du lundi au jeudi, 5 h le vendredi (37 h).
+const horaire = { lun: 8, mar: 8, mer: 8, jeu: 8, ven: 5, sam: 0, dim: 0 };
+// Un poinçon de `heures` heures, de jour, à une date du Québec
+const poincon = (dateStr, heures) => ({ debut: new Date(`${dateStr}T13:00:00Z`), fin: new Date(new Date(`${dateStr}T13:00:00Z`).getTime() + heures * 3600000) });
+const jours = (debutStr, n) => Array.from({ length: n }, (_, i) => new Date(new Date(`${debutStr}T12:00:00Z`).getTime() + i * 86400000).toISOString().slice(0, 10));
+const semaineOuvrable = (lundiStr, heures) => jours(lundiStr, 5).map((j) => poincon(j, heures));
+
+test("Semaine ordinaire : l'horaire des jours poinçonnés, aucune heure supplémentaire", () => {
+  const r = calculerHeuresPeriode({ entrees: semaineOuvrable("2026-03-02", 7), debutStr: "2026-03-01", finStr: "2026-03-07", horaire });
+  egal(r.heuresRegulieres, 37, "régulières");
+  egal(r.heuresSupplementaires, 0, "supplémentaires");
+});
+test("Semaine de 50 heures : 40 régulières et 10 supplémentaires", () => {
+  const r = calculerHeuresPeriode({ entrees: semaineOuvrable("2026-03-02", 10), debutStr: "2026-03-01", finStr: "2026-03-07", horaire });
+  egal(r.heuresRegulieres, 40, "régulières");
+  egal(r.heuresSupplementaires, 10, "supplémentaires");
+});
+test("Deux semaines, une seule au-delà de 40 heures", () => {
+  const entrees = [...semaineOuvrable("2026-03-02", 9), ...semaineOuvrable("2026-03-09", 7)];
+  const r = calculerHeuresPeriode({ entrees, debutStr: "2026-03-01", finStr: "2026-03-14", horaire });
+  egal(r.heuresRegulieres, 77, "40 + 37");
+  egal(r.heuresSupplementaires, 5, "45 – 40");
+});
+test("Semaine à cheval sur deux périodes : réglée dans la période où elle se termine", () => {
+  const entrees = semaineOuvrable("2026-03-02", 10); // 50 h, du lundi 2 au vendredi 6
+  // 1re période : finit le mercredi 4 — la semaine n'est pas terminée
+  const p1 = calculerHeuresPeriode({ entrees, debutStr: "2026-02-19", finStr: "2026-03-04", horaire });
+  egal(p1.heuresRegulieres, 24, "lundi, mardi, mercredi à l'horaire");
+  egal(p1.heuresSupplementaires, 0, "pas encore réglée");
+  // 2e période : la semaine s'y termine — 40 h régulières en tout, dont 24 déjà payées
+  const p2 = calculerHeuresPeriode({ entrees, debutStr: "2026-03-05", finStr: "2026-03-18", horaire });
+  egal(p2.heuresRegulieres, 16, "40 – 24");
+  egal(p2.heuresSupplementaires, 10, "supplémentaires");
+});
+test("Jour férié chômé : indemnité de 1/20 des 4 semaines précédentes", () => {
+  // Journée des patriotes, lundi 18 mai 2026 ; 4 semaines de 37 h avant
+  const entrees = ["2026-04-20", "2026-04-27", "2026-05-04", "2026-05-11"].flatMap((l) => semaineOuvrable(l, 7));
+  entrees.push(...jours("2026-05-19", 4).map((j) => poincon(j, 7))); // mardi au vendredi de la semaine du férié
+  const feries = joursFeriesEntre("2026-04-01", "2026-05-23");
+  const r = calculerHeuresPeriode({ entrees, debutStr: "2026-05-17", finStr: "2026-05-23", horaire, feries });
+  egal(r.heuresFeries, 7.4, "148 h ÷ 20");
+  egal(r.heuresRegulieres, 29, "mardi au vendredi");
+  assert.equal(r.feries[0].nom, "Journée nationale des patriotes");
+  assert.equal(r.feries[0].travaille, false);
+});
+test("Jour férié chômé : compte comme travaillé dans le calcul des 40 heures", () => {
+  const entrees = jours("2026-05-19", 4).map((j) => poincon(j, 9)); // 36 h en 4 jours
+  const feries = joursFeriesEntre("2026-04-01", "2026-05-23");
+  const r = calculerHeuresPeriode({ entrees, debutStr: "2026-05-17", finStr: "2026-05-23", horaire, feries });
+  egal(r.heuresSupplementaires, 4, "36 h + 8 h du férié – 40");
+  egal(r.heuresRegulieres, 32, "40 – 8 h du férié, payé par l'indemnité");
+});
+test("Employé payé pour tout l'horaire : le férié est déjà payé, pas d'indemnité", () => {
+  const feries = joursFeriesEntre("2026-04-01", "2026-05-23");
+  const r = calculerHeuresPeriode({ entrees: [], debutStr: "2026-05-17", finStr: "2026-05-23", horaire, horaireComplet: true, feries });
+  egal(r.heuresRegulieres, 37, "tout l'horaire");
+  egal(r.heuresFeries, 0, "indemnité");
 });
 
 console.log(`\n${reussis} test(s) réussi(s)${process.exitCode ? " — des tests ont échoué" : ""}.`);

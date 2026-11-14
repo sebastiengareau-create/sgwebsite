@@ -224,7 +224,7 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
           <MiniCalendrier calendrierDates={calendrierDates} />
         </section>
         <section style={{ marginBottom: 24 }}>
-          <CotisationsEmployeur tauxFss={tauxEmployeur.fss} tauxCnesst={tauxEmployeur.cnesst} tauxFssParDefaut={tauxEmployeur.fssParDefaut} />
+          <CotisationsEmployeur tauxFss={tauxEmployeur.fss} tauxCnesst={tauxEmployeur.cnesst} tauxFssParDefaut={tauxEmployeur.fssParDefaut} congePaques={tauxEmployeur.congePaques} />
         </section>
       </div>
     </div>
