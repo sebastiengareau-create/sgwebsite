@@ -245,6 +245,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
   const [heuresValeur, setHeuresValeur] = useState(String(paie.heuresTravaillees));
   const [montantValeur, setMontantValeur] = useState(String(paie.salaireBrut));
   const [boniValeur, setBoniValeur] = useState(String(paie.boni || 0));
+  const [forfaitaireValeur, setForfaitaireValeur] = useState(!!paie.vacancesForfaitaire);
   const [heuresSupValeur, setHeuresSupValeur] = useState(String(paie.heuresSupplementaires || 0));
   const [feriesValeur, setFeriesValeur] = useState(String(paie.indemniteFeries || 0));
   const modifiable = estBrouillon && paie.employe.typeRemuneration !== "SALAIRE";
@@ -255,7 +256,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
     : `${argent((paie.employe.tauxHoraireEmploye || 0))}/h`;
 
   function recalculer() {
-    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur } : { heuresManuelles: heuresValeur, heuresSupManuelles: heuresSupValeur, indemniteFeriesManuelle: feriesValeur, boni: boniValeur });
+    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur, vacancesForfaitaire: forfaitaireValeur } : { heuresManuelles: heuresValeur, heuresSupManuelles: heuresSupValeur, indemniteFeriesManuelle: feriesValeur, boni: boniValeur });
   }
 
   return (
@@ -273,6 +274,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
             {infoRemuneration}
             {!estVacances && (paie.heuresTravaillees > 0 || paie.employe.typeRemuneration !== "SALAIRE") && ` · ${nombre(paie.heuresTravaillees)} h`}
             {!estVacances && paie.heuresHorodateur != null && paie.heuresHorodateur !== paie.heuresTravaillees && ` (${nombre(paie.heuresHorodateur)} h réelles)`}
+            {estVacances && (paie.vacancesForfaitaire ? " · en plus du salaire" : " · remplace le salaire")}
             {paie.heuresSupplementaires > 0 && ` · ${nombre(paie.heuresSupplementaires)} h supp.`}
             {paie.indemniteFeries > 0 && ` · férié ${argent(paie.indemniteFeries)}`}
             {paie.boni > 0 && ` · +${argent(paie.boni)} boni`}
@@ -295,6 +297,13 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
                 <div>
                   <label style={labelStyle}>Montant de vacances ($)</label>
                   <input type="number" min={0} step="0.01" value={montantValeur} onChange={(e) => setMontantValeur(e.target.value)} style={champStyle} />
+                  <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, marginBottom: 10, cursor: "pointer" }}>
+                    <input type="checkbox" checked={forfaitaireValeur} onChange={(e) => setForfaitaireValeur(e.target.checked)} style={{ marginTop: 3 }} />
+                    <span>
+                      <span style={{ fontWeight: 700 }}>Versées en plus du salaire, sans congé</span>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>Impôt calculé comme pour un boni. Décochée : la paie remplace le salaire de la période.</span>
+                    </span>
+                  </label>
                 </div>
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>

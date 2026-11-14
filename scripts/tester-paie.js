@@ -180,6 +180,33 @@ test("Montants TD1 / TP-1015.3 plus élevés : moins d'impôt retenu", () => {
   assert.ok(plus.impotFederal < base.impotFederal && plus.impotQuebec < base.impotQuebec);
 });
 
+// ---- Forfaitaire versé à part du salaire (vacances versées en plus du salaire) ----
+// Employé à 2 000 $ aux deux semaines qui reçoit 2 000 $ de vacances en plus.
+test("Forfaitaire versé à part : même impôt qu'un boni ajouté à la paie régulière", () => {
+  const seule = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
+  const avecBoni = calculerPaie(4000, "BIHEBDOMADAIRE", {}, 2026, { boni: 2000 });
+  const aPart = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { boni: 2000, salaireReference: 2000 });
+  // Québec, seconde méthode : taux du revenu annuel × (forfaitaire – CSB)
+  egal(aPart.detail.revenuQcRegulier, seule.detail.revenuQcRegulier, "revenu annuel estimé d'après le salaire de référence");
+  egal(aPart.impotQuebec, 0.14 * (2000 - aPart.detail.CSB), "14 % du forfaitaire net de la déduction du RRQ");
+  // Fédéral : l'écart avec « boni dans la même paie » ne vient que de l'exemption du RRQ (quelques cents)
+  assert.ok(Math.abs(aPart.impotFederal - (avecBoni.impotFederal - seule.impotFederal)) < 1, `fédéral à part ${aPart.impotFederal} vs boni ${(avecBoni.impotFederal - seule.impotFederal).toFixed(2)}`);
+});
+test("Forfaitaire versé à part : RRQ sans l'exemption de la période, déjà accordée sur le salaire", () => {
+  const r = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { boni: 2000, salaireReference: 2000 });
+  egal(r.rrqEmploye, 126, "6,30 % de 2 000 $");
+});
+test("Forfaitaire versé à part : plus d'impôt que la même somme traitée comme un salaire de la période", () => {
+  const commeSalaire = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
+  const aPart = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { boni: 2000, salaireReference: 2000 });
+  assert.ok(aPart.impotQuebec > commeSalaire.impotQuebec && aPart.impotFederal > commeSalaire.impotFederal, "les crédits personnels sont déjà utilisés par le salaire");
+});
+test("Forfaitaire versé à part, sans salaire de référence connu : retenue fixe sous le seuil", () => {
+  const r = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { boni: 2000, salaireReference: 0 });
+  egal(r.impotQuebec, 140, "7 % de 2 000 $");
+  egal(r.impotFederal, 200, "10 % de 2 000 $");
+});
+
 // ---- Exemptions ----
 const naissance = (dateStr) => ({ dateNaissance: new Date(`${dateStr}T12:00:00Z`) });
 const versement = (dateStr) => new Date(`${dateStr}T17:00:00Z`);

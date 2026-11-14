@@ -19,7 +19,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { typePaie, periodeDebut, periodeFin, dateVersement, employeIds } = await request.json();
+  const { typePaie, periodeDebut, periodeFin, dateVersement, employeIds, vacancesForfaitaire } = await request.json();
   if (!periodeDebut || !periodeFin || !Array.isArray(employeIds) || employeIds.length === 0) {
     return NextResponse.json({ erreur: "Période et au moins un employé sont requis." }, { status: 400 });
   }
@@ -29,7 +29,7 @@ export async function POST(request) {
 
   const resultats = [];
   for (const employeId of employeIds) {
-    const resultat = await calculerPaiePourEmploye(employeId, { periodeDebut, periodeFin, dateVersement: dateVersementFinale, typePaie: typePaieFinal });
+    const resultat = await calculerPaiePourEmploye(employeId, { periodeDebut, periodeFin, dateVersement: dateVersementFinale, typePaie: typePaieFinal, vacancesForfaitaire: vacancesForfaitaire === true });
     if (resultat.erreur) {
       return NextResponse.json({ erreur: resultat.erreur === "Employé introuvable." ? `${resultat.erreur} (employé ${employeId})` : resultat.erreur }, { status: 400 });
     }

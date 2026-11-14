@@ -1002,6 +1002,7 @@ model Paie {
   cnesstEmployeur    Float     @default(0) // prime de l'employeur à la CNESST, au taux réglé (0 si non réglé)
   vacancesAccumulees Float     @default(0) // % du brut accumulé en vacances cette paie-ci
   typePaie           String    @default("REGULIERE") // "REGULIERE" | "VACANCES" — une paie de vacances puise dans le solde accumulé au lieu d'en créer
+  vacancesForfaitaire Boolean  @default(false) // paie de vacances versée EN PLUS du salaire (sans congé pris) : imposée comme un paiement forfaitaire (lib/paie.js) ; sinon elle remplace le salaire de la période
   statut             String    @default("BROUILLON") // "BROUILLON" | "VERSEE" | "CORRIGEE"
   corrigeeParId      String? // pointe vers la nouvelle paie qui remplace celle-ci
   dateVersement      DateTime?

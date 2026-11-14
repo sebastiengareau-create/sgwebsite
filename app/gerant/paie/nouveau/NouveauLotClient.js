@@ -13,6 +13,7 @@ export default function NouveauLotClient({ employes }) {
   const [periodeFin, setPeriodeFin] = useState(dateAujourdhuiQuebec());
   const [dateVersement, setDateVersement] = useState(dateAujourdhuiQuebec());
   const [typePaie, setTypePaie] = useState("REGULIERE");
+  const [vacancesForfaitaire, setVacancesForfaitaire] = useState(false);
   const [selectionnes, setSelectionnes] = useState(() => new Set(employes.map((e) => e.id)));
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -46,6 +47,7 @@ export default function NouveauLotClient({ employes }) {
         periodeFin: `${periodeFin}T23:59:59`,
         dateVersement: `${dateVersement}T00:00:00`,
         employeIds: Array.from(selectionnes),
+        vacancesForfaitaire: typePaie === "VACANCES" && vacancesForfaitaire,
       }),
     });
     setEnCours(false);
@@ -93,6 +95,22 @@ export default function NouveauLotClient({ employes }) {
               );
             })}
           </div>
+          {typePaie === "VACANCES" && (
+            <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+              {[
+                [false, "Les employés prennent leurs vacances", "La paie de vacances remplace leur salaire de la période : retenues d'une paie ordinaire."],
+                [true, "Versées en plus du salaire, sans congé", "Un paiement forfaitaire qui s'ajoute au salaire : impôt calculé comme pour un boni."],
+              ].map(([valeur, titre, detail]) => (
+                <label key={titre} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13.5, cursor: "pointer", padding: "10px 12px", borderRadius: 12, border: `1.5px solid ${vacancesForfaitaire === valeur ? "var(--accent)" : "var(--border)"}` }}>
+                  <input type="radio" name="vacancesForfaitaire" checked={vacancesForfaitaire === valeur} onChange={() => setVacancesForfaitaire(valeur)} style={{ marginTop: 3 }} />
+                  <span>
+                    <span style={{ fontWeight: 700 }}>{titre}</span>
+                    <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.45 }}>{detail}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={stylePanneau}>
