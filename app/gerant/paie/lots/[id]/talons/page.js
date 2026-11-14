@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import BoutonImprimerRapport from "../../../../comptabilite/rapports/BoutonImprimerRapport";
 import TalonPaie from "../../../TalonPaie";
+import { cumulRetenuesAnnee } from "@/lib/retenuesPaie";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
 export default async function TalonsDuLot(props) {
@@ -38,7 +39,7 @@ export default async function TalonsDuLot(props) {
           periodeFin: { gte: new Date(`${anneeCourante}-01-01`), lte: paie.periodeFin },
         },
       });
-      return paiesAnnee.reduce(
+      const cumul = paiesAnnee.reduce(
         (acc, p) => ({
           brut: acc.brut + p.salaireBrut,
           rrq: acc.rrq + p.rrqEmploye,
@@ -52,6 +53,7 @@ export default async function TalonsDuLot(props) {
         }),
         { brut: 0, rrq: 0, rrq2: 0, rqap: 0, ae: 0, impotFederal: 0, impotQuebec: 0, net: 0, heures: 0 }
       );
+      return { ...cumul, retenues: cumulRetenuesAnnee(paiesAnnee) };
     })
   );
 

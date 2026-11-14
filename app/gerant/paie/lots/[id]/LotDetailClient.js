@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent, nombre } from "@/lib/format";
+import { detailRetenues } from "@/lib/retenuesPaie";
 import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "../../../../components/StyleSection";
 
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
@@ -341,6 +342,9 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           <LigneRetenue label="Assurance-emploi" valeur={paie.aeEmploye} />
           <LigneRetenue label="Impôt fédéral" valeur={paie.impotFederal} />
           <LigneRetenue label="Impôt Québec" valeur={paie.impotQuebec} />
+          {detailRetenues(paie).map((r, i) => (
+            <LigneRetenue key={`${r.libelle}-${i}`} label={`${r.libelle}${r.type === "REER" ? " (réduit l'impôt)" : ""}`} valeur={r.montant} />
+          ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 12px", borderRadius: 12, background: "var(--danger-fond)", marginTop: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)" }}>Total des retenues</span>
             <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--danger)" }}>{argent(paie.totalDeductions)}</span>
