@@ -95,7 +95,50 @@ test("RQAP : maximums annuels de l'employé et de l'employeur", () => {
   egal(r.rqapEmployeur, 5.06, "employeur");
 });
 
-// ---- Cohérence de l'impôt fédéral (pas d'exemple chiffré dans le guide fourni) ----
+// ---- T4127 (122e édition) : exemple de calcul d'une prime régulière ----
+// L'exemple du guide vise un employé hors Québec : on le rejoue avec une
+// table aux taux du RPC et de l'AE hors Québec, sans RQAP ni abattement. La
+// même logique sert aux employés du Québec, avec la table du Québec.
+// 1 000 $ par semaine, prime de 2 500 $, 1 500 $ de primes déjà versées
+// (dont 14,60 $ de cotisations supplémentaires au RPC déjà déduites).
+const tableHorsQuebec = {
+  RRQ: { exemptionGenerale: 3500, maxGainsAdmissibles: 74600, maxSupplementaire: 85000, tauxBase: 0.0595, tauxBaseSeul: 0.0495, tauxPremiereSupplementaire: 0.01, tauxSupplementaire2: 0.04, maxEmploye: 4230.45, maxEmployeSupplementaire2: 416 },
+  RQAP: { maxAssurable: 0, tauxEmploye: 0, tauxEmployeur: 0, maxEmploye: 0, maxEmployeur: 0 },
+  AE: { maxAssurable: 68900, tauxEmploye: 0.0163, tauxEmployeur: 0.02282, maxEmploye: 1123.07, maxEmployeur: 1572.30 },
+  QC: {
+    paliers: [{ jusqu_a: Infinity, taux: 0, constante: 0 }], tauxCredit: 0, montantBase: 0,
+    deductionTravailleurTaux: 0, deductionTravailleurMax: 0, seuilGratification: 0, tauxGratificationSousSeuil: 0,
+  },
+  FED: {
+    paliers: [
+      { jusqu_a: 58523, taux: 0.14, constante: 0 },
+      { jusqu_a: 117045, taux: 0.205, constante: 3804 },
+      { jusqu_a: 181440, taux: 0.26, constante: 10241 },
+      { jusqu_a: 258482, taux: 0.29, constante: 15685 },
+      { jusqu_a: Infinity, taux: 0.33, constante: 26024 },
+    ],
+    tauxCredit: 0.14, montantBase: 16452, montantBaseMin: 14829, montantBaseSeuilReduction: 181440, montantBaseSeuilMin: 258482,
+    montantEmploi: 1501, seuilPrimeFixe: 5000, tauxPrimeFixe: 0.15, abattementQuebec: 0,
+  },
+  anneeTaux: 2026, tauxAJour: true,
+};
+test("T4127 — exemple de prime régulière : 323,54 $ d'impôt fédéral sur la prime", () => {
+  const r = calculerPaie(3500, "HEBDOMADAIRE", { rrq: 1700, ae: 480, gains: 30500, boni: 1500, csbBoni: 14.60 }, 2026, { boni: 2500, table: tableHorsQuebec });
+  egal(r.rrqEmploye, 204.25, "C");
+  egal(r.detail.CSA, 9.81, "F5A");
+  egal(r.detail.CSB, 24.52, "F5B");
+  egal(r.detail.impotFederalBoni, 323.54, "TB");
+});
+test("Fédéral, Québec — assurance-emploi à 1,30 %, maximum 895,70 $", () => {
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026).aeEmploye, 26, "AE");
+  egal(calculerPaie(2000, "BIHEBDOMADAIRE", { ae: 890 }, 2026).aeEmploye, 5.70, "AE au maximum");
+});
+test("Fédéral, Québec — prime avec un revenu annuel de 5 000 $ ou moins : 10 %", () => {
+  const r = calculerPaie(560, "HEBDOMADAIRE", {}, 2026, { boni: 500 });
+  egal(r.detail.impotFederalBoni, 50, "10 % de 500 $");
+});
+
+// ---- Cohérence de l'impôt fédéral ----
 test("Fédéral — un boni est imposé au taux marginal, pas annualisé", () => {
   const sans = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
   const avec = calculerPaie(3000, "BIHEBDOMADAIRE", {}, 2026, { boni: 1000 });
