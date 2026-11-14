@@ -20,6 +20,14 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
               Heures travaillées : {nombre(paie.heuresTravaillees)} h · Cumulatif {anneeCourante} : {nombre(cumulatif.heures)} h
             </div>
           )}
+          {(paie.heuresSupplementaires > 0 || paie.indemniteFeries > 0) && (
+            <div style={{ fontSize: 11, color: "#666", marginTop: 3 }}>
+              {[
+                paie.heuresSupplementaires > 0 && `Heures supplémentaires : ${nombre(paie.heuresSupplementaires)} h à taux et demi`,
+                paie.indemniteFeries > 0 && `Jours fériés : ${argent(paie.indemniteFeries)}`,
+              ].filter(Boolean).join(" · ")}
+            </div>
+          )}
           <div style={{ fontSize: 11, color: "#666", marginTop: 6 }}>
             Période : {new Date(paie.periodeDebut).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })} au {new Date(paie.periodeFin).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" })}
           </div>

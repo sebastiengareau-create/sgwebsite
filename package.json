@@ -8,7 +8,8 @@
     "start": "prisma migrate deploy && next start",
     "seed": "node prisma/seed.js",
     "postinstall": "prisma generate",
-    "migration": "node prisma/creer-migration.js"
+    "migration": "node prisma/creer-migration.js",
+    "test:paie": "node scripts/tester-paie.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, GroupeLiens, TitreGroupe, Panneau, Pastille } from "../../components/StyleSection";
 import { argent, nombre } from "@/lib/format";
+import CotisationsEmployeur from "./CotisationsEmployeur";
 
 const STATUT_INFO = {
   BROUILLON: { label: "Brouillon", couleur: "var(--avertissement)", fond: "var(--avertissement-fond)" },
@@ -68,7 +69,7 @@ function NoteVariation({ variation, inverserCouleur, prefixe }) {
   );
 }
 
-export default function PaieClient({ lots, employesActifs, kpis, dernierLot, alertes, prochainePaie, calendrierDates }) {
+export default function PaieClient({ lots, employesActifs, kpis, dernierLot, alertes, prochainePaie, calendrierDates, tauxEmployeur }) {
   const brouillons = lots.filter((l) => l.statut === "BROUILLON");
   const historique = lots.filter((l) => l.statut === "COMPTABILISEE");
   const libelleLot = dernierLot ? `Lot #${dernierLot.numero}` : "Dernier lot";
@@ -98,12 +99,13 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--danger)" }} />
         <Icone nom="alerte" taille={20} couleur="var(--danger)" />
         <p style={{ fontSize: 12.5, color: "var(--text)", lineHeight: 1.5, margin: 0 }}>
-          <strong>Estimation seulement.</strong> Calculée avec la méthode d'annualisation (taux officiels 2026), mais
-          ne remplace pas la formule complète de Revenu Québec. Valide toujours avec{" "}
+          <strong>Logiciel non certifié.</strong> Les retenues suivent les formules publiées par Revenu Québec
+          (TP-1015.F) et l'ARC (T4127), mais certains cas ne sont pas couverts (commissions, REER retenu sur la paie,
+          exemptions). En cas de doute, valide avec{" "}
           <a href="https://www.revenuquebec.ca/fr/services-en-ligne/outils/webras/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>
             WebRAS
           </a>{" "}
-          avant de verser une vraie paie.
+          avant de verser la paie.
         </p>
       </div>
 
@@ -220,6 +222,9 @@ export default function PaieClient({ lots, employesActifs, kpis, dernierLot, ale
         <section style={{ marginBottom: 24 }}>
           <TitreGroupe couleur="var(--accent)">Calendrier de paie</TitreGroupe>
           <MiniCalendrier calendrierDates={calendrierDates} />
+        </section>
+        <section style={{ marginBottom: 24 }}>
+          <CotisationsEmployeur tauxFss={tauxEmployeur.fss} tauxCnesst={tauxEmployeur.cnesst} tauxFssParDefaut={tauxEmployeur.fssParDefaut} congePaques={tauxEmployeur.congePaques} />
         </section>
       </div>
     </div>

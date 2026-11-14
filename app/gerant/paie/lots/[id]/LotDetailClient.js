@@ -91,6 +91,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
     setEnCours(false);
     if (!res.ok) {
       setErreur(data.erreur || "Erreur lors du traitement.");
+      router.refresh(); // un traitement interrompu a pu verser une partie des paies
       return;
     }
     setAvertissements(data.avertissements || []);
@@ -244,6 +245,8 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
   const [heuresValeur, setHeuresValeur] = useState(String(paie.heuresTravaillees));
   const [montantValeur, setMontantValeur] = useState(String(paie.salaireBrut));
   const [boniValeur, setBoniValeur] = useState(String(paie.boni || 0));
+  const [heuresSupValeur, setHeuresSupValeur] = useState(String(paie.heuresSupplementaires || 0));
+  const [feriesValeur, setFeriesValeur] = useState(String(paie.indemniteFeries || 0));
   const modifiable = estBrouillon && paie.employe.typeRemuneration !== "SALAIRE";
   const corrigee = paie.statut === "CORRIGEE";
 
@@ -252,7 +255,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
     : `${argent((paie.employe.tauxHoraireEmploye || 0))}/h`;
 
   function recalculer() {
-    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur } : { heuresManuelles: heuresValeur, boni: boniValeur });
+    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur } : { heuresManuelles: heuresValeur, heuresSupManuelles: heuresSupValeur, indemniteFeriesManuelle: feriesValeur, boni: boniValeur });
   }
 
   return (
@@ -270,6 +273,8 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
             {infoRemuneration}
             {!estVacances && (paie.heuresTravaillees > 0 || paie.employe.typeRemuneration !== "SALAIRE") && ` · ${nombre(paie.heuresTravaillees)} h`}
             {!estVacances && paie.heuresHorodateur != null && paie.heuresHorodateur !== paie.heuresTravaillees && ` (${nombre(paie.heuresHorodateur)} h réelles)`}
+            {paie.heuresSupplementaires > 0 && ` · ${nombre(paie.heuresSupplementaires)} h supp.`}
+            {paie.indemniteFeries > 0 && ` · férié ${argent(paie.indemniteFeries)}`}
             {paie.boni > 0 && ` · +${argent(paie.boni)} boni`}
           </span>
         </span>
@@ -295,9 +300,17 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label style={labelStyle}>
-                      Heures{paie.heuresHorodateur != null && <span> ({nombre(paie.heuresHorodateur)} h réelles)</span>}
+                      Heures régulières{paie.heuresHorodateur != null && <span> ({nombre(paie.heuresHorodateur)} h réelles)</span>}
                     </label>
                     <input type="number" min={0} step="0.01" value={heuresValeur} onChange={(e) => setHeuresValeur(e.target.value)} style={champStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Heures supp. (taux et demi)</label>
+                    <input type="number" min={0} step="0.01" value={heuresSupValeur} onChange={(e) => setHeuresSupValeur(e.target.value)} style={champStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Jours fériés ($)</label>
+                    <input type="number" min={0} step="0.01" value={feriesValeur} onChange={(e) => setFeriesValeur(e.target.value)} style={champStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Boni / extra ($)</label>

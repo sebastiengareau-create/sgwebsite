@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Paie" ADD COLUMN     "heuresSupplementaires" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "indemniteFeries" DOUBLE PRECISION NOT NULL DEFAULT 0;

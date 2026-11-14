@@ -5,6 +5,9 @@ import { assurerPlanComptable } from "@/lib/comptabilite";
 import EnTete from "../../../components/EnTete";
 import RemiseGouvernementaleClient from "./RemiseGouvernementaleClient";
 
+// Le FSS et la CNESST se versent à Revenu Québec avec les retenues à la
+// source ; la cotisation aux normes du travail, une fois l'an avec le
+// sommaire des retenues (dernier jour de février).
 // groupe = clé de regroupement (un paiement séparé par groupe) ; titre = nom
 // affiché, soit l'organisme qui perçoit. La TPS/TVQ est perçue par Revenu
 // Québec, mais se paie à part des retenues à la source (DAS) provinciales.
@@ -14,6 +17,9 @@ const COMPTES_REMISE = [
   { numero: "2060", nom: "Impôt Québec à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
   { numero: "2020", nom: "RRQ à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
   { numero: "2030", nom: "RQAP à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
+  { numero: "2080", nom: "FSS à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
+  { numero: "2090", nom: "CNESST à payer", groupe: "Revenu Québec", titre: "Revenu Québec" },
+  { numero: "2085", nom: "Normes du travail à payer", groupe: "Normes du travail", titre: "Revenu Québec", precision: "Normes du travail (annuel)" },
   { numero: "2000", nom: "TPS à payer", groupe: "TPS/TVQ", titre: "Revenu Québec", precision: "TPS/TVQ" },
   { numero: "2010", nom: "TVQ à payer", groupe: "TPS/TVQ", titre: "Revenu Québec", precision: "TPS/TVQ" },
 ];

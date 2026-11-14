@@ -37,13 +37,15 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [salaireAnnuel, setSalaireAnnuel] = useState(employe.salaireAnnuel ?? "");
   const [frequencePaie, setFrequencePaie] = useState(employe.frequencePaie || "BIHEBDOMADAIRE");
   const [tauxVacances, setTauxVacances] = useState(employe.tauxVacances ?? 4);
+  const [montantTd1, setMontantTd1] = useState(employe.montantTd1 ?? "");
+  const [montantTp10153, setMontantTp10153] = useState(employe.montantTp10153 ?? "");
   const [theme, setTheme] = useState(employe.theme || "clair");
   const [tailleTexte, setTailleTexte] = useState(employe.tailleTexte || "normal");
 
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances };
+    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances, montantTd1, montantTp10153 };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (peutVoirNas) body.nas = nas;
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
@@ -241,7 +243,14 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
               <option value="MENSUEL">Chaque mois</option>
             </select>
             <label className="etiquette">Taux de vacances (%) — minimum légal QC : 4% (ou 6% après 3 ans)</label>
-            <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} className="champ" style={{ marginBottom: 0 }} />
+            <input type="number" min={0} step="0.1" value={tauxVacances} onChange={(e) => setTauxVacances(e.target.value)} className="champ" />
+            <label className="etiquette">Montant du TD1 fédéral — « montant total de la demande » (vide = montant de base)</label>
+            <input type="number" min={0} step="1" value={montantTd1} onChange={(e) => setMontantTd1(e.target.value)} className="champ" />
+            <label className="etiquette">Montant du TP-1015.3 du Québec — ligne 10 (vide = montant de base)</label>
+            <input type="number" min={0} step="1" value={montantTp10153} onChange={(e) => setMontantTp10153(e.target.value)} className="champ" style={{ marginBottom: 0 }} />
+            <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 0", lineHeight: 1.45 }}>
+              Ces montants servent au calcul de l'impôt retenu. Un montant inscrit ne s'indexe pas tout seul : à revoir chaque année, ou à vider pour revenir au montant de base.
+            </p>
           </div>
 
           {peutModifierTheme && (
@@ -304,6 +313,8 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             )}
             <LigneDetail label="Fréquence de paie" valeur={{ HEBDOMADAIRE: "Chaque semaine", BIHEBDOMADAIRE: "Aux 2 semaines", BIMENSUEL: "2 fois par mois", MENSUEL: "Chaque mois" }[employe.frequencePaie]} />
             <LigneDetail label="Taux de vacances" valeur={`${employe.tauxVacances} %`} />
+            <LigneDetail label="TD1 fédéral" valeur={employe.montantTd1 != null ? argent(employe.montantTd1) : "Montant de base"} />
+            <LigneDetail label="TP-1015.3 Québec" valeur={employe.montantTp10153 != null ? argent(employe.montantTp10153) : "Montant de base"} />
           </div>
 
           {paieActif && paies.length > 0 && (

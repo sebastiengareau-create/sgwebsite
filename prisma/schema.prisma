@@ -52,6 +52,8 @@ model User {
   salaireAnnuel      Float? // pour un employé salarié (montant fixe)
   frequencePaie      String    @default("BIHEBDOMADAIRE") // "HEBDOMADAIRE" | "BIHEBDOMADAIRE" | "BIMENSUEL" | "MENSUEL"
   tauxVacances       Float     @default(4) // % du salaire brut accumulé en vacances (minimum légal QC : 4%, ou 6% après 3 ans)
+  montantTd1         Float? // « montant total de la demande » du formulaire TD1 fédéral — vide = montant personnel de base de l'année (lib/paie.js)
+  montantTp10153     Float? // crédits d'impôt personnels du formulaire TP-1015.3 (Québec) — vide = montant personnel de base de l'année
   creeLe             DateTime  @default(now())
   derniereActivite   DateTime? // dernière page ou action dans le logiciel (au plus 2 min de retard) — « en ligne » si récente, voir lib/presence.js ; vidée à la déconnexion
 
@@ -943,7 +945,7 @@ model HeuresJourEmploye {
   @@unique([employeId, date])
 }
 
-// ---------- PAIE (estimation — voir avertissements dans l'interface) ----------
+// ---------- PAIE (logiciel non certifié — voir lib/paie.js et les avertissements dans l'interface) ----------
 
 // Un lot regroupe une ou plusieurs paies traitées ensemble (traitement par
 // lot). BROUILLON = calculé mais pas encore comptabilisé, encore modifiable.
@@ -973,9 +975,11 @@ model Paie {
   lot                LotPaie?  @relation(fields: [lotId], references: [id])
   periodeDebut       DateTime
   periodeFin         DateTime
-  heuresTravaillees  Float     @default(0)
+  heuresTravaillees  Float     @default(0) // heures régulières payées (sans les heures supplémentaires)
   heuresHorodateur   Float? // total réellement poinçonné, informatif seulement — heuresTravaillees peut différer (horaire d'ouverture par défaut, ou ajusté manuellement)
-  boni               Float     @default(0) // prime/extra ajouté au brut, imposé comme le reste
+  heuresSupplementaires Float  @default(0) // heures au-delà de 40 dans une semaine, payées à taux et demi (lib/heuresPaie.js) — en plus de heuresTravaillees
+  indemniteFeries    Float     @default(0) // indemnité des jours fériés de la période, en dollars, comprise dans salaireBrut
+  boni               Float     @default(0) // prime/extra ajouté au brut, imposé par la méthode des gratifications
   salaireBrut        Float
   rrqEmploye         Float     @default(0) // cotisation de base + 1re supplémentaire
   rrq2Employe        Float     @default(0) // 2e cotisation supplémentaire au RRQ (gains entre le MGA et le MSGA) — T4 case 17A, RL-1 case B.B
@@ -989,6 +993,9 @@ model Paie {
   rrq2Employeur      Float     @default(0) // même montant que rrq2Employe
   rqapEmployeur      Float     @default(0)
   aeEmployeur        Float     @default(0)
+  fssEmployeur       Float     @default(0) // cotisation de l'employeur au Fonds des services de santé
+  cntEmployeur       Float     @default(0) // cotisation de l'employeur relative aux normes du travail
+  cnesstEmployeur    Float     @default(0) // prime de l'employeur à la CNESST, au taux réglé (0 si non réglé)
   vacancesAccumulees Float     @default(0) // % du brut accumulé en vacances cette paie-ci
   typePaie           String    @default("REGULIERE") // "REGULIERE" | "VACANCES" — une paie de vacances puise dans le solde accumulé au lieu d'en créer
   statut             String    @default("BROUILLON") // "BROUILLON" | "VERSEE" | "CORRIGEE"
