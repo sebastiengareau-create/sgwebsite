@@ -38,6 +38,10 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const [frequencePaie, setFrequencePaie] = useState(employe.frequencePaie || "BIHEBDOMADAIRE");
   const [tauxVacances, setTauxVacances] = useState(employe.tauxVacances ?? 4);
   const [montantTd1, setMontantTd1] = useState(employe.montantTd1 ?? "");
+  const [dateNaissance, setDateNaissance] = useState(employe.dateNaissance ? new Date(employe.dateNaissance).toISOString().slice(0, 10) : "");
+  const [exemptionAE, setExemptionAE] = useState(!!employe.exemptionAE);
+  const [exemptionRRQ, setExemptionRRQ] = useState(!!employe.exemptionRRQ);
+  const [exemptionCNESST, setExemptionCNESST] = useState(!!employe.exemptionCNESST);
   const [montantTp10153, setMontantTp10153] = useState(employe.montantTp10153 ?? "");
   const [theme, setTheme] = useState(employe.theme || "clair");
   const [tailleTexte, setTailleTexte] = useState(employe.tailleTexte || "normal");
@@ -45,7 +49,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances, montantTd1, montantTp10153 };
+    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances, montantTd1, montantTp10153, dateNaissance, exemptionAE, exemptionRRQ, exemptionCNESST };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (peutVoirNas) body.nas = nas;
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
@@ -251,6 +255,26 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 0", lineHeight: 1.45 }}>
               Ces montants servent au calcul de l'impôt retenu. Un montant inscrit ne s'indexe pas tout seul : à revoir chaque année, ou à vider pour revenir au montant de base.
             </p>
+
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "16px 0 8px" }}>Exemptions de cotisations</div>
+            <label className="etiquette">Date de naissance (RRQ selon l'âge)</label>
+            <input type="date" max="9999-12-31" value={dateNaissance} onChange={(e) => setDateNaissance(e.target.value)} className="champ" />
+            <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "-4px 0 10px", lineHeight: 1.45 }}>
+              Aucune cotisation au RRQ avant la fin du mois des 18 ans, ni à partir de l'année où l'employé a 73 ans au 31 décembre. Vide : il cotise normalement.
+            </p>
+            {[
+              [exemptionRRQ, setExemptionRRQ, "A choisi de cesser de cotiser au RRQ", "65 ans ou plus avec une rente de retraite — il t'a remis le formulaire RR-50."],
+              [exemptionAE, setExemptionAE, "Emploi non assurable à l'assurance-emploi", "Propriétaire qui contrôle plus de 40 % des actions votantes, ou lien de dépendance avec l'employeur. Le RQAP continue de s'appliquer."],
+              [exemptionCNESST, setExemptionCNESST, "Dirigeant non couvert par la CNESST", "Administrateur ou dirigeant sans protection personnelle : aucune prime sur son salaire."],
+            ].map(([valeur, changer, titre, detail]) => (
+              <label key={titre} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13, margin: "0 0 10px", cursor: "pointer" }}>
+                <input type="checkbox" checked={valeur} onChange={(e) => changer(e.target.checked)} style={{ marginTop: 3 }} />
+                <span>
+                  <span style={{ fontWeight: 700 }}>{titre}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.45 }}>{detail}</span>
+                </span>
+              </label>
+            ))}
           </div>
 
           {peutModifierTheme && (
@@ -315,6 +339,11 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <LigneDetail label="Taux de vacances" valeur={`${employe.tauxVacances} %`} />
             <LigneDetail label="TD1 fédéral" valeur={employe.montantTd1 != null ? argent(employe.montantTd1) : "Montant de base"} />
             <LigneDetail label="TP-1015.3 Québec" valeur={employe.montantTp10153 != null ? argent(employe.montantTp10153) : "Montant de base"} />
+            <LigneDetail
+              label="Exemptions"
+              valeur={[employe.exemptionRRQ && "RRQ (choix de l'employé)", employe.exemptionAE && "Assurance-emploi", employe.exemptionCNESST && "CNESST"].filter(Boolean).join(", ") || "Aucune"}
+            />
+            {employe.dateNaissance && <LigneDetail label="Date de naissance" valeur={dateCourte(employe.dateNaissance)} />}
           </div>
 
           {paieActif && paies.length > 0 && (

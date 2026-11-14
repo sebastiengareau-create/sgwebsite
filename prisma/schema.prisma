@@ -53,6 +53,10 @@ model User {
   frequencePaie      String    @default("BIHEBDOMADAIRE") // "HEBDOMADAIRE" | "BIHEBDOMADAIRE" | "BIMENSUEL" | "MENSUEL"
   tauxVacances       Float     @default(4) // % du salaire brut accumulé en vacances (minimum légal QC : 4%, ou 6% après 3 ans)
   montantTd1         Float? // « montant total de la demande » du formulaire TD1 fédéral — vide = montant personnel de base de l'année (lib/paie.js)
+  dateNaissance      DateTime? // journée civile (midi UTC) — sert aux cotisations au RRQ selon l'âge (18 ans, 73 ans) ; vide = cotise normalement
+  exemptionAE        Boolean   @default(false) // emploi non assurable à l'assurance-emploi (propriétaire qui contrôle plus de 40 % des actions votantes, lien de dépendance)
+  exemptionRRQ       Boolean   @default(false) // a choisi de cesser de cotiser au RRQ (65 ans ou plus, rente de retraite, formulaire RR-50)
+  exemptionCNESST    Boolean   @default(false) // dirigeant non couvert par la CNESST (pas de protection personnelle) : aucune prime sur son salaire
   montantTp10153     Float? // crédits d'impôt personnels du formulaire TP-1015.3 (Québec) — vide = montant personnel de base de l'année
   creeLe             DateTime  @default(now())
   derniereActivite   DateTime? // dernière page ou action dans le logiciel (au plus 2 min de retard) — « en ligne » si récente, voir lib/presence.js ; vidée à la déconnexion

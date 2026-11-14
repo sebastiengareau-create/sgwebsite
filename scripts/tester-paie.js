@@ -6,7 +6,7 @@
 // Aucune base de données n'est lue : seule la fonction de calcul est testée.
 process.env.DATABASE_URL ||= "postgresql://test:test@localhost:5432/test";
 const assert = require("node:assert/strict");
-const { calculerPaie } = require("../lib/paie");
+const { calculerPaie, exemptionsEmploye } = require("../lib/paie");
 const { calculerHeuresPeriode } = require("../lib/heuresPaie");
 const { joursFeriesQuebec, joursFeriesEntre } = require("../lib/joursFeries");
 
@@ -178,6 +178,56 @@ test("Montants TD1 / TP-1015.3 plus élevés : moins d'impôt retenu", () => {
   const base = calculerPaie(2500, "BIHEBDOMADAIRE", {}, 2026);
   const plus = calculerPaie(2500, "BIHEBDOMADAIRE", {}, 2026, { montantTd1: 30000, montantTp10153: 30000 });
   assert.ok(plus.impotFederal < base.impotFederal && plus.impotQuebec < base.impotQuebec);
+});
+
+// ---- Exemptions ----
+const naissance = (dateStr) => ({ dateNaissance: new Date(`${dateStr}T12:00:00Z`) });
+const versement = (dateStr) => new Date(`${dateStr}T17:00:00Z`);
+test("Propriétaire non assurable : aucune assurance-emploi, le RQAP et le RRQ restent", () => {
+  const normal = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026);
+  const r = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { exempteAE: true });
+  egal(r.aeEmploye, 0, "AE employé");
+  egal(r.aeEmployeur, 0, "AE employeur");
+  egal(r.rqapEmploye, normal.rqapEmploye, "RQAP");
+  egal(r.rrqEmploye, normal.rrqEmploye, "RRQ");
+  // Sans cotisation, pas de crédit : l'impôt fédéral monte de 14 % × 26 × 26 $ × (1 – 16,5 %) ÷ 26
+  egal(r.impotFederal - normal.impotFederal, 0.14 * 26 * (1 - 0.165), "impôt fédéral sans le crédit d'AE");
+});
+test("Exempté du RRQ : aucune cotisation, ni employé ni employeur", () => {
+  const r = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { exempteRRQ: true });
+  egal(r.rrqEmploye, 0, "RRQ");
+  egal(r.rrq2Employe, 0, "RRQ 2");
+  egal(r.rrqEmployeur, 0, "RRQ employeur");
+  egal(r.detail.CSA, 0, "déduction des cotisations supplémentaires");
+});
+test("Dirigeant non couvert : aucune prime CNESST, le FSS reste", () => {
+  const r = calculerPaie(2000, "BIHEBDOMADAIRE", {}, 2026, { tauxCnesst: 2.1, exempteCNESST: true });
+  egal(r.cnesstEmployeur, 0, "CNESST");
+  egal(r.fssEmployeur, 33, "FSS");
+});
+test("RRQ selon l'âge : moins de 18 ans, mois des 18 ans, 72 et 73 ans", () => {
+  // Moins de 18 ans toute l'année
+  assert.equal(exemptionsEmploye(naissance("2009-03-10"), versement("2026-06-04")).exempteRRQ, true);
+  // 18 ans le 10 mars 2026 : rien jusqu'à la fin de mars, puis cotise ; 9 mois cotisables
+  const jeune = naissance("2008-03-10");
+  assert.equal(exemptionsEmploye(jeune, versement("2026-03-26")).exempteRRQ, true);
+  assert.equal(exemptionsEmploye(jeune, versement("2026-04-02")).exempteRRQ, false);
+  assert.equal(exemptionsEmploye(jeune, versement("2026-04-02")).moisRRQ, 9);
+  // 72 ans en 2026 : cotise encore ; 73 ans au 31 décembre : ne cotise plus
+  assert.equal(exemptionsEmploye(naissance("1954-08-01"), versement("2026-06-04")).exempteRRQ, false);
+  assert.equal(exemptionsEmploye(naissance("1953-08-01"), versement("2026-06-04")).exempteRRQ, true);
+  // Sans date de naissance : cotise normalement
+  assert.deepEqual(exemptionsEmploye({}, versement("2026-06-04")).raisons, []);
+});
+test("Année des 18 ans : maximum du RRQ au prorata des mois cotisables", () => {
+  // 9 mois cotisables : maximum de 4 479,30 $ × 9 ÷ 12 = 3 359,48 $
+  const r = calculerPaie(4000, "BIHEBDOMADAIRE", { rrq: 3300, gains: 60000 }, 2026, { moisRRQ: 9 });
+  egal(r.rrqEmploye, 59.48, "solde du maximum au prorata");
+});
+test("Choix de cesser de cotiser et cases de la fiche", () => {
+  const e = exemptionsEmploye({ exemptionRRQ: true, exemptionAE: true, exemptionCNESST: true }, versement("2026-06-04"));
+  assert.equal(e.exempteRRQ && e.exempteAE && e.exempteCNESST, true);
+  assert.equal(e.raisons.length, 3);
 });
 
 // ---- Jours fériés du Québec ----
