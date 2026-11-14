@@ -52,6 +52,8 @@ model User {
   salaireAnnuel      Float? // pour un employé salarié (montant fixe)
   frequencePaie      String    @default("BIHEBDOMADAIRE") // "HEBDOMADAIRE" | "BIHEBDOMADAIRE" | "BIMENSUEL" | "MENSUEL"
   tauxVacances       Float     @default(4) // % du salaire brut accumulé en vacances (minimum légal QC : 4%, ou 6% après 3 ans)
+  montantTd1         Float? // « montant total de la demande » du formulaire TD1 fédéral — vide = montant personnel de base de l'année (lib/paie.js)
+  montantTp10153     Float? // crédits d'impôt personnels du formulaire TP-1015.3 (Québec) — vide = montant personnel de base de l'année
   creeLe             DateTime  @default(now())
   derniereActivite   DateTime? // dernière page ou action dans le logiciel (au plus 2 min de retard) — « en ligne » si récente, voir lib/presence.js ; vidée à la déconnexion
 
@@ -943,7 +945,7 @@ model HeuresJourEmploye {
   @@unique([employeId, date])
 }
 
-// ---------- PAIE (estimation — voir avertissements dans l'interface) ----------
+// ---------- PAIE (logiciel non certifié — voir lib/paie.js et les avertissements dans l'interface) ----------
 
 // Un lot regroupe une ou plusieurs paies traitées ensemble (traitement par
 // lot). BROUILLON = calculé mais pas encore comptabilisé, encore modifiable.
