@@ -5,7 +5,7 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import { lignesAdresse } from "@/lib/adresse";
 import { formaterNas, nasValide } from "@/lib/nas";
-import { calculerFeuillets, CASES_T4, CASES_RL1, ANNEE_MAXIMUMS } from "@/lib/feuilletsFiscaux";
+import { calculerFeuillets, CASES_T4, CASES_RL1 } from "@/lib/feuilletsFiscaux";
 import BoutonImprimerRapport from "../../comptabilite/rapports/BoutonImprimerRapport";
 import BoutonFermerPage from "@/app/components/BoutonFermerPage";
 
@@ -25,13 +25,13 @@ export default async function FeuilletsFiscaux(props) {
   const anneeDefaut = moisCourant <= 3 ? anCourant - 1 : anCourant;
   const annee = /^\d{4}$/.test(searchParams?.annee || "") ? Number(searchParams.annee) : anneeDefaut;
 
-  const [entreprise, { feuillets, totaux, nbBrouillons, maximumsAJour }] = await Promise.all([
+  const [entreprise, { feuillets, totaux, nbBrouillons, maximumsAJour, anneeMaximums }] = await Promise.all([
     obtenirInfosEntreprise(),
     calculerFeuillets(annee),
   ]);
   const sansNas = feuillets.filter((f) => !nasValide(f.employe.nas));
   const avertissements = [
-    !maximumsAJour && `Les cases de gains admissibles (24, 26, 56, G, I) utilisent les maximums de ${ANNEE_MAXIMUMS}, pas ceux de ${annee} : vérifie-les.`,
+    !maximumsAJour && `Les cases de gains admissibles (24, 26, 56, G, I) utilisent les maximums de ${anneeMaximums}, pas ceux de ${annee} : vérifie-les.`,
     nbBrouillons > 0 && `${nbBrouillons} paie${nbBrouillons > 1 ? "s" : ""} encore en brouillon cette année ne ${nbBrouillons > 1 ? "sont" : "est"} pas comptée${nbBrouillons > 1 ? "s" : ""}.`,
     sansNas.length > 0 && `NAS manquant ou invalide : ${sansNas.map((f) => f.employe.nom).join(", ")} — à ajouter dans la fiche de l'employé.`,
     !entreprise.numeroEmployeurArc && "Numéro d'employeur ARC manquant (Administrateur → Informations de l'entreprise).",

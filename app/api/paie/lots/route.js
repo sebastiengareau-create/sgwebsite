@@ -29,9 +29,9 @@ export async function POST(request) {
 
   const resultats = [];
   for (const employeId of employeIds) {
-    const resultat = await calculerPaiePourEmploye(employeId, { periodeDebut, periodeFin, typePaie: typePaieFinal });
+    const resultat = await calculerPaiePourEmploye(employeId, { periodeDebut, periodeFin, dateVersement: dateVersementFinale, typePaie: typePaieFinal });
     if (resultat.erreur) {
-      return NextResponse.json({ erreur: `${resultat.erreur} (employé ${employeId})` }, { status: 400 });
+      return NextResponse.json({ erreur: resultat.erreur === "Employé introuvable." ? `${resultat.erreur} (employé ${employeId})` : resultat.erreur }, { status: 400 });
     }
     resultats.push({ employeId, ...resultat });
   }

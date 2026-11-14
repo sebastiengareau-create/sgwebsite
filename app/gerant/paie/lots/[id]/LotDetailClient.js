@@ -91,6 +91,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
     setEnCours(false);
     if (!res.ok) {
       setErreur(data.erreur || "Erreur lors du traitement.");
+      router.refresh(); // un traitement interrompu a pu verser une partie des paies
       return;
     }
     setAvertissements(data.avertissements || []);

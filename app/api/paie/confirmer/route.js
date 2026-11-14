@@ -37,17 +37,18 @@ export async function POST(request) {
     },
   });
 
-  let avertissementComptable = null;
+  // Pas de paie « versée » sans son écriture comptable : si l'écriture
+  // échoue, la paie n'est pas gardée
   try {
     await posterPaie(paie, session.nom);
   } catch (e) {
+    await prisma.paie.delete({ where: { id: paie.id } });
     if (e.message.startsWith("PERIODE_LOCK:")) {
-      avertissementComptable = "La paie a été enregistrée, mais aucune écriture comptable n'a été créée : " + e.message.replace("PERIODE_LOCK:", "").split("\n")[0];
-    } else {
-      console.error("Erreur comptabilisation de la paie :", e);
-      avertissementComptable = "La paie a été enregistrée, mais la comptabilisation a échoué : " + e.message;
+      return NextResponse.json({ erreur: "Paie non enregistrée : " + e.message.replace("PERIODE_LOCK:", "").split("\n")[0] }, { status: 423 });
     }
+    console.error("Erreur comptabilisation de la paie :", e);
+    return NextResponse.json({ erreur: "Paie non enregistrée : la comptabilisation a échoué." }, { status: 500 });
   }
 
-  return NextResponse.json({ ...paie, avertissementComptable });
+  return NextResponse.json({ ...paie, avertissementComptable: null });
 }

@@ -27,6 +27,7 @@ export async function POST(request, props) {
   const resultat = await calculerPaiePourEmploye(employeId, {
     periodeDebut: lot.periodeDebut,
     periodeFin: lot.periodeFin,
+    dateVersement: lot.dateVersementPrevue || lot.periodeFin,
     typePaie: lot.typePaie,
   });
   if (resultat.erreur) return NextResponse.json({ erreur: resultat.erreur }, { status: 400 });

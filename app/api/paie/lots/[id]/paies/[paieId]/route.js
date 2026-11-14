@@ -21,12 +21,16 @@ export async function PATCH(request, props) {
 
   const paie = await prisma.paie.findUnique({ where: { id: params.paieId } });
   if (!paie || paie.lotId !== lot.id) return NextResponse.json({ erreur: "Paie introuvable dans ce lot." }, { status: 404 });
+  // Traitement du lot interrompu en cours de route : cette paie-ci a déjà
+  // son écriture comptable, elle ne se modifie plus (voir comptabiliser)
+  if (paie.statut !== "BROUILLON") return NextResponse.json({ erreur: "Cette paie est déjà versée et comptabilisée — relance le traitement du lot pour terminer les autres." }, { status: 409 });
 
   const { heuresManuelles, montantVacances, boni } = await request.json();
 
   const resultat = await calculerPaiePourEmploye(paie.employeId, {
     periodeDebut: lot.periodeDebut,
     periodeFin: lot.periodeFin,
+    dateVersement: paie.dateVersement || lot.dateVersementPrevue || lot.periodeFin,
     typePaie: lot.typePaie,
     heuresManuelles,
     montantVacances,
@@ -76,6 +80,7 @@ export async function DELETE(request, props) {
 
   const paie = await prisma.paie.findUnique({ where: { id: params.paieId } });
   if (!paie || paie.lotId !== lot.id) return NextResponse.json({ erreur: "Paie introuvable dans ce lot." }, { status: 404 });
+  if (paie.statut !== "BROUILLON") return NextResponse.json({ erreur: "Cette paie est déjà versée et comptabilisée — elle ne peut plus être retirée du lot." }, { status: 409 });
 
   await prisma.paie.delete({ where: { id: paie.id } });
   return NextResponse.json({ ok: true });
