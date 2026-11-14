@@ -76,6 +76,15 @@ export async function PATCH(request, props) {
   if (body.salaireAnnuel !== undefined) data.salaireAnnuel = body.salaireAnnuel === "" ? null : Number(body.salaireAnnuel);
   if (body.frequencePaie && ["HEBDOMADAIRE", "BIHEBDOMADAIRE", "BIMENSUEL", "MENSUEL"].includes(body.frequencePaie)) data.frequencePaie = body.frequencePaie;
   if (body.tauxVacances !== undefined && body.tauxVacances !== "") data.tauxVacances = Number(body.tauxVacances);
+  // Exemptions de cotisations (lib/paie.js, exemptionsEmploye)
+  if (body.dateNaissance !== undefined) {
+    if (body.dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(body.dateNaissance)) return NextResponse.json({ erreur: "Date de naissance invalide." }, { status: 400 });
+    // Journée civile, ancrée à midi UTC pour rester le même jour dans tous les fuseaux
+    data.dateNaissance = body.dateNaissance ? new Date(`${body.dateNaissance}T12:00:00Z`) : null;
+  }
+  for (const champ of ["exemptionAE", "exemptionRRQ", "exemptionCNESST"]) {
+    if (body[champ] !== undefined) data[champ] = body[champ] === true;
+  }
   // Montants déclarés par l'employé (TD1 fédéral, TP-1015.3 du Québec) — vide = montant de base de l'année
   for (const champ of ["montantTd1", "montantTp10153"]) {
     if (body[champ] === undefined) continue;

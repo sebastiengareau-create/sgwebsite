@@ -138,6 +138,11 @@ export default async function FeuilletsFiscaux(props) {
                     <div style={{ color: "#555" }}>{f.nbPaies} paie{f.nbPaies > 1 ? "s" : ""} versée{f.nbPaies > 1 ? "s" : ""}</div>
                   </div>
                 </div>
+                {(f.montants.rrq === 0 || f.montants.ae === 0) && (
+                  <p style={{ fontSize: 12, margin: "0 0 8px", color: "#555" }}>
+                    T4, case 28 — exemption à cocher : {[f.montants.rrq === 0 && "RPC/RRQ", f.montants.ae === 0 && "AE"].filter(Boolean).join(" et ")} (aucune cotisation retenue dans l'année).
+                  </p>
+                )}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
                   <TableCases titre="T4 — case 10 : QC" styleCase={styleCase} lignes={CASES_T4.map((c) => [c.t4, c.libelle, fmt(f.montants[c.cle])])} />
                   <TableCases titre="Relevé 1" styleCase={styleCase} lignes={CASES_RL1.map((c) => [c.rl1, c.libelle, fmt(f.montants[c.cle])])} />

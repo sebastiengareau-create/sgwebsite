@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "dateNaissance" TIMESTAMP(3),
+ADD COLUMN     "exemptionAE" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "exemptionRRQ" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "exemptionCNESST" BOOLEAN NOT NULL DEFAULT false;
