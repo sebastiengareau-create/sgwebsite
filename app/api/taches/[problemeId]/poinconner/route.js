@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
+import { assurerQuartPourTache } from "@/lib/quarts";
 import { bonEstVerrouille, MESSAGE_BON_VERROUILLE, passerBonEnCoursSiEnAttente } from "@/lib/bons";
 
 export async function POST(request, props) {
@@ -33,7 +34,11 @@ export async function POST(request, props) {
       return NextResponse.json({ statut: "arrete" });
     }
 
-    await prisma.entreeTemps.create({ data: { employeId, problemeId, debut: new Date() } });
+    // Une tâche se poinçonne dans un quart ouvert : ouvre le quart si
+    // l'arrivée n'a pas été pointée (module Pointage de quart)
+    const debut = new Date();
+    await assurerQuartPourTache(employeId, debut);
+    await prisma.entreeTemps.create({ data: { employeId, problemeId, debut } });
 
     await passerBonEnCoursSiEnAttente(probleme.bonId);
 

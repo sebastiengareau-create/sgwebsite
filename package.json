@@ -9,7 +9,8 @@
     "seed": "node prisma/seed.js",
     "postinstall": "prisma generate",
     "migration": "node prisma/creer-migration.js",
-    "test:paie": "node scripts/tester-paie.js"
+    "test:paie": "node scripts/tester-paie.js",
+    "test:quarts": "node scripts/tester-quarts.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

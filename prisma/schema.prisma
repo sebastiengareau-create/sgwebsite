@@ -64,6 +64,7 @@ model User {
   entreesTemps         EntreeTemps[]
   entreesTempsInternes EntreeTempsInterne[]
   heuresJour           HeuresJourEmploye[]
+  quarts               Quart[] // pointage de présence (arrivée, départ, dîner, pause) — lib/quarts.js
   photosAjoutees       Photo[]
   paies                Paie[]
   retenues             RetenueEmploye[] // REER, assurance collective… retenus à chaque paie
@@ -958,6 +959,68 @@ model HeuresJourEmploye {
 // créée. La correction reste au niveau d'une paie individuelle (voir Paie.statut) —
 // un lot n'a pas de statut "corrigée" propre, une correction ne concerne
 // jamais tout le lot à la fois.
+// Pointage de quart (module « Pointage de quart et feuilles de temps »,
+// lib/quarts.js) : le temps de PRÉSENCE, distinct du temps par tâche
+// (EntreeTemps, EntreeTempsInterne) qui sert à facturer. Un quart TRAVAIL va
+// de l'arrivée au départ ; les DINER et PAUSE sont des segments à l'intérieur.
+// Les heures gardées ici sont toujours les heures réelles du pointage :
+// l'arrondi ne s'applique qu'au calcul (lib/quartsCalculs.js).
+model Quart {
+  id            String    @id @default(cuid())
+  employeId     String
+  employe       User      @relation(fields: [employeId], references: [id])
+  type          String    @default("TRAVAIL") // "TRAVAIL" | "DINER" | "PAUSE"
+  debut         DateTime
+  fin           DateTime? // null = en cours
+  ouvertAuto    Boolean   @default(false) // arrivée non pointée : ouvert par le premier poinçon de tâche
+  fermeAuto     Boolean   @default(false) // départ non pointé : fermé à la fin du dernier poinçon de tâche de la journée
+  // Corrigé par le gérant : heures d'origine gardées à la première
+  // correction ; le détail de chaque correction est dans CorrectionQuart
+  debutOriginal DateTime?
+  finOriginal   DateTime?
+  modifiePar    String?
+  modifieLe     DateTime?
+  ajoutePar     String? // quart entré à la main par le gérant
+  creeLe        DateTime  @default(now())
+
+  @@index([employeId, debut])
+}
+
+// Journal des corrections de pointage — qui, quand, ancienne et nouvelle
+// valeur, raison. Jamais modifié ni supprimé (litige, vérification de la
+// CNESST) : aucune clé étrangère, il survit au quart et à l'employé.
+model CorrectionQuart {
+  id         String   @id @default(cuid())
+  quartId    String?
+  employeId  String? // employé concerné ; vide pour un verrouillage de période
+  employeNom String?
+  jour       String // "AAAA-MM-JJ" (Québec) du quart, ou début de la période
+  action     String // "AJOUT" | "MODIFICATION" | "SUPPRESSION" | "VERROUILLAGE" | "REOUVERTURE" | "PRIME"
+  ancienne   String? // valeur avant, en clair (heure du Québec)
+  nouvelle   String? // valeur après
+  raison     String?
+  parId      String?
+  parNom     String
+  creeLe     DateTime @default(now())
+
+  @@index([jour])
+  @@index([employeId])
+}
+
+// Période de feuille de temps (souvent deux semaines). Verrouillée une fois
+// approuvée par le gérant : plus aucun pointage de cette période ne se corrige.
+model PeriodeTemps {
+  id          String    @id @default(cuid())
+  debut       String // "AAAA-MM-JJ", jour au Québec, bornes incluses
+  fin         String
+  statut      String    @default("OUVERTE") // "OUVERTE" | "VERROUILLEE"
+  primes      Json? // primes de la période, pour l'export vers la paie : { employeId: montant }
+  approuvePar String?
+  approuveLe  DateTime?
+
+  @@unique([debut, fin])
+}
+
 model LotPaie {
   id                  String    @id @default(cuid())
   numero              String    @unique // "PAIE-0007"
