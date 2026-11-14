@@ -8,7 +8,7 @@ export default function TalonPaie({ paie, cumulatif, anneeCourante, entreprise, 
         <h1 style={{ fontSize: 20, margin: 0 }}>{entreprise.nomEntreprise}</h1>
         <p style={{ fontSize: 11, color: "#666", margin: "3px 0 0" }}>{entreprise.adresseLigne1}, {entreprise.adresseLigne2} · {entreprise.telephone}</p>
         <p style={{ fontSize: 15, fontWeight: 700, marginTop: 12, marginBottom: 0 }}>
-          Talon de paie {estVacances && <span style={{ color: "#a87b1f" }}>— Vacances</span>}
+          Talon de paie {estVacances && <span style={{ color: "#a87b1f" }}>— Vacances{paie.vacancesForfaitaire ? " versées en plus du salaire" : ""}</span>}
         </p>
       </div>
 

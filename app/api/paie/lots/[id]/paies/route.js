@@ -29,6 +29,8 @@ export async function POST(request, props) {
     periodeFin: lot.periodeFin,
     dateVersement: lot.dateVersementPrevue || lot.periodeFin,
     typePaie: lot.typePaie,
+    // Même traitement que les autres paies de vacances du lot
+    vacancesForfaitaire: lot.paies.some((p) => p.vacancesForfaitaire),
   });
   if (resultat.erreur) return NextResponse.json({ erreur: resultat.erreur }, { status: 400 });
 

@@ -25,7 +25,7 @@ export async function PATCH(request, props) {
   // son écriture comptable, elle ne se modifie plus (voir comptabiliser)
   if (paie.statut !== "BROUILLON") return NextResponse.json({ erreur: "Cette paie est déjà versée et comptabilisée — relance le traitement du lot pour terminer les autres." }, { status: 409 });
 
-  const { heuresManuelles, heuresSupManuelles, indemniteFeriesManuelle, montantVacances, boni } = await request.json();
+  const { heuresManuelles, heuresSupManuelles, indemniteFeriesManuelle, montantVacances, vacancesForfaitaire, boni } = await request.json();
 
   const resultat = await calculerPaiePourEmploye(paie.employeId, {
     periodeDebut: lot.periodeDebut,
@@ -36,6 +36,8 @@ export async function PATCH(request, props) {
     heuresSupManuelles,
     indemniteFeriesManuelle,
     montantVacances,
+    // Non précisé : la paie garde son traitement actuel
+    vacancesForfaitaire: vacancesForfaitaire === undefined ? paie.vacancesForfaitaire : vacancesForfaitaire === true,
     boni,
   });
   if (resultat.erreur) return NextResponse.json({ erreur: resultat.erreur }, { status: 400 });
