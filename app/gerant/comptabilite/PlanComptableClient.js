@@ -26,7 +26,7 @@ const GROUPES = [
     liens: [
       { href: "/gerant/comptabilite/procedure", icone: "presse", label: "Procédure de fermeture", detail: "Liste des étapes à compléter" },
       { href: "/gerant/comptabilite/fermeture", icone: "cadenas", label: "Fermeture de période", detail: "Verrouiller les écritures" },
-      { href: "/gerant/comptabilite/remise-gouvernementale", icone: "banque", label: "Remise gouvernementale", detail: "TPS, TVQ et retenues à remettre" },
+      { href: "/gerant/comptabilite/remise-gouvernementale", icone: "banque", label: "Remises à payer", detail: "TPS, TVQ, retenues sur la paie, REER et assurance des employés" },
     ],
   },
   {
