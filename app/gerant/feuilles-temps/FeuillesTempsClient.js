@@ -34,7 +34,9 @@ async function envoyer(url, methode, corps) {
   return res.ok ? null : data.erreur || `Erreur (code ${res.status}).`;
 }
 
-export default function FeuillesTempsClient({ periode, verrou, reglages, feuilles, journal, employes, aujourdhui }) {
+const CLES_JOUR = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
+
+export default function FeuillesTempsClient({ periode, verrou, reglages, feuilles, journal, employes, horaires, aujourdhui }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(null); // employé déployé
   const [formulaire, setFormulaire] = useState(null); // quart en correction ou en ajout
@@ -80,11 +82,25 @@ export default function FeuillesTempsClient({ periode, verrou, reglages, feuille
       : await agir("/api/quarts", "POST", { employeId, type, debut: d, fin: f, raison });
     if (reussi) setFormulaire(null);
   }
-  const corriger = (quart, jour) => setFormulaire({
-    id: quart.id, employeId: quart.employeId, type: quart.type, raison: "",
-    debut: pourChamp(quart.debut), fin: quart.fin ? pourChamp(quart.fin) : `${jour}T17:00`,
-  });
-  const ajouter = (employeId, jour) => setFormulaire({ id: null, employeId, type: "TRAVAIL", debut: `${jour}T08:00`, fin: `${jour}T17:00`, raison: "" });
+  // Heures proposées dans le formulaire : l'horaire du commerce ce jour-là
+  // (Paramètres → heures d'ouverture). Jour fermé : celui du premier jour
+  // ouvert de la semaine.
+  const horaireDu = (jour) => horaires?.[CLES_JOUR[dateDe(jour).getUTCDay()]]
+    || ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"].map((cle) => horaires?.[cle]).find(Boolean)
+    || { ouverture: "08:00", fermeture: "17:00" };
+  const corriger = (quart, jour) => {
+    const debut = pourChamp(quart.debut);
+    // Départ non pointé : la fermeture du commerce, si elle suit le début
+    const fermeture = `${jour}T${horaireDu(jour).fermeture}`;
+    setFormulaire({
+      id: quart.id, employeId: quart.employeId, type: quart.type, raison: "",
+      debut, fin: quart.fin ? pourChamp(quart.fin) : fermeture > debut ? fermeture : debut,
+    });
+  };
+  const ajouter = (employeId, jour) => {
+    const { ouverture, fermeture } = horaireDu(jour);
+    setFormulaire({ id: null, employeId, type: "TRAVAIL", debut: `${jour}T${ouverture}`, fin: `${jour}T${fermeture}`, raison: "" });
+  };
 
   const lienExport = (format) => `/api/feuilles-temps/export?debut=${periode.debut}&fin=${periode.fin}&format=${format}`;
 
