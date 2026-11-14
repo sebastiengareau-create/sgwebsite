@@ -29,6 +29,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "banque", groupe: "Finances", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "calculatrice", groupe: "Finances", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
   { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "utilisateurs", groupe: "Équipe" },
+  { cle: "employes", href: "/gerant/feuilles-temps", label: "Feuilles de temps", icone: "horloge", groupe: "Équipe", moduleParam: "module_quarts", moduleActifSeulementSi: "actif" },
   { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Productivité par employés", icone: "tendance", groupe: "Équipe", moduleParam: "module_productivite" },
   { cle: "parametres", href: "/gerant/parametres", label: "Paramètres", icone: "reglages", groupe: "Configuration" },
 ];

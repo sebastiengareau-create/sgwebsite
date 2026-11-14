@@ -47,6 +47,14 @@ on décide quand et à qui une modification s'applique.
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
   de viande, `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
+  **Pointage de quart et feuilles de temps** (inactif par défaut,
+  `lib/quarts.js`) : l'employé pointe arrivée, dîner, pause et départ à
+  l'horodateur — le temps de présence, distinct du temps par tâche ; feuilles
+  de temps par période (`/gerant/feuilles-temps`, accès « Employés ») avec
+  heures supplémentaires à la semaine, efficacité (présence comparée au temps
+  sur les bons), anomalies, corrections consignées, verrouillage et export
+  CSV / Excel. Actif, la paie et la productivité prennent les heures de
+  présence au lieu de l'horaire d'ouverture.
   **Copropriété** (syndicat de copropriété : unités et quotes-parts,
   copropriétaires et historique des propriétaires, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents

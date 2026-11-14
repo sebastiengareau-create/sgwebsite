@@ -16,7 +16,7 @@ export default async function Administrateur() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_productivite", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
+  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_productivite", "module_quarts", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
 
   return (
@@ -28,6 +28,7 @@ export default async function Administrateur() {
           { id: "comptabilite", label: "Comptabilité", description: "Plan comptable, écritures automatiques, journal général", actif: dict.module_comptabilite !== "inactif" },
           { id: "paie", label: "Paie", description: "Paie — retenues à la source, cotisations de l'employeur, heures supplémentaires, jours fériés, talons et sommaires T4 / RL-1", actif: dict.module_paie === "actif" },
           { id: "productivite", label: "Productivité par employés", description: "Rapport de productivité (heures poinçonnées, facturables, poinçons oubliés) et rentabilité par employé", actif: dict.module_productivite !== "inactif" },
+          { id: "quarts", label: "Pointage de quart et feuilles de temps", description: "Pointage d'arrivée, de dîner, de pause et de départ à l'horodateur ; feuilles de temps par période (heures supplémentaires à la semaine), efficacité (présence comparée au temps sur les bons), approbation du gérant avec journal des corrections, export CSV / Excel vers un logiciel de paie. La paie et la productivité prennent alors les heures de présence", actif: dict.module_quarts === "actif" },
           { id: "notifications", label: "Notifications", description: "Cloche 🔔, avis automatiques (rendez-vous, pièces reçues, stock bas…) et messages aux employés", actif: dict.module_notifications !== "inactif" },
           { id: "double_verification", label: "Double vérification à la connexion", description: "Gérants et niveau 4 : après le mot de passe, un code à 6 chiffres envoyé par courriel (une fois par appareil aux 30 jours). Exige l'envoi de courriel configuré", actif: dict.module_double_verification === "actif" },
           { id: "documents", label: "Documents", description: "Lettres (référence d'emploi, promotion…), envoi par courriel et envoi groupé aux clients", actif: dict.module_documents === "actif" },

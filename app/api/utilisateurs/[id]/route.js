@@ -169,7 +169,8 @@ export async function DELETE(request, props) {
   // temps sur une tâche interne.
   const [entrees, entreesInternes, photos, paies] = await Promise.all([
     prisma.entreeTemps.count({ where: { employeId: params.id } }),
-    prisma.entreeTempsInterne.count({ where: { employeId: params.id } }),
+    // Tâches internes et quarts pointés : du temps travaillé aussi
+    Promise.all([prisma.entreeTempsInterne.count({ where: { employeId: params.id } }), prisma.quart.count({ where: { employeId: params.id } })]).then(([a, b]) => a + b),
     prisma.photo.count({ where: { employeId: params.id } }),
     prisma.paie.count({ where: { employeId: params.id } }),
   ]);

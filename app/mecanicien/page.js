@@ -6,6 +6,9 @@ import EnTete from "../components/EnTete";
 import TachePoincon from "./TachePoincon";
 import TachePhoto from "./TachePhoto";
 import SectionTachesInternes from "./SectionTachesInternes";
+import MonQuart from "./MonQuart";
+import { quartsActif, etatQuart, fermerQuartsOublies } from "@/lib/quarts";
+import { dateQuebecStr } from "@/lib/temps";
 import { STATUTS_ACTIFS } from "@/lib/statutsEnvoi";
 import { jobsDeplacementActif } from "@/lib/envois";
 import { CLIENT } from "@/lib/client";
@@ -78,6 +81,20 @@ export default async function EspaceMecanicien() {
       ])
     : [0, 0];
 
+  // Pointage de quart (module) : mon quart en cours — pas pour le
+  // développeur, qui n'a pas de fiche d'employé
+  let monQuart = null;
+  if (session.id && session.role !== "DEVELOPPEUR" && (await quartsActif())) {
+    await fermerQuartsOublies(session.id);
+    const { travail, coupure } = await etatQuart(session.id);
+    // Un quart resté ouvert d'un autre jour ne compte pas comme celui d'aujourd'hui
+    const duJour = travail && dateQuebecStr(travail.debut) === dateQuebecStr(new Date()) ? travail : null;
+    monQuart = {
+      travail: duJour && { debut: duJour.debut.toISOString() },
+      coupure: duJour && coupure ? { type: coupure.type, debut: coupure.debut.toISOString() } : null,
+    };
+  }
+
   const mesChronos = poinconsActifs.filter((t) => t.employeId === session.id).length + poinconsInternesActifs.filter((t) => t.employeId === session.id).length;
   const nbEquipe = poinconsActifs.length + poinconsInternesActifs.length;
 
@@ -104,6 +121,8 @@ export default async function EspaceMecanicien() {
             )}
           </div>
         )}
+
+        {monQuart && <MonQuart travail={monQuart.travail} coupure={monQuart.coupure} nbChronos={mesChronos} />}
 
         <div className="grille-trois" style={{ marginBottom: 24 }}>
           <CarteChiffre
