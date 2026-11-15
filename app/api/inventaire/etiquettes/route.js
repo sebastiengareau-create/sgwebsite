@@ -4,6 +4,7 @@ import { genererPdfEtiquettesPieces, FORMATS_ETIQUETTES } from "@/lib/pdfEtiquet
 import { urlEtiquettePiece } from "@/lib/codesBarres";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { image } from "@/lib/client";
+import { origineAppli } from "@/lib/origine";
 import path from "path";
 import sharp from "sharp";
 
@@ -27,16 +28,6 @@ async function obtenirLogo() {
     }
   }
   return logoEtiquette;
-}
-
-// Adresse publique de l'appli, encodée dans les QR : celle d'où l'utilisateur
-// imprime (envoyée par le navigateur), sinon reconstituée des en-têtes du
-// proxy (Railway).
-function origineAppli(request, origineNavigateur) {
-  if (typeof origineNavigateur === "string" && /^https?:\/\/[^/\s]+$/.test(origineNavigateur)) return origineNavigateur;
-  const hote = request.headers.get("x-forwarded-host") || request.headers.get("host");
-  const protocole = request.headers.get("x-forwarded-proto") || "https";
-  return `${protocole}://${hote}`;
 }
 
 export async function POST(request) {

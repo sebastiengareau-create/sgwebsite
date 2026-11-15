@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sessionElevage, normaliserBete, normaliserSortie, verifierMere } from "@/lib/elevage";
+import { sessionElevage, normaliserBete, normaliserSortie, verifierMere, verifierPere } from "@/lib/elevage";
 
 // Modifie la fiche ; avec { sortie }, change le statut : vendue sur pied,
 // morte, ou retour au troupeau (l'abattage a sa propre route)
@@ -24,6 +24,10 @@ export async function PATCH(request, props) {
   if (fiche.data.mereId !== undefined) {
     const mere = await verifierMere(fiche.data.mereId, bete.id);
     if (mere.erreur) return NextResponse.json({ erreur: mere.erreur }, { status: 400 });
+  }
+  if (fiche.data.pereId !== undefined) {
+    const pere = await verifierPere(fiche.data.pereId, bete.id);
+    if (pere.erreur) return NextResponse.json({ erreur: pere.erreur }, { status: 400 });
   }
   await prisma.bete.update({ where: { id: bete.id }, data: fiche.data });
   return NextResponse.json({ ok: true });

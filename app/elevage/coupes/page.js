@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
-import { peutGererElevage, assurerCoupesParDefaut, lireRendementCarcasse } from "@/lib/elevage";
+import { peutGererElevage, assurerCoupesParDefaut, lireRendementCarcasse, lireGmqCible } from "@/lib/elevage";
 import EnTete from "../../components/EnTete";
 import CoupesClient from "./CoupesClient";
 
@@ -11,15 +11,16 @@ export default async function Coupes() {
   if (!(await peutGererElevage(session))) redirect("/mecanicien");
   await assurerCoupesParDefaut();
 
-  const [coupes, rendementCarcasse] = await Promise.all([
+  const [coupes, rendementCarcasse, gmqCible] = await Promise.all([
     prisma.coupeViande.findMany({ include: { _count: { select: { lots: true } } }, orderBy: [{ ordre: "asc" }, { nom: "asc" }] }),
     lireRendementCarcasse(),
+    lireGmqCible(),
   ]);
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <CoupesClient coupes={coupes} rendementCarcasse={rendementCarcasse} />
+      <CoupesClient coupes={coupes} rendementCarcasse={rendementCarcasse} gmqCible={gmqCible} />
     </div>
   );
 }

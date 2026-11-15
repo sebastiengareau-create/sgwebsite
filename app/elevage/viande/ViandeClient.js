@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ScanElevage from "../ScanElevage";
 import BandeauSection from "../../components/BandeauSection";
 import { TitreSection } from "../../components/ui";
 import { CANAUX, stockLot, argent, kg, dateCourte } from "@/lib/elevageCalculs";
@@ -11,8 +13,13 @@ import {
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 
-export default function ViandeClient({ coupes, ventes }) {
+export default function ViandeClient({ coupes, ventes, lotScanne, scanInconnu }) {
+  const router = useRouter();
   const [venteCoupe, setVenteCoupe] = useState(null); // coupe ouverte dans le formulaire de vente
+  // Paquet scanné : vendu dans son lot, présenté comme une coupe au formulaire
+  const stockScanne = lotScanne && stockLot(lotScanne);
+  const paquetScanne = lotScanne && { ...lotScanne.coupe, paquets: stockScanne.paquets, poids: stockScanne.poids, lotId: lotScanne.id, bete: lotScanne.abattage.bete };
+  const finScan = () => router.replace("/elevage/viande");
 
   const stock = coupes.map((c) => {
     const lots = c.lots.map((l) => ({ ...l, stock: stockLot(l) })).filter((l) => l.stock.paquets > 0);
@@ -36,7 +43,19 @@ export default function ViandeClient({ coupes, ventes }) {
         <Statistique valeur={argent(valeurBoutique)} label="Valeur au prix boutique" />
       </div>
 
-      {venteCoupe && <FormulaireVente coupe={stock.find((c) => c.id === venteCoupe)} onFin={() => setVenteCoupe(null)} />}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+        <ScanElevage libelle="Vendre un paquet en scannant son étiquette" />
+      </div>
+      {scanInconnu && <p style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", margin: "0 0 12px" }}>Cette étiquette ne correspond à aucun paquet (abattage annulé ?).</p>}
+      {paquetScanne && (paquetScanne.paquets > 0 ? (
+        <FormulaireVente key={paquetScanne.lotId} coupe={paquetScanne} onFin={finScan} />
+      ) : (
+        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", margin: "0 0 12px" }}>
+          Tous les paquets de {paquetScanne.nom} de la bête {paquetScanne.bete.numero} sont déjà vendus — vérifie le stock ou les ventes ci-dessous.
+        </p>
+      ))}
+
+      {venteCoupe && !paquetScanne && <FormulaireVente coupe={stock.find((c) => c.id === venteCoupe)} onFin={() => setVenteCoupe(null)} />}
 
       <div className="carte" style={{ marginBottom: 14 }}>
         <TitreSection>Stock par coupe</TitreSection>
@@ -86,14 +105,14 @@ function FormulaireVente({ coupe, onFin }) {
   const montant = champs.montant.trim() ? nombre(champs.montant) : poids * prix;
 
   async function vendre() {
-    if (await appeler("/api/elevage/ventes", "POST", { ...champs, coupeId: coupe.id })) onFin();
+    if (await appeler("/api/elevage/ventes", "POST", { ...champs, coupeId: coupe.id, lotId: coupe.lotId })) onFin();
   }
 
   return (
     <div className="carte carte-m" style={{ marginBottom: 14, border: "1px solid var(--accent)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-        <strong>Vendre — {coupe.nom}</strong>
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{coupe.paquets} en stock</span>
+        <strong>Vendre — {coupe.nom}{coupe.bete && ` · bête ${coupe.bete.numero}`}</strong>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{coupe.paquets} en stock{coupe.bete && " de cette bête"}</span>
       </div>
       <Onglets options={CANAUX.map((c) => ({ code: c.code, label: `${c.icone} ${c.label}` }))} valeur={champs.canal} onChange={(canal) => setChamps((c) => ({ ...c, canal }))} />
       <div style={grille2}>
