@@ -1534,7 +1534,13 @@ model Bete {
   mereId           String?
   mere             Bete?       @relation("MereVeaux", fields: [mereId], references: [id], onDelete: SetNull)
   veaux            Bete[]      @relation("MereVeaux")
-  pere             String? // taureau ou semence (IA), texte libre
+  pere             String? // taureau hors troupeau ou semence (IA), texte libre — sert quand pereId est vide
+  pereId           String? // taureau du troupeau
+  pereBete         Bete?       @relation("PereVeaux", fields: [pereId], references: [id], onDelete: SetNull)
+  veauxPere        Bete[]      @relation("PereVeaux")
+  saillies         Saillie[]   @relation("SailliesFemelle")
+  sailliesTaureau  Saillie[]   @relation("SailliesTaureau")
+  saillieOrigine   Saillie?    @relation("SaillieVeau") // la saillie dont elle est née
   statut           String      @default("ACTIVE") // "ACTIVE" | "ABATTUE" | "VENDUE" (sur pied) | "MORTE"
   dateSortie       DateTime? // abattage, vente sur pied ou mort
   prixVente        Float? // vente sur pied, avant taxes
@@ -1547,6 +1553,31 @@ model Bete {
   creeLe           DateTime    @default(now())
 
   @@index([mereId])
+  @@index([pereId])
+}
+
+// Reproduction : saillie naturelle ou insémination d'une femelle, par un
+// taureau du troupeau (taureauId) ou une semence / un taureau de
+// l'extérieur (semence, texte). Le vêlage est prévu GESTATION_JOURS plus
+// tard (lib/elevageCalculs.js) ; l'enregistrer crée la fiche du veau.
+model Saillie {
+  id        String   @id @default(cuid())
+  femelleId String
+  femelle   Bete     @relation("SailliesFemelle", fields: [femelleId], references: [id], onDelete: Cascade)
+  date      DateTime
+  type      String // "NATURELLE" | "IA"
+  taureauId String?
+  taureau   Bete?    @relation("SailliesTaureau", fields: [taureauId], references: [id], onDelete: SetNull)
+  semence   String? // taureau hors troupeau ou paillette
+  statut    String   @default("EN_ATTENTE") // "EN_ATTENTE" | "GESTANTE" (confirmée) | "VIDE" (non gestante ou perdue) | "VELEE"
+  veauId    String?  @unique
+  veau      Bete?    @relation("SaillieVeau", fields: [veauId], references: [id], onDelete: SetNull)
+  note      String?
+  creePar   String?
+  creeLe    DateTime @default(now())
+
+  @@index([femelleId, date])
+  @@index([taureauId])
 }
 
 model PeseeBete {

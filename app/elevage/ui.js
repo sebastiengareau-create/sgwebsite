@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent, kg } from "@/lib/elevageCalculs";
+import { Icone, TEINTES, TitrePanneau, stylePanneau } from "../components/StyleSection";
 
 export const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
@@ -162,5 +163,29 @@ export function TableEstimation({ lignes }) {
         </tr>
       ))}
     </Tableau>
+  );
+}
+
+// Panneau d'une fiche, avec sa tuile d'icône
+export function Section({ titre, icone = "liste", teinte = TEINTES.ambre, sousTitre, children, droite }) {
+  return (
+    <div style={stylePanneau}>
+      <TitrePanneau icone={icone} teinte={teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
+      {children}
+    </div>
+  );
+}
+
+// Lien d'action dans l'en-tête d'un panneau (Modifier, Annuler…)
+export function LienPanneau({ onClick, couleur = "var(--accent-ombre)", children }) {
+  return <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 0", fontSize: 13, fontWeight: 700, color: couleur, whiteSpace: "nowrap", fontFamily: "inherit" }}>{children}</button>;
+}
+
+// Petit bouton à icône (retirer une ligne)
+export function BoutonRetirer({ titre, onClick }) {
+  return (
+    <button type="button" onClick={onClick} title={titre} aria-label={titre} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" }}>
+      <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
+    </button>
   );
 }

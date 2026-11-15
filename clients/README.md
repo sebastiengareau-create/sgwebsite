@@ -45,7 +45,8 @@ on décide quand et à qui une modification s'applique.
   Jobs en déplacement, **Productivité par employés** (rapport de
   productivité et rentabilité par employé, actif par défaut,
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
-  de viande, registre de soins avec délai de retrait, étiquettes à code QR
+  de viande, registre de soins avec délai de retrait, saillies, vêlages et lignée
+  avec alerte de consanguinité, courbe de poids et gain visé, étiquettes à code QR
   des paquets et page publique de traçabilité `/tracabilite/<lot>`,
   `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).

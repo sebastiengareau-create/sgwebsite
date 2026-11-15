@@ -11,7 +11,7 @@ import {
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const texte = (n) => String(n ?? "").replace(".", ",");
 
-export default function CoupesClient({ coupes, rendementCarcasse }) {
+export default function CoupesClient({ coupes, rendementCarcasse, gmqCible }) {
   const actives = coupes.filter((c) => c.actif);
   const totalRendement = actives.reduce((s, c) => s + c.rendement, 0);
   return (
@@ -19,6 +19,7 @@ export default function CoupesClient({ coupes, rendementCarcasse }) {
       <BandeauSection icone="📐" titre="Coupes et rendements" sousTitre="Ce que donne une carcasse : la part de chaque coupe, le poids d'un paquet et son prix au kg selon le canal de vente." />
       <NavElevage actif="/elevage/coupes" />
       <Simulateur coupes={actives} rendementCarcasse={rendementCarcasse} />
+      <CibleCroissance gmqCible={gmqCible} />
       <div className="carte" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <TitreSection>Coupes</TitreSection>
@@ -97,6 +98,30 @@ function NouvelleCoupe() {
         <button onClick={async () => (await appeler("/api/elevage/coupes", "POST", champs)) && setChamps(null)} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>Ajouter la coupe</button>
         <button onClick={() => setChamps(null)} style={{ ...boutonLien, color: "var(--text-muted)", padding: "0 10px" }}>Annuler</button>
       </div>
+    </div>
+  );
+}
+
+// Gain moyen quotidien visé : une bête en croissance (bouvillon, ou jeune de
+// moins de 24 mois) dont le gain récent est dessous est signalée au troupeau
+function CibleCroissance({ gmqCible }) {
+  const [cible, setCible] = useState(texte(gmqCible));
+  const { appeler, enCours, erreur } = useApi();
+  return (
+    <div className="carte" style={{ marginBottom: 14 }}>
+      <TitreSection>Croissance — gain visé</TitreSection>
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 8px" }}>
+        Les bouvillons et les jeunes de moins de 24 mois dont le gain récent (entre leurs dernières pesées) est sous cette cible sont signalés dans le troupeau.
+      </p>
+      <Champ label="Gain moyen quotidien visé (kg/jour)">
+        <div style={{ display: "flex", gap: 6, maxWidth: 260 }}>
+          <input inputMode="decimal" value={cible} onChange={(e) => setCible(e.target.value)} style={champStyle} />
+          {nombre(cible) !== gmqCible && (
+            <button onClick={() => appeler("/api/elevage/parametres", "PATCH", { gmqCible: cible })} disabled={enCours} style={{ ...boutonLien, color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap", marginBottom: 8 }}>Enregistrer</button>
+          )}
+        </div>
+      </Champ>
+      <Erreur texte={erreur} />
     </div>
   );
 }

@@ -45,7 +45,7 @@ export default async function Tracabilite(props) {
             bete: {
               select: {
                 id: true, numero: true, nom: true, sexe: true, genetique: true, pourcentageWagyu: true, dateNaissance: true,
-                origine: true, dateAcquisition: true, pere: true, mere: { select: { numero: true, nom: true } },
+                origine: true, dateAcquisition: true, pere: true, mere: { select: { numero: true, nom: true } }, pereBete: { select: { numero: true, nom: true } },
               },
             },
           },
@@ -72,7 +72,7 @@ export default async function Tracabilite(props) {
   const bete = abattage.bete;
   const nomBete = bete.nom || `la bête ${bete.numero}`;
   const genetique = [bete.genetique && libelle(GENETIQUES, bete.genetique).split(" (")[0], bete.pourcentageWagyu != null && `${bete.pourcentageWagyu} % wagyu`].filter(Boolean).join(" · ");
-  const lignee = [bete.mere && `mère : ${bete.mere.nom || bete.mere.numero}`, bete.pere && `père : ${bete.pere}`].filter(Boolean).join(" · ");
+  const lignee = [bete.mere && `mère : ${bete.mere.nom || bete.mere.numero}`, (bete.pereBete || bete.pere) && `père : ${bete.pereBete ? bete.pereBete.nom || bete.pereBete.numero : bete.pere}`].filter(Boolean).join(" · ");
   // Employé connecté qui a scanné avec l'appareil photo : raccourcis vers l'appli
   const employe = await peutGererElevage(await obtenirSession());
 

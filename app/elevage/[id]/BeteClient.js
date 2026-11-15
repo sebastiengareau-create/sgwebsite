@@ -8,17 +8,23 @@ import { ChampsBete, FICHE_VIDE } from "../TroupeauClient";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, CATEGORIES_FRAIS, CANAUX, libelle, age, dateCourte, argent, kg,
   dernierePesee, gainMoyenQuotidien, peseesAvecGain, estimerDecoupe, totauxDecoupe, carcasseDepuisVif, stockLot, coutBete, revenusBete,
-  TYPES_SOIN, finRetrait, retraitEnCours, rappelsAFaire, joursAvant,
+  TYPES_SOIN, finRetrait, retraitEnCours, rappelsAFaire, joursAvant, gmqRecent, enCroissance, nomBete,
 } from "@/lib/elevageCalculs";
 import EtiquettesElevage from "../EtiquettesElevage";
 import {
   champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Tableau, TableEstimation, cellule, celluleDroite, useApi, aujourdhui,
+  Section, LienPanneau, BoutonRetirer,
 } from "../ui";
+import { Lignee, Reproduction } from "./Reproduction";
+import CourbePoids from "./CourbePoids";
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const decimal = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().replace(".", ",");
 
-export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }) {
+export default function BeteClient({ bete, registre, coupes, rendementCarcasse, gmqCible }) {
+  const femelles = registre.filter((b) => b.sexe === "FEMELLE" && b.id !== bete.id);
+  const taureaux = registre.filter((b) => b.sexe === "TAUREAU" && b.id !== bete.id);
+  const veaux = bete.sexe === "FEMELLE" ? bete.veaux : bete.veauxPere;
   const statut = STATUTS_BETE.find((s) => s.code === bete.statut);
   const couleur = statut?.couleur || "var(--accent)";
   const pesee = dernierePesee(bete.pesees);
@@ -69,38 +75,17 @@ export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }
         )}
       </div>
 
-      <Fiche bete={bete} femelles={femelles} />
+      <Fiche bete={bete} femelles={femelles} taureaux={taureaux} />
+      <Lignee bete={bete} registre={registre} />
       <Rentabilite bete={bete} />
       {bete.abattage ? <Decoupe bete={bete} /> : bete.statut === "ACTIVE" && <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} retrait={retrait} />}
-      <Pesees bete={bete} />
+      {bete.sexe === "FEMELLE" && <Reproduction bete={bete} registre={registre} taureaux={taureaux.filter((t) => t.statut === "ACTIVE")} />}
+      <Pesees bete={bete} gmqCible={gmqCible} />
       <Soins bete={bete} />
       <Frais bete={bete} />
-      {bete.veaux.length > 0 && <Veaux veaux={bete.veaux} />}
+      {veaux.length > 0 && <Veaux veaux={veaux} />}
       {!bete.abattage && <Sortie bete={bete} />}
     </div>
-  );
-}
-
-function Section({ titre, icone = "liste", teinte = TEINTES.ambre, sousTitre, children, droite }) {
-  return (
-    <div style={stylePanneau}>
-      <TitrePanneau icone={icone} teinte={teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
-      {children}
-    </div>
-  );
-}
-
-// Lien d'action dans l'en-tête d'un panneau (Modifier, Annuler…)
-function LienPanneau({ onClick, couleur = "var(--accent-ombre)", children }) {
-  return <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 0", fontSize: 13, fontWeight: 700, color: couleur, whiteSpace: "nowrap", fontFamily: "inherit" }}>{children}</button>;
-}
-
-// Petit bouton à icône (retirer une ligne)
-function BoutonRetirer({ titre, onClick }) {
-  return (
-    <button type="button" onClick={onClick} title={titre} aria-label={titre} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" }}>
-      <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
-    </button>
   );
 }
 
@@ -116,7 +101,7 @@ function Encadre({ label, valeur, couleur = "var(--accent-ombre)", fond = "rgba(
 
 // ---------- Fiche ----------
 
-function Fiche({ bete, femelles }) {
+function Fiche({ bete, femelles, taureaux }) {
   const [edition, setEdition] = useState(false);
   const [etiquette, setEtiquette] = useState(false);
   const [fiche, setFiche] = useState(() => Object.fromEntries(Object.keys(FICHE_VIDE).map((k) => [k, k.startsWith("date") ? dateCourte(bete[k]) : bete[k] == null ? "" : String(bete[k])])));
@@ -131,7 +116,7 @@ function Fiche({ bete, femelles }) {
   if (edition) {
     return (
       <Section titre="Fiche" icone="crayon" droite={bouton}>
-        <ChampsBete fiche={fiche} maj={maj} femelles={femelles} />
+        <ChampsBete fiche={fiche} maj={maj} femelles={femelles} taureaux={taureaux} />
         <Erreur texte={erreur} />
         <button onClick={enregistrer} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "…" : "Enregistrer"}</button>
       </Section>
@@ -144,7 +129,7 @@ function Fiche({ bete, femelles }) {
       <LigneDetail label="Naissance" valeur={bete.dateNaissance && `${dateCourte(bete.dateNaissance)} (${age(bete.dateNaissance, bete.dateSortie || new Date())})`} />
       <LigneDetail label="Génétique" valeur={[bete.genetique && libelle(GENETIQUES, bete.genetique).split(" (")[0], bete.pourcentageWagyu != null && `${bete.pourcentageWagyu} % wagyu`].filter(Boolean).join(" · ")} />
       <LigneDetail label="Mère" valeur={bete.mere && <Link href={`/elevage/${bete.mere.id}`} style={{ color: "var(--accent-ombre)" }}>{bete.mere.numero}{bete.mere.nom ? ` — ${bete.mere.nom}` : ""}</Link>} />
-      <LigneDetail label="Père" valeur={bete.pere} />
+      <LigneDetail label="Père" valeur={bete.pereBete ? <Link href={`/elevage/${bete.pereBete.id}`} style={{ color: "var(--accent-ombre)" }}>{nomBete(bete.pereBete)}</Link> : bete.pere} />
       <LigneDetail label="Origine" valeur={bete.origine === "ACHETEE" ? ["Achetée", bete.dateAcquisition && `le ${dateCourte(bete.dateAcquisition)}`, bete.provenance && `de ${bete.provenance}`, `pour ${argent(bete.coutAcquisition)}`].filter(Boolean).join(" ") : "Née ici"} />
       {bete.notes && <p style={{ fontSize: 13.5, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "10px 12px", borderRadius: 12, background: "var(--bg)" }}>{bete.notes}</p>}
       {etiquette ? (
@@ -409,7 +394,10 @@ function CorrectionLot({ lot, onFin }) {
 
 // ---------- Pesées ----------
 
-function Pesees({ bete }) {
+function Pesees({ bete, gmqCible }) {
+  const recent = gmqRecent(bete.pesees);
+  const suivie = enCroissance(bete);
+  const sousCible = suivie && recent && recent.gmq < gmqCible;
   const [champs, setChamps] = useState({ date: aujourdhui(), poids: "", note: "" });
   const { appeler, enCours, erreur } = useApi();
   const liste = peseesAvecGain(bete.pesees).reverse();
@@ -427,6 +415,13 @@ function Pesees({ bete }) {
       titre="Pesées" icone="graphique" teinte={TEINTES.bleu}
       sousTitre={gmq != null ? `Gain moyen ${decimal(gmq, 2)} kg/jour` : undefined}
     >
+      {bete.pesees.length >= 2 && <CourbePoids pesees={bete.pesees} dateNaissance={bete.dateNaissance} />}
+      {recent && bete.statut === "ACTIVE" && (
+        <p style={{ fontSize: 13, fontWeight: 700, margin: "0 0 12px", padding: "9px 12px", borderRadius: 12, color: sousCible ? "var(--danger)" : "var(--text)", background: sousCible ? "var(--danger-fond)" : "var(--surface-alt)" }}>
+          {sousCible ? "⚠️ " : ""}Gain récent : {decimal(recent.gmq, 2)} kg/jour depuis le {dateCourte(recent.depuis)}
+          {suivie && ` — cible ${decimal(gmqCible, 2)} kg/jour`}
+        </p>
+      )}
       {bete.statut === "ACTIVE" && (
         <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
