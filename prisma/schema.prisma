@@ -1521,7 +1521,9 @@ model NotificationCedulee {
 model Bete {
   id               String      @id @default(cuid())
   numero           String      @unique // "BT-001"
-  identifiant      String? // boucle d'oreille (ATQ) ou autre identification officielle
+  identifiant      String? // boucle d'oreille ATQ en service : 15 chiffres, unique au troupeau (lib/elevage.js)
+  boucles          BoucleBete[] // boucles remplacées
+  deplacements     DeplacementBete[]
   nom              String?
   sexe             String // "FEMELLE" | "TAUREAU" | "BOUVILLON" (mâle castré)
   genetique        String? // "FULLBLOOD" | "PUREBRED" | "CROISE"
@@ -1554,6 +1556,53 @@ model Bete {
 
   @@index([mereId])
   @@index([pereId])
+}
+
+// Boucle d'oreille remplacée (perdue, illisible…) : l'ancienne reste au
+// dossier de la bête, la nouvelle devient Bete.identifiant
+model BoucleBete {
+  id            String   @id @default(cuid())
+  beteId        String
+  bete          Bete     @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  numero        String // l'ancienne boucle
+  remplaceePar  String // la boucle posée à sa place
+  retireeLe     DateTime
+  raison        String // "PERDUE" | "ILLISIBLE" | "ERREUR" | "AUTRE"
+  note          String?
+  creePar       String?
+  creeLe        DateTime @default(now())
+
+  @@index([beteId])
+}
+
+// Déplacement d'une bête : changement d'enclos ou de pâturage (INTERNE), ou
+// passage d'un site à un autre (ENTREE, SORTIE) — ceux-là se déclarent à
+// Agri-Traçabilité Québec. L'emplacement d'une bête est le lieu de son
+// dernier déplacement. L'achat, la vente, l'abattage et la mort restent sur
+// la fiche ; le registre les réunit (lib/registreElevage.js).
+model DeplacementBete {
+  id           String   @id @default(cuid())
+  beteId       String
+  bete         Bete     @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date         DateTime
+  type         String // "INTERNE" | "ENTREE" | "SORTIE"
+  lieu         String? // enclos ou pâturage d'arrivée (INTERNE, ENTREE)
+  site         String? // site de provenance (ENTREE) ou de destination (SORTIE) : nom et numéro de site
+  transporteur String? // transporteur et plaque du véhicule
+  note         String?
+  creePar      String?
+  creeLe       DateTime @default(now())
+
+  @@index([beteId, date])
+  @@index([date])
+}
+
+// Événement du registre marqué « déclaré à ATQ » — cle : identifiant de
+// l'événement (« naissance:<id de la bête> », « depl:<id du déplacement> »…)
+model DeclarationAtq {
+  cle        String   @id
+  declareLe  DateTime @default(now())
+  declarePar String?
 }
 
 // Reproduction : saillie naturelle ou insémination d'une femelle, par un

@@ -17,11 +17,13 @@ import {
 } from "../ui";
 import { Lignee, Reproduction } from "./Reproduction";
 import CourbePoids from "./CourbePoids";
+import Identification from "./Identification";
+import { formaterBoucle } from "@/lib/registreElevage";
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const decimal = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().replace(".", ",");
 
-export default function BeteClient({ bete, registre, coupes, rendementCarcasse, gmqCible }) {
+export default function BeteClient({ bete, registre, coupes, rendementCarcasse, gmqCible, lieux }) {
   const femelles = registre.filter((b) => b.sexe === "FEMELLE" && b.id !== bete.id);
   const taureaux = registre.filter((b) => b.sexe === "TAUREAU" && b.id !== bete.id);
   const veaux = bete.sexe === "FEMELLE" ? bete.veaux : bete.veauxPere;
@@ -46,7 +48,7 @@ export default function BeteClient({ bete, registre, coupes, rendementCarcasse, 
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{bete.numero}{bete.nom && ` — ${bete.nom}`}</div>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
-              {[libelle(SEXES, bete.sexe).split(" (")[0], bete.dateNaissance && age(bete.dateNaissance, bete.dateSortie || new Date()), bete.identifiant && `boucle ${bete.identifiant}`].filter(Boolean).join(" · ")}
+              {[libelle(SEXES, bete.sexe).split(" (")[0], bete.dateNaissance && age(bete.dateNaissance, bete.dateSortie || new Date()), bete.identifiant && `boucle ${formaterBoucle(bete.identifiant)}`].filter(Boolean).join(" · ")}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
               <Pastille couleur={couleur} fond="var(--surface-alt)">{statut?.label}{bete.dateSortie && ` le ${dateCourte(bete.dateSortie)}`}</Pastille>
@@ -76,6 +78,7 @@ export default function BeteClient({ bete, registre, coupes, rendementCarcasse, 
       </div>
 
       <Fiche bete={bete} femelles={femelles} taureaux={taureaux} />
+      <Identification bete={bete} lieux={lieux} />
       <Lignee bete={bete} registre={registre} />
       <Rentabilite bete={bete} />
       {bete.abattage ? <Decoupe bete={bete} /> : bete.statut === "ACTIVE" && <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} retrait={retrait} />}
@@ -125,7 +128,7 @@ function Fiche({ bete, femelles, taureaux }) {
   return (
     <Section titre="Fiche" icone="presse" droite={bouton}>
       <LigneDetail premiere label="Sexe" valeur={libelle(SEXES, bete.sexe)} />
-      <LigneDetail label="Boucle d'oreille" valeur={bete.identifiant} />
+      <LigneDetail label="Boucle d'oreille" valeur={formaterBoucle(bete.identifiant) || null} />
       <LigneDetail label="Naissance" valeur={bete.dateNaissance && `${dateCourte(bete.dateNaissance)} (${age(bete.dateNaissance, bete.dateSortie || new Date())})`} />
       <LigneDetail label="Génétique" valeur={[bete.genetique && libelle(GENETIQUES, bete.genetique).split(" (")[0], bete.pourcentageWagyu != null && `${bete.pourcentageWagyu} % wagyu`].filter(Boolean).join(" · ")} />
       <LigneDetail label="Mère" valeur={bete.mere && <Link href={`/elevage/${bete.mere.id}`} style={{ color: "var(--accent-ombre)" }}>{bete.mere.numero}{bete.mere.nom ? ` — ${bete.mere.nom}` : ""}</Link>} />

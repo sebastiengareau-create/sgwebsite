@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { creerAvecNumero } from "@/lib/numerotation";
-import { sessionElevage, normaliserBete, prochainNumeroBete, verifierMere, verifierPere } from "@/lib/elevage";
+import { sessionElevage, normaliserBete, prochainNumeroBete, verifierMere, verifierPere, verifierBoucle } from "@/lib/elevage";
 
 // Nouvelle bête au troupeau (née ici ou achetée), avec sa première pesée
 // facultative (poids à la naissance ou à l'arrivée)
@@ -15,6 +15,8 @@ export async function POST(request) {
   if (!fiche.data.sexe) return NextResponse.json({ erreur: "Choisis le sexe." }, { status: 400 });
   const mere = await verifierMere(fiche.data.mereId, null);
   if (mere.erreur) return NextResponse.json({ erreur: mere.erreur }, { status: 400 });
+  const boucle = await verifierBoucle(fiche.data.identifiant, null);
+  if (boucle.erreur) return NextResponse.json({ erreur: boucle.erreur }, { status: 400 });
   const pere = await verifierPere(fiche.data.pereId, null);
   if (pere.erreur) return NextResponse.json({ erreur: pere.erreur }, { status: 400 });
 
