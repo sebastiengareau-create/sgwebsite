@@ -370,3 +370,19 @@ a { color: inherit; }
 .logo-clair { display: none; }
 html[data-theme="light"] .logo-clair { display: inline-block; }
 html[data-theme="light"] .logo-sombre { display: none; }
+
+/* Ajout d'une pièce à un bon (PiecesBon, app/bons/BonDetailClient.js) : sur
+   cellulaire, le choix de la pièce prend toute la largeur, sur sa propre
+   rangée ; scanner, quantité et « + Ajouter » suivent en dessous, en gros
+   boutons faciles à toucher. Dès 700 px : tout sur une rangée (styles du
+   composant). */
+.ajout-piece-libelle { display: none; }
+@media (max-width: 699px) {
+  .ajout-piece { flex-wrap: wrap; }
+  .ajout-piece > button { min-height: 46px; min-width: 46px; }
+  .ajout-piece-choix { flex: 1 1 100% !important; order: -1; }
+  .ajout-piece-choix > button { min-height: 46px; font-size: 15px !important; padding: 10px 12px !important; align-items: center; }
+  .ajout-piece-qte { flex: 1 1 0 !important; width: auto !important; min-width: 56px; min-height: 46px; font-size: 16px !important; }
+  .ajout-piece-plus { flex: 2 1 0; font-weight: 700; }
+  .ajout-piece-libelle { display: inline; font-size: 14px; }
+}

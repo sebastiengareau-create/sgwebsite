@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SectionDepots from "../components/SectionDepots";
@@ -1429,6 +1430,11 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
   const [recherchePiece, setRecherchePiece] = useState("");
   const [afficherSuggestionsPiece, setAfficherSuggestionsPiece] = useState(false);
   const boiteRecherchePieceRef = useRef(null);
+  // Sur cellulaire, le choix de pièce s'ouvre en plein écran, calé sur la
+  // partie de l'écran que le clavier laisse visible (zoneVisible)
+  const panneauPieceRef = useRef(null);
+  const [choixPleinEcran, setChoixPleinEcran] = useState(false);
+  const [zoneVisible, setZoneVisible] = useState(null);
   const [qtePiece, setQtePiece] = useState("1");
   const [erreurPiece, setErreurPiece] = useState("");
   const [confirmationPiece, setConfirmationPiece] = useState("");
@@ -1458,6 +1464,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
 
   useEffect(() => {
     function surClicExterieur(e) {
+      if (panneauPieceRef.current?.contains(e.target)) return;
       if (boiteRecherchePieceRef.current && !boiteRecherchePieceRef.current.contains(e.target)) {
         setAfficherSuggestionsPiece(false);
       }
@@ -1465,6 +1472,39 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     document.addEventListener("mousedown", surClicExterieur);
     return () => document.removeEventListener("mousedown", surClicExterieur);
   }, []);
+
+  // Choix de pièce en plein écran : la page derrière ne défile plus, et le
+  // panneau suit la zone visible — le clavier du téléphone ne cache ni le
+  // champ de recherche ni la liste.
+  const pleinEcranOuvert = afficherSuggestionsPiece && choixPleinEcran;
+  useEffect(() => {
+    if (!pleinEcranOuvert) return;
+    const vv = window.visualViewport;
+    function mesurer() {
+      // « Texte plus gros » (zoom du body, globals.css) grossit aussi le panneau
+      const zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
+      setZoneVisible({
+        haut: (vv?.offsetTop || 0) / zoom,
+        hauteur: (vv?.height || window.innerHeight) / zoom,
+      });
+    }
+    mesurer();
+    vv?.addEventListener("resize", mesurer);
+    vv?.addEventListener("scroll", mesurer);
+    const defilement = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      vv?.removeEventListener("resize", mesurer);
+      vv?.removeEventListener("scroll", mesurer);
+      document.body.style.overflow = defilement;
+    };
+  }, [pleinEcranOuvert]);
+
+  function basculerChoixPiece() {
+    setChoixPleinEcran(window.matchMedia("(max-width: 699px)").matches);
+    setAfficherSuggestionsPiece((v) => !v);
+    setRecherchePiece("");
+  }
 
   function choisirPiece(p) {
     setPieceChoisie(p.id);
@@ -1664,16 +1704,16 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
       )}
 
       {!verrouille && (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="ajout-piece" style={{ display: "flex", gap: 6 }}>
           <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner une pièce" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>📷</button>
           {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce pour ce bon" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
           {onRechercherPieces && (
             <button type="button" onClick={onRechercherPieces} title="Rechercher la pièce chez les fournisseurs (web)" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>🔎</button>
           )}
-          <div ref={boiteRecherchePieceRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          <div ref={boiteRecherchePieceRef} className="ajout-piece-choix" style={{ position: "relative", flex: 1, minWidth: 0 }}>
             <button
               type="button"
-              onClick={() => { setAfficherSuggestionsPiece((v) => !v); setRecherchePiece(""); }}
+              onClick={basculerChoixPiece}
               style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "7px 8px", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 6 }}
             >
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: pieceSelectionnee ? "var(--text)" : "var(--text-muted)" }}>
@@ -1681,51 +1721,83 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
               </span>
               <span style={{ color: "var(--text-muted)" }}>▾</span>
             </button>
-            {afficherSuggestionsPiece && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
-                <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>
-                  <input
-                    autoFocus
-                    value={recherchePiece}
-                    onChange={(e) => setRecherchePiece(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setAfficherSuggestionsPiece(false);
-                      if (e.key === "Enter" && suggestionsPieces.length > 0) { e.preventDefault(); choisirPiece(suggestionsPieces[0]); }
-                    }}
-                    placeholder="🔍 Rechercher (nom ou numéro)…"
-                    style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px" }}
-                  />
-                </div>
-                <div style={{ maxHeight: 260, overflowY: "auto" }}>
+            {afficherSuggestionsPiece && (() => {
+              const pe = choixPleinEcran;
+              const champRecherche = (
+                <input
+                  autoFocus
+                  value={recherchePiece}
+                  onChange={(e) => setRecherchePiece(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setAfficherSuggestionsPiece(false);
+                    if (e.key === "Enter" && suggestionsPieces.length > 0) { e.preventDefault(); choisirPiece(suggestionsPieces[0]); }
+                  }}
+                  placeholder="🔍 Rechercher (nom ou numéro)…"
+                  enterKeyHint="search" autoComplete="off" autoCorrect="off"
+                  style={pe
+                    ? { ...champStyle, minWidth: 0, fontSize: 16, padding: "11px 12px" }
+                    : { ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px" }}
+                />
+              );
+              const liste = (
+                <>
                   {suggestionsPieces.length === 0 ? (
-                    <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>{peutCommander || CLIENT.stockNegatifBons ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
+                    <div style={{ padding: pe ? "14px" : "8px 10px", fontSize: pe ? 14 : 12, color: "var(--text-muted)" }}>{peutCommander || CLIENT.stockNegatifBons ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
                   ) : suggestionsPieces.slice(0, MAX_SUGGESTIONS_PIECES).map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => choisirPiece(p)}
-                      style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: pe ? "13px 14px" : "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: pe ? 15 : 12, cursor: "pointer" }}
                     >
                       {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? (CLIENT.stockNegatifBons ? `${p.estKit ? "kit · " : ""}${p.qte} en stock` : "0 en stock · à commander") : libelleStock(p)}</span>
-                      {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
+                      {p.numero && <span style={{ fontSize: pe ? 13 : 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
                     </button>
                   ))}
                   {suggestionsPieces.length > MAX_SUGGESTIONS_PIECES && (
-                    <div style={{ padding: "8px 10px", fontSize: 11.5, color: "var(--text-muted)" }}>
+                    <div style={{ padding: pe ? "12px 14px" : "8px 10px", fontSize: pe ? 13 : 11.5, color: "var(--text-muted)" }}>
                       … et {suggestionsPieces.length - MAX_SUGGESTIONS_PIECES} autres — tape un nom ou un numéro pour préciser.
                     </div>
                   )}
-                </div>
-              </div>
-            )}
+                </>
+              );
+              if (!pe) {
+                return (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
+                    <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>{champRecherche}</div>
+                    <div style={{ maxHeight: 260, overflowY: "auto" }}>{liste}</div>
+                  </div>
+                );
+              }
+              return createPortal(
+                <div
+                  ref={panneauPieceRef} role="dialog" aria-modal="true" aria-label="Choisir une pièce"
+                  style={{
+                    position: "fixed", left: 0, right: 0, top: zoneVisible?.haut ?? 0, height: zoneVisible ? zoneVisible.hauteur : "100dvh",
+                    zIndex: 1000, background: "var(--bg)", color: "var(--text)", display: "flex", flexDirection: "column",
+                  }}
+                >
+                  <div style={{ padding: "calc(10px + env(safe-area-inset-top)) 12px 10px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+                    <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>Choisir une pièce</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {champRecherche}
+                      <button type="button" onClick={() => setAfficherSuggestionsPiece(false)} style={{ ...boutonAjout, padding: "0 14px", fontSize: 14, color: "var(--text)" }}>Fermer</button>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>{liste}</div>
+                </div>,
+                document.body
+              );
+            })()}
           </div>
           <input
             type="number" min={1} value={qtePiece}
             onChange={(e) => { setQtePiece(e.target.value); setCommandeBo(null); }}
             onBlur={() => setQtePiece(String(Math.max(1, parseInt(qtePiece) || 1)))}
+            className="ajout-piece-qte" inputMode="numeric" aria-label="Quantité"
             style={{ ...champStyle, flex: "none", width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
           />
-          <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
+          <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} className="ajout-piece-plus" style={{ ...boutonAjout, padding: "0 12px", opacity: pieceChoisie ? 1 : 0.5 }}>+<span className="ajout-piece-libelle"> Ajouter</span></button>
         </div>
       )}
       {!verrouille && (
