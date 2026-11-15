@@ -9,8 +9,9 @@ import { nombre } from "@/lib/format";
 import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, libelle, age, dernierePesee, gainMoyenQuotidien, coutBete, revenusBete,
-  carcasseDepuisVif, argent, kg, dateCourte,
+  carcasseDepuisVif, argent, kg, dateCourte, TYPES_SOIN, retraitEnCours, rappelsAFaire, joursAvant,
 } from "@/lib/elevageCalculs";
+import ScanElevage from "./ScanElevage";
 import { champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, useApi } from "./ui";
 
 const FILTRES = [
@@ -46,6 +47,7 @@ export default function TroupeauClient({ betes, rendementCarcasse }) {
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>
           {formulaire ? "Annuler" : "Nouvelle bête"}
         </BoutonPlein>
+        <ScanElevage />
       </div>
       {formulaire && <NouvelleBete femelles={femelles} onCree={(id) => router.push(`/elevage/${id}`)} />}
 
@@ -55,6 +57,8 @@ export default function TroupeauClient({ betes, rendementCarcasse }) {
         <Statistique valeur={kg(carcasseDepuisVif(poidsVif, rendementCarcasse), 0)} label={`Carcasse estimée (${rendementCarcasse} %)`} teinte="var(--accent)" />
         <Statistique valeur={argent(investi)} label="Coût investi au troupeau" teinte="var(--danger)" />
       </div>
+
+      <SoinsASuivre betes={actives} />
 
       <div style={{ position: "relative", marginBottom: 12 }}>
         <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
@@ -78,6 +82,7 @@ function CarteBete({ bete: b }) {
   const gmq = gainMoyenQuotidien(b.pesees);
   const cout = coutBete(b);
   const revenus = revenusBete(b);
+  const retrait = b.statut === "ACTIVE" ? retraitEnCours(b.soins) : null;
   return (
     <Link href={`/elevage/${b.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
       <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px", display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -92,7 +97,12 @@ function CarteBete({ bete: b }) {
             {b.identifiant && ` · 🏷️ ${b.identifiant}`}
             {b.mere && ` · mère ${b.mere.numero}${b.mere.nom ? ` (${b.mere.nom})` : ""}`}
           </div>
-          {statut && <div style={{ marginTop: 6 }}><Pastille couleur={statut.couleur} fond={`${statut.couleur}22`}>{statut.label}</Pastille></div>}
+          {statut && (
+            <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <Pastille couleur={statut.couleur} fond={`${statut.couleur}22`}>{statut.label}</Pastille>
+              {retrait && <Pastille couleur="var(--danger)" fond="var(--danger-fond)">En retrait jusqu'au {dateCourte(retrait.fin)}</Pastille>}
+            </div>
+          )}
         </div>
         <div style={{ textAlign: "right", flexShrink: 0, fontSize: 12.5 }}>
           {b.abattage ? (
@@ -106,6 +116,40 @@ function CarteBete({ bete: b }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+// Soins à suivre au troupeau : rappels en retard ou dus d'ici 30 jours, et
+// bêtes dont un délai de retrait court encore
+const HORIZON_RAPPELS = 30;
+
+function SoinsASuivre({ betes }) {
+  const rappels = betes
+    .flatMap((b) => rappelsAFaire(b.soins).map((s) => ({ ...s, bete: b, jours: joursAvant(s.rappelLe) })))
+    .filter((r) => r.jours <= HORIZON_RAPPELS)
+    .sort((a, b) => a.jours - b.jours);
+  const retraits = betes.map((b) => ({ bete: b, retrait: retraitEnCours(b.soins) })).filter((x) => x.retrait).sort((a, b) => a.retrait.fin - b.retrait.fin);
+  if (rappels.length === 0 && retraits.length === 0) return null;
+  const nomBete = (b) => `${b.numero}${b.nom ? ` — ${b.nom}` : ""}`;
+  const ligne = { display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 2px", fontSize: 13.5, textDecoration: "none", color: "var(--text)" };
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
+      <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6 }}>🩺 Soins à suivre</div>
+      {rappels.map((r, i) => (
+        <Link key={r.id} href={`/elevage/${r.bete.id}`} style={{ ...ligne, borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+          <span style={{ minWidth: 0, overflowWrap: "anywhere" }}><strong>{nomBete(r.bete)}</strong> · {libelle(TYPES_SOIN, r.type).split(" (")[0]}{r.produit ? ` — ${r.produit}` : ""}</span>
+          <span style={{ flexShrink: 0, fontWeight: 700, color: r.jours < 0 ? "var(--danger)" : "var(--text-muted)" }}>
+            {r.jours < 0 ? `en retard de ${-r.jours} j` : r.jours === 0 ? "aujourd'hui" : `dans ${r.jours} j`}
+          </span>
+        </Link>
+      ))}
+      {retraits.map(({ bete, retrait }, i) => (
+        <Link key={bete.id} href={`/elevage/${bete.id}`} style={{ ...ligne, borderTop: i === 0 && rappels.length === 0 ? "none" : "1px solid var(--border)" }}>
+          <span style={{ minWidth: 0, overflowWrap: "anywhere" }}><strong>{nomBete(bete)}</strong> · en retrait{retrait.soin.produit ? ` (${retrait.soin.produit})` : ""}</span>
+          <span style={{ flexShrink: 0, fontWeight: 700, color: "var(--danger)" }}>jusqu'au {dateCourte(retrait.fin)}</span>
+        </Link>
+      ))}
+    </div>
   );
 }
 

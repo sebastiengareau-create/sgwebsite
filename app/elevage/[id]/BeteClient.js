@@ -8,7 +8,9 @@ import { ChampsBete, FICHE_VIDE } from "../TroupeauClient";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, CATEGORIES_FRAIS, CANAUX, libelle, age, dateCourte, argent, kg,
   dernierePesee, gainMoyenQuotidien, peseesAvecGain, estimerDecoupe, totauxDecoupe, carcasseDepuisVif, stockLot, coutBete, revenusBete,
+  TYPES_SOIN, finRetrait, retraitEnCours, rappelsAFaire, joursAvant,
 } from "@/lib/elevageCalculs";
+import EtiquettesElevage from "../EtiquettesElevage";
 import {
   champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Tableau, TableEstimation, cellule, celluleDroite, useApi, aujourdhui,
 } from "../ui";
@@ -24,6 +26,7 @@ export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }
   const cout = coutBete(bete);
   const revenus = revenusBete(bete);
   const aResultat = revenus > 0 || !!bete.abattage;
+  const retrait = bete.statut === "ACTIVE" ? retraitEnCours(bete.soins) : null;
   return (
     <div className="conteneur-page">
       <Link href="/elevage" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au troupeau</Link>
@@ -43,6 +46,7 @@ export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }
               <Pastille couleur={couleur} fond="var(--surface-alt)">{statut?.label}{bete.dateSortie && ` le ${dateCourte(bete.dateSortie)}`}</Pastille>
               {bete.pourcentageWagyu != null && <Pastille couleur={TEINTES.ambre.couleur} fond={TEINTES.ambre.fond}>{bete.pourcentageWagyu} % wagyu</Pastille>}
               {bete.abattage?.bms && <Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>BMS {bete.abattage.bms}</Pastille>}
+              {retrait && <Pastille couleur={TEINTES.rouge.couleur} fond={TEINTES.rouge.fond}>En retrait jusqu'au {dateCourte(retrait.fin)}</Pastille>}
             </div>
           </div>
         </div>
@@ -67,8 +71,9 @@ export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }
 
       <Fiche bete={bete} femelles={femelles} />
       <Rentabilite bete={bete} />
-      {bete.abattage ? <Decoupe bete={bete} /> : bete.statut === "ACTIVE" && <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} />}
+      {bete.abattage ? <Decoupe bete={bete} /> : bete.statut === "ACTIVE" && <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} retrait={retrait} />}
       <Pesees bete={bete} />
+      <Soins bete={bete} />
       <Frais bete={bete} />
       {bete.veaux.length > 0 && <Veaux veaux={bete.veaux} />}
       {!bete.abattage && <Sortie bete={bete} />}
@@ -113,6 +118,7 @@ function Encadre({ label, valeur, couleur = "var(--accent-ombre)", fond = "rgba(
 
 function Fiche({ bete, femelles }) {
   const [edition, setEdition] = useState(false);
+  const [etiquette, setEtiquette] = useState(false);
   const [fiche, setFiche] = useState(() => Object.fromEntries(Object.keys(FICHE_VIDE).map((k) => [k, k.startsWith("date") ? dateCourte(bete[k]) : bete[k] == null ? "" : String(bete[k])])));
   const { appeler, enCours, erreur } = useApi();
   const maj = (champ) => (e) => setFiche((f) => ({ ...f, [champ]: e.target.value }));
@@ -141,6 +147,11 @@ function Fiche({ bete, femelles }) {
       <LigneDetail label="Père" valeur={bete.pere} />
       <LigneDetail label="Origine" valeur={bete.origine === "ACHETEE" ? ["Achetée", bete.dateAcquisition && `le ${dateCourte(bete.dateAcquisition)}`, bete.provenance && `de ${bete.provenance}`, `pour ${argent(bete.coutAcquisition)}`].filter(Boolean).join(" ") : "Née ici"} />
       {bete.notes && <p style={{ fontSize: 13.5, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "10px 12px", borderRadius: 12, background: "var(--bg)" }}>{bete.notes}</p>}
+      {etiquette ? (
+        <EtiquettesElevage type="bete" beteId={bete.id} onFermer={() => setEtiquette(false)} />
+      ) : (
+        <div style={{ marginTop: 12 }}><BoutonAction icone="etiquette" onClick={() => setEtiquette(true)} style={{ width: "100%" }}>Imprimer l'étiquette de la bête (code QR)</BoutonAction></div>
+      )}
     </Section>
   );
 }
@@ -191,7 +202,7 @@ function Rentabilite({ bete }) {
 
 // ---------- Avant l'abattage : estimation, puis abattage ----------
 
-function EstimationEtAbattage({ bete, coupes, rendementCarcasse }) {
+function EstimationEtAbattage({ bete, coupes, rendementCarcasse, retrait }) {
   const [abattre, setAbattre] = useState(false);
   const pesee = dernierePesee(bete.pesees);
   const carcasse = pesee ? carcasseDepuisVif(pesee.poids, rendementCarcasse) : 0;
@@ -203,6 +214,11 @@ function EstimationEtAbattage({ bete, coupes, rendementCarcasse }) {
       titre={abattre ? "Abattage et découpe" : "Si elle était abattue aujourd'hui"} icone={abattre ? "outils" : "balance"} teinte={abattre ? TEINTES.rouge : TEINTES.ambre}
       droite={<LienPanneau onClick={() => setAbattre((v) => !v)} couleur={abattre ? "var(--text-muted)" : "var(--danger)"}>{abattre ? "Annuler" : "Abattage…"}</LienPanneau>}
     >
+      {retrait && (
+        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", background: "var(--danger-fond)", borderRadius: 12, padding: "10px 12px", margin: "0 0 12px" }}>
+          ⚠️ Délai de retrait en cours{retrait.soin.produit ? ` (${retrait.soin.produit})` : ""} : pas d'abattage avant le {dateCourte(retrait.fin)}.
+        </p>
+      )}
       {abattre ? (
         <FormulaireAbattage bete={bete} coupes={coupes} poidsVifInitial={pesee?.poids} carcasseInitiale={carcasse} />
       ) : !pesee ? (
@@ -283,6 +299,7 @@ function Decoupe({ bete }) {
   const a = bete.abattage;
   const { appeler, enCours, erreur } = useApi();
   const [edition, setEdition] = useState(null); // id du lot corrigé
+  const [etiquettes, setEtiquettes] = useState(false);
   const totaux = a.lots.reduce((t, l) => {
     const s = stockLot(l);
     return { recus: t.recus + l.nbPaquets, estimes: t.estimes + l.paquetsEstimes, stock: t.stock + s.paquets, poids: t.poids + l.poidsTotal };
@@ -333,13 +350,19 @@ function Decoupe({ bete }) {
         </Tableau>
       </div>
 
+      {etiquettes ? (
+        <EtiquettesElevage type="viande" beteId={bete.id} recus={totaux.recus} enStock={totaux.stock} onFermer={() => setEtiquettes(false)} />
+      ) : (
+        <div style={{ marginTop: 12 }}><BoutonAction icone="etiquette" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={() => setEtiquettes(true)} style={{ width: "100%" }}>Imprimer les étiquettes des paquets</BoutonAction></div>
+      )}
+
       {ventes.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Ventes de sa viande</div>
           {ventes.map((v, i) => <LigneVente key={v.id} vente={v} premiere={i === 0} />)}
         </div>
       )}
-      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>Élevage → Viande</Link> : les paquets les plus anciens partent en premier.</p>
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>Élevage → Viande</Link> : en scannant l'étiquette du paquet, ou par coupe (les paquets les plus anciens partent en premier).</p>
       <Erreur texte={erreur} />
       {ventes.length === 0 && <div style={{ marginTop: 12 }}><BoutonAction icone="echange" couleur="var(--danger)" onClick={annuler} disabled={enCours} style={{ width: "100%" }}>Annuler l'abattage</BoutonAction></div>}
     </Section>
@@ -433,6 +456,83 @@ function Pesees({ bete }) {
             </span>
           </div>
         ))
+      )}
+    </Section>
+  );
+}
+
+// ---------- Santé et soins ----------
+
+const SOIN_VIDE = { type: "VACCIN", produit: "", dose: "", retraitJours: "", rappelLe: "", note: "" };
+
+function Soins({ bete }) {
+  const [champs, setChamps] = useState({ date: aujourdhui(), ...SOIN_VIDE });
+  const { appeler, enCours, erreur } = useApi();
+  const maj = (champ) => (e) => setChamps((c) => ({ ...c, [champ]: e.target.value }));
+  const active = bete.statut === "ACTIVE";
+  const retrait = active ? retraitEnCours(bete.soins) : null;
+  const rappels = active ? rappelsAFaire(bete.soins) : [];
+
+  async function ajouter() {
+    if (await appeler(`/api/elevage/betes/${bete.id}/soins`, "POST", champs)) setChamps((c) => ({ ...c, ...SOIN_VIDE, type: c.type }));
+  }
+  async function retirer(id) {
+    if (window.confirm("Retirer ce soin du registre ?")) await appeler(`/api/elevage/betes/${bete.id}/soins?soinId=${id}`, "DELETE");
+  }
+
+  return (
+    <Section
+      titre="Santé et soins" icone="bouclier" teinte={TEINTES.vert}
+      sousTitre={retrait ? `En retrait jusqu'au ${dateCourte(retrait.fin)}` : bete.soins.length > 0 ? `${bete.soins.length} soin${bete.soins.length > 1 ? "s" : ""} au registre` : undefined}
+    >
+      {rappels.map((r) => {
+        const jours = joursAvant(r.rappelLe);
+        return (
+          <p key={r.id} style={{ fontSize: 13, fontWeight: 700, margin: "0 0 8px", padding: "9px 12px", borderRadius: 12, color: jours < 0 ? "var(--danger)" : "var(--text)", background: jours < 0 ? "var(--danger-fond)" : "rgba(232,163,61,0.16)" }}>
+            🔔 {libelle(TYPES_SOIN, r.type).split(" (")[0]}{r.produit ? ` — ${r.produit}` : ""} à refaire le {dateCourte(r.rappelLe)}
+            {jours < 0 ? ` (en retard de ${-jours} j)` : jours === 0 ? " (aujourd'hui)" : ` (dans ${jours} j)`}
+          </p>
+        );
+      })}
+      {active && (
+        <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <div style={grille2}>
+            <Champ label="Date"><input type="date" max="9999-12-31" value={champs.date} onChange={maj("date")} style={champStyle} /></Champ>
+            <Champ label="Type de soin">
+              <select value={champs.type} onChange={maj("type")} style={champStyle}>
+                {TYPES_SOIN.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
+              </select>
+            </Champ>
+            <Champ label="Produit ou motif"><input value={champs.produit} onChange={maj("produit")} placeholder="Nom du vaccin, du médicament…" style={champStyle} /></Champ>
+            <Champ label="Dose"><input value={champs.dose} onChange={maj("dose")} placeholder="5 ml sous-cutané" style={champStyle} /></Champ>
+            <Champ label="Délai de retrait (jours)"><input inputMode="numeric" value={champs.retraitJours} onChange={maj("retraitJours")} placeholder="Aucun" style={champStyle} /></Champ>
+            <Champ label="Rappel à prévoir le"><input type="date" max="9999-12-31" value={champs.rappelLe} onChange={maj("rappelLe")} style={champStyle} /></Champ>
+          </div>
+          <input value={champs.note} onChange={maj("note")} placeholder="Note (vétérinaire, numéro de lot du produit…)" style={champStyle} />
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Le délai de retrait bloque l'abattage jusqu'à son échéance. Le coût du soin s'entre dans les frais de la bête.</p>
+          <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter au registre</BoutonAction>
+        </div>
+      )}
+      <Erreur texte={erreur} />
+      {bete.soins.length === 0 ? (
+        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucun soin au registre.</p>
+      ) : (
+        bete.soins.map((s, i) => {
+          const fin = finRetrait(s);
+          const enRetrait = active && fin && dateCourte(fin) > aujourdhui();
+          return (
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: "anywhere" }}>{libelle(TYPES_SOIN, s.type).split(" (")[0]}{s.produit && ` — ${s.produit}`}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
+                  {[dateCourte(s.date), s.dose, s.rappelLe && `rappel le ${dateCourte(s.rappelLe)}`, s.note, s.creePar && `par ${s.creePar}`].filter(Boolean).join(" · ")}
+                </div>
+                {fin && <div style={{ fontSize: 12, fontWeight: 700, color: enRetrait ? "var(--danger)" : "var(--text-muted)" }}>Retrait de {s.retraitJours} j — {enRetrait ? "jusqu'au" : "terminé le"} {dateCourte(fin)}</div>}
+              </div>
+              <BoutonRetirer titre="Retirer ce soin" onClick={() => retirer(s.id)} />
+            </div>
+          );
+        })
       )}
     </Section>
   );

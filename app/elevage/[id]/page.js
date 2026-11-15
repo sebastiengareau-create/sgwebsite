@@ -18,6 +18,7 @@ export default async function FicheBete(props) {
       include: {
         pesees: { orderBy: { date: "asc" } },
         frais: { orderBy: { date: "desc" } },
+        soins: { orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
         mere: { select: { id: true, numero: true, nom: true } },
         veaux: { select: { id: true, numero: true, nom: true, sexe: true, dateNaissance: true, statut: true }, orderBy: { dateNaissance: "desc" } },
         abattage: {

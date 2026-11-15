@@ -1541,6 +1541,7 @@ model Bete {
   notes            String?
   pesees           PeseeBete[]
   frais            FraisBete[]
+  soins            SoinBete[]
   abattage         Abattage?
   creePar          String?
   creeLe           DateTime    @default(now())
@@ -1571,6 +1572,28 @@ model FraisBete {
   montant     Float // avant taxes
 
   @@index([beteId])
+}
+
+// Registre de santé d'une bête : vaccins, vermifuges, traitements, visites
+// du vétérinaire. Un délai de retrait (jours avant que la viande puisse être
+// consommée) bloque l'abattage jusqu'à son échéance ; un rappel annonce le
+// prochain soin du même type (lib/elevageCalculs.js). Le coût d'un soin
+// s'entre à part, dans les frais de la bête.
+model SoinBete {
+  id           String    @id @default(cuid())
+  beteId       String
+  bete         Bete      @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date         DateTime
+  type         String // "VACCIN" | "VERMIFUGE" | "TRAITEMENT" | "VISITE" | "AUTRE"
+  produit      String? // nom du vaccin ou du médicament, ou motif de la visite
+  dose         String? // "5 ml sous-cutané"…
+  retraitJours Int? // délai de retrait avant l'abattage, en jours
+  rappelLe     DateTime? // prochain soin du même type à prévoir
+  note         String?
+  creePar      String?
+  creeLe       DateTime  @default(now())
+
+  @@index([beteId, date])
 }
 
 model Abattage {

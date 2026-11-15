@@ -15,6 +15,7 @@ export default async function Troupeau() {
       include: {
         pesees: { select: { date: true, poids: true } },
         frais: { select: { montant: true } },
+        soins: { select: { id: true, date: true, type: true, produit: true, retraitJours: true, rappelLe: true } },
         mere: { select: { numero: true, nom: true } },
         abattage: { select: { date: true, poidsCarcasse: true, bms: true, fraisAbattage: true, lots: { select: { ventes: { select: { montant: true } } } } } },
       },
