@@ -94,12 +94,14 @@ export function NavElevage({ actif }) {
   const liens = [
     { href: "/elevage", label: "🐂 Troupeau" },
     { href: "/elevage/viande", label: "🥩 Viande" },
+    { href: "/elevage/registre", label: "📒 Registre" },
     { href: "/elevage/coupes", label: "📐 Coupes et rendements" },
   ];
-  // Onglets de même largeur, comme dans la section Opérations
+  // Onglets de même largeur, comme dans la section Opérations — 2 × 2 sur
+  // cellulaire, jamais un onglet seul en bas
   return (
     <nav style={{
-      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 4, marginBottom: 16,
+      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 4, marginBottom: 16,
       padding: 4, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)",
     }}>
       {liens.map((l) => {

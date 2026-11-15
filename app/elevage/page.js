@@ -17,6 +17,7 @@ export default async function Troupeau() {
         frais: { select: { montant: true } },
         soins: { select: { id: true, date: true, type: true, produit: true, retraitJours: true, rappelLe: true } },
         mere: { select: { numero: true, nom: true } },
+        deplacements: { select: { date: true, creeLe: true, type: true, lieu: true, site: true } },
         saillies: { where: { statut: { in: ["EN_ATTENTE", "GESTANTE"] } }, select: { id: true, date: true, statut: true } },
         abattage: { select: { date: true, poidsCarcasse: true, bms: true, fraisAbattage: true, lots: { select: { ventes: { select: { montant: true } } } } } },
       },

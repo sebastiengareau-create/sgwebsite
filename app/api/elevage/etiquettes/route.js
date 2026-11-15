@@ -6,6 +6,7 @@ import {
 } from "@/lib/elevageCalculs";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { origineAppli } from "@/lib/origine";
+import { formaterBoucle } from "@/lib/registreElevage";
 
 const MAX_ETIQUETTES = 3000;
 
@@ -41,7 +42,7 @@ export async function POST(request) {
         [libelle(SEXES, bete.sexe).split(" (")[0], bete.dateNaissance && `née le ${dateCourte(bete.dateNaissance)}`].filter(Boolean).join(" · "),
         genetique(bete),
       ],
-      pied: bete.identifiant ? `Boucle ${bete.identifiant}` : null,
+      pied: bete.identifiant ? `Boucle ${formaterBoucle(bete.identifiant)}` : null,
     };
     for (let i = 0; i < nombre; i++) etiquettes.push(etiquette);
   } else {

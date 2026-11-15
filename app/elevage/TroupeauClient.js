@@ -12,6 +12,7 @@ import {
   carcasseDepuisVif, argent, kg, dateCourte, TYPES_SOIN, retraitEnCours, rappelsAFaire, joursAvant, velagePrevu, saillieEnCours, sousLaCible, nomBete,
 } from "@/lib/elevageCalculs";
 import ScanElevage from "./ScanElevage";
+import { formaterBoucle, emplacement } from "@/lib/registreElevage";
 import { champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, useApi } from "./ui";
 
 const FILTRES = [
@@ -30,7 +31,7 @@ export default function TroupeauClient({ betes, rendementCarcasse, gmqCible }) {
   const q = recherche.trim().toLowerCase();
   const affichees = betes.filter((b) => {
     if (filtre === "SORTIES" ? !["VENDUE", "MORTE"].includes(b.statut) : filtre !== "TOUTES" && b.statut !== filtre) return false;
-    return !q || correspondRecherche(q, b.numero, b.nom, b.identifiant, b.mere?.numero, b.mere?.nom);
+    return !q || correspondRecherche(q, b.numero, b.nom, b.identifiant, formaterBoucle(b.identifiant), b.mere?.numero, b.mere?.nom, emplacement(b.deplacements)?.lieu);
   });
 
   const actives = betes.filter((b) => b.statut === "ACTIVE");
@@ -65,7 +66,7 @@ export default function TroupeauClient({ betes, rendementCarcasse, gmqCible }) {
         <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
           <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
         </span>
-        <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Numéro, nom, boucle, mère…" style={{ ...champStyle, marginBottom: 0, padding: "11px 12px 11px 40px", fontSize: 14, borderRadius: 12, background: "var(--surface)" }} />
+        <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Numéro, nom, boucle, mère, enclos…" style={{ ...champStyle, marginBottom: 0, padding: "11px 12px 11px 40px", fontSize: 14, borderRadius: 12, background: "var(--surface)" }} />
       </div>
       <Onglets options={FILTRES} valeur={filtre} onChange={setFiltre} />
 
@@ -85,6 +86,7 @@ function CarteBete({ bete: b, gmqCible }) {
   const revenus = revenusBete(b);
   const retrait = b.statut === "ACTIVE" ? retraitEnCours(b.soins) : null;
   const lente = sousLaCible(b, gmqCible);
+  const ou = emplacement(b.deplacements);
   const gestation = b.statut === "ACTIVE" ? (b.saillies || []).find(saillieEnCours) : null;
   return (
     <Link href={`/elevage/${b.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
@@ -97,7 +99,8 @@ function CarteBete({ bete: b, gmqCible }) {
             {b.genetique && ` · ${libelle(GENETIQUES, b.genetique).split(" (")[0]}`}
             {b.pourcentageWagyu != null && ` ${b.pourcentageWagyu} %`}
             {b.dateNaissance && ` · ${age(b.dateNaissance, b.dateSortie || new Date())}`}
-            {b.identifiant && ` · 🏷️ ${b.identifiant}`}
+            {b.identifiant && ` · 🏷️ ${formaterBoucle(b.identifiant)}`}
+            {ou && b.statut === "ACTIVE" && ` · 📍 ${ou.horsFerme ? "hors ferme — " : ""}${ou.lieu}`}
             {b.mere && ` · mère ${b.mere.numero}${b.mere.nom ? ` (${b.mere.nom})` : ""}`}
           </div>
           {statut && (
@@ -208,8 +211,8 @@ export function ChampsBete({ fiche, maj, femelles, taureaux = [] }) {
         <Champ label="Nom (facultatif)">
           <input value={fiche.nom} onChange={maj("nom")} style={champStyle} />
         </Champ>
-        <Champ label="Boucle d'oreille (ATQ)">
-          <input value={fiche.identifiant} onChange={maj("identifiant")} style={champStyle} />
+        <Champ label="Boucle d'oreille ATQ (15 chiffres)">
+          <input inputMode="numeric" placeholder="124 000 …" value={fiche.identifiant} onChange={maj("identifiant")} style={champStyle} />
         </Champ>
         <Champ label="Date de naissance">
           <input type="date" max="9999-12-31" value={fiche.dateNaissance} onChange={maj("dateNaissance")} style={champStyle} />
