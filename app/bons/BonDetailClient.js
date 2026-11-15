@@ -1139,8 +1139,11 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
   }
 
   return (
-    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
+    <div style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
+      {/* Bande de couleur rognée aux coins arrondis — sans rogner la carte, pour que la liste des pièces puisse en dépasser */}
+      <div style={{ position: "absolute", inset: 0, borderRadius: 15, overflow: "hidden", pointerEvents: "none" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
+      </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
         {editionNom ? (
           <div style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
