@@ -19,6 +19,11 @@
   --danger-fond: rgba(193, 91, 74, 0.14);
   --bleu-fond: rgba(79, 130, 192, 0.15);
   --surface-alt: #262420;
+  /* Séries d'un graphique à deux couleurs (ex. ventes en boutique / en
+     ligne) : paire vérifiée pour le daltonisme et le contraste sur --surface,
+     dans chaque thème */
+  --serie-1: #b8791f;
+  --serie-2: #4f82c0;
 }
 
 /* Thème clair — fond blanc, activé via l'attribut data-theme sur <html>
@@ -42,6 +47,8 @@ html[data-theme="light"] {
   --danger-fond: rgba(178, 63, 44, 0.09);
   --bleu-fond: rgba(63, 111, 163, 0.10);
   --surface-alt: #faf8f3;
+  --serie-1: #b8791f;
+  --serie-2: #3a72b8;
 }
 
 * { box-sizing: border-box; }
@@ -385,4 +392,37 @@ html[data-theme="light"] .logo-sombre { display: none; }
   .ajout-piece-qte { flex: 1 1 0 !important; width: auto !important; min-width: 56px; min-height: 46px; font-size: 16px !important; }
   .ajout-piece-plus { flex: 2 1 0; font-weight: 700; }
   .ajout-piece-libelle { display: inline; font-size: 14px; }
+}
+
+/* Élevage → Viande : une coupe en stock. Une rangée de colonnes sur un écran
+   large ; sur un téléphone, une petite carte où le bouton « Vendre » reste
+   visible sans faire défiler de côté. */
+.ligne-coupe {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "nom action" "stock valeur" "ecoule ecoule" "prix gel";
+  gap: 6px 12px;
+  align-items: center;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-coupe.entete { display: none; }
+.ligne-coupe > .valeur, .ligne-coupe > .gel { text-align: right; }
+@media (min-width: 800px) {
+  .ligne-coupe {
+    grid-template-columns: 1.5fr 0.9fr 1.3fr 1fr 0.9fr 1.4fr auto;
+    grid-template-areas: "nom stock ecoule prix valeur gel action";
+    padding: 9px 8px;
+  }
+  .ligne-coupe.entete {
+    display: grid;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .ligne-coupe > .stock, .ligne-coupe > .prix, .ligne-coupe > .valeur { text-align: right; }
+  .ligne-coupe > .gel { text-align: left; }
 }
