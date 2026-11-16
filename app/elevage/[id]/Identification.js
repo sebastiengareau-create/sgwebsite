@@ -6,7 +6,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TEINTES, BoutonAction, LigneDetail } from "../../components/StyleSection";
-import { libelle, dateCourte } from "@/lib/elevageCalculs";
+import { libelle, dateLisible } from "@/lib/elevageCalculs";
 import { RAISONS_BOUCLE, TYPES_DEPLACEMENT, EVENEMENTS, formaterBoucle, emplacement } from "@/lib/registreElevage";
 import { champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi, aujourdhui, Section, BoutonRetirer } from "../ui";
 
@@ -79,7 +79,7 @@ export default function Identification({ bete, lieux }) {
       droite={<Link href="/elevage/registre" style={{ padding: "4px 0", fontSize: 13, fontWeight: 700, color: "var(--accent-ombre)", textDecoration: "none", whiteSpace: "nowrap" }}>Registre</Link>}
     >
       <LigneDetail premiere label="Boucle ATQ" valeur={bete.identifiant ? formaterBoucle(bete.identifiant) : "à inscrire dans la fiche"} />
-      <LigneDetail label="Emplacement" valeur={ou ? `${ou.horsFerme ? "Hors ferme — " : ""}${ou.lieu} (depuis le ${dateCourte(ou.depuis)})` : null} />
+      <LigneDetail label="Emplacement" valeur={ou ? `${ou.horsFerme ? "Hors ferme — " : ""}${ou.lieu} (depuis le ${dateLisible(ou.depuis)})` : null} />
 
       {active && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "12px 0" }}>
@@ -128,7 +128,7 @@ export default function Identification({ bete, lieux }) {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{formaterBoucle(b.numero)}</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
-                  {[`retirée le ${dateCourte(b.retireeLe)}`, libelle(RAISONS_BOUCLE, b.raison).toLowerCase(), b.note, b.creePar && `par ${b.creePar}`].filter(Boolean).join(" · ")}
+                  {[`retirée le ${dateLisible(b.retireeLe)}`, libelle(RAISONS_BOUCLE, b.raison).toLowerCase(), b.note, b.creePar && `par ${b.creePar}`].filter(Boolean).join(" · ")}
                 </div>
               </div>
               {b.remplaceePar === bete.identifiant && <BoutonRetirer titre="Annuler ce remplacement" onClick={() => annulerBoucle(b)} />}
@@ -147,7 +147,7 @@ export default function Identification({ bete, lieux }) {
                   {d.type === "INTERNE" ? d.lieu : `${EVENEMENTS[d.type]} — ${d.site}${d.type === "ENTREE" && d.lieu ? ` → ${d.lieu}` : ""}`}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
-                  {[dateCourte(d.date), d.transporteur, d.note, d.creePar && `par ${d.creePar}`].filter(Boolean).join(" · ")}
+                  {[dateLisible(d.date), d.transporteur, d.note, d.creePar && `par ${d.creePar}`].filter(Boolean).join(" · ")}
                 </div>
               </div>
               <BoutonRetirer titre="Retirer ce déplacement" onClick={() => retirerDeplacement(d.id)} />

@@ -9,7 +9,7 @@ import { nombre } from "@/lib/format";
 import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, libelle, age, dernierePesee, gainMoyenQuotidien, coutBete, revenusBete,
-  carcasseDepuisVif, argent, kg, dateCourte, TYPES_SOIN, retraitEnCours, rappelsAFaire, joursAvant, velagePrevu, saillieEnCours, sousLaCible, nomBete,
+  carcasseDepuisVif, argent, kg, dateLisible, TYPES_SOIN, retraitEnCours, rappelsAFaire, joursAvant, velagePrevu, saillieEnCours, sousLaCible, nomBete,
 } from "@/lib/elevageCalculs";
 import ScanElevage from "./ScanElevage";
 import { formaterBoucle, emplacement } from "@/lib/registreElevage";
@@ -106,8 +106,8 @@ function CarteBete({ bete: b, gmqCible }) {
           {statut && (
             <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
               <Pastille couleur={statut.couleur} fond={`${statut.couleur}22`}>{statut.label}</Pastille>
-              {retrait && <Pastille couleur="var(--danger)" fond="var(--danger-fond)">En retrait jusqu'au {dateCourte(retrait.fin)}</Pastille>}
-              {gestation && <Pastille couleur="var(--bleu)" fond="var(--bleu-fond)">Vêlage prévu le {dateCourte(velagePrevu(gestation.date))}</Pastille>}
+              {retrait && <Pastille couleur="var(--danger)" fond="var(--danger-fond)">En retrait jusqu'au {dateLisible(retrait.fin)}</Pastille>}
+              {gestation && <Pastille couleur="var(--bleu)" fond="var(--bleu-fond)">Vêlage prévu le {dateLisible(velagePrevu(gestation.date))}</Pastille>}
               {lente && <Pastille couleur="var(--avertissement)" fond="var(--avertissement-fond)">Croissance sous la cible</Pastille>}
             </div>
           )}
@@ -116,7 +116,7 @@ function CarteBete({ bete: b, gmqCible }) {
           {b.abattage ? (
             <div style={{ fontSize: 15, fontWeight: 800 }}>{kg(b.abattage.poidsCarcasse, 0)}<span style={{ display: "block", fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>carcasse{b.abattage.bms && ` · BMS ${b.abattage.bms}`}</span></div>
           ) : (
-            pesee && <div style={{ fontSize: 15, fontWeight: 800 }}>{kg(pesee.poids, 0)}<span style={{ display: "block", fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>le {dateCourte(pesee.date)}</span></div>
+            pesee && <div style={{ fontSize: 15, fontWeight: 800 }}>{kg(pesee.poids, 0)}<span style={{ display: "block", fontSize: 12, fontWeight: 400, color: "var(--text-muted)" }}>le {dateLisible(pesee.date)}</span></div>
           )}
           {gmq != null && !b.abattage && <div style={{ color: "var(--text-muted)" }}>{nombre(gmq)} kg/jour</div>}
           <div style={{ color: "var(--text-muted)" }}>Coût {argent(cout)}</div>
@@ -144,12 +144,12 @@ function ASuivre({ betes, gmqCible }) {
       return {
         cle: `velage-${s.id}`, bete: b, ordre: jours, urgent: jours < 0,
         texte: `vêlage ${s.statut === "GESTANTE" ? "prévu" : "possible (gestation à confirmer)"}`,
-        echeance: jours < 0 ? `dépassé de ${-jours} j` : `le ${dateCourte(velagePrevu(s.date))}`,
+        echeance: jours < 0 ? `dépassé de ${-jours} j` : `le ${dateLisible(velagePrevu(s.date))}`,
       };
     })),
     ...betes.map((b) => ({ b, retrait: retraitEnCours(b.soins) })).filter((x) => x.retrait).map(({ b, retrait }) => ({
       cle: `retrait-${b.id}`, bete: b, ordre: joursAvant(retrait.fin), urgent: true,
-      texte: `en retrait${retrait.soin.produit ? ` (${retrait.soin.produit})` : ""}`, echeance: `jusqu'au ${dateCourte(retrait.fin)}`,
+      texte: `en retrait${retrait.soin.produit ? ` (${retrait.soin.produit})` : ""}`, echeance: `jusqu'au ${dateLisible(retrait.fin)}`,
     })),
     ...betes.map((b) => ({ b, lente: sousLaCible(b, gmqCible) })).filter((x) => x.lente).map(({ b, lente }) => ({
       cle: `gain-${b.id}`, bete: b, ordre: 9999, urgent: false,

@@ -79,12 +79,13 @@ export function Onglets({ options, valeur, onChange }) {
 }
 
 // Petite carte de chiffre : bande de couleur à gauche, comme les autres sections
-export function Statistique({ valeur, label, teinte = "var(--accent)" }) {
+export function Statistique({ valeur, label, teinte = "var(--accent)", note, couleur }) {
   return (
     <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 14px 14px 18px" }}>
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
-      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{valeur}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums", color: couleur }}>{valeur}</div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{label}</div>
+      {note && <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, opacity: 0.85 }}>{note}</div>}
     </div>
   );
 }
@@ -176,6 +177,11 @@ export function Section({ titre, icone = "liste", teinte = TEINTES.ambre, sousTi
       {children}
     </div>
   );
+}
+
+// Panneaux côte à côte sur un écran large, empilés sur un téléphone
+export function DeuxColonnes({ children }) {
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))", columnGap: 16, alignItems: "start" }}>{children}</div>;
 }
 
 // Lien d'action dans l'en-tête d'un panneau (Modifier, Annuler…)
