@@ -3,6 +3,7 @@ import { obtenirSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../components/EnTete";
 import AdministrateurClient from "./AdministrateurClient";
+import { etatTroupeauDemo } from "@/lib/elevageDemo";
 
 export default async function Administrateur() {
   const session = await obtenirSession();
@@ -18,6 +19,8 @@ export default async function Administrateur() {
 
   const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_productivite", "module_quarts", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
+  // Troupeau de démonstration : offert seulement si le module Élevage est actif
+  const troupeauDemo = dict.module_elevage === "actif" ? await etatTroupeauDemo() : null;
 
   return (
     <div>
@@ -36,6 +39,7 @@ export default async function Administrateur() {
           { id: "elevage", label: "Élevage", description: "Troupeau (bœuf wagyu…) de la naissance à la table : pesées, coût de revient, abattage, découpe en paquets selon les rendements, vente en boutique et en ligne", actif: dict.module_elevage === "actif" },
           { id: "copropriete", label: "Copropriété", description: "Syndicat de copropriété : unités, copropriétaires, quotes-parts et charges communes, demandes de réparation, bons de travail, entretien préventif, documents et portail sécurisé des copropriétaires", actif: dict.module_copropriete === "actif" },
         ]}
+        troupeauDemo={troupeauDemo}
         verrouilleInit={dict.compte_verrouille === "actif"}
         estDeveloppeur={session.role === "DEVELOPPEUR"}
         themeInit={dict.theme_developpeur === "sombre" ? "sombre" : "clair"}

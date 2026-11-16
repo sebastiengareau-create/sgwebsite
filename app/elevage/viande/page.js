@@ -14,13 +14,15 @@ export default async function Viande(props) {
   if (!(await peutGererElevage(session))) redirect("/mecanicien");
   await assurerCoupesParDefaut();
 
-  const debutAnnee = new Date(`${new Date().getFullYear()}-01-01T00:00:00Z`);
+  // Ventes des 12 derniers mois (le mois courant et les 11 précédents)
+  const maintenant = new Date();
+  const debut = new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth() - 11, 1));
   const [coupes, ventes, lotScanne] = await Promise.all([
     prisma.coupeViande.findMany({
       include: {
         lots: {
           include: {
-            ventes: { select: { nbPaquets: true, poids: true } },
+            ventes: { select: { nbPaquets: true, poids: true, date: true } },
             abattage: { select: { date: true, bete: { select: { id: true, numero: true, nom: true } } } },
           },
           orderBy: { abattage: { date: "asc" } },
@@ -29,7 +31,7 @@ export default async function Viande(props) {
       orderBy: [{ ordre: "asc" }, { nom: "asc" }],
     }),
     prisma.venteViande.findMany({
-      where: { date: { gte: debutAnnee } },
+      where: { date: { gte: debut } },
       include: { lot: { select: { coupe: { select: { nom: true } }, abattage: { select: { bete: { select: { id: true, numero: true } } } } } } },
       orderBy: [{ date: "desc" }, { creeLe: "desc" }],
     }),

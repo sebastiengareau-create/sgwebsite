@@ -6,11 +6,17 @@ import Link from "next/link";
 import ScanElevage from "../ScanElevage";
 import BandeauSection from "../../components/BandeauSection";
 import { TitreSection } from "../../components/ui";
-import { CANAUX, stockLot, argent, kg, dateCourte } from "@/lib/elevageCalculs";
+import { CANAUX, stockLot, argent, kg, dateCourte, dateLisible, joursAvant } from "@/lib/elevageCalculs";
+import VentesParMois from "./VentesParMois";
 import {
-  champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, Tableau, cellule, celluleDroite, useApi, aujourdhui,
+  champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, Tableau, cellule, celluleDroite, useApi, aujourdhui, DeuxColonnes,
 } from "../ui";
 
+// Une coupe « dort » si elle a des paquets au congélateur depuis au moins ce
+// nombre de jours et qu'aucun ne s'est vendu depuis autant de jours
+const JOURS_DORT = 30;
+
+const paquets = (n) => `${n} paquet${n > 1 ? "s" : ""}`;
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 
 export default function ViandeClient({ coupes, ventes, lotScanne, scanInconnu }) {
@@ -25,22 +31,35 @@ export default function ViandeClient({ coupes, ventes, lotScanne, scanInconnu })
     const lots = c.lots.map((l) => ({ ...l, stock: stockLot(l) })).filter((l) => l.stock.paquets > 0);
     const paquets = lots.reduce((s, l) => s + l.stock.paquets, 0);
     const poids = lots.reduce((s, l) => s + l.stock.poids, 0);
-    return { ...c, lotsEnStock: lots, paquets, poids };
+    // Écoulement : part déjà vendue des paquets reçus des bêtes encore en stock
+    const recus = lots.reduce((s, l) => s + l.nbPaquets, 0);
+    // Depuis combien de jours le plus vieux paquet est au congélateur, et
+    // depuis combien de jours la coupe ne s'est pas vendue (null : jamais)
+    const joursStock = lots.length ? -joursAvant(lots[0].abattage.date) : 0;
+    const dates = c.lots.flatMap((l) => l.ventes.map((v) => dateCourte(v.date))).sort();
+    const joursSansVente = dates.length ? -joursAvant(dates[dates.length - 1]) : null;
+    const dort = joursStock >= JOURS_DORT && (joursSansVente === null || joursSansVente >= JOURS_DORT);
+    return { ...c, lotsEnStock: lots, paquets, poids, recus, ecoule: recus > 0 ? (recus - paquets) / recus : 0, joursStock, joursSansVente, dort };
   });
   const enStock = stock.filter((c) => c.paquets > 0);
   const totalPaquets = enStock.reduce((s, c) => s + c.paquets, 0);
   const totalPoids = enStock.reduce((s, c) => s + c.poids, 0);
   const valeurBoutique = enStock.reduce((s, c) => s + c.poids * c.prixBoutique, 0);
+  const mois = aujourdhui().slice(0, 7);
+  const ventesMois = ventes.filter((v) => dateCourte(v.date).startsWith(mois));
+  const somme = (liste, champ) => liste.reduce((t, v) => t + v[champ], 0);
+  const dormantes = enStock.filter((c) => c.dort).length;
 
   return (
-    <div className="conteneur-page">
+    <div className="conteneur-page" style={{ maxWidth: 1100 }}>
       <BandeauSection icone="🥩" titre="Viande" sousTitre="Paquets en stock par coupe et ventes en boutique ou en ligne. Chaque paquet vendu reste relié à sa bête." />
       <NavElevage actif="/elevage/viande" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 12 }}>
-        <Statistique valeur={totalPaquets} label="Paquets en stock" />
-        <Statistique valeur={kg(totalPoids, 0)} label="Poids en stock" />
-        <Statistique valeur={argent(valeurBoutique)} label="Valeur au prix boutique" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12 }}>
+        <Statistique valeur={totalPaquets} label="Paquets en stock" teinte="var(--bleu)" note={`${kg(totalPoids, 0)} au congélateur`} />
+        <Statistique valeur={argent(valeurBoutique)} label="Valeur du stock" teinte="var(--accent)" note="au prix boutique" />
+        <Statistique valeur={argent(somme(ventesMois, "montant"))} label="Ventes ce mois-ci" teinte="var(--success)" note={paquets(somme(ventesMois, "nbPaquets"))} />
+        <Statistique valeur={argent(somme(ventes, "montant"))} label="Ventes des 12 derniers mois" teinte="var(--success)" note={paquets(somme(ventes, "nbPaquets"))} />
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
@@ -64,29 +83,58 @@ export default function ViandeClient({ coupes, ventes, lotScanne, scanInconnu })
             Aucun paquet en stock. Les paquets entrent en stock à l'abattage d'une bête (sa fiche, dans le <Link href="/elevage" style={{ color: "var(--accent)" }}>troupeau</Link>).
           </p>
         ) : (
-          <Tableau entetes={["Coupe", "Paquets", "Poids", "Boutique", "En ligne", "Provenance", ""]} alignDroite={[1, 2, 3, 4]}>
+          <>
+            {dormantes > 0 && (
+              <p style={{ fontSize: 13, margin: "0 0 10px", padding: "9px 12px", borderRadius: 12, background: "var(--avertissement-fond)" }}>
+                <strong>{dormantes} coupe{dormantes > 1 ? "s" : ""} {dormantes > 1 ? "dorment" : "dort"} au congélateur</strong> : aucune vente depuis au moins {JOURS_DORT} jours. Une promotion ou un ajustement de prix peut aider à l'écouler.
+              </p>
+            )}
+            {/* Rangées en grille (.ligne-coupe, app/globals.css) : colonnes sur un écran large, petite carte sur un téléphone */}
+            <div className="ligne-coupe entete">
+              <span style={{ gridArea: "nom" }}>Coupe</span><span className="stock" style={{ gridArea: "stock" }}>En stock</span><span style={{ gridArea: "ecoule" }}>Écoulé</span>
+              <span className="prix" style={{ gridArea: "prix" }}>Prix au kg</span><span className="valeur" style={{ gridArea: "valeur" }}>Valeur</span><span className="gel" style={{ gridArea: "gel" }}>Au congélateur</span>
+              <span style={{ gridArea: "action", visibility: "hidden", fontSize: 12, padding: "0 10px" }}>Vendre</span>
+            </div>
             {enStock.map((c) => (
-              <tr key={c.id}>
-                <td style={{ ...cellule, fontWeight: 700 }}>{c.nom}</td>
-                <td style={{ ...celluleDroite, fontWeight: 700 }}>{c.paquets}</td>
-                <td style={celluleDroite}>{kg(c.poids)}</td>
-                <td style={celluleDroite}>{c.prixBoutique > 0 ? `${argent(c.prixBoutique)}/kg` : "—"}</td>
-                <td style={celluleDroite}>{!c.enLigne ? "non offerte" : c.prixEnLigne > 0 ? `${argent(c.prixEnLigne)}/kg` : "—"}</td>
-                <td style={{ ...cellule, fontSize: 11.5, color: "var(--text-muted)" }}>
-                  {c.lotsEnStock.map((l, i) => (
-                    <span key={l.id}>{i > 0 && ", "}<Link href={`/elevage/${l.abattage.bete.id}`} style={{ color: "inherit" }}>{l.abattage.bete.numero}</Link> ({l.stock.paquets})</span>
-                  ))}
-                </td>
-                <td style={cellule}>
-                  <button onClick={() => setVenteCoupe(c.id)} className="bouton-3d" style={{ padding: "5px 10px", borderRadius: 7, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Vendre</button>
-                </td>
-              </tr>
+              <div key={c.id} className="ligne-coupe">
+                <div style={{ gridArea: "nom", minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>{c.nom}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
+                    {c.lotsEnStock.map((l, i) => (
+                      <span key={l.id}>{i > 0 && ", "}<Link href={`/elevage/${l.abattage.bete.id}`} style={{ color: "inherit" }}>{l.abattage.bete.numero}</Link> ({l.stock.paquets})</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="stock" style={{ gridArea: "stock" }}>
+                  <strong>{c.paquets} paquet{c.paquets > 1 ? "s" : ""}</strong> <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>· {kg(c.poids)}</span>
+                </div>
+                <div style={{ gridArea: "ecoule" }}>
+                  <div style={{ fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{Math.round(c.ecoule * 100)} % vendu <span style={{ color: "var(--text-muted)" }}>({c.recus - c.paquets} sur {c.recus})</span></div>
+                  <div role="progressbar" aria-label={`Part vendue de ${c.nom}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(c.ecoule * 100)} style={{ height: 6, borderRadius: 3, background: "var(--surface-alt)", overflow: "hidden", marginTop: 4 }}>
+                    <div style={{ width: `${c.ecoule * 100}%`, height: "100%", borderRadius: 3, background: "var(--accent)" }} />
+                  </div>
+                </div>
+                <div className="prix" style={{ gridArea: "prix" }}>
+                  <div>{c.prixBoutique > 0 ? `${argent(c.prixBoutique)}/kg` : "prix à fixer"}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{!c.enLigne ? "pas en ligne" : c.prixEnLigne > 0 ? `en ligne ${argent(c.prixEnLigne)}` : "en ligne —"}</div>
+                </div>
+                <div className="valeur" style={{ gridArea: "valeur", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{c.prixBoutique > 0 ? argent(c.poids * c.prixBoutique) : "—"}</div>
+                <div className="gel" style={{ gridArea: "gel" }}>
+                  <div>depuis {c.joursStock} j</div>
+                  <div style={{ fontSize: 11.5, fontWeight: c.dort ? 700 : 400, color: c.dort ? "var(--avertissement)" : "var(--text-muted)" }}>
+                    {c.joursSansVente === null ? "jamais vendue" : c.joursSansVente <= 0 ? "vendue aujourd'hui" : `dernière vente il y a ${c.joursSansVente} j`}
+                  </div>
+                </div>
+                <div style={{ gridArea: "action", justifySelf: "end" }}>
+                  <button onClick={() => setVenteCoupe(c.id)} className="bouton-3d" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>Vendre</button>
+                </div>
+              </div>
             ))}
-          </Tableau>
+          </>
         )}
       </div>
 
-      <Ventes ventes={ventes} />
+      <Ventes ventes={ventes} coupes={coupes} />
     </div>
   );
 }
@@ -136,17 +184,35 @@ function FormulaireVente({ coupe, onFin }) {
 
 const PERIODES = [
   { code: "MOIS", label: "Ce mois-ci" },
-  { code: "ANNEE", label: "Cette année" },
+  { code: "ANNEE", label: "12 derniers mois" },
 ];
+const NB_VENTES = 12; // ventes montrées avant « Voir toutes les ventes »
 
-function Ventes({ ventes }) {
-  const [periode, setPeriode] = useState("MOIS");
+function Ventes({ ventes, coupes }) {
+  const [periode, setPeriode] = useState("ANNEE");
+  const [tout, setTout] = useState(false);
   const { appeler, erreur } = useApi();
   const mois = aujourdhui().slice(0, 7);
   const affichees = ventes.filter((v) => periode === "ANNEE" || dateCourte(v.date).startsWith(mois));
+  const total = affichees.reduce((s, v) => s + v.montant, 0);
   const parCanal = CANAUX.map((c) => {
     const liste = affichees.filter((v) => v.canal === c.code);
     return { ...c, montant: liste.reduce((s, v) => s + v.montant, 0), paquets: liste.reduce((s, v) => s + v.nbPaquets, 0), poids: liste.reduce((s, v) => s + v.poids, 0) };
+  });
+  // Ce qui se vend, par coupe : la plus payante d'abord
+  const parCoupe = coupes.map((c) => {
+    const liste = affichees.filter((v) => v.lot.coupe.nom === c.nom);
+    const montant = liste.reduce((s, v) => s + v.montant, 0);
+    const poids = liste.reduce((s, v) => s + v.poids, 0);
+    return { id: c.id, nom: c.nom, prixBoutique: c.prixBoutique, montant, poids, paquets: liste.reduce((s, v) => s + v.nbPaquets, 0), prixMoyen: poids > 0 ? montant / poids : 0 };
+  }).filter((c) => c.paquets > 0).sort((x, y) => y.montant - x.montant);
+  // Les 12 derniers mois, du plus ancien au plus récent
+  const [annee, moisCourant] = mois.split("-").map(Number);
+  const serie = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.UTC(annee, moisCourant - 12 + i, 1));
+    const cle = d.toISOString().slice(0, 7);
+    const duMois = ventes.filter((v) => dateCourte(v.date).startsWith(cle));
+    return { cle, ...Object.fromEntries(CANAUX.map((c) => [c.code, duMois.filter((v) => v.canal === c.code).reduce((s, v) => s + v.montant, 0)])) };
   });
 
   async function annuler(v) {
@@ -155,31 +221,64 @@ function Ventes({ ventes }) {
 
   return (
     <div className="carte" style={{ marginBottom: 20 }}>
-      <TitreSection>Ventes</TitreSection>
-      <Onglets options={PERIODES} valeur={periode} onChange={setPeriode} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-        {parCanal.map((c) => (
-          <Statistique key={c.code} valeur={argent(c.montant)} label={`${c.icone} ${c.label} — ${c.paquets} paquets, ${kg(c.poids)}`} />
-        ))}
-      </div>
+      <TitreSection>Ventes par mois</TitreSection>
+      {ventes.length > 0 ? <VentesParMois mois={serie} /> : <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px" }}>Aucune vente depuis 12 mois.</p>}
+
+      <Onglets options={PERIODES} valeur={periode} onChange={(p) => { setPeriode(p); setTout(false); }} />
       <Erreur texte={erreur} />
       {affichees.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucune vente pour cette période.</p>
       ) : (
-        <Tableau entetes={["Date", "", "Coupe", "Paquets", "Poids", "Montant", "Bête", ""]} alignDroite={[3, 4, 5]}>
-          {affichees.map((v) => (
-            <tr key={v.id}>
-              <td style={cellule}>{dateCourte(v.date)}</td>
-              <td style={cellule} title={CANAUX.find((c) => c.code === v.canal)?.label}>{CANAUX.find((c) => c.code === v.canal)?.icone}</td>
-              <td style={cellule}>{v.lot.coupe.nom}{v.note && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{v.note}</div>}</td>
-              <td style={celluleDroite}>{v.nbPaquets}</td>
-              <td style={celluleDroite}>{kg(v.poids, 2)}</td>
-              <td style={celluleDroite}>{argent(v.montant)}</td>
-              <td style={cellule}><Link href={`/elevage/${v.lot.abattage.bete.id}`} style={{ color: "var(--accent)" }}>{v.lot.abattage.bete.numero}</Link></td>
-              <td style={cellule}><button onClick={() => annuler(v)} style={{ ...boutonLien, color: "var(--danger)" }}>✕</button></td>
-            </tr>
-          ))}
-        </Tableau>
+        <DeuxColonnes>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              {parCanal.map((c) => (
+                <Statistique key={c.code} valeur={argent(c.montant)} label={`${c.icone} ${c.label}`} note={`${paquets(c.paquets)} · ${kg(c.poids)}`} teinte={c.code === "EN_LIGNE" ? "var(--serie-2)" : "var(--serie-1)"} />
+              ))}
+            </div>
+            <div className="titre-section">Ce qui se vend</div>
+            <Tableau entetes={["Coupe", "Ventes", "Prix obtenu"]} alignDroite={[1, 2]}>
+              {parCoupe.map((c) => (
+                <tr key={c.id}>
+                  <td style={cellule}>
+                    <div style={{ fontWeight: 700 }}>{c.nom}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{c.paquets} paquet{c.paquets > 1 ? "s" : ""} · {kg(c.poids)}</div>
+                    <div role="progressbar" aria-label={`Part des ventes de ${c.nom}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((c.montant / total) * 100)} style={{ height: 6, borderRadius: 3, background: "var(--surface-alt)", overflow: "hidden", marginTop: 4 }}>
+                      <div style={{ width: `${(c.montant / total) * 100}%`, height: "100%", borderRadius: 3, background: "var(--accent)" }} />
+                    </div>
+                  </td>
+                  <td style={celluleDroite}><strong>{argent(c.montant)}</strong><div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{Math.round((c.montant / total) * 100)} % des ventes</div></td>
+                  <td style={celluleDroite}>{argent(c.prixMoyen)}/kg{c.prixBoutique > 0 && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>boutique {argent(c.prixBoutique)}</div>}</td>
+                </tr>
+              ))}
+            </Tableau>
+          </div>
+          <div>
+            <div className="titre-section">Dernières ventes</div>
+            {(tout ? affichees : affichees.slice(0, NB_VENTES)).map((v, i) => {
+              const canal = CANAUX.find((c) => c.code === v.canal);
+              return (
+                <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", fontSize: 13.5 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ overflowWrap: "anywhere" }}>{v.nbPaquets} × {v.lot.coupe.nom}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
+                      {dateLisible(v.date)} · {canal?.icone} {canal?.label} · {kg(v.poids, 2)} · <Link href={`/elevage/${v.lot.abattage.bete.id}`} style={{ color: "var(--accent-ombre)" }}>{v.lot.abattage.bete.numero}</Link>{v.note && ` — ${v.note}`}
+                    </div>
+                  </div>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <strong style={{ fontVariantNumeric: "tabular-nums" }}>{argent(v.montant)}</strong>
+                    <button onClick={() => annuler(v)} title="Annuler cette vente" aria-label="Annuler cette vente" style={{ ...boutonLien, color: "var(--danger)", padding: "4px 6px" }}>✕</button>
+                  </span>
+                </div>
+              );
+            })}
+            {affichees.length > NB_VENTES && (
+              <button type="button" onClick={() => setTout((v) => !v)} style={{ ...boutonLien, color: "var(--accent-ombre)", fontWeight: 700, fontSize: 13, padding: "10px 0 0" }}>
+                {tout ? "Montrer moins" : `Voir les ${affichees.length} ventes`}
+              </button>
+            )}
+          </div>
+        </DeuxColonnes>
       )}
     </div>
   );

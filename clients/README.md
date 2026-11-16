@@ -46,11 +46,12 @@ on décide quand et à qui une modification s'applique.
   productivité et rentabilité par employé, actif par défaut,
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
   de viande, registre de soins avec délai de retrait, saillies, vêlages et lignée
-  avec alerte de consanguinité, courbe de poids et gain visé, boucle ATQ validée, déplacements et
+  avec alerte de consanguinité, courbe de poids et gain visé, date d'abattage prévue selon le poids visé, boucle ATQ validée, déplacements et
   registre à déclarer à Agri-Traçabilité Québec (`lib/registreElevage.js`),
   étiquettes à code QR
   des paquets et page publique de traçabilité `/tracabilite/<lot>`,
-  `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
+  `lib/elevage.js` ; troupeau de démonstration à charger ou retirer dans
+  Administrateur, `lib/elevageDemo.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
   **Pointage de quart et feuilles de temps** (inactif par défaut,
   `lib/quarts.js`) : l'employé pointe arrivée, dîner, pause et départ à

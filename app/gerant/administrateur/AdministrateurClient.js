@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, troupeauDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -123,6 +123,8 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
         ))}
       </Panneau>
 
+      {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
+
       {estDeveloppeur && (
         <Panneau titre="Affichage">
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>Pour toi seulement.</p>
@@ -168,6 +170,48 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
         />
       </section>
     </div>
+  );
+}
+
+// Troupeau de démonstration du module Élevage (lib/elevageDemo.js) : se
+// charge dans un troupeau vide, se retire d'un coup
+function TroupeauDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/elevage-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué." : methode === "POST" ? `${data.betes} bêtes de démonstration ajoutées.` : `${data.betes} bêtes de démonstration retirées.`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer les ${etat.demo} bêtes de démonstration, avec leurs pesées, leurs paquets et leurs ventes ? Les vraies bêtes ne sont pas touchées.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Troupeau de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Élevage : neuf bêtes wagyu avec leurs pesées, frais et soins, une vache gestante, deux bêtes abattues avec leurs paquets, et des ventes sur neuf mois.
+      </p>
+      {etat.demo > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>{etat.demo} bêtes de démonstration dans le troupeau.</span>
+          <a href="/elevage" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir le troupeau</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer le troupeau de démonstration"}</button>
+        </div>
+      ) : etat.betes > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Le troupeau contient déjà {etat.betes} bête{etat.betes > 1 ? "s" : ""} : le troupeau de démonstration ne se charge que dans un troupeau vide.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger le troupeau de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
   );
 }
 

@@ -11,7 +11,7 @@ import {
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const texte = (n) => String(n ?? "").replace(".", ",");
 
-export default function CoupesClient({ coupes, rendementCarcasse, gmqCible }) {
+export default function CoupesClient({ coupes, rendementCarcasse, gmqCible, poidsAbattage }) {
   const actives = coupes.filter((c) => c.actif);
   const totalRendement = actives.reduce((s, c) => s + c.rendement, 0);
   return (
@@ -19,7 +19,7 @@ export default function CoupesClient({ coupes, rendementCarcasse, gmqCible }) {
       <BandeauSection icone="📐" titre="Coupes et rendements" sousTitre="Ce que donne une carcasse : la part de chaque coupe, le poids d'un paquet et son prix au kg selon le canal de vente." />
       <NavElevage actif="/elevage/coupes" />
       <Simulateur coupes={actives} rendementCarcasse={rendementCarcasse} />
-      <CibleCroissance gmqCible={gmqCible} />
+      <CibleCroissance gmqCible={gmqCible} poidsAbattage={poidsAbattage} />
       <div className="carte" style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <TitreSection>Coupes</TitreSection>
@@ -104,12 +104,13 @@ function NouvelleCoupe() {
 
 // Gain moyen quotidien visé : une bête en croissance (bouvillon, ou jeune de
 // moins de 24 mois) dont le gain récent est dessous est signalée au troupeau
-function CibleCroissance({ gmqCible }) {
+function CibleCroissance({ gmqCible, poidsAbattage }) {
   const [cible, setCible] = useState(texte(gmqCible));
+  const [poids, setPoids] = useState(texte(poidsAbattage));
   const { appeler, enCours, erreur } = useApi();
   return (
     <div className="carte" style={{ marginBottom: 14 }}>
-      <TitreSection>Croissance — gain visé</TitreSection>
+      <TitreSection>Croissance — gain et poids visés</TitreSection>
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 8px" }}>
         Les bouvillons et les jeunes de moins de 24 mois dont le gain récent (entre leurs dernières pesées) est sous cette cible sont signalés dans le troupeau.
       </p>
@@ -118,6 +119,17 @@ function CibleCroissance({ gmqCible }) {
           <input inputMode="decimal" value={cible} onChange={(e) => setCible(e.target.value)} style={champStyle} />
           {nombre(cible) !== gmqCible && (
             <button onClick={() => appeler("/api/elevage/parametres", "PATCH", { gmqCible: cible })} disabled={enCours} style={{ ...boutonLien, color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap", marginBottom: 8 }}>Enregistrer</button>
+          )}
+        </div>
+      </Champ>
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "4px 0 8px" }}>
+        Le poids visé sert à prévoir, dans le troupeau, la date où chaque bouvillon sera prêt pour l'abattage au rythme de son gain.
+      </p>
+      <Champ label="Poids vif visé à l'abattage (kg)">
+        <div style={{ display: "flex", gap: 6, maxWidth: 260 }}>
+          <input inputMode="decimal" value={poids} onChange={(e) => setPoids(e.target.value)} style={champStyle} />
+          {nombre(poids) !== poidsAbattage && (
+            <button onClick={() => appeler("/api/elevage/parametres", "PATCH", { poidsAbattage: poids })} disabled={enCours} style={{ ...boutonLien, color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap", marginBottom: 8 }}>Enregistrer</button>
           )}
         </div>
       </Champ>

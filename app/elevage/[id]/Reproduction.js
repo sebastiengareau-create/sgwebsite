@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TEINTES, Pastille, BoutonAction } from "../../components/StyleSection";
 import {
-  SEXES, TYPES_SAILLIE, STATUTS_SAILLIE, GESTATION_JOURS, libelle, dateCourte, velagePrevu, saillieEnCours, joursAvant,
+  SEXES, TYPES_SAILLIE, STATUTS_SAILLIE, GESTATION_JOURS, libelle, dateLisible, velagePrevu, saillieEnCours, joursAvant,
   parente, decrireParente, nomBete,
 } from "@/lib/elevageCalculs";
 import { champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi, aujourdhui, Section, BoutonRetirer } from "../ui";
@@ -86,7 +86,7 @@ export function Reproduction({ bete, registre, taureaux }) {
   return (
     <Section
       titre="Reproduction" icone="calendrier" teinte={TEINTES.ambre}
-      sousTitre={enCoursDeGestation ? `Vêlage prévu le ${dateCourte(velagePrevu(enCoursDeGestation.date))}` : bete.saillies.length > 0 ? `${bete.saillies.length} saillie${bete.saillies.length > 1 ? "s" : ""}` : undefined}
+      sousTitre={enCoursDeGestation ? `Vêlage prévu le ${dateLisible(velagePrevu(enCoursDeGestation.date))}` : bete.saillies.length > 0 ? `${bete.saillies.length} saillie${bete.saillies.length > 1 ? "s" : ""}` : undefined}
     >
       {active && (formulaire ? (
         <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
@@ -111,7 +111,7 @@ export function Reproduction({ bete, registre, taureaux }) {
             <p style={alerteStyle}>⚠️ Consanguinité — {liens.map((l) => decrireParente(l, nomBete(bete), nomBete(taureau))).join(" ; ")}.</p>
           )}
           <input value={champs.note} onChange={maj("note")} placeholder="Note (inséminateur, chaleur observée…)" style={champStyle} />
-          {champs.date && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Vêlage prévu vers le {dateCourte(velagePrevu(`${champs.date}T12:00:00Z`))} ({GESTATION_JOURS} jours).</p>}
+          {champs.date && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Vêlage prévu vers le {dateLisible(velagePrevu(`${champs.date}T12:00:00Z`))} ({GESTATION_JOURS} jours).</p>}
           <Erreur texte={erreur} />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button onClick={ajouter} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "…" : "Enregistrer la saillie"}</button>
@@ -159,11 +159,11 @@ function LigneSaillie({ saillie: s, bete, premiere }) {
             {libelle(TYPES_SAILLIE, s.type)} — {s.taureau ? <Link href={`/elevage/${s.taureau.id}`} style={{ color: "var(--accent-ombre)" }}>{nomBete(s.taureau)}</Link> : s.semence || "géniteur retiré du registre"}
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
-            {[dateCourte(s.date), s.note, s.creePar && `par ${s.creePar}`].filter(Boolean).join(" · ")}
+            {[dateLisible(s.date), s.note, s.creePar && `par ${s.creePar}`].filter(Boolean).join(" · ")}
           </div>
           <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
             <Pastille couleur={statut?.couleur || "var(--text-muted)"} fond="var(--surface-alt)">{statut?.label || s.statut}</Pastille>
-            {saillieEnCours(s) && <span style={{ fontSize: 12.5, fontWeight: 700, color: jours < 0 ? "var(--danger)" : "var(--text)" }}>Vêlage prévu le {dateCourte(prevu)} ({jours < 0 ? `dépassé de ${-jours} j` : `dans ${jours} j`})</span>}
+            {saillieEnCours(s) && <span style={{ fontSize: 12.5, fontWeight: 700, color: jours < 0 ? "var(--danger)" : "var(--text)" }}>Vêlage prévu le {dateLisible(prevu)} ({jours < 0 ? `dépassé de ${-jours} j` : `dans ${jours} j`})</span>}
             {s.veau && <Link href={`/elevage/${s.veau.id}`} style={{ fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Veau : {nomBete(s.veau)}</Link>}
           </div>
         </div>
