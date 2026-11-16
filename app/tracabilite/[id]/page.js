@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import { obtenirInfosEntreprise, lignesEnteteEntreprise } from "@/lib/config";
 import { elevageActif, peutGererElevage } from "@/lib/elevage";
-import { SEXES, GENETIQUES, libelle, age, dateCourte } from "@/lib/elevageCalculs";
+import { SEXES, GENETIQUES, libelle, age, dateLisible } from "@/lib/elevageCalculs";
 import LogoClient from "../../components/LogoClient";
 
 // Page publique de traçabilité d'un paquet de viande : le client scanne le
@@ -128,7 +128,7 @@ export default async function Tracabilite(props) {
         </div>
 
         <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", margin: "16px 0 0" }}>
-          Lot {bete.numero} · abattage du {dateCourte(abattage.date)}
+          Lot {bete.numero} · abattage du {dateLisible(abattage.date)}
         </p>
       </div>
     </div>
