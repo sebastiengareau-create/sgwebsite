@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
-import { peutGererElevage, lireRendementCarcasse, lireGmqCible } from "@/lib/elevage";
+import { peutGererElevage, lireRendementCarcasse, lireGmqCible, lirePoidsAbattage } from "@/lib/elevage";
 import EnTete from "../components/EnTete";
 import TroupeauClient from "./TroupeauClient";
 
@@ -10,7 +10,7 @@ export default async function Troupeau() {
   if (!session) redirect("/login");
   if (!(await peutGererElevage(session))) redirect("/mecanicien");
 
-  const [betes, rendementCarcasse, gmqCible] = await Promise.all([
+  const [betes, rendementCarcasse, gmqCible, poidsAbattage, coupes] = await Promise.all([
     prisma.bete.findMany({
       include: {
         pesees: { select: { date: true, poids: true } },
@@ -25,12 +25,14 @@ export default async function Troupeau() {
     }),
     lireRendementCarcasse(),
     lireGmqCible(),
+    lirePoidsAbattage(),
+    prisma.coupeViande.findMany({ where: { actif: true } }),
   ]);
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <TroupeauClient betes={JSON.parse(JSON.stringify(betes))} rendementCarcasse={rendementCarcasse} gmqCible={gmqCible} />
+      <TroupeauClient betes={JSON.parse(JSON.stringify(betes))} rendementCarcasse={rendementCarcasse} gmqCible={gmqCible} poidsAbattage={poidsAbattage} coupes={coupes} />
     </div>
   );
 }

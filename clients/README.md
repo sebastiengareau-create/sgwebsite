@@ -46,7 +46,7 @@ on décide quand et à qui une modification s'applique.
   productivité et rentabilité par employé, actif par défaut,
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
   de viande, registre de soins avec délai de retrait, saillies, vêlages et lignée
-  avec alerte de consanguinité, courbe de poids et gain visé, boucle ATQ validée, déplacements et
+  avec alerte de consanguinité, courbe de poids et gain visé, date d'abattage prévue selon le poids visé, boucle ATQ validée, déplacements et
   registre à déclarer à Agri-Traçabilité Québec (`lib/registreElevage.js`),
   étiquettes à code QR
   des paquets et page publique de traçabilité `/tracabilite/<lot>`,
