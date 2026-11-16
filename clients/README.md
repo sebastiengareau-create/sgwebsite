@@ -50,7 +50,8 @@ on décide quand et à qui une modification s'applique.
   registre à déclarer à Agri-Traçabilité Québec (`lib/registreElevage.js`),
   étiquettes à code QR
   des paquets et page publique de traçabilité `/tracabilite/<lot>`,
-  `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
+  `lib/elevage.js` ; troupeau de démonstration à charger ou retirer dans
+  Administrateur, `lib/elevageDemo.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
   **Pointage de quart et feuilles de temps** (inactif par défaut,
   `lib/quarts.js`) : l'employé pointe arrivée, dîner, pause et départ à

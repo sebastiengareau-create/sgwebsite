@@ -408,10 +408,11 @@ html[data-theme="light"] .logo-sombre { display: none; }
   font-size: 13.5px;
 }
 .ligne-coupe.entete { display: none; }
+.ligne-coupe > .stock { white-space: nowrap; }
 .ligne-coupe > .valeur, .ligne-coupe > .gel { text-align: right; }
 @media (min-width: 800px) {
   .ligne-coupe {
-    grid-template-columns: 1.5fr 0.9fr 1.3fr 1fr 0.9fr 1.4fr auto;
+    grid-template-columns: 1.5fr 1.2fr 1.3fr 1fr 0.9fr 1.4fr auto;
     grid-template-areas: "nom stock ecoule prix valeur gel action";
     padding: 9px 8px;
   }
