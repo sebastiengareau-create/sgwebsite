@@ -5,7 +5,7 @@ import BandeauSection from "../../components/BandeauSection";
 import { TitreSection } from "../../components/ui";
 import { estimerDecoupe, totauxDecoupe, carcasseDepuisVif, argent, kg } from "@/lib/elevageCalculs";
 import {
-  champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Onglets, NavElevage, Tableau, TableEstimation, cellule, useApi,
+  champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Onglets, NavElevage, TableEstimation, useApi, Statistique, DeuxColonnes,
 } from "../ui";
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
@@ -14,27 +14,40 @@ const texte = (n) => String(n ?? "").replace(".", ",");
 export default function CoupesClient({ coupes, rendementCarcasse, gmqCible, poidsAbattage }) {
   const actives = coupes.filter((c) => c.actif);
   const totalRendement = actives.reduce((s, c) => s + c.rendement, 0);
+  const sansPrix = actives.filter((c) => !c.prixBoutique).length;
+  // Ce que rapporte 1 kg de carcasse une fois découpé et vendu en boutique
+  const valeurKg = totauxDecoupe(estimerDecoupe(1000, actives)).valeurBoutique / 1000;
   return (
-    <div className="conteneur-page">
+    <div className="conteneur-page" style={{ maxWidth: 1100 }}>
       <BandeauSection icone="📐" titre="Coupes et rendements" sousTitre="Ce que donne une carcasse : la part de chaque coupe, le poids d'un paquet et son prix au kg selon le canal de vente." />
       <NavElevage actif="/elevage/coupes" />
-      <Simulateur coupes={actives} rendementCarcasse={rendementCarcasse} />
-      <CibleCroissance gmqCible={gmqCible} poidsAbattage={poidsAbattage} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
+        <Statistique valeur={actives.length} label="Coupes actives" teinte="var(--bleu)" note={coupes.length > actives.length ? `${coupes.length - actives.length} désactivée${coupes.length - actives.length > 1 ? "s" : ""}` : `${actives.filter((c) => c.enLigne).length} offertes en ligne`} />
+        <Statistique valeur={`${texte(Math.round(totalRendement * 10) / 10)} %`} label="De la carcasse en paquets" teinte={totalRendement > 100 ? "var(--danger)" : "var(--accent)"} couleur={totalRendement > 100 ? "var(--danger)" : undefined} note={totalRendement > 100 ? "plus de 100 % : rendements à corriger" : `${texte(Math.round((100 - totalRendement) * 10) / 10)} % en os, gras et pertes`} />
+        <Statistique valeur={sansPrix} label={`Coupe${sansPrix > 1 ? "s" : ""} sans prix`} teinte={sansPrix > 0 ? "var(--avertissement)" : "var(--success)"} note={sansPrix > 0 ? "prix boutique à fixer" : "tous les prix sont fixés"} />
+        <Statistique valeur={valeurKg > 0 ? `${argent(valeurKg)}` : "—"} label="Valeur par kg de carcasse" teinte="var(--success)" note="au prix boutique, selon les rendements" />
+      </div>
+
       <div className="carte" style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-          <TitreSection>Coupes</TitreSection>
-          <span style={{ fontSize: 12, color: totalRendement > 100 ? "var(--danger)" : "var(--text-muted)" }}>
-            {texte(Math.round(totalRendement * 10) / 10)} % de la carcasse en paquets · {texte(Math.round((100 - totalRendement) * 10) / 10)} % os, gras et pertes
-          </span>
-        </div>
-        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>
+        <TitreSection>Coupes</TitreSection>
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
           Rendement = % du poids de carcasse froide. Prix en $/kg avant taxes ; le prix d'un paquet = son poids × le prix au kg du canal.
         </p>
-        <Tableau entetes={["Coupe", "Rendement %", "Paquet (kg)", "Boutique $/kg", "En ligne $/kg", "En ligne", "Active", ""]}>
-          {coupes.map((c) => <LigneCoupe key={c.id} coupe={c} />)}
-        </Tableau>
+        {/* Rangées en grille (.reglage-coupe, app/globals.css) : colonnes sur un écran large, carte sur un téléphone */}
+        <div className="reglage-coupe entete">
+          <span style={{ gridArea: "nom" }}>Coupe</span><span style={{ gridArea: "rend" }}>Rendement %</span><span style={{ gridArea: "paquet" }}>Paquet (kg)</span>
+          <span style={{ gridArea: "boutique" }}>Boutique $/kg</span><span style={{ gridArea: "enligne" }}>En ligne $/kg</span>
+          <span className="centre" style={{ gridArea: "offerte" }}>En ligne</span><span className="centre" style={{ gridArea: "active" }}>Active</span><span style={{ gridArea: "action" }} />
+        </div>
+        {coupes.map((c) => <LigneCoupe key={c.id} coupe={c} />)}
         <NouvelleCoupe />
       </div>
+
+      <DeuxColonnes>
+        <Simulateur coupes={actives} rendementCarcasse={rendementCarcasse} />
+        <CibleCroissance gmqCible={gmqCible} poidsAbattage={poidsAbattage} />
+      </DeuxColonnes>
     </div>
   );
 }
@@ -45,35 +58,58 @@ function LigneCoupe({ coupe }) {
   const { appeler, enCours, erreur } = useApi();
   const modifie = Object.keys(initial).some((k) => champs[k] !== initial[k]);
   const maj = (champ) => (e) => setChamps((c) => ({ ...c, [champ]: e.target.value }));
-  const petit = (largeur) => ({ ...champStyle, marginBottom: 0, width: largeur, padding: "6px 8px" });
+  const champ = { ...champStyle, marginBottom: 0, width: "100%", padding: "7px 9px" };
+  const prixPaquet = (prix) => (nombre(prix) > 0 && nombre(champs.poidsPaquet) > 0 ? `${argent(nombre(prix) * nombre(champs.poidsPaquet))} le paquet` : null);
+  const note = { fontSize: 11.5, color: "var(--text-muted)", marginTop: 3 };
 
   async function supprimer() {
     if (window.confirm(`Supprimer la coupe « ${coupe.nom} » ?`)) await appeler(`/api/elevage/coupes/${coupe.id}`, "DELETE");
   }
 
   return (
-    <tr style={{ opacity: coupe.actif ? 1 : 0.55 }}>
-      <td style={cellule}>
-        <input value={champs.nom} onChange={maj("nom")} style={petit(170)} />
+    <div className="reglage-coupe" style={{ opacity: coupe.actif ? 1 : 0.55 }}>
+      <label style={{ gridArea: "nom" }}>
+        <span className="etiquette">Coupe</span>
+        <input value={champs.nom} onChange={maj("nom")} aria-label="Nom de la coupe" style={{ ...champ, fontWeight: 700 }} />
         <Erreur texte={erreur} />
-      </td>
-      <td style={cellule}><input inputMode="decimal" value={champs.rendement} onChange={maj("rendement")} style={petit(64)} /></td>
-      <td style={cellule}><input inputMode="decimal" value={champs.poidsPaquet} onChange={maj("poidsPaquet")} style={petit(64)} /></td>
-      <td style={cellule}><input inputMode="decimal" value={champs.prixBoutique} onChange={maj("prixBoutique")} style={petit(74)} /></td>
-      <td style={cellule}><input inputMode="decimal" value={champs.prixEnLigne} onChange={maj("prixEnLigne")} style={petit(74)} disabled={!coupe.enLigne} /></td>
-      <td style={{ ...cellule, textAlign: "center" }}><input type="checkbox" checked={coupe.enLigne} onChange={(e) => appeler(`/api/elevage/coupes/${coupe.id}`, "PATCH", { enLigne: e.target.checked })} /></td>
-      <td style={{ ...cellule, textAlign: "center" }}><input type="checkbox" checked={coupe.actif} onChange={(e) => appeler(`/api/elevage/coupes/${coupe.id}`, "PATCH", { actif: e.target.checked })} /></td>
-      <td style={{ ...cellule, whiteSpace: "nowrap" }}>
+      </label>
+      <label style={{ gridArea: "rend" }}>
+        <span className="etiquette">Rendement %</span>
+        <input inputMode="decimal" value={champs.rendement} onChange={maj("rendement")} aria-label="Rendement en % de la carcasse" style={champ} />
+      </label>
+      <label style={{ gridArea: "paquet" }}>
+        <span className="etiquette">Paquet (kg)</span>
+        <input inputMode="decimal" value={champs.poidsPaquet} onChange={maj("poidsPaquet")} aria-label="Poids d'un paquet en kg" style={champ} />
+      </label>
+      <label style={{ gridArea: "boutique" }}>
+        <span className="etiquette">Boutique $/kg</span>
+        <input inputMode="decimal" value={champs.prixBoutique} onChange={maj("prixBoutique")} aria-label="Prix en boutique au kg" style={champ} />
+        {prixPaquet(champs.prixBoutique) && <div style={note}>{prixPaquet(champs.prixBoutique)}</div>}
+      </label>
+      <label style={{ gridArea: "enligne" }}>
+        <span className="etiquette">En ligne $/kg</span>
+        <input inputMode="decimal" value={champs.prixEnLigne} onChange={maj("prixEnLigne")} aria-label="Prix en ligne au kg" style={champ} disabled={!coupe.enLigne} />
+        {coupe.enLigne && prixPaquet(champs.prixEnLigne) && <div style={note}>{prixPaquet(champs.prixEnLigne)}</div>}
+      </label>
+      <label className="case" style={{ gridArea: "offerte" }}>
+        <input type="checkbox" checked={coupe.enLigne} aria-label="Offerte en ligne" onChange={(e) => appeler(`/api/elevage/coupes/${coupe.id}`, "PATCH", { enLigne: e.target.checked })} />
+        <span>Offerte en ligne</span>
+      </label>
+      <label className="case" style={{ gridArea: "active" }}>
+        <input type="checkbox" checked={coupe.actif} aria-label="Coupe active" onChange={(e) => appeler(`/api/elevage/coupes/${coupe.id}`, "PATCH", { actif: e.target.checked })} />
+        <span>Active</span>
+      </label>
+      <div style={{ gridArea: "action", whiteSpace: "nowrap", paddingTop: 6, textAlign: "right" }}>
         {modifie ? (
           <>
-            <button onClick={() => appeler(`/api/elevage/coupes/${coupe.id}`, "PATCH", champs)} disabled={enCours} style={{ ...boutonLien, color: "var(--accent)", fontWeight: 700 }}>Enregistrer</button>{" "}
-            <button onClick={() => setChamps(initial)} style={{ ...boutonLien, color: "var(--text-muted)" }}>↺</button>
+            <button onClick={() => appeler(`/api/elevage/coupes/${coupe.id}`, "PATCH", champs)} disabled={enCours} style={{ ...boutonLien, color: "var(--accent-ombre)", fontWeight: 700, fontSize: 13 }}>Enregistrer</button>{" "}
+            <button onClick={() => setChamps(initial)} title="Annuler les changements" aria-label="Annuler les changements" style={{ ...boutonLien, color: "var(--text-muted)", fontSize: 14, padding: "0 4px" }}>↺</button>
           </>
         ) : (
-          coupe._count.lots === 0 && <button onClick={supprimer} style={{ ...boutonLien, color: "var(--danger)" }}>✕</button>
+          coupe._count.lots === 0 && <button onClick={supprimer} title="Supprimer la coupe" aria-label={`Supprimer la coupe ${coupe.nom}`} style={{ ...boutonLien, color: "var(--danger)", fontSize: 13, padding: "0 4px" }}>✕</button>
         )}
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
