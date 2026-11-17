@@ -41,7 +41,9 @@ on décide quand et à qui une modification s'applique.
 - **Nom, adresse, téléphone…** : dans l'appli (Administrateur →
   Informations de l'entreprise), donc dans la base du client.
 - **Modules** (Administrateur → Modules) : sections entières activées ou non
-  dans l'appli de chaque installation, sans changer le profil — ex. Paie,
+  dans l'appli de chaque installation, sans changer le profil — ex. Paie
+  (paie de démonstration à charger ou retirer dans Administrateur : employés
+  fictifs, heures, lots comptabilisés et un lot en brouillon, `lib/paieDemo.js`),
   Jobs en déplacement, **Productivité par employés** (rapport de
   productivité et rentabilité par employé, actif par défaut,
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
