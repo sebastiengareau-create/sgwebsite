@@ -123,7 +123,7 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
         ))}
       </Panneau>
 
-      <AtelierDemo etat={atelierDemo} />
+      {atelierDemo && <AtelierDemo etat={atelierDemo} />}
       {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
 
       {estDeveloppeur && (

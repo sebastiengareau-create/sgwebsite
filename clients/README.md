@@ -72,8 +72,9 @@ on décide quand et à qui une modification s'applique.
   `lib/atelierDemo.js`) : clients, véhicules, inventaire, fournisseurs, deux
   mécaniciens, bons à chaque étape, dix semaines de factures, soumissions et
   rendez-vous, à charger dans un atelier sans bon de travail puis à retirer
-  d'un coup — pour présenter le modèle de base ou l'essayer. Les véhicules
-  suivent `typeVehicules` du profil. Les vrais dossiers ne sont pas touchés.
+  d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
+  au modèle de base (réglage `atelierDemo` du profil, absent chez les
+  clients). Les vrais dossiers ne sont pas touchés.
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
   tous — discrète (bas de la page de connexion, Paramètres → À propos),
