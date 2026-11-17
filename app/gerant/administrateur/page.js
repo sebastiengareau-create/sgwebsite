@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import EnTete from "../../components/EnTete";
 import AdministrateurClient from "./AdministrateurClient";
 import { etatTroupeauDemo } from "@/lib/elevageDemo";
+import { etatAtelierDemo } from "@/lib/atelierDemo";
 
 export default async function Administrateur() {
   const session = await obtenirSession();
@@ -39,6 +40,7 @@ export default async function Administrateur() {
           { id: "elevage", label: "Élevage", description: "Troupeau (bœuf wagyu…) de la naissance à la table : pesées, coût de revient, abattage, découpe en paquets selon les rendements, vente en boutique et en ligne", actif: dict.module_elevage === "actif" },
           { id: "copropriete", label: "Copropriété", description: "Syndicat de copropriété : unités, copropriétaires, quotes-parts et charges communes, demandes de réparation, bons de travail, entretien préventif, documents et portail sécurisé des copropriétaires", actif: dict.module_copropriete === "actif" },
         ]}
+        atelierDemo={await etatAtelierDemo()}
         troupeauDemo={troupeauDemo}
         verrouilleInit={dict.compte_verrouille === "actif"}
         estDeveloppeur={session.role === "DEVELOPPEUR"}
