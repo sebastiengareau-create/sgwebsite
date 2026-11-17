@@ -62,7 +62,9 @@ on décide quand et à qui une modification s'applique.
   heures supplémentaires à la semaine, efficacité (présence comparée au temps
   sur les bons), anomalies, corrections consignées, verrouillage et export
   CSV / Excel. Actif, la paie et la productivité prennent les heures de
-  présence au lieu de l'horaire d'ouverture.
+  présence au lieu de l'horaire d'ouverture. Pointage de démonstration à
+  charger ou retirer dans Administrateur (employés fictifs, période
+  verrouillée, anomalies à régler, `lib/quartsDemo.js`).
   **Copropriété** (syndicat de copropriété : unités et quotes-parts,
   copropriétaires et historique des propriétaires, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents

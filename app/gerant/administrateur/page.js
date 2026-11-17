@@ -7,6 +7,7 @@ import { etatTroupeauDemo } from "@/lib/elevageDemo";
 import { etatAtelierDemo } from "@/lib/atelierDemo";
 import { etatCoproDemo } from "@/lib/coproprieteDemo";
 import { etatPaieDemo } from "@/lib/paieDemo";
+import { etatQuartsDemo } from "@/lib/quartsDemo";
 import { CLIENT } from "@/lib/client";
 
 export default async function Administrateur() {
@@ -29,6 +30,8 @@ export default async function Administrateur() {
   const coproDemo = dict.module_copropriete === "actif" ? await etatCoproDemo() : null;
   // Paie de démonstration : offerte seulement si le module Paie est actif
   const paieDemo = dict.module_paie === "actif" ? await etatPaieDemo() : null;
+  // Pointage de démonstration : offert seulement si le module Pointage de quart est actif
+  const quartsDemo = dict.module_quarts === "actif" ? await etatQuartsDemo() : null;
 
   return (
     <div>
@@ -51,6 +54,7 @@ export default async function Administrateur() {
         troupeauDemo={troupeauDemo}
         coproDemo={coproDemo}
         paieDemo={paieDemo}
+        quartsDemo={quartsDemo}
         verrouilleInit={dict.compte_verrouille === "actif"}
         estDeveloppeur={session.role === "DEVELOPPEUR"}
         themeInit={dict.theme_developpeur === "sombre" ? "sombre" : "clair"}
