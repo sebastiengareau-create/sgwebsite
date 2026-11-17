@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, troupeauDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -123,6 +123,7 @@ export default function AdministrateurClient({ modules, troupeauDemo, verrouille
         ))}
       </Panneau>
 
+      {atelierDemo && <AtelierDemo etat={atelierDemo} />}
       {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
 
       {estDeveloppeur && (
@@ -170,6 +171,51 @@ export default function AdministrateurClient({ modules, troupeauDemo, verrouille
         />
       </section>
     </div>
+  );
+}
+
+// Atelier de démonstration (lib/atelierDemo.js) : clients, véhicules,
+// inventaire, bons, factures, soumissions et rendez-vous pour présenter le
+// logiciel — se charge dans un atelier sans bon, se retire d'un coup
+function AtelierDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/atelier-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué."
+      : methode === "POST" ? `Atelier de démonstration chargé : ${data.clients} clients, ${data.bons} bons, ${data.factures} factures.`
+      : `Atelier de démonstration retiré : ${data.clients} clients, ${data.bons} bons.${data.gardes > 0 ? ` ${data.gardes} pièce(s), fournisseur(s) ou employé(s) gardés : ils servent à un vrai dossier.` : ""}`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer l'atelier de démonstration ? Ses ${etat.clients} clients disparaissent avec leurs véhicules, leurs ${etat.bons} bons (y compris ceux ajoutés pendant les essais), leurs factures et leurs paiements, ainsi que les pièces, fournisseurs et employés de démonstration. Les vrais dossiers ne sont pas touchés.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Atelier de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter ou essayer le logiciel : huit clients et leurs véhicules, un inventaire avec des pièces sous le minimum, deux mécaniciens, des bons à chaque étape (en attente, chrono en marche, à facturer), dix semaines de factures (payées, en retard, payée en partie), des soumissions et des rendez-vous.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Atelier de démonstration chargé : {etat.clients} clients, {etat.bons} bons.</span>
+          <a href="/gerant" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir la vue d'ensemble</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer l'atelier de démonstration"}</button>
+        </div>
+      ) : etat.bonsAtelier > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>L'atelier contient déjà {etat.bonsAtelier} bon{etat.bonsAtelier > 1 ? "s" : ""} de travail : l'atelier de démonstration ne se charge que dans un atelier sans bon.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger l'atelier de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
   );
 }
 
