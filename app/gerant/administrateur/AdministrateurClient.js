@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, paieDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -125,6 +125,7 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
 
       {atelierDemo && <AtelierDemo etat={atelierDemo} />}
       {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
+      {paieDemo && <PaieDemo etat={paieDemo} />}
       {coproDemo && <CoproDemo etat={coproDemo} />}
 
       {estDeveloppeur && (
@@ -345,6 +346,50 @@ function CoproDemo({ etat }) {
         <p style={{ fontSize: 13.5, margin: 0 }}>La copropriété contient déjà des immeubles, des unités, des copropriétaires ou un budget : la copropriété de démonstration ne se charge que dans une copropriété vide.</p>
       ) : (
         <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la copropriété de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Paie de démonstration du module Paie (lib/paieDemo.js) : se charge s'il
+// n'y a encore aucun lot de paie, se retire d'un coup
+function PaieDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/paie-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué."
+      : methode === "POST" ? `Paie de démonstration chargée : ${data.employes} employés, ${data.lots} lots, ${data.paies} paies.`
+      : `Paie de démonstration retirée : ${data.employes} employés, ${data.paies} paies, ${data.lots} lots.${data.gardes > 0 ? ` ${data.gardes} employé(s) de démonstration désactivé(s) plutôt que supprimé(s) : ils ont servi à un vrai dossier.` : ""}`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer la paie de démonstration ? Ses ${etat.employes} employés disparaissent avec leurs ${etat.paies} paies (y compris celles faites pendant les essais), les écritures de ces paies, leurs heures et leurs retenues. Les vrais employés et leurs paies ne sont pas touchés.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Paie de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Paie sans toucher aux vrais employés : quatre employés fictifs (trois à l'heure, une à salaire ; REER, assurance collective, vacances à 6 %), dix semaines d'heures poinçonnées avec une semaine d'heures supplémentaires, trois lots comptabilisés (talons, cumulatifs, remises à payer) et le lot de la dernière période en brouillon, prêt à traiter.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Paie de démonstration chargée : {etat.employes} employés, {etat.paies} paies.</span>
+          <a href="/gerant/paie" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir la paie</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer la paie de démonstration"}</button>
+        </div>
+      ) : etat.lots > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Il y a déjà {etat.lots} lot{etat.lots > 1 ? "s" : ""} de paie : la paie de démonstration ne se charge que s'il n'y en a encore aucun.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la paie de démonstration"}</button>
       )}
       {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
     </Panneau>
