@@ -64,7 +64,9 @@ on décide quand et à qui une modification s'applique.
   **Copropriété** (syndicat de copropriété : unités et quotes-parts,
   copropriétaires et historique des propriétaires, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents
-  et portail sécurisé des copropriétaires, `lib/copropriete.js`).
+  et portail sécurisé des copropriétaires, `lib/copropriete.js` ; copropriété
+  de démonstration à charger ou retirer dans Administrateur,
+  `lib/coproprieteDemo.js`).
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).

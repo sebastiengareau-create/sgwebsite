@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -125,6 +125,7 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
 
       {atelierDemo && <AtelierDemo etat={atelierDemo} />}
       {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
+      {coproDemo && <CoproDemo etat={coproDemo} />}
 
       {estDeveloppeur && (
         <Panneau titre="Affichage">
@@ -304,5 +305,48 @@ function Segments({ options, valeur, onChange, disabled }) {
         );
       })}
     </div>
+  );
+}
+
+// Copropriété de démonstration du module Copropriété (lib/coproprieteDemo.js) :
+// se charge dans une copropriété vide, se retire d'un coup
+function CoproDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/copropriete-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    const resume = `${data.unites} unités, ${data.coproprietaires} copropriétaires, ${data.demandes} demandes, ${data.travaux} bons de travail`;
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué." : methode === "POST" ? `Copropriété de démonstration chargée : ${resume}.` : `Copropriété de démonstration retirée : ${resume}.`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer la copropriété de démonstration ? Son immeuble disparaît avec ses ${etat.unites} unités, ses copropriétaires, ses charges et paiements, ses demandes et bons de travail (y compris ceux ajoutés pendant les essais), ses entretiens, ses documents et ses budgets. Un vrai immeuble ajouté à côté n'est pas touché.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Copropriété de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Copropriété : un immeuble de 13 unités et ses copropriétaires, stationnements et rangements, deux budgets, six mois de cotisations et de paiements (une unité en retard, une cotisation spéciale), des demandes et des bons de travail à chaque étape, l'entretien préventif, des documents et quatre accès au portail.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Copropriété de démonstration chargée : {etat.unites} unités.</span>
+          <a href="/copropriete" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir la copropriété</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer la copropriété de démonstration"}</button>
+        </div>
+      ) : !etat.vide ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>La copropriété contient déjà des immeubles, des unités, des copropriétaires ou un budget : la copropriété de démonstration ne se charge que dans une copropriété vide.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la copropriété de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
   );
 }
