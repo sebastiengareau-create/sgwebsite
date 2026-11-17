@@ -5,6 +5,7 @@ import EnTete from "../../components/EnTete";
 import AdministrateurClient from "./AdministrateurClient";
 import { etatTroupeauDemo } from "@/lib/elevageDemo";
 import { etatAtelierDemo } from "@/lib/atelierDemo";
+import { etatCoproDemo } from "@/lib/coproprieteDemo";
 import { CLIENT } from "@/lib/client";
 
 export default async function Administrateur() {
@@ -23,6 +24,8 @@ export default async function Administrateur() {
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   // Troupeau de démonstration : offert seulement si le module Élevage est actif
   const troupeauDemo = dict.module_elevage === "actif" ? await etatTroupeauDemo() : null;
+  // Copropriété de démonstration : offerte seulement si le module Copropriété est actif
+  const coproDemo = dict.module_copropriete === "actif" ? await etatCoproDemo() : null;
 
   return (
     <div>
@@ -43,6 +46,7 @@ export default async function Administrateur() {
         ]}
         atelierDemo={CLIENT.atelierDemo ? await etatAtelierDemo() : null}
         troupeauDemo={troupeauDemo}
+        coproDemo={coproDemo}
         verrouilleInit={dict.compte_verrouille === "actif"}
         estDeveloppeur={session.role === "DEVELOPPEUR"}
         themeInit={dict.theme_developpeur === "sombre" ? "sombre" : "clair"}
