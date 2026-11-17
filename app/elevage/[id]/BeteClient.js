@@ -78,7 +78,7 @@ export default function BeteClient({ bete, registre, coupes, rendementCarcasse, 
             <Fiche bete={bete} femelles={femelles} taureaux={taureaux} />
             <Identification bete={bete} lieux={lieux} />
           </DeuxColonnes>
-          {!bete.abattage && <Sortie bete={bete} />}
+          <Sortie bete={bete} />
         </>
       )}
       {onglet === "croissance" && <Pesees bete={bete} gmqCible={gmqCible} />}
@@ -785,9 +785,16 @@ function Sortie({ bete }) {
   async function confirmer(statut) {
     if (await appeler(`/api/elevage/betes/${bete.id}`, "PATCH", { sortie: { statut, ...champs } })) setChoix(null);
   }
+  // Une bête abattue emporte aussi ses paquets et leurs ventes : on dit combien
+  const lots = bete.abattage?.lots || [];
+  const ventes = lots.flatMap((l) => l.ventes);
+  const montantVentes = ventes.reduce((s, v) => s + v.montant, 0);
   async function supprimer() {
-    if (!window.confirm(`Supprimer la fiche ${bete.numero}, ses pesées et ses frais ? Seulement pour une fiche entrée par erreur.`)) return;
-    if (await appeler(`/api/elevage/betes/${bete.id}`, "DELETE")) router.push("/elevage");
+    const message = bete.abattage
+      ? `Supprimer ${bete.numero}, abattue le ${dateLisible(bete.abattage.date)} ? Sont aussi supprimés : ses ${lots.length} lot${lots.length > 1 ? "s" : ""} de paquets${ventes.length > 0 ? ` et ses ${ventes.length} vente${ventes.length > 1 ? "s" : ""} (${argent(montantVentes)})` : ""}, avec la traçabilité de sa viande. Les étiquettes déjà imprimées ne mèneront plus nulle part. Cette action est définitive.`
+      : `Supprimer la fiche ${bete.numero}, ses pesées et ses frais ? Seulement pour une fiche entrée par erreur.`;
+    if (!window.confirm(message)) return;
+    if (await appeler(`/api/elevage/betes/${bete.id}${bete.abattage ? "?confirmer=1" : ""}`, "DELETE")) router.push("/elevage");
   }
 
   return (
@@ -813,6 +820,8 @@ function Sortie({ bete }) {
             <BoutonAction icone="poubelle" compact couleur="var(--danger)" onClick={supprimer}>Supprimer</BoutonAction>
           </div>
         )
+      ) : bete.abattage ? (
+        <BoutonAction icone="poubelle" couleur="var(--danger)" onClick={supprimer} disabled={enCours} style={{ width: "100%" }}>Supprimer la fiche et sa viande</BoutonAction>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <BoutonAction icone="echange" couleur="var(--accent-ombre)" onClick={() => confirmer("ACTIVE")} disabled={enCours}>Remettre au troupeau</BoutonAction>

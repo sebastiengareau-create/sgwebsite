@@ -37,14 +37,18 @@ export async function PATCH(request, props) {
   return NextResponse.json({ ok: true });
 }
 
-// Retire une fiche entrée par erreur — pas une bête abattue (sa viande est
-// reliée à elle) : annuler l'abattage d'abord
+// Retire une fiche, avec ses pesées, frais, soins… Une bête abattue emporte
+// aussi son abattage, ses paquets et leurs ventes (en cascade) : la fiche
+// n'est alors retirée que si la requête le confirme (?confirmer=1), l'écran
+// ayant montré ce qui disparaît.
 export async function DELETE(request, props) {
   const params = await props.params;
   if (!(await sessionElevage())) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   const bete = await prisma.bete.findUnique({ where: { id: params.id }, include: { abattage: { select: { id: true } } } });
   if (!bete) return NextResponse.json({ erreur: "Bête introuvable." }, { status: 404 });
-  if (bete.abattage) return NextResponse.json({ erreur: "Cette bête est abattue — sa fiche reste pour la traçabilité de sa viande." }, { status: 409 });
+  if (bete.abattage && new URL(request.url).searchParams.get("confirmer") !== "1") {
+    return NextResponse.json({ erreur: "Cette bête est abattue : sa suppression retire aussi ses paquets et leurs ventes. Confirme la suppression." }, { status: 409 });
+  }
   await prisma.bete.delete({ where: { id: bete.id } });
   return NextResponse.json({ ok: true });
 }
