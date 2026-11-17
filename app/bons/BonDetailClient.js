@@ -25,6 +25,7 @@ import { separerPiecesSoumission, totauxLignesFixes, coutLignesPieces } from "@/
 import { nomClientBon } from "@/lib/nomClient";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
+import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import PiecesHorsInventaire from "./PiecesHorsInventaire";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
@@ -1557,7 +1558,13 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
       const habituel = [pieceSelectionnee.fournisseurId, ...(pieceSelectionnee.fournisseurs || []).map((f) => f.fournisseurId)]
         .find((id) => id && fournisseurs.some((f) => f.id === id));
       const manque = Math.max(1, parseInt(qtePiece) || 1) - Math.max(0, pieceSelectionnee.qte);
-      setCommandeBo({ fournisseurId: habituel || "", qteCommande: String(manque) });
+      // Déjà en commande ailleurs ? La B/O peut attendre cette commande-là
+      // plutôt que d'en commander une de plus
+      const pieceId = pieceSelectionnee.id;
+      setCommandeBo({ fournisseurId: habituel || "", qteCommande: String(manque), enCommande: null, pieceId });
+      const res = await fetch(`/api/bons/${bonId}/pieces/commander?pieceId=${encodeURIComponent(pieceId)}`);
+      const data = res.ok ? await res.json().catch(() => ({})) : {};
+      setCommandeBo((c) => (c && c.pieceId === pieceId ? { ...c, enCommande: data.commandes || [] } : c));
       return;
     }
     setEnCours(true);
@@ -1578,6 +1585,30 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     setConfirmationPiece(pieceSelectionnee?.estKit ? "Kit ajouté — ses pièces sont déduites de l'inventaire ✓" : "Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 2500);
+  }
+
+  // B/O sur une commande ouverte qui en attend déjà assez : rien de plus n'est commandé
+  async function reserverSurCommande(commande) {
+    setErreurPiece("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bonId}/pieces/commander`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problemeId, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1), commandeId: commande.id }),
+    });
+    setEnCours(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setErreurPiece(data.erreur || "Erreur lors de la mise en B/O.");
+      return;
+    }
+    setCommandeBo(null);
+    setPieceChoisie("");
+    setRecherchePiece("");
+    setQtePiece("1");
+    setConfirmationPiece(`${data.enStock > 0 ? `${data.enStock} sortie(s) du stock, ` : ""}${data.aCommander} en B/O — attend(ent) la commande ${data.numero}, rien de plus commandé ✓`);
+    onRafraichir();
+    setTimeout(() => setConfirmationPiece(""), 4000);
   }
 
   async function commanderEnBo() {
@@ -1890,6 +1921,8 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
         const manque = qteVoulue - enStock;
         const qteCommande = parseInt(commandeBo.qteCommande) || 0;
         const tropPeu = qteCommande < manque;
+        const enCommande = commandeBo.enCommande || [];
+        const suffisante = enCommande.find((c) => c.libre >= manque);
         return (
           <div style={{ marginTop: 8, padding: "10px 12px", border: "1px solid #D9822B", borderRadius: 8, fontSize: 12 }}>
             <div style={{ marginBottom: 8 }}>
@@ -1900,6 +1933,38 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                 Elle compte dans le total du bon ; le bon se facture une fois la commande reçue.
               </div>
             </div>
+            {commandeBo.enCommande === null && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>Vérification des commandes en cours…</div>
+            )}
+            {enCommande.length > 0 && (
+              <div style={{ marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "var(--surface-alt)" }}>
+                <div style={{ marginBottom: 6 }}>
+                  📦 <strong>Déjà en commande</strong>
+                  {suffisante ? " — inutile d'en commander d'autres :" : " — pas assez de libres pour ce bon :"}
+                </div>
+                {enCommande.map((c) => (
+                  <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                    <span style={{ flex: 1, minWidth: 160 }}>
+                      <Link href={`/secretaire/inventaire/commandes/${c.id}`} style={{ color: "var(--accent)" }}>{c.numero}</Link>
+                      {" "}· {c.fournisseur} · {STATUTS_COMMANDE[c.statut]?.label || c.statut}
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {" "}— {c.reste} à recevoir{c.reserve > 0 ? `, ${c.reserve} déjà pour d'autres bons` : ""} : <strong>{c.libre}</strong> libre{c.libre > 1 ? "s" : ""}
+                      </span>
+                    </span>
+                    {c.libre >= manque && (
+                      <button onClick={() => reserverSurCommande(c)} disabled={enCours} className="bouton-3d" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+                        📦 B/O sur {c.numero}
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {suffisante && (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                    La pièce sort du stock à la réception de cette commande. Sinon, commande-en quand même ci-dessous.
+                  </div>
+                )}
+              </div>
+            )}
             {fournisseurs.length === 0 ? (
               <div style={{ color: "var(--text-muted)" }}>
                 Aucun fournisseur au dossier — ajoute-le d'abord dans <Link href="/gerant/fournisseurs" style={{ color: "var(--accent)" }}>Fournisseurs</Link>.
