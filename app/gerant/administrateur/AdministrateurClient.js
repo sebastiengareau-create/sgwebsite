@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, paieDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, paieDemo, quartsDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -126,6 +126,7 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
       {atelierDemo && <AtelierDemo etat={atelierDemo} />}
       {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
       {paieDemo && <PaieDemo etat={paieDemo} />}
+      {quartsDemo && <QuartsDemo etat={quartsDemo} />}
       {coproDemo && <CoproDemo etat={coproDemo} />}
 
       {estDeveloppeur && (
@@ -390,6 +391,50 @@ function PaieDemo({ etat }) {
         <p style={{ fontSize: 13.5, margin: 0 }}>Il y a déjà {etat.lots} lot{etat.lots > 1 ? "s" : ""} de paie : la paie de démonstration ne se charge que s'il n'y en a encore aucun.</p>
       ) : (
         <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la paie de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Pointage de démonstration du module Pointage de quart (lib/quartsDemo.js) :
+// se charge s'il n'y a encore aucune période de feuille de temps, se retire d'un coup
+function QuartsDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/quarts-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué."
+      : methode === "POST" ? `Pointage de démonstration chargé : ${data.employes} employés, ${data.quarts} pointages, une période verrouillée et la période en cours.`
+      : `Pointage de démonstration retiré : ${data.employes} employés, ${data.quarts} pointages.${data.gardes > 0 ? ` ${data.gardes} employé(s) de démonstration désactivé(s) plutôt que supprimé(s) : ils ont servi à un vrai dossier.` : ""}`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer le pointage de démonstration ? Ses ${etat.employes} employés disparaissent avec leurs ${etat.quarts} pointages, leur temps, leur journal de corrections, la période verrouillée et les deux bons « flotte de démonstration ». Les vrais employés et leurs pointages ne sont pas touchés.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Pointage de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le pointage de quart et les feuilles de temps sans toucher aux vrais employés : trois employés fictifs qui pointent depuis six semaines (efficacité élevée, moyenne et faible), une période approuvée et verrouillée avec heures supplémentaires, prime et corrections au journal, et la période en cours avec ce qu'un gérant doit régler (départ non pointé, temps hors quart, quart resté ouvert). Crée aussi un client et deux bons « flotte de démonstration » à 0 $ pour porter le temps sur les bons.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Pointage de démonstration chargé : {etat.employes} employés, {etat.quarts} pointages.</span>
+          <a href="/gerant/feuilles-temps" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir les feuilles de temps</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer le pointage de démonstration"}</button>
+        </div>
+      ) : etat.periodes > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Il y a déjà {etat.periodes} période{etat.periodes > 1 ? "s" : ""} de feuille de temps : le pointage de démonstration ne se charge que s'il n'y en a encore aucune.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger le pointage de démonstration"}</button>
       )}
       {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
     </Panneau>
