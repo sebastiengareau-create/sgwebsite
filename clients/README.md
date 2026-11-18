@@ -75,7 +75,9 @@ on décide quand et à qui une modification s'applique.
   immeubles locatifs — immeubles et logements, locataires et baux avec les
   délais d'avis de modification du TAL et le renouvellement, loyers du mois,
   paiements et retards, dépenses et rendement par immeuble, réparations avec
-  photos, documents avec date d'expiration, `lib/immobilier.js` ;
+  photos, documents avec date d'expiration, avis, rappels, état des lieux et
+  reçus générés en PDF (`lib/pdfImmobilier.js`), préparation et suivi des
+  relevés 31 (`/immobilier/releve-31`), `lib/immobilier.js` ;
   volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
   modules — à brancher client par client ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js`).

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import EnTete from "../components/EnTete";
 import { soldesDesBaux, donneesRendement } from "@/lib/immobilier";
-import { periodeCourante, STATUTS_REPARATION_OUVERTS } from "@/lib/immobilierCalculs";
+import { periodeCourante, STATUTS_REPARATION_OUVERTS, bailAu31Decembre } from "@/lib/immobilierCalculs";
 import { exigerAccesImmo, simple } from "./acces";
 import TableauBordClient from "./TableauBordClient";
 
@@ -34,10 +34,23 @@ export default async function TableauBordImmo() {
     donneesRendement(annee),
   ]);
 
+  // Relevés 31 : de janvier à mars, ceux de l'année écoulée ; en décembre, ceux à préparer
+  const mois = Number(periode.slice(5, 7));
+  let releve31 = null;
+  if (mois <= 3 || mois === 12) {
+    const anneeRl = mois === 12 ? annee : annee - 1;
+    const baux31 = await prisma.bailImmo.findMany({
+      where: { dateDebut: { lte: new Date(Date.UTC(anneeRl, 11, 31, 23)) }, OR: [{ dateFin: null }, { dateFin: { gte: new Date(Date.UTC(anneeRl, 11, 31)) } }], logement: { type: "LOGEMENT" } },
+      select: { dateDebut: true, dateFin: true, terminaisonLe: true, releves31: { where: { annee: anneeRl }, select: { produitLe: true } } },
+    });
+    const vises = baux31.filter((b) => bailAu31Decembre(b, anneeRl));
+    releve31 = { annee: anneeRl, total: vises.length, aProduire: vises.filter((b) => !b.releves31[0]?.produitLe).length };
+  }
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <TableauBordClient {...simple({ immeubles, soldes, reparations, documents, bauxFactures: loyersDuMois.map((c) => c.bailId), nbLocataires, donnees, periode })} />
+      <TableauBordClient releve31={releve31} {...simple({ immeubles, soldes, reparations, documents, bauxFactures: loyersDuMois.map((c) => c.bailId), nbLocataires, donnees, periode })} />
     </div>
   );
 }
