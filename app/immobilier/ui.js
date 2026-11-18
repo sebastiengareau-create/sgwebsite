@@ -31,6 +31,7 @@ export function NavImmo({ actif }) {
     { href: "/immobilier/loyers", label: "💵 Loyers" },
     { href: "/immobilier/reparations", label: "🛠️ Réparations" },
     { href: "/immobilier/depenses", label: "📈 Dépenses et rendement" },
+    { href: "/immobilier/releve-31", label: "🧾 Relevé 31" },
     { href: "/immobilier/documents", label: "📁 Documents" },
   ];
   return (
@@ -107,6 +108,8 @@ export const champsLogement = (immeubles) => [
   { nom: "etage", label: "Étage" },
   { nom: "superficie", label: "Superficie (pi²)", type: "nombre" },
   { nom: "loyerVise", label: "Loyer demandé ($ / mois)", type: "nombre", placeholder: "pour la prochaine location" },
+  { nom: "adresseCivique", label: "Adresse du logement, si différente", placeholder: "plex : 314 rue Champlain" },
+  { nom: "numeroLogementRq", label: "N° de logement Revenu Québec (relevé 31, case A)" },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 

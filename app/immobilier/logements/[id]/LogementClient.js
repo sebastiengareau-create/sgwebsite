@@ -74,6 +74,8 @@ function Fiche({ logement }) {
           <LigneInfo label="Étage" valeur={logement.etage} />
           <LigneInfo label="Superficie" valeur={logement.superficie && `${String(logement.superficie).replace(".", ",")} pi²`} />
           <LigneInfo label="Loyer demandé" valeur={logement.loyerVise != null && argent(logement.loyerVise)} />
+          <LigneInfo label="Adresse du logement" valeur={logement.adresseCivique} />
+          <LigneInfo label="N° de logement (relevé 31)" valeur={logement.numeroLogementRq} />
           {logement.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{logement.notes}</p>}
         </>
       )}

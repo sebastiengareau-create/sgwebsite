@@ -4,7 +4,7 @@ import Link from "next/link";
 import BandeauSection from "../components/BandeauSection";
 import {
   argent, dateLisible, trouver, periodeLisible, bailActuel, nomsLocataires, etatFinBail, etatExpiration, rendement, tauxOccupation,
-  loyerDuMois, hausseLisible, PRIORITES, CATEGORIES_DOCUMENTS, TYPES_IMMEUBLE,
+  loyerDuMois, hausseLisible, echeanceReleve31, PRIORITES, CATEGORIES_DOCUMENTS, TYPES_IMMEUBLE,
 } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Statistique, Vide, Alerte, PastilleEtat, ListeReparations, Tableau, cellule, celluleDroite, nomLogement, lien } from "./ui";
 
@@ -12,7 +12,7 @@ const rangPriorite = (p) => trouver(PRIORITES, p)?.rang ?? 9;
 // Ce qui demande une action d'abord
 const RANG_FIN = { ECHU: 0, AVIS_A_ENVOYER: 1, AVIS_ENVOYE: 2, RECONDUIT: 3 };
 
-export default function TableauBordClient({ immeubles, soldes, reparations, documents, bauxFactures, nbLocataires, donnees, periode }) {
+export default function TableauBordClient({ releve31, immeubles, soldes, reparations, documents, bauxFactures, nbLocataires, donnees, periode }) {
   const logements = immeubles.flatMap((i) => i.logements.map((l) => ({ ...l, immeuble: i })));
   const occupes = logements.filter((l) => bailActuel(l));
   const vacants = logements.filter((l) => !bailActuel(l));
@@ -56,6 +56,12 @@ export default function TableauBordClient({ immeubles, soldes, reparations, docu
       {aFacturer.length > 0 && (
         <Alerte couleur="var(--accent)" fond="var(--surface)">
           Les loyers de {periodeLisible(periode)} ne sont pas encore inscrits pour {aFacturer.length} {aFacturer.length > 1 ? "baux" : "bail"} : <Link href="/immobilier/loyers" style={lien}>les générer dans Loyers</Link>.
+        </Alerte>
+      )}
+
+      {releve31 && releve31.aProduire > 0 && (
+        <Alerte couleur="var(--accent)" fond="var(--surface)">
+          Relevés 31 de {releve31.annee} : {releve31.aProduire} sur {releve31.total} à produire et à remettre aux locataires d'ici le {dateLisible(echeanceReleve31(releve31.annee))} — <Link href={`/immobilier/releve-31?annee=${releve31.annee}`} style={lien}>préparer les relevés</Link>.
         </Alerte>
       )}
 

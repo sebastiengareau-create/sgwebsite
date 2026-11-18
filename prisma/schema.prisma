@@ -2109,6 +2109,11 @@ model LogementImmo {
   etage       String?
   superficie  Float? // pi²
   loyerVise   Float? // loyer demandé à la prochaine location
+  // Relevé 31 : numéro du logement que Revenu Québec détermine (case A,
+  // le même d'une année à l'autre) et adresse civique propre au logement
+  // quand elle diffère de celle de l'immeuble (plex : « 314 rue Champlain »)
+  numeroLogementRq String?
+  adresseCivique   String?
   notes       String?
   baux        BailImmo[]
   reparations ReparationImmo[]
@@ -2155,6 +2160,7 @@ model BailImmo {
   charges       ChargeImmo[]
   paiements     PaiementImmo[]
   documents     DocumentImmo[]
+  releves31     Releve31Immo[]
   creeLe        DateTime        @default(now())
 
   @@index([logementId])
@@ -2275,6 +2281,23 @@ model DocumentImmo {
   @@index([logementId])
   @@index([bailId])
   @@index([locataireId])
+}
+
+// Suivi du relevé 31 d'un bail pour une année (logement occupé au 31
+// décembre) : produit auprès de Revenu Québec, copie remise au locataire.
+// Les relevés eux-mêmes se produisent dans le service en ligne de Revenu
+// Québec ; l'appli prépare les données et suit l'avancement.
+model Releve31Immo {
+  id        String    @id @default(cuid())
+  annee     Int
+  bailId    String
+  bail      BailImmo  @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  produitLe DateTime?
+  remisLe   DateTime?
+  creePar   String?
+  creeLe    DateTime  @default(now())
+
+  @@unique([annee, bailId])
 }
 
 // Photos et pièces jointes d'une réparation
