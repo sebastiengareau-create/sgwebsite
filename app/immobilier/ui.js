@@ -13,8 +13,10 @@ import {
 } from "../copropriete/ui";
 import {
   TYPES_LOGEMENT, SERVICES_BAIL, CATEGORIES_DOCUMENTS, CATEGORIES_REPARATION, PRIORITES, STATUTS_REPARATION, CATEGORIES_DEPENSE, MODES_PAIEMENT, TYPES_CHARGE,
-  servicesListe, trouver, dateLisible, argent, taille, etatExpiration,
+  servicesListe, trouver, dateLisible, argent, taille, etatExpiration, nomLogement,
 } from "@/lib/immobilierCalculs";
+
+export { nomLogement };
 
 export {
   Section, Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
@@ -86,11 +88,6 @@ export function LieuLogement({ logement, immeuble }) {
   );
 }
 
-export function nomLogement(l) {
-  if (!l) return "";
-  const type = trouver(TYPES_LOGEMENT, l.type);
-  return l.type === "LOGEMENT" || !type ? `Logement ${l.numero}` : /^local/i.test(l.numero) ? l.numero : `${type.label} ${l.numero}`;
-}
 
 // Solde d'un compte : rouge s'il est dû, vert à jour ou en crédit
 export function Solde({ solde, court }) {

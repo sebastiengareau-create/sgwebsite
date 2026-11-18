@@ -379,7 +379,7 @@ function ImmoDemo({ etat }) {
   return (
     <Panneau titre="Immobilier de démonstration">
       <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
-        Pour présenter le module Immobilier : trois immeubles (triplex, sixplex, immeuble mixte avec deux commerces), leurs locataires et leurs baux (un à renouveler, des avis de modification à envoyer, un logement vacant), douze mois de loyers et de paiements avec des retards, un an de dépenses, des réparations à chaque étape et des documents (baux, avis, assurance qui expire bientôt).
+        Pour présenter le module Immobilier : trois immeubles (triplex, sixplex, immeuble mixte avec deux commerces), leurs locataires et leurs baux (un à renouveler, des avis de modification à envoyer, un logement vacant), douze mois de loyers et de paiements avec des retards, un an de dépenses, des réparations à chaque étape et des documents (avis de modification, rappel de retard, avis de visite, état des lieux et fiches de bail générés par l'appli ; assurance qui expire bientôt).
       </p>
       {etat.charge ? (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
