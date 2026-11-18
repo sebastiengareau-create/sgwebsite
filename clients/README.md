@@ -89,11 +89,15 @@ on décide quand et à qui une modification s'applique.
   d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.
+- **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
+  modèle de base seulement) : « DÉMO » dans le haut et, sous le logo Garage,
+  les autres déclinaisons (Ferme, Copropriété, Immobilier, Premium) en texte
+  de leur couleur (`DECLINAISONS_DEMO`, `lib/marque.js`).
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
   tous — discrète (bas de la page de connexion, Paramètres → À propos),
   jamais sur les documents du client. Le badge (GARAGE, FERME, COPROPRIÉTÉ,
-  BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
+  IMMOBILIER, BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
   dans le profil. Logos en fichiers pour les pages d'accueil :
   `public/marque/`.
 - **Contexte** : `clients/<id>/CLIENT.md` — qui est le client, ce qui le
