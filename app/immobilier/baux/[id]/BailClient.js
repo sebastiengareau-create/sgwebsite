@@ -8,13 +8,15 @@ import {
   STATUTS_BAIL, REPONSES_AVIS, argent, libelle, dateLisible, dureeMois, etatFinBail, fenetreAvis, hausseLisible, datesRenouvellement, servicesLisibles,
   soldeBail, releveBail, dateCourte,
 } from "@/lib/immobilierCalculs";
-import { champStyle } from "../../ui";
+import { champStyle, BoutonEnvoyer } from "../../ui";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, Tableau, cellule, celluleDroite, aujourdhui, useApi, Erreur,
   ChampsFormulaire, boutonPrincipal, FormulaireBail, FormulaireDocument, ListeDocuments, champsPaiement, champsCharge, Solde, nomLogement, lien,
 } from "../../ui";
 
-export default function BailClient({ bail, locataires, suivant, precedent }) {
+export default function BailClient({ bail, locataires, suivant, precedent, courriel }) {
+  // Envoi par courriel possible : configuré, et au moins un locataire a un courriel
+  const envoi = courriel && bail.locataires.some((l) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(l.courriel || ""));
   const solde = soldeBail(bail);
   const etat = etatFinBail(bail);
   return (
@@ -32,9 +34,10 @@ export default function BailClient({ bail, locataires, suivant, precedent }) {
       </div>
       <Details bail={bail} locataires={locataires} />
       {bail.statut === "ACTIF" && <Renouvellement bail={bail} etat={etat} />}
-      <Compte bail={bail} />
-      <GenerateurDocuments bail={bail} />
-      <Documents bail={bail} />
+      <Compte bail={bail} envoi={envoi} />
+      <GenerateurDocuments bail={bail} envoi={envoi} />
+      <Documents bail={bail} envoi={envoi} />
+      <Envois bail={bail} courriel={courriel} envoi={envoi} />
       {bail.statut === "ACTIF" && <Fin bail={bail} />}
     </div>
   );
@@ -124,13 +127,17 @@ function Renouvellement({ bail, etat }) {
   );
 }
 
-function Compte({ bail }) {
+function Compte({ bail, envoi }) {
   const [ajout, setAjout] = useState(null); // "PAIEMENT" | "CHARGE"
   const lignes = releveBail(bail);
   const solde = soldeBail(bail);
   const basculer = (x) => setAjout((v) => (v === x ? null : x));
   return (
     <Section titre="Compte" droite={<span style={{ display: "flex", gap: 12 }}><BoutonTexte onClick={() => basculer("PAIEMENT")}>+ Paiement</BoutonTexte><BoutonTexte onClick={() => basculer("CHARGE")}>+ Frais</BoutonTexte></span>}>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+        <a href={`/api/immobilier/baux/${bail.id}/releve`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }}>📄 Relevé de compte (PDF)</a>
+        {envoi && <BoutonEnvoyer url={`/api/immobilier/baux/${bail.id}/releve`} confirmation="Envoyer le relevé de compte des 12 derniers mois par courriel aux locataires ?">✉️ Envoyer le relevé par courriel</BoutonEnvoyer>}
+      </div>
       {ajout === "PAIEMENT" && <Formulaire champs={champsPaiement} initial={{ date: aujourdhui(), montant: solde > 0 ? String(Math.min(solde, bail.loyer)).replace(".", ",") : String(bail.loyer).replace(".", ",") }} extra={{ bailId: bail.id }} url="/api/immobilier/paiements" bouton="Inscrire le paiement" onFini={() => setAjout(null)} />}
       {ajout === "CHARGE" && <Formulaire champs={champsCharge} initial={{ date: aujourdhui() }} extra={{ bailId: bail.id }} url="/api/immobilier/charges" bouton="Ajouter au compte" onFini={() => setAjout(null)} />}
       {lignes.length === 0 ? <Vide>Aucun loyer inscrit. Les loyers se génèrent chaque mois dans Loyers.</Vide> : (
@@ -142,7 +149,7 @@ function Compte({ bail }) {
               <td style={{ ...celluleDroite, color: l.montant < 0 ? "var(--success)" : undefined }}>{l.montant < 0 ? `− ${argent(-l.montant)}` : argent(l.montant)}</td>
               <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(l.solde)}</td>
               <td style={{ ...cellule, textAlign: "right", whiteSpace: "nowrap" }}>
-                {l.genre === "paiement" && <><a href={`/api/immobilier/paiements/${l.id}/recu`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }} title="Reçu de loyer (PDF)">🧾 Reçu</a>{" · "}</>}
+                {l.genre === "paiement" && <><a href={`/api/immobilier/paiements/${l.id}/recu`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }} title="Reçu de loyer (PDF)">🧾 Reçu</a>{envoi && <>{" "}<BoutonEnvoyer url={`/api/immobilier/paiements/${l.id}/recu`} confirmation="Envoyer ce reçu par courriel aux locataires ?">✉️</BoutonEnvoyer></>}{" · "}</>}
                 <BoutonSupprimer url={`/api/immobilier/${l.genre === "paiement" ? "paiements" : "charges"}/${l.id}`} confirmation={`Supprimer « ${l.libelle} » (${argent(Math.abs(l.montant))}) ?`}>✕</BoutonSupprimer>
               </td>
             </tr>
@@ -153,12 +160,12 @@ function Compte({ bail }) {
   );
 }
 
-function Documents({ bail }) {
+function Documents({ bail, envoi }) {
   const [ajout, setAjout] = useState(false);
   return (
     <Section titre="Documents du bail" droite={<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Document"}</BoutonTexte>}>
       {ajout && <FormulaireDocument fixe={{ bailId: bail.id, logementId: bail.logement.id }} categorie="BAIL" onFini={() => setAjout(false)} />}
-      <ListeDocuments documents={bail.documents} vide="Dépose ici le bail signé, les avis et l'état des lieux." />
+      <ListeDocuments documents={bail.documents} envoi={envoi} vide="Dépose ici le bail signé, les avis et l'état des lieux." />
     </Section>
   );
 }
@@ -237,7 +244,8 @@ function limiteReprise(bail) {
   return { date: new Date(new Date(lendemain).setUTCMonth(lendemain.getUTCMonth() - (duree > 6 ? 6 : 1))), mois: duree > 6 ? 6 : 1 };
 }
 
-function GenerateurDocuments({ bail }) {
+function GenerateurDocuments({ bail, envoi }) {
+  const [envoyer, setEnvoyer] = useState(false);
   const [type, setType] = useState("");
   const [v, setV] = useState({});
   const { appeler, enCours, erreur, setErreur } = useApi();
@@ -301,12 +309,45 @@ function GenerateurDocuments({ bail }) {
           {lim && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer au moins {lim.mois} mois avant la fin du bail, au plus tard le <strong>{dateLisible(lim.date)}</strong>. La reprise ne peut prendre effet qu'à la fin du bail.</p>}
           {type === "MISE_EN_DEMEURE" && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>Envoie-la par courrier recommandé et garde la preuve de réception : elle servira au TAL.</p>}
           <ChampsFormulaire champs={champs} valeurs={v} maj={maj} />
+          {envoi && type !== "FICHE_BAIL" && type !== "ETAT_LIEUX" && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, marginBottom: 10, cursor: "pointer" }}>
+              <input type="checkbox" checked={envoyer} onChange={(e) => setEnvoyer(e.target.checked)} /> Envoyer aussi par courriel aux locataires (PDF joint)
+            </label>
+          )}
+          {envoyer && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Le courriel est une preuve écrite d'envoi, consignée ci-dessous. Pour une mise en demeure ou si le locataire conteste la réception, envoie aussi une copie par courrier recommandé.</p>}
           <Erreur texte={erreur} />
-          <button type="button" disabled={enCours} onClick={async () => { if (await generer(appeler, bail.id, { type, ...v })) setType(""); }} className="bouton-3d" style={boutonPrincipal}>
+          <button type="button" disabled={enCours} onClick={async () => { if (await generer(appeler, bail.id, { type, ...v, envoyer: envoyer && type !== "FICHE_BAIL" && type !== "ETAT_LIEUX" })) { setType(""); setEnvoyer(false); } }} className="bouton-3d" style={boutonPrincipal}>
             {enCours ? "Préparation…" : "📄 Générer le PDF"}
           </button>
         </>
       )}
+    </Section>
+  );
+}
+
+const TYPES_ENVOI = { DOCUMENT: "📄", RELEVE: "📊", RECU: "🧾" };
+
+// Journal des courriels envoyés : la preuve d'envoi
+function Envois({ bail, courriel, envoi }) {
+  if (!courriel) {
+    return (
+      <Section titre="Courriels aux locataires">
+        <Vide>L'envoi de courriel n'est pas configuré pour cette installation : télécharge les PDF et envoie-les toi-même, ou demande à l'administrateur de configurer l'envoi.</Vide>
+      </Section>
+    );
+  }
+  return (
+    <Section titre="Courriels envoyés">
+      {!envoi && <Vide>Aucun locataire de ce bail n'a de courriel : ajoute-le à sa fiche pour lui envoyer avis, relevés et reçus.</Vide>}
+      {bail.envois.length === 0 ? (envoi && <Vide>Aucun courriel envoyé pour ce bail.</Vide>) : bail.envois.map((e) => (
+        <div key={e.id} className="ligne-info ligne-pastilles" style={{ gap: 8 }}>
+          <span style={{ minWidth: 0 }}>
+            {TYPES_ENVOI[e.type]} {e.sujet}
+            <span style={{ color: "var(--text-muted)", fontSize: 12 }}> · {new Intl.DateTimeFormat("fr-CA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Toronto" }).format(new Date(e.date))} · à {e.destinataires}{e.envoyePar && ` · par ${e.envoyePar}`}</span>
+          </span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: e.erreur ? "var(--danger)" : "var(--success)" }} title={e.erreur || ""}>{e.erreur ? "⚠️ échec" : "✓ envoyé"}</span>
+        </div>
+      ))}
     </Section>
   );
 }

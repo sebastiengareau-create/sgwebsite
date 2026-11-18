@@ -35,7 +35,7 @@ export default async function LoyersImmo(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <LoyersClient {...simple({ periode, courante, baux, charges, soldes, paiements, dus, onglet: params?.onglet || "MOIS" })} />
+      <LoyersClient courriel={Boolean(process.env.RESEND_API_KEY)} {...simple({ periode, courante, baux, charges, soldes, paiements, dus, onglet: params?.onglet || "MOIS" })} />
     </div>
   );
 }

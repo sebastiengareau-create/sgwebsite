@@ -321,7 +321,8 @@ export function FormulaireDocument({ immeubles = [], fixe = {}, categorie = "BAI
 }
 
 // Liste de documents, avec ouverture et suppression
-export function ListeDocuments({ documents, vide = "Aucun document." }) {
+// envoi : bouton « ✉️ Envoyer » sur les documents rattachés à un bail ou un locataire
+export function ListeDocuments({ documents, vide = "Aucun document.", envoi = false }) {
   if (documents.length === 0) return <Vide>{vide}</Vide>;
   return documents.map((d) => {
     const cat = trouver(CATEGORIES_DOCUMENTS, d.categorie);
@@ -334,12 +335,38 @@ export function ListeDocuments({ documents, vide = "Aucun document." }) {
         </a>
         <span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           {exp && exp.code !== "OK" && <PastilleEtat etat={exp} />}
+          {envoi && (d.bailId || d.locataireId) && <BoutonEnvoyer url={`/api/immobilier/documents/${d.id}/envoyer`} confirmation={`Envoyer « ${d.titre} » par courriel au locataire ? Le PDF est joint ; l'envoi est consigné sur la fiche du bail.`} />}
           <BasculeVisible d={d} />
           <BoutonSupprimer url={`/api/immobilier/documents/${d.id}`} confirmation={`Supprimer le document « ${d.titre} » ?`}>✕</BoutonSupprimer>
         </span>
       </div>
     );
   });
+}
+
+// Envoi par courriel (document, relevé, reçu) : confirmation, puis résultat
+// « Envoyé à 2 locataires » ou la raison du refus
+export function BoutonEnvoyer({ url, confirmation, children = "✉️ Envoyer", style }) {
+  const router = useRouter();
+  const [etat, setEtat] = useState(null); // null | "envoi" | { ok, texte }
+  async function envoyer() {
+    if (confirmation && !window.confirm(confirmation)) return;
+    setEtat("envoi");
+    const res = await fetch(url, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    const sans = data.sansCourriel?.length ? ` (sans courriel : ${data.sansCourriel.join(", ")})` : "";
+    if (!res.ok && !data.envoyes) setEtat({ ok: false, texte: data.erreur || data.echecs?.[0]?.erreur || "Envoi impossible." });
+    else setEtat({ ok: !data.echecs?.length, texte: `Envoyé à ${data.envoyes} locataire${data.envoyes > 1 ? "s" : ""}${data.echecs?.length ? `, ${data.echecs.length} échec${data.echecs.length > 1 ? "s" : ""}` : ""}${sans}.` });
+    router.refresh();
+  }
+  return (
+    <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+      <button type="button" onClick={envoyer} disabled={etat === "envoi"} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 700, color: "var(--accent)", whiteSpace: "nowrap", ...style }}>
+        {etat === "envoi" ? "Envoi…" : children}
+      </button>
+      {etat && etat !== "envoi" && <span style={{ fontSize: 11.5, fontWeight: 700, color: etat.ok ? "var(--success)" : "var(--danger)" }}>{etat.texte}</span>}
+    </span>
+  );
 }
 
 // Montrer ou cacher un document dans le portail des locataires

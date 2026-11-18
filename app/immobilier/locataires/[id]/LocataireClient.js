@@ -68,7 +68,7 @@ export default function LocataireClient({ locataire, soldes, lien, courrielConfi
 
       <Section titre="Documents" droite={<BoutonTexte onClick={() => setAjoutDoc((v) => !v)}>{ajoutDoc ? "Annuler" : "+ Document"}</BoutonTexte>}>
         {ajoutDoc && <FormulaireDocument fixe={{ locataireId: locataire.id }} categorie="LOCATAIRE" onFini={() => setAjoutDoc(false)} />}
-        <ListeDocuments documents={locataire.documents} vide="Enquête de crédit, références, pièces d'identité…" />
+        <ListeDocuments documents={locataire.documents} envoi={courrielConfigure && Boolean(locataire.courriel)} vide="Enquête de crédit, références, pièces d'identité…" />
       </Section>
     </div>
   );

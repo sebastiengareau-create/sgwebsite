@@ -16,6 +16,7 @@ export default async function FicheBail(props) {
         charges: { orderBy: { date: "asc" } },
         paiements: { orderBy: { date: "asc" } },
         documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
+        envois: { orderBy: { date: "desc" }, take: 30 },
       },
     }),
     prisma.locataireImmo.findMany({ select: { id: true, nom: true }, orderBy: { nom: "asc" } }),
@@ -29,7 +30,7 @@ export default async function FicheBail(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <BailClient {...simple({ bail, locataires, suivant, precedent })} />
+      <BailClient {...simple({ bail, locataires, suivant, precedent })} courriel={Boolean(process.env.RESEND_API_KEY)} />
     </div>
   );
 }

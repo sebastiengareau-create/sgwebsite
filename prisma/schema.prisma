@@ -2165,6 +2165,7 @@ model BailImmo {
   paiements     PaiementImmo[]
   documents     DocumentImmo[]
   releves31     Releve31Immo[]
+  envois        EnvoiImmo[]
   creeLe        DateTime        @default(now())
 
   @@index([logementId])
@@ -2305,6 +2306,24 @@ model Releve31Immo {
   creeLe    DateTime  @default(now())
 
   @@unique([annee, bailId])
+}
+
+// Journal des courriels envoyés aux locataires (avis, rappels, relevés de
+// compte, reçus) : preuve d'envoi, montrée sur la fiche du bail
+model EnvoiImmo {
+  id            String    @id @default(cuid())
+  date          DateTime  @default(now())
+  type          String // "DOCUMENT" | "RELEVE" | "RECU"
+  sujet         String
+  destinataires String // adresses, séparées par des virgules
+  bailId        String?
+  bail          BailImmo? @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  documentId    String? // document envoyé (DocumentImmo), s'il y a lieu
+  paiementId    String? // paiement du reçu envoyé
+  erreur        String? // envoi refusé : la raison
+  envoyePar     String?
+
+  @@index([bailId, date])
 }
 
 // Photos et pièces jointes d'une réparation

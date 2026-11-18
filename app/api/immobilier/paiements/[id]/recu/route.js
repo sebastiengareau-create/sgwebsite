@@ -13,3 +13,14 @@ export async function GET(request, props) {
   const donnees = await recuLoyer(bail, entreprise, paiement);
   return reponseFichier({ nom: `Recu-loyer-${paiement.date.toISOString().slice(0, 10)}.pdf`, typeMime: "application/pdf", taille: donnees.length, donnees }, request);
 }
+
+// POST : envoie le reçu par courriel aux locataires du bail
+export async function POST(request, props) {
+  const session = await sessionImmo();
+  if (!session) return refus();
+  const { id } = await props.params;
+  const { envoyerRecu } = await import("@/lib/immobilierCourriel");
+  const r = await envoyerRecu(id, session.nom);
+  if (r.erreur) return erreur(r.erreur);
+  return Response.json({ ok: true, ...r }, { status: r.envoyes ? 200 : 502 });
+}
