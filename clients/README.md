@@ -79,7 +79,10 @@ on décide quand et à qui une modification s'applique.
   reçus générés en PDF (`lib/pdfImmobilier.js`), préparation et suivi des
   relevés 31 (`/immobilier/releve-31`), portail sécurisé des locataires
   (`/portail-locataire/<jeton>` : bail, compte et reçus, documents partagés,
-  demandes de réparation, réponse à l'avis de modification), `lib/immobilier.js` ;
+  demandes de réparation, réponse à l'avis de modification), envoi par
+  courriel des avis, relevés de compte et reçus avec journal des envois
+  (`lib/immobilierCourriel.js`, exige l'envoi de courriel configuré),
+  `lib/immobilier.js` ;
   volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
   modules — à brancher client par client ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js`).

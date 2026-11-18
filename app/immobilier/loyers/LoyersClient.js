@@ -15,7 +15,7 @@ function moisProposes(courante) {
   return Array.from({ length: 14 }, (_, i) => new Date(Date.UTC(a, m - 1 + 1 - i, 15)).toISOString().slice(0, 7));
 }
 
-export default function LoyersClient({ periode, courante, baux, charges, soldes, paiements, dus, onglet: ongletInit }) {
+export default function LoyersClient({ courriel, periode, courante, baux, charges, soldes, paiements, dus, onglet: ongletInit }) {
   const [onglet, setOnglet] = useState(ongletInit);
   return (
     <div className="conteneur-page">
@@ -23,7 +23,7 @@ export default function LoyersClient({ periode, courante, baux, charges, soldes,
       <NavImmo actif="/immobilier/loyers" />
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
       {onglet === "MOIS" && <Mois periode={periode} courante={courante} baux={baux} charges={charges} soldes={soldes} />}
-      {onglet === "RETARDS" && <Retards dus={dus} soldes={soldes} />}
+      {onglet === "RETARDS" && <Retards dus={dus} soldes={soldes} courriel={courriel} />}
       {onglet === "PAIEMENTS" && <Paiements paiements={paiements} />}
     </div>
   );
@@ -107,7 +107,7 @@ function Encaisser({ bail, montant }) {
   );
 }
 
-function Retards({ dus, soldes }) {
+function Retards({ dus, soldes, courriel }) {
   const lignes = dus.map((b) => ({ ...b, solde: soldes[b.id] || 0 })).sort((a, b) => b.solde - a.solde);
   const total = lignes.reduce((s, l) => s + l.solde, 0);
   return (
@@ -115,6 +115,11 @@ function Retards({ dus, soldes }) {
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
         Un retard de plus de trois semaines permet de demander au Tribunal administratif du logement la résiliation du bail ; un retard fréquent cause un préjudice au propriétaire. Garde une trace de chaque rappel dans les documents du bail.
       </p>
+      {courriel && lignes.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <EnvoiGroupe nombre={lignes.length} />
+        </div>
+      )}
       {lignes.length === 0 ? <Vide>Aucun retard. 🎉</Vide> : (
         <Tableau entetes={["Locataires", "Logement", "Dû", "Mois de loyer", "Téléphone"]} alignDroite={[2, 3]}>
           {lignes.map((l) => (
@@ -151,5 +156,24 @@ function Paiements({ paiements }) {
         </Tableau>
       )}
     </Section>
+  );
+}
+
+// Relevé de compte par courriel à tous les locataires en retard
+function EnvoiGroupe({ nombre }) {
+  const { appeler, enCours, erreur } = useApi();
+  const [resultat, setResultat] = useState("");
+  async function envoyer() {
+    if (!window.confirm(`Envoyer leur relevé de compte par courriel aux locataires des ${nombre} comptes en retard ? Les locataires sans courriel sont sautés.`)) return;
+    setResultat("");
+    const r = await appeler("/api/immobilier/releves-comptes", "POST", {});
+    if (r) setResultat(`Relevé envoyé pour ${r.baux} compte${r.baux > 1 ? "s" : ""} (${r.envoyes} courriel${r.envoyes > 1 ? "s" : ""})${r.ignores ? ` ; ${r.ignores} sans courriel` : ""}.`);
+  }
+  return (
+    <span style={{ display: "inline-flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <button type="button" onClick={envoyer} disabled={enCours} className="bouton-3d" style={{ padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700 }}>{enCours ? "Envoi…" : `✉️ Envoyer le relevé de compte aux ${nombre} comptes en retard`}</button>
+      {resultat && <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--success)" }}>{resultat}</span>}
+      <Erreur texte={erreur} />
+    </span>
   );
 }
