@@ -23,6 +23,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "jobs-deplacement", href: "/gerant/jobs-deplacement", label: "Jobs en déplacement", icone: "vehicule", groupe: "Opérations", moduleParam: "module_jobs_deplacement", moduleActifSeulementSi: "actif" },
   { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "horloge", groupe: "Opérations" },
   { cle: "copropriete", href: "/copropriete", label: "Copropriété", icone: "immeuble", groupe: "Opérations", moduleParam: "module_copropriete", moduleActifSeulementSi: "actif" },
+  { cle: "immobilier", href: "/immobilier", label: "Immobilier", icone: "maison", groupe: "Opérations", moduleParam: "module_immobilier", moduleActifSeulementSi: "actif" },
   { cle: "inventaire", href: "/secretaire/inventaire", label: "Inventaire", icone: "boite", groupe: "Achats et stock" },
   { cle: "fournisseurs", href: "/gerant/fournisseurs", label: "Fournisseurs", icone: "immeuble", groupe: "Achats et stock" },
   { cle: "elevage", href: "/elevage", label: "Élevage", icone: "drapeau", groupe: "Achats et stock", moduleParam: "module_elevage", moduleActifSeulementSi: "actif" },

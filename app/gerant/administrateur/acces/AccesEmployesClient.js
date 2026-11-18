@@ -14,6 +14,7 @@ const SECTIONS = [
   { cle: "inventaire", label: "📦 Inventaire" },
   { cle: "elevage", label: "🐂 Élevage — troupeau, découpe, vente de viande" },
   { cle: "copropriete", label: "🏢 Copropriété — unités, charges, entretien, documents" },
+  { cle: "immobilier", label: "🏘️ Immobilier — immeubles, locataires, baux, loyers, réparations" },
   { cle: "comptabilite", label: "💰 Comptabilité" },
   { cle: "paie", label: "🧾 Paie" },
   { cle: "employes", label: "👥 Employés" },

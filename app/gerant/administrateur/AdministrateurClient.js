@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, paieDemo, quartsDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, immoDemo, paieDemo, quartsDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -128,6 +128,7 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
       {paieDemo && <PaieDemo etat={paieDemo} />}
       {quartsDemo && <QuartsDemo etat={quartsDemo} />}
       {coproDemo && <CoproDemo etat={coproDemo} />}
+      {immoDemo && <ImmoDemo etat={immoDemo} />}
 
       {estDeveloppeur && (
         <Panneau titre="Affichage">
@@ -266,7 +267,7 @@ function TroupeauDemo({ etat }) {
 
 const ICONES_MODULES = {
   calendrier: "calendrier", comptabilite: "banque", paie: "calculatrice", notifications: "alerte",
-  documents: "document", jobs_deplacement: "vehicule", elevage: "drapeau", copropriete: "immeuble",
+  documents: "document", jobs_deplacement: "vehicule", elevage: "drapeau", copropriete: "immeuble", immobilier: "maison",
 };
 
 // Interrupteur marche/arrêt, bien visible même éteint (thème clair ou sombre)
@@ -347,6 +348,49 @@ function CoproDemo({ etat }) {
         <p style={{ fontSize: 13.5, margin: 0 }}>La copropriété contient déjà des immeubles, des unités, des copropriétaires ou un budget : la copropriété de démonstration ne se charge que dans une copropriété vide.</p>
       ) : (
         <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la copropriété de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Immobilier de démonstration du module Immobilier (lib/immobilierDemo.js) :
+// se charge dans un parc immobilier vide, se retire d'un coup
+function ImmoDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/immobilier-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    const resume = `${data.immeubles} immeubles, ${data.logements} logements, ${data.locataires} locataires, ${data.reparations} réparations`;
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué." : methode === "POST" ? `Immobilier de démonstration chargé : ${resume}.` : `Immobilier de démonstration retiré : ${resume}.`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer l'immobilier de démonstration ? Ses ${etat.immeubles} immeubles disparaissent avec leurs logements, baux, loyers et paiements, dépenses, réparations et documents (y compris ceux ajoutés pendant les essais), et ses locataires. Un vrai immeuble ajouté à côté n'est pas touché.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Immobilier de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Immobilier : trois immeubles (triplex, sixplex, immeuble mixte avec deux commerces), leurs locataires et leurs baux (un à renouveler, des avis de modification à envoyer, un logement vacant), douze mois de loyers et de paiements avec des retards, un an de dépenses, des réparations à chaque étape et des documents (baux, avis, assurance qui expire bientôt).
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Immobilier de démonstration chargé : {etat.immeubles} immeubles, {etat.logements} logements.</span>
+          <a href="/immobilier" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir l'immobilier</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer l'immobilier de démonstration"}</button>
+        </div>
+      ) : !etat.vide ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Le module contient déjà des immeubles ou des locataires : l'immobilier de démonstration ne se charge que dans un parc vide.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger l'immobilier de démonstration"}</button>
       )}
       {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
     </Panneau>

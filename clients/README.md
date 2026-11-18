@@ -71,6 +71,14 @@ on décide quand et à qui une modification s'applique.
   et portail sécurisé des copropriétaires, `lib/copropriete.js` ; copropriété
   de démonstration à charger ou retirer dans Administrateur,
   `lib/coproprieteDemo.js`).
+  **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
+  immeubles locatifs — immeubles et logements, locataires et baux avec les
+  délais d'avis de modification du TAL et le renouvellement, loyers du mois,
+  paiements et retards, dépenses et rendement par immeuble, réparations avec
+  photos, documents avec date d'expiration, `lib/immobilier.js` ;
+  volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
+  modules — à brancher client par client ; parc de démonstration à charger ou
+  retirer dans Administrateur, `lib/immobilierDemo.js`).
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
