@@ -14,7 +14,7 @@ export default async function FicheLogement(props) {
       include: {
         immeuble: { select: { id: true, nom: true } },
         baux: { include: { locataires: { select: { id: true, nom: true, telephone: true, courriel: true } } }, orderBy: { dateDebut: "desc" } },
-        reparations: { select: { id: true, numero: true, titre: true, statut: true, priorite: true, entrepreneur: true, coutEstime: true, coutReel: true, creeLe: true }, orderBy: { creeLe: "desc" } },
+        reparations: { select: { id: true, numero: true, source: true, titre: true, statut: true, priorite: true, entrepreneur: true, coutEstime: true, coutReel: true, creeLe: true }, orderBy: { creeLe: "desc" } },
         documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
       },
     }),

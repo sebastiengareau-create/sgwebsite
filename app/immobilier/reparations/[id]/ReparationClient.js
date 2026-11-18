@@ -28,6 +28,7 @@ export default function ReparationClient({ reparation: r, locataires }) {
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         <PastilleCode liste={PRIORITES} code={r.priorite} />
         <PastilleCode liste={STATUTS_REPARATION} code={r.statut} />
+        {r.source === "PORTAIL" && <span style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: "var(--surface-alt)" }}>🌐 Demandée dans le portail</span>}
       </div>
 
       <Section titre="Réparation" droite={<BoutonTexte onClick={() => setEdition((v) => !v)}>{edition ? "Annuler" : "Modifier"}</BoutonTexte>}>
@@ -51,6 +52,7 @@ export default function ReparationClient({ reparation: r, locataires }) {
             <LigneInfo label="Coût réel" valeur={r.coutReel != null && <strong>{argent(r.coutReel)}</strong>} />
             <LigneInfo label="Facture" valeur={r.numeroFacture} />
             {r.description && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{r.description}</p>}
+            {r.reponse && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "8px 10px", borderRadius: 10, background: "rgba(232,163,61,0.12)" }}><strong>Réponse au locataire :</strong> {r.reponse}</p>}
             {r.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0", color: "var(--text-muted)" }}>📝 {r.notes}</p>}
           </>
         )}

@@ -7,10 +7,10 @@ import { LigneInfo } from "../../../components/ui";
 import { STATUTS_BAIL, argent, dateLisible, etatFinBail } from "@/lib/immobilierCalculs";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, valeursDe, champsLocataire, FormulaireDocument, ListeDocuments, ListeReparations,
-  Solde, nomLogement, lien,
+  Solde, nomLogement, lien as styleLien, useApi, Erreur,
 } from "../../ui";
 
-export default function LocataireClient({ locataire, soldes }) {
+export default function LocataireClient({ locataire, soldes, lien, courrielConfigure }) {
   const router = useRouter();
   const [edition, setEdition] = useState(false);
   const [ajoutDoc, setAjoutDoc] = useState(false);
@@ -33,14 +33,16 @@ export default function LocataireClient({ locataire, soldes }) {
           </>
         ) : (
           <>
-            <LigneInfo label="Téléphone" valeur={locataire.telephone && <a href={`tel:${locataire.telephone}`} style={lien}>{locataire.telephone}</a>} />
+            <LigneInfo label="Téléphone" valeur={locataire.telephone && <a href={`tel:${locataire.telephone}`} style={styleLien}>{locataire.telephone}</a>} />
             <LigneInfo label="Autre téléphone" valeur={locataire.telephone2} />
-            <LigneInfo label="Courriel" valeur={locataire.courriel && <a href={`mailto:${locataire.courriel}`} style={lien}>{locataire.courriel}</a>} />
+            <LigneInfo label="Courriel" valeur={locataire.courriel && <a href={`mailto:${locataire.courriel}`} style={styleLien}>{locataire.courriel}</a>} />
             <LigneInfo label="En cas d'urgence" valeur={locataire.contactUrgence} />
             {locataire.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{locataire.notes}</p>}
           </>
         )}
       </Section>
+
+      <Portail l={locataire} lien={lien} courrielConfigure={courrielConfigure} />
 
       <Section titre="Baux">
         {locataire.baux.length === 0 ? <Vide>Aucun bail. Le bail se crée depuis la fiche du logement.</Vide> : locataire.baux.map((b) => {
@@ -69,5 +71,44 @@ export default function LocataireClient({ locataire, soldes }) {
         <ListeDocuments documents={locataire.documents} vide="Enquête de crédit, références, pièces d'identité…" />
       </Section>
     </div>
+  );
+}
+
+// Accès du locataire à son portail : lien secret à copier, envoyer, renouveler ou retirer
+function Portail({ l, lien, courrielConfigure }) {
+  const { appeler, enCours, erreur } = useApi();
+  const [message, setMessage] = useState("");
+  async function action(a, confirmation) {
+    if (confirmation && !window.confirm(confirmation)) return;
+    setMessage("");
+    const r = await appeler(`/api/immobilier/locataires/${l.id}/portail`, "POST", { action: a });
+    if (r && a === "envoyer") setMessage(`Lien envoyé à ${l.courriel}.`);
+  }
+  async function copier() {
+    try { await navigator.clipboard.writeText(lien); setMessage("Lien copié."); } catch { setMessage(lien); }
+  }
+  return (
+    <Section titre="🌐 Portail du locataire">
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+        Espace sécurisé par un lien personnel : son bail et son compte de loyer (avec ses reçus), les documents marqués « 👁 locataire », ses demandes de réparation et leur suivi, et sa réponse à un avis de modification du bail.
+        {l.dernierAccesPortail && ` Dernière visite : ${dateLisible(l.dernierAccesPortail)}.`}
+      </p>
+      {lien ? (
+        <>
+          <div style={{ fontSize: 12, wordBreak: "break-all", background: "var(--surface-alt)", padding: "8px 10px", borderRadius: 8, marginBottom: 10 }}>{lien}</div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <BoutonTexte onClick={copier}>Copier le lien</BoutonTexte>
+            <a href={lien} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>Ouvrir</a>
+            {l.courriel && courrielConfigure && <BoutonTexte onClick={() => action("envoyer")} disabled={enCours}>Envoyer par courriel</BoutonTexte>}
+            <BoutonTexte onClick={() => action("activer", "Créer un nouveau lien ? L'ancien ne fonctionnera plus.")} disabled={enCours}>Nouveau lien</BoutonTexte>
+            <BoutonTexte couleur="var(--danger)" onClick={() => action("desactiver", "Retirer l'accès au portail ?")} disabled={enCours}>Retirer l'accès</BoutonTexte>
+          </div>
+        </>
+      ) : (
+        <button type="button" onClick={() => action("activer")} disabled={enCours} className="bouton-3d" style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>Activer l'accès au portail</button>
+      )}
+      {message && <p style={{ fontSize: 12, color: "var(--success)", margin: "8px 0 0" }}>{message}</p>}
+      <Erreur texte={erreur} />
+    </Section>
   );
 }

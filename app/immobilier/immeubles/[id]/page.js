@@ -18,7 +18,7 @@ export default async function FicheImmeuble(props) {
           include: { baux: { where: { statut: "ACTIF" }, select: { id: true, loyer: true, statut: true, dateDebut: true, dateFin: true, avisEnvoyeLe: true, reponseAvis: true, nouveauLoyer: true, locataires: { select: { id: true, nom: true } } } } },
         },
         depenses: { orderBy: { date: "desc" }, take: 40 },
-        reparations: { select: { id: true, numero: true, titre: true, statut: true, priorite: true, entrepreneur: true, coutEstime: true, coutReel: true, creeLe: true, logement: { select: { id: true, numero: true, type: true } } }, orderBy: { creeLe: "desc" } },
+        reparations: { select: { id: true, numero: true, source: true, titre: true, statut: true, priorite: true, entrepreneur: true, coutEstime: true, coutReel: true, creeLe: true, logement: { select: { id: true, numero: true, type: true } } }, orderBy: { creeLe: "desc" } },
         documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
       },
     }),
