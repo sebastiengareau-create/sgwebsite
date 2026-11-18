@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LogoClient from "../components/LogoClient";
 import { SignatureKontrolshop } from "../components/LogoKontrolshop";
+import { CLIENT } from "@/lib/client";
+import { DECLINAISONS_DEMO } from "@/lib/marque";
 
 export default function LoginForm({ nomEntreprise }) {
   const router = useRouter();
@@ -113,9 +115,26 @@ export default function LoginForm({ nomEntreprise }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <form onSubmit={seConnecter} style={{ width: "100%", maxWidth: 340 }}>
+        {CLIENT.ecranDemo && (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+            <span style={{
+              padding: "4px 14px", borderRadius: 999, border: "1.5px solid var(--accent)", color: "var(--accent)",
+              fontSize: 13, fontWeight: 800, letterSpacing: "0.3em", paddingRight: "calc(14px - 0.3em)",
+            }}>DÉMO</span>
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
           <LogoClient alt={nomEntreprise} width={220} height={147} priority />
         </div>
+        {CLIENT.ecranDemo && (
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 14px", marginTop: -6, marginBottom: 18 }}>
+            {DECLINAISONS_DEMO.map((d) => (
+              <span key={d.libelle} style={{ color: d.couleur, fontSize: 12, fontWeight: 700, letterSpacing: "0.02em" }}>
+                {d.libelle}
+              </span>
+            ))}
+          </div>
+        )}
         <h1 style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>{nomEntreprise}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>Connecte-toi pour continuer</p>
 
