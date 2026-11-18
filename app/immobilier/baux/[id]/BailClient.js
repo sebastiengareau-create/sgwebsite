@@ -8,6 +8,7 @@ import {
   STATUTS_BAIL, REPONSES_AVIS, argent, libelle, dateLisible, dureeMois, etatFinBail, fenetreAvis, hausseLisible, datesRenouvellement, servicesLisibles,
   soldeBail, releveBail, dateCourte,
 } from "@/lib/immobilierCalculs";
+import { champStyle } from "../../ui";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, Tableau, cellule, celluleDroite, aujourdhui, useApi, Erreur,
   ChampsFormulaire, boutonPrincipal, FormulaireBail, FormulaireDocument, ListeDocuments, champsPaiement, champsCharge, Solde, nomLogement, lien,
@@ -32,6 +33,7 @@ export default function BailClient({ bail, locataires, suivant, precedent }) {
       <Details bail={bail} locataires={locataires} />
       {bail.statut === "ACTIF" && <Renouvellement bail={bail} etat={etat} />}
       <Compte bail={bail} />
+      <GenerateurDocuments bail={bail} />
       <Documents bail={bail} />
       {bail.statut === "ACTIF" && <Fin bail={bail} />}
     </div>
@@ -101,6 +103,7 @@ function Renouvellement({ bail, etat }) {
       )}
       <Formulaire cadre={false} champs={champs} initial={initial} url={`/api/immobilier/baux/${bail.id}`} methode="PATCH" bouton="Enregistrer l'avis" />
       {bail.nouveauLoyer != null && <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "8px 0 0" }}>Hausse proposée : {hausseLisible(bail.loyer, bail.nouveauLoyer)}</p>}
+      {f && bail.nouveauLoyer != null && <BoutonAvis bail={bail} />}
       {suite && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           {bail.reponseAvis === "QUITTE"
@@ -138,7 +141,8 @@ function Compte({ bail }) {
               <td style={cellule}>{l.genre === "paiement" ? "💵 " : ""}{l.libelle}</td>
               <td style={{ ...celluleDroite, color: l.montant < 0 ? "var(--success)" : undefined }}>{l.montant < 0 ? `− ${argent(-l.montant)}` : argent(l.montant)}</td>
               <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(l.solde)}</td>
-              <td style={{ ...cellule, textAlign: "right" }}>
+              <td style={{ ...cellule, textAlign: "right", whiteSpace: "nowrap" }}>
+                {l.genre === "paiement" && <><a href={`/api/immobilier/paiements/${l.id}/recu`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }} title="Reçu de loyer (PDF)">🧾 Reçu</a>{" · "}</>}
                 <BoutonSupprimer url={`/api/immobilier/${l.genre === "paiement" ? "paiements" : "charges"}/${l.id}`} confirmation={`Supprimer « ${l.libelle} » (${argent(Math.abs(l.montant))}) ?`}>✕</BoutonSupprimer>
               </td>
             </tr>
@@ -181,6 +185,128 @@ function Fin({ bail }) {
           <button type="button" onClick={terminer} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "…" : "Terminer le bail"}</button>
         </>
       ) : <Vide>Au départ du locataire, termine le bail : le logement redevient vacant et l'historique reste.</Vide>}
+    </Section>
+  );
+}
+
+// Ouvre un document généré dans un nouvel onglet (fenêtre ouverte avant l'appel :
+// sinon le navigateur bloque la fenêtre surgissante)
+async function generer(appeler, bailId, corps) {
+  const fenetre = window.open("", "_blank");
+  const data = await appeler(`/api/immobilier/baux/${bailId}/documents`, "POST", corps);
+  if (data && fenetre) fenetre.location.href = `/api/immobilier/documents/${data.id}`;
+  else fenetre?.close();
+  return data;
+}
+
+function BoutonAvis({ bail }) {
+  const { appeler, enCours, erreur } = useApi();
+  return (
+    <div style={{ marginTop: 8 }}>
+      <BoutonTexte disabled={enCours} onClick={() => generer(appeler, bail.id, { type: "AVIS_MODIFICATION", nouveauLoyer: bail.nouveauLoyer, dateAvis: bail.avisEnvoyeLe ? dateCourte(bail.avisEnvoyeLe) : aujourdhui() })}>
+        {enCours ? "…" : "📄 Générer l'avis de modification (PDF)"}
+      </BoutonTexte>
+      <Erreur texte={erreur} />
+    </div>
+  );
+}
+
+const TYPES_GENERES = [
+  { code: "AVIS_MODIFICATION", label: "Avis de modification du bail (hausse de loyer)", actif: true },
+  { code: "AVIS_ACCES", label: "Avis d'accès au logement (24 h)" },
+  { code: "RAPPEL_RETARD", label: "Rappel de loyer en retard", retard: true },
+  { code: "MISE_EN_DEMEURE", label: "Mise en demeure de payer", retard: true },
+  { code: "ETAT_LIEUX", label: "État des lieux (grille à remplir)" },
+  { code: "AVIS_REPRISE", label: "Avis de reprise du logement", actif: true },
+  { code: "FICHE_BAIL", label: "Fiche de bail (pour remplir le formulaire du TAL)" },
+];
+
+const MOTIFS = [
+  { code: "VERIFICATION", label: "Vérifier l'état du logement" },
+  { code: "TRAVAUX", label: "Effectuer des travaux" },
+  { code: "VISITE_LOCATAIRE", label: "Visite d'un locataire éventuel" },
+  { code: "VISITE_ACHETEUR", label: "Visite d'un acheteur éventuel" },
+];
+
+// Délai d'avis de reprise : 6 mois avant la fin (bail de plus de 6 mois ou
+// indéterminé), 1 mois sinon
+function limiteReprise(bail) {
+  if (!bail.dateFin) return null;
+  const duree = dureeMois(bail) ?? 12;
+  const lendemain = new Date(new Date(bail.dateFin).getTime() + 86400000);
+  return { date: new Date(new Date(lendemain).setUTCMonth(lendemain.getUTCMonth() - (duree > 6 ? 6 : 1))), mois: duree > 6 ? 6 : 1 };
+}
+
+function GenerateurDocuments({ bail }) {
+  const [type, setType] = useState("");
+  const [v, setV] = useState({});
+  const { appeler, enCours, erreur, setErreur } = useApi();
+  const solde = soldeBail(bail);
+  const offerts = TYPES_GENERES.filter((t) => (!t.actif || bail.statut === "ACTIF") && (!t.retard || solde > 0.005) && (t.code !== "AVIS_MODIFICATION" || bail.dateFin));
+  const maj = (k, x) => setV((o) => ({ ...o, [k]: x }));
+  const fin = bail.dateFin ? dateCourte(bail.dateFin) : "";
+  const choisir = (code) => {
+    setType(code);
+    setErreur("");
+    const auj = aujourdhui();
+    setV({
+      dateAvis: auj,
+      ...(code === "AVIS_MODIFICATION" ? { nouveauLoyer: String(bail.nouveauLoyer ?? bail.loyer).replace(".", ","), duree: String(dureeMois(bail) || 12), autresModifications: "" } : {}),
+      ...(code === "AVIS_ACCES" ? { dateAcces: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10), heure: "entre 10 h et 12 h", motif: "VERIFICATION", details: "" } : {}),
+      ...(code === "RAPPEL_RETARD" || code === "MISE_EN_DEMEURE" ? { delaiJours: "10" } : {}),
+      ...(code === "ETAT_LIEUX" ? { moment: bail.statut === "ACTIF" && new Date(bail.dateDebut) > new Date(Date.now() - 60 * 86400000) ? "ENTREE" : "SORTIE", dateVisite: auj } : {}),
+      ...(code === "AVIS_REPRISE" ? { beneficiaire: "", lien: "", dateReprise: fin ? dateCourte(new Date(new Date(bail.dateFin).getTime() + 86400000)) : "" } : {}),
+    });
+  };
+  const champs = {
+    AVIS_MODIFICATION: [
+      { nom: "nouveauLoyer", label: "Nouveau loyer ($ / mois)", type: "nombre" },
+      { nom: "duree", label: "Durée du bail reconduit (mois)", type: "nombre" },
+      { nom: "dateAvis", label: "Date de l'avis", type: "date" },
+      { nom: "autresModifications", label: "Autre modification (facultatif)", type: "long", lignes: 2 },
+    ],
+    AVIS_ACCES: [
+      { nom: "motif", label: "Motif", type: "choix", options: MOTIFS },
+      { nom: "dateAcces", label: "Date de la visite", type: "date" },
+      { nom: "heure", label: "Heure", placeholder: "entre 10 h et 12 h" },
+      { nom: "dateAvis", label: "Date de l'avis", type: "date" },
+      { nom: "details", label: "Précisions (travaux, entrepreneur…)", type: "long", lignes: 2 },
+    ],
+    RAPPEL_RETARD: [{ nom: "delaiJours", label: "Délai pour payer (jours)", type: "nombre" }, { nom: "dateAvis", label: "Date", type: "date" }],
+    MISE_EN_DEMEURE: [{ nom: "delaiJours", label: "Délai pour payer (jours)", type: "nombre" }, { nom: "dateAvis", label: "Date", type: "date" }],
+    ETAT_LIEUX: [{ nom: "moment", label: "Moment", type: "choix", options: [{ code: "ENTREE", label: "À l'entrée du locataire" }, { code: "SORTIE", label: "À la sortie du locataire" }] }, { nom: "dateVisite", label: "Date de la visite", type: "date" }],
+    AVIS_REPRISE: [
+      { nom: "beneficiaire", label: "Qui habitera le logement" },
+      { nom: "lien", label: "Lien avec le propriétaire", placeholder: "moi-même, ma fille…" },
+      { nom: "dateReprise", label: "Date de la reprise", type: "date" },
+      { nom: "dateAvis", label: "Date de l'avis", type: "date" },
+    ],
+    FICHE_BAIL: [{ nom: "dateAvis", label: "Date", type: "date" }],
+  }[type] || [];
+
+  const lim = type === "AVIS_REPRISE" && limiteReprise(bail);
+  const fenetre = type === "AVIS_MODIFICATION" && fenetreAvis(bail);
+  return (
+    <Section titre="Générer un document">
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
+        Lettres prêtes à imprimer ou à envoyer, remplies avec les données du bail et rangées dans ses documents. Le bail lui-même se fait sur le formulaire obligatoire du TAL : la fiche de bail aide à le remplir.
+      </p>
+      <select value={type} onChange={(e) => choisir(e.target.value)} style={{ ...champStyle, marginBottom: 10 }}>
+        <option value="">— Choisir un document —</option>
+        {offerts.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
+      </select>
+      {type && (
+        <>
+          {fenetre && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer entre le <strong>{dateLisible(fenetre.debut)}</strong> et le <strong>{dateLisible(fenetre.fin)}</strong>. Le bail sera noté « avis envoyé » à la date de l'avis.</p>}
+          {lim && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer au moins {lim.mois} mois avant la fin du bail, au plus tard le <strong>{dateLisible(lim.date)}</strong>. La reprise ne peut prendre effet qu'à la fin du bail.</p>}
+          {type === "MISE_EN_DEMEURE" && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>Envoie-la par courrier recommandé et garde la preuve de réception : elle servira au TAL.</p>}
+          <ChampsFormulaire champs={champs} valeurs={v} maj={maj} />
+          <Erreur texte={erreur} />
+          <button type="button" disabled={enCours} onClick={async () => { if (await generer(appeler, bail.id, { type, ...v })) setType(""); }} className="bouton-3d" style={boutonPrincipal}>
+            {enCours ? "Préparation…" : "📄 Générer le PDF"}
+          </button>
+        </>
+      )}
     </Section>
   );
 }
