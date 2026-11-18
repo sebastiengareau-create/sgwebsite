@@ -2067,6 +2067,231 @@ model FichierCopro {
   @@index([travailId])
 }
 
+// ============================================================
+// IMMOBILIER — module « Immobilier » (Administrateur → Modules), inactif
+// tant que le super-administrateur ne l'active pas. Pour le propriétaire
+// d'un ou de plusieurs immeubles locatifs : immeubles et logements,
+// locataires et baux, loyers et paiements, dépenses, réparations et
+// documents. Volontairement autonome : relié ni à la comptabilité, ni aux
+// fournisseurs, ni aux clients (à brancher au cas par cas selon le client).
+// Voir lib/immobilier.js et lib/immobilierCalculs.js.
+// ============================================================
+
+model ImmeubleImmo {
+  id                   String           @id @default(cuid())
+  nom                  String
+  adresse              String?
+  ville                String?
+  codePostal           String?
+  type                 String           @default("PLEX") // voir TYPES_IMMEUBLE dans lib/immobilierCalculs.js
+  anneeConstruction    Int?
+  dateAchat            DateTime?
+  prixAchat            Float?
+  evaluationMunicipale Float?
+  valeurEstimee        Float?
+  soldeHypotheque      Float?
+  notes                String?
+  logements            LogementImmo[]
+  depenses             DepenseImmo[]
+  reparations          ReparationImmo[]
+  documents            DocumentImmo[]
+  creeLe               DateTime         @default(now())
+}
+
+// Logement, local commercial, stationnement ou rangement loué
+model LogementImmo {
+  id          String           @id @default(cuid())
+  immeubleId  String
+  immeuble    ImmeubleImmo     @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  numero      String // « 1 », « 201 », « Local A »
+  type        String           @default("LOGEMENT") // "LOGEMENT" | "COMMERCIAL" | "STATIONNEMENT" | "RANGEMENT" | "AUTRE"
+  pieces      String? // « 4 ½ »
+  etage       String?
+  superficie  Float? // pi²
+  loyerVise   Float? // loyer demandé à la prochaine location
+  notes       String?
+  baux        BailImmo[]
+  reparations ReparationImmo[]
+  documents   DocumentImmo[]
+  creeLe      DateTime         @default(now())
+
+  @@unique([immeubleId, numero])
+}
+
+model LocataireImmo {
+  id             String           @id @default(cuid())
+  nom            String
+  courriel       String?
+  telephone      String?
+  telephone2     String?
+  contactUrgence String?
+  notes          String?
+  baux           BailImmo[]
+  reparations    ReparationImmo[]
+  documents      DocumentImmo[]
+  creeLe         DateTime         @default(now())
+}
+
+// Bail d'un logement : un ou plusieurs locataires (colocataires). En cours
+// = statut ACTIF. dateFin vide = durée indéterminée. Le renouvellement crée
+// un nouveau bail (le précédent passe à TERMINE) : l'historique des loyers
+// reste lisible.
+model BailImmo {
+  id            String          @id @default(cuid())
+  logementId    String
+  logement      LogementImmo    @relation(fields: [logementId], references: [id], onDelete: Cascade)
+  locataires    LocataireImmo[]
+  dateDebut     DateTime
+  dateFin       DateTime?
+  loyer         Float // loyer mensuel
+  jourPaiement  Int             @default(1)
+  services      String? // codes séparés par des virgules (SERVICES_BAIL)
+  statut        String          @default("ACTIF") // "ACTIF" | "TERMINE" | "RESILIE"
+  nouveauLoyer  Float? // loyer proposé au renouvellement
+  avisEnvoyeLe  DateTime? // avis de modification envoyé au locataire
+  reponseAvis   String? // "ACCEPTE" | "REFUSE" | "QUITTE" (réponse du locataire)
+  terminaisonLe DateTime? // date réelle de départ (fin anticipée, résiliation)
+  notes         String?
+  charges       ChargeImmo[]
+  paiements     PaiementImmo[]
+  documents     DocumentImmo[]
+  creeLe        DateTime        @default(now())
+
+  @@index([logementId])
+  @@index([statut])
+}
+
+// Ce qui est dû sur un bail : loyer du mois (periode « 2026-11 », une seule
+// fois par bail et par mois), frais, autre
+model ChargeImmo {
+  id          String   @id @default(cuid())
+  bailId      String
+  bail        BailImmo @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  date        DateTime
+  periode     String?
+  type        String   @default("LOYER") // "LOYER" | "FRAIS" | "AUTRE"
+  description String?
+  montant     Float
+  creePar     String?
+  creeLe      DateTime @default(now())
+
+  @@unique([bailId, periode, type])
+  @@index([bailId, date])
+}
+
+model PaiementImmo {
+  id        String   @id @default(cuid())
+  bailId    String
+  bail      BailImmo @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  date      DateTime
+  montant   Float
+  mode      String? // voir MODES_PAIEMENT dans lib/immobilierCalculs.js
+  reference String?
+  note      String?
+  creePar   String?
+  creeLe    DateTime @default(now())
+
+  @@index([bailId, date])
+}
+
+// Dépense d'un immeuble (taxes, assurance, intérêts, énergie…) — les
+// réparations comptent à part, par leur coût réel
+model DepenseImmo {
+  id          String       @id @default(cuid())
+  immeubleId  String
+  immeuble    ImmeubleImmo @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  date        DateTime
+  categorie   String // voir CATEGORIES_DEPENSE
+  description String?
+  montant     Float
+  payeA       String? // à qui (texte libre : aucun lien aux fournisseurs)
+  reference   String?
+  creePar     String?
+  creeLe      DateTime     @default(now())
+
+  @@index([immeubleId, date])
+}
+
+// Réparation ou entretien d'un immeuble ou d'un logement (signalée par un
+// locataire ou prévue par le propriétaire)
+model ReparationImmo {
+  id                    String         @id @default(cuid())
+  numero                String         @unique // « RP-001 »
+  titre                 String
+  description           String?
+  categorie             String?
+  priorite              String         @default("NORMALE") // "URGENTE" | "HAUTE" | "NORMALE" | "BASSE"
+  statut                String         @default("NOUVELLE") // "NOUVELLE" | "PLANIFIEE" | "EN_COURS" | "TERMINEE" | "ANNULEE"
+  immeubleId            String
+  immeuble              ImmeubleImmo   @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  logementId            String?
+  logement              LogementImmo?  @relation(fields: [logementId], references: [id], onDelete: SetNull)
+  locataireId           String? // locataire qui l'a signalée
+  locataire             LocataireImmo? @relation(fields: [locataireId], references: [id], onDelete: SetNull)
+  signalePar            String?
+  entrepreneur          String? // texte libre : aucun lien aux fournisseurs
+  telephoneEntrepreneur String?
+  datePrevue            DateTime?
+  dateFin               DateTime?
+  coutEstime            Float?
+  coutReel              Float?
+  numeroFacture         String?
+  notes                 String?
+  fichiers              FichierImmo[]
+  creePar               String?
+  creeLe                DateTime       @default(now())
+
+  @@index([statut])
+  @@index([immeubleId])
+  @@index([logementId])
+  @@index([locataireId])
+}
+
+// Bail signé, avis, état des lieux, police d'assurance, compte de taxes…
+model DocumentImmo {
+  id          String         @id @default(cuid())
+  titre       String
+  categorie   String
+  date        DateTime?
+  expireLe    DateTime? // assurance, contrat : rappel au tableau de bord
+  description String?
+  immeubleId  String?
+  immeuble    ImmeubleImmo?  @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  logementId  String?
+  logement    LogementImmo?  @relation(fields: [logementId], references: [id], onDelete: SetNull)
+  bailId      String?
+  bail        BailImmo?      @relation(fields: [bailId], references: [id], onDelete: SetNull)
+  locataireId String?
+  locataire   LocataireImmo? @relation(fields: [locataireId], references: [id], onDelete: SetNull)
+  nom         String
+  typeMime    String
+  taille      Int
+  donnees     Bytes
+  creePar     String?
+  creeLe      DateTime       @default(now())
+
+  @@index([categorie])
+  @@index([immeubleId])
+  @@index([logementId])
+  @@index([bailId])
+  @@index([locataireId])
+}
+
+// Photos et pièces jointes d'une réparation
+model FichierImmo {
+  id           String         @id @default(cuid())
+  reparationId String
+  reparation   ReparationImmo @relation(fields: [reparationId], references: [id], onDelete: Cascade)
+  nom          String
+  typeMime     String
+  taille       Int
+  donnees      Bytes
+  ajoutePar    String?
+  creeLe       DateTime       @default(now())
+
+  @@index([reparationId])
+}
+
 // Essais de connexion ratés (lib/protectionConnexion.js) : trop d'essais pour
 // un même courriel ou une même adresse IP bloquent la connexion un moment.
 // Les lignes de plus d'un jour sont effacées au fil des connexions.

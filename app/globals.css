@@ -462,3 +462,9 @@ html[data-theme="light"] .logo-sombre { display: none; }
   .reglage-coupe .case { justify-content: center; padding-top: 8px; }
   .reglage-coupe.entete > .centre { text-align: center; }
 }
+
+/* Ligne avec pastilles (module Immobilier) : sur téléphone, les pastilles
+   passent sous le texte au lieu de l'écraser */
+.ligne-pastilles { flex-wrap: wrap; row-gap: 4px; }
+.ligne-pastilles > :first-child { flex: 1 1 220px; }
+.ligne-pastilles > :last-child { flex-shrink: 0; margin-left: auto; }
