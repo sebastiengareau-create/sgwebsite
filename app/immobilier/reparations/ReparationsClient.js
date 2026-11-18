@@ -56,7 +56,7 @@ export default function ReparationsClient({ reparations, immeubles, locataires }
             <CarteListe
               key={r.id} href={`/immobilier/reparations/${r.id}`}
               couleur={statut?.ouverte ? trouver(PRIORITES, r.priorite)?.couleur : statut?.couleur}
-              titre={<>{r.numero} · {r.titre}</>}
+              titre={<>{r.numero} · {r.source === "PORTAIL" && "🌐 "}{r.titre}</>}
               sousTitre={[
                 r.immeuble.nom, r.logement ? nomLogement(r.logement) : "parties communes", r.locataire && `signalée par ${r.locataire.nom}`, r.entrepreneur,
                 r.datePrevue && statut?.ouverte && `prévue le ${dateLisible(r.datePrevue)}`,

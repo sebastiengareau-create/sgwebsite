@@ -25,7 +25,7 @@ export default async function TableauBordImmo() {
     soldesDesBaux(),
     prisma.reparationImmo.findMany({
       where: { statut: { in: STATUTS_REPARATION_OUVERTS } },
-      select: { id: true, numero: true, titre: true, priorite: true, statut: true, creeLe: true, entrepreneur: true, coutEstime: true, coutReel: true, datePrevue: true, immeuble: { select: { nom: true } }, logement: { select: { numero: true, type: true } } },
+      select: { id: true, numero: true, source: true, titre: true, priorite: true, statut: true, creeLe: true, entrepreneur: true, coutEstime: true, coutReel: true, datePrevue: true, immeuble: { select: { nom: true } }, logement: { select: { numero: true, type: true } } },
       orderBy: { creeLe: "desc" },
     }),
     prisma.documentImmo.findMany({ where: { expireLe: { not: null } }, select: { id: true, titre: true, categorie: true, expireLe: true, immeuble: { select: { nom: true } } }, orderBy: { expireLe: "asc" } }),

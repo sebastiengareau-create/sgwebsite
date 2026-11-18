@@ -129,7 +129,7 @@ function UnChamp({ c, valeurs, maj }) {
 export function valeursDe(element, champs) {
   return Object.fromEntries(champs.map((c) => {
     const v = element?.[c.nom];
-    if (c.type === "case") return [c.nom, Boolean(v)];
+    if (c.type === "case") return [c.nom, v == null ? Boolean(c.defaut) : Boolean(v)];
     if (v == null) return [c.nom, c.defaut ?? ""];
     if (c.type === "date") return [c.nom, String(v).slice(0, 10)];
     if (c.type === "nombre") return [c.nom, String(v).replace(".", ",")];

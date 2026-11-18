@@ -119,6 +119,7 @@ export const champsLocataire = [
   { nom: "courriel", label: "Courriel", typeHtml: "email" },
   { nom: "telephone2", label: "Autre téléphone", typeHtml: "tel" },
   { nom: "contactUrgence", label: "Personne à joindre en cas d'urgence", pleineLargeur: true },
+  { nom: "avisCourriel", label: "Lui envoyer par courriel le suivi de ses demandes de réparation", type: "case", defaut: true },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
@@ -168,7 +169,8 @@ export function champsReparation({ immeubles, locataires, immeubleId, fixe = {} 
     { nom: "numeroFacture", label: "N° de facture" },
     { nom: "signalePar", label: "Signalée par (autre)" },
     { nom: "description", label: "Description", type: "long", lignes: 3 },
-    { nom: "notes", label: "Notes de suivi", type: "long", lignes: 2 },
+    { nom: "reponse", label: "Réponse au locataire (visible dans son portail ; il en est avisé par courriel)", type: "long", lignes: 2 },
+    { nom: "notes", label: "Notes internes", type: "long", lignes: 2 },
   ];
 }
 
@@ -278,7 +280,8 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
 // fixe : liens imposés (ex. { logementId, bailId } depuis la fiche d'un bail)
 export function FormulaireDocument({ immeubles = [], fixe = {}, categorie = "BAIL", onFini }) {
   const router = useRouter();
-  const [valeurs, setValeurs] = useState({ titre: "", categorie, date: aujourdhui(), expireLe: "", description: "", immeubleId: "" });
+  // Partagé au locataire par défaut quand le document est rattaché à son bail ou à lui
+  const [valeurs, setValeurs] = useState({ titre: "", categorie, date: aujourdhui(), expireLe: "", description: "", immeubleId: "", visibleLocataire: Boolean(fixe.bailId || fixe.locataireId) && categorie !== "LOCATAIRE" });
   const [fichier, setFichier] = useState(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -290,13 +293,14 @@ export function FormulaireDocument({ immeubles = [], fixe = {}, categorie = "BAI
     { nom: "expireLe", label: "Expire le (assurance, contrat…)", type: "date" },
     ...(!fixe.immeubleId && !fixe.logementId && !fixe.bailId && immeubles.length > 0 ? [{ nom: "immeubleId", label: "Immeuble", type: "choix", vide: "—", options: immeubles.map((i) => ({ code: i.id, label: i.nom })) }] : []),
     { nom: "description", label: "Description", type: "long", lignes: 2 },
+    { nom: "visibleLocataire", label: fixe.bailId || fixe.locataireId || fixe.logementId ? "Visible par le locataire dans son portail" : "Visible par les locataires de l'immeuble dans leur portail (règlement, avis à tous…)", type: "case" },
   ];
   async function envoyer() {
     if (!fichier) return setErreur("Choisis le fichier.");
     setErreur("");
     setEnCours(true);
     const fd = new FormData();
-    for (const [k, x] of Object.entries({ ...valeurs, ...fixe })) fd.append(k, x ?? "");
+    for (const [k, x] of Object.entries({ ...valeurs, ...fixe })) fd.append(k, typeof x === "boolean" ? (x ? "oui" : "") : x ?? "");
     fd.append("fichier", fichier);
     const res = await fetch("/api/immobilier/documents", { method: "POST", body: fd });
     const data = await res.json().catch(() => ({}));
@@ -330,11 +334,26 @@ export function ListeDocuments({ documents, vide = "Aucun document." }) {
         </a>
         <span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           {exp && exp.code !== "OK" && <PastilleEtat etat={exp} />}
+          <BasculeVisible d={d} />
           <BoutonSupprimer url={`/api/immobilier/documents/${d.id}`} confirmation={`Supprimer le document « ${d.titre} » ?`}>✕</BoutonSupprimer>
         </span>
       </div>
     );
   });
+}
+
+// Montrer ou cacher un document dans le portail des locataires
+function BasculeVisible({ d }) {
+  const { appeler, enCours } = useApi();
+  return (
+    <button
+      type="button" disabled={enCours} onClick={() => appeler(`/api/immobilier/documents/${d.id}`, "PATCH", { visibleLocataire: !d.visibleLocataire })}
+      title={d.visibleLocataire ? "Visible dans le portail du locataire — cliquer pour cacher" : "Caché au locataire — cliquer pour le montrer dans son portail"}
+      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11.5, fontWeight: 700, padding: 0, color: d.visibleLocataire ? "var(--success)" : "var(--text-muted)", whiteSpace: "nowrap" }}
+    >
+      {enCours ? "…" : d.visibleLocataire ? "👁 locataire" : "🔒 interne"}
+    </button>
+  );
 }
 
 // Liste compacte de réparations
@@ -344,7 +363,7 @@ export function ListeReparations({ reparations, vide = "Aucune réparation.", li
   return reparations.map((r) => (
     <Link key={r.id} href={`/immobilier/reparations/${r.id}`} className="ligne-info ligne-pastilles" style={{ textDecoration: "none", color: "inherit", gap: 8 }}>
       <span style={{ minWidth: 0 }}>
-        <strong>{r.numero}</strong> {r.titre}
+        <strong>{r.numero}</strong> {r.source === "PORTAIL" && <span title="Demandée par le locataire dans son portail">🌐 </span>}{r.titre}
         <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
           {lieu === "tout" && r.immeuble && ` · ${r.immeuble.nom}`}
           {lieu !== "aucun" && (r.logement ? ` · ${nomLogement(r.logement)}` : " · parties communes")}

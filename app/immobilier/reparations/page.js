@@ -8,7 +8,7 @@ export default async function ReparationsImmo() {
   const [reparations, immeubles, locataires] = await Promise.all([
     prisma.reparationImmo.findMany({
       select: {
-        id: true, numero: true, titre: true, statut: true, priorite: true, categorie: true, entrepreneur: true, coutEstime: true, coutReel: true, datePrevue: true, dateFin: true, creeLe: true,
+        id: true, numero: true, source: true, titre: true, statut: true, priorite: true, categorie: true, entrepreneur: true, coutEstime: true, coutReel: true, datePrevue: true, dateFin: true, creeLe: true,
         immeuble: { select: { id: true, nom: true } }, logement: { select: { id: true, numero: true, type: true } }, locataire: { select: { nom: true } },
       },
       orderBy: { creeLe: "desc" },
