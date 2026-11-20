@@ -1,7 +1,7 @@
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { versionEnLigne } from "@/lib/version";
 import Image from "next/image";
-import { NOM_LOGICIEL, SLOGAN, COURRIEL_SOUTIEN, SECTEUR, LOGO_METAL } from "@/lib/marque";
+import { NOM_LOGICIEL, SLOGAN, COURRIEL_SOUTIEN, SECTEUR, LOGO_METAL, SITE_WEB } from "@/lib/marque";
 import { LogoKontrolshop } from "../../components/LogoKontrolshop";
 import { TEINTES, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 
@@ -13,6 +13,7 @@ export default async function AProposSection() {
     ["Logiciel", `${NOM_LOGICIEL} · ${SECTEUR.libelle}`],
     ["Utilisé par", nomEntreprise],
     ["Version", versionEnLigne().replace(/^Version /, "")],
+    ["Site web", <a key="s" href={SITE_WEB} target="_blank" rel="noopener" style={{ color: "inherit" }}>{SITE_WEB.replace(/^https:\/\//, "")}</a>],
     ["Soutien", <a key="c" href={`mailto:${COURRIEL_SOUTIEN}`} style={{ color: "inherit" }}>{COURRIEL_SOUTIEN}</a>],
   ];
 

@@ -1,4 +1,4 @@
-import { NOM_LOGICIEL, SLOGAN, SECTEUR } from "@/lib/marque";
+import { NOM_LOGICIEL, SLOGAN, SECTEUR, SITE_WEB } from "@/lib/marque";
 
 // Le « K » de kontrolshop : sa branche du haut est l'aiguille d'une jauge
 // (couleur du secteur), sur un arc pointillé. Les traits foncés suivent la
@@ -41,15 +41,19 @@ export function BadgeSecteur({ taille = 11 }) {
 }
 
 // Signature discrète : petit K + nom sur une ligne, slogan dessous
+// Lien vers le site de vente, dans un nouvel onglet (la page de connexion reste)
 export function SignatureKontrolshop() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+    <a
+      href={SITE_WEB} target="_blank" rel="noopener" title={`${NOM_LOGICIEL} — site web`}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, color: "inherit", textDecoration: "none" }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
         <MarqueK taille={22} />
         <NomKontrolshop taille={15} />
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{SLOGAN}</div>
-    </div>
+    </a>
   );
 }
 
