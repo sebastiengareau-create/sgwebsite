@@ -19,9 +19,13 @@ import { correspondRecherche } from "@/lib/recherche";
 import BandeauSection from "@/app/components/BandeauSection";
 import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "@/app/components/StyleSection";
 
-export default function NouveauBon({ clientsExistants, calendrierActif = true }) {
+// comptoir : facture comptoir (lib/comptoir.js) — même formulaire, sans
+// véhicule, photos ni date prévue ; client de passage possible
+export default function NouveauBon({ clientsExistants, calendrierActif = true, comptoir = false }) {
   const router = useRouter();
   const [clientSelectionne, setClientSelectionne] = useState(null);
+  // Facture comptoir sans dossier client : « Client de passage »
+  const [clientPassage, setClientPassage] = useState(false);
   const [rechercheClient, setRechercheClient] = useState("");
   const [afficherSuggestions, setAfficherSuggestions] = useState(false);
   const boiteRechercheRef = useRef(null);
@@ -38,6 +42,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
 
   const [clientNom, setClientNom] = useState("");
   const [clientTelephone, setClientTelephone] = useState("");
+  // Nouveau client, ou client au dossier sans courriel : enregistré au dossier
+  const [clientCourriel, setClientCourriel] = useState("");
   const [clientAdresse, setClientAdresse] = useState("");
   const [clientVille, setClientVille] = useState("");
   const [clientProvince, setClientProvince] = useState(PROVINCE_DEFAUT);
@@ -84,7 +90,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     // Profil avertirBonNonFacture : le client (ou un dossier semblable) a
     // déjà un bon pas encore facturé — continuer seulement si on le confirme
     let bons = [];
-    if (CLIENT.avertirBonNonFacture) {
+    if (CLIENT.avertirBonNonFacture && !comptoir) {
       const res = await fetch(`/api/clients/${c.id}/bons-non-factures`).catch(() => null);
       bons = res?.ok ? await res.json() : [];
       if (bons.length && !window.confirm(`${messageBonsNonFactures(c.nom, bons, c.id)}\n\n${QUESTION_BON_NON_FACTURE}`)) return;
@@ -94,6 +100,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setRechercheClient(c.nom);
     setAfficherSuggestions(false);
     setClientGarantieProlongee("");
+    setClientCourriel("");
     // Véhicule obligatoire : le premier du dossier est présélectionné
     const parDefaut = c.vehicules.length === 1 || (CLIENT.vehiculeObligatoire && c.vehicules.length) ? c.vehicules[0].id : c.vehicules.length ? "" : "nouveau";
     setChoixVehicule(parDefaut);
@@ -102,9 +109,11 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
 
   function changerClientPourNouveau() {
     setClientSelectionne(null);
+    setClientPassage(false);
     setRechercheClient("");
     setClientNom("");
     setClientTelephone("");
+    setClientCourriel("");
     setClientAdresse("");
     setClientVille("");
     setClientProvince(PROVINCE_DEFAUT);
@@ -144,15 +153,15 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
     setHorsDisponibilite(false);
 
     const lignesValides = problemes.map((p) => p.trim()).filter(Boolean);
-    if (lignesValides.length === 0) {
+    if (lignesValides.length === 0 && !comptoir) {
       setErreur("Ajoute au moins une ligne de problème.");
       return;
     }
-    if (CLIENT.vehiculeObligatoire && choixVehicule === "nouveau" && !Object.values(vehicule).some((v) => String(v || "").trim())) {
+    if (!comptoir && CLIENT.vehiculeObligatoire && choixVehicule === "nouveau" && !Object.values(vehicule).some((v) => String(v || "").trim())) {
       setErreur("Indique au moins une information sur le véhicule (marque, année, NIV, plaque…), ou choisis-en un du dossier du client.");
       return;
     }
-    if (!clientSelectionne && !clientNom.trim()) {
+    if (!clientSelectionne && !clientPassage && !clientNom.trim()) {
       setErreur("Indique le nom du client, ou choisis-en un existant.");
       return;
     }
@@ -165,7 +174,9 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         clientId: clientSelectionne?.id,
         clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
         clientGarantieProlongee: clientGarantieProlongee.trim(),
-        problemes: lignesValides,
+        clientCourriel: clientPassage && !clientSelectionne ? "" : clientCourriel.trim(),
+        problemes: comptoir ? [] : lignesValides,
+        comptoir, clientPassage: comptoir && !clientSelectionne && clientPassage,
         datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
         vehiculeId: choixVehicule !== "nouveau" ? choixVehicule || null : null,
         vehicule: choixVehicule === "nouveau" ? vehicule : null,
@@ -230,7 +241,11 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         ← Retour
       </button>
       <div style={{ marginTop: 8 }}>
-        <BandeauSection icone="🔧" titre="Nouveau bon de travail" sousTitre="Le client, son véhicule et les problèmes à régler — le bon s'ouvre ensuite pour l'équipe." />
+        {comptoir ? (
+          <BandeauSection icone="🧾" titre="Facture comptoir" sousTitre="Vente de pièces ou de services sans véhicule ni main-d'œuvre — la fiche s'ouvre ensuite pour ajouter les pièces et facturer." />
+        ) : (
+          <BandeauSection icone="🔧" titre="Nouveau bon de travail" sousTitre="Le client, son véhicule et les problèmes à régler — le bon s'ouvre ensuite pour l'équipe." />
+        )}
       </div>
 
       <div style={stylePanneau}>
@@ -264,7 +279,18 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
             </button>
           </div>
         ) : null}
-        {clientSelectionne && !clientSelectionne.garantieProlongee && (
+        {clientSelectionne && !clientSelectionne.courriel && (
+          <div style={{ marginTop: 12 }}>
+            <label style={labelStyle}>Courriel</label>
+            <input
+              type="email" value={clientCourriel}
+              onChange={(e) => setClientCourriel(e.target.value)}
+              placeholder="Facultatif — enregistré au dossier du client"
+              style={{ ...champInput, marginBottom: 0 }}
+            />
+          </div>
+        )}
+        {clientSelectionne && !clientSelectionne.garantieProlongee && !comptoir && (
           <div style={{ marginTop: 12 }}>
             <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
             <input
@@ -275,8 +301,27 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
             />
           </div>
         )}
-        {clientSelectionne ? null : (
+        {!clientSelectionne && clientPassage && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 12, background: TEINTES.bleu.fond, border: `1px solid ${TEINTES.bleu.couleur}` }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icone nom="personne" taille={20} couleur={TEINTES.bleu.couleur} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>Client de passage</div>
+              <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>Sans dossier client — le nom peut se corriger sur la facture.</div>
+            </div>
+            <button type="button" onClick={changerClientPourNouveau} style={{ ...boutonLien, whiteSpace: "nowrap", alignSelf: "flex-start" }}>
+              Changer
+            </button>
+          </div>
+        )}
+        {clientSelectionne || clientPassage ? null : (
           <>
+            {comptoir && (
+              <button type="button" onClick={() => { setClientPassage(true); setAfficherSuggestions(false); }} style={{ ...boutonPointille, marginBottom: 4 }}>
+                Client de passage (sans dossier)
+              </button>
+            )}
             <div ref={boiteRechercheRef} style={{ position: "relative" }}>
               <label style={labelStyle}>Nom du client</label>
               <div style={{ position: "relative" }}>
@@ -311,6 +356,8 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
             </div>
             <label style={labelStyle}>Téléphone</label>
             <input value={clientTelephone} type="tel" onChange={(e) => setClientTelephone(e.target.value)} onBlur={(e) => setClientTelephone(formaterTelephone(e.target.value))} style={champInput} />
+            <label style={labelStyle}>Courriel</label>
+            <input value={clientCourriel} type="email" onChange={(e) => setClientCourriel(e.target.value)} placeholder="Facultatif — pour envoyer le bon et la facture" style={champInput} />
             <label style={labelStyle}>Adresse</label>
             <ChampAdresse valeur={clientAdresse} onChange={setClientAdresse} onChoisir={remplirAdresse.onChoisir} style={champInput} />
             <label style={labelStyle}>Ville</label>
@@ -325,18 +372,22 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
                 <ChampCodePostal valeur={clientCodePostal} onChange={setClientCodePostal} onSecteur={remplirAdresse.onSecteur} style={{ ...champInput, marginBottom: 0 }} />
               </div>
             </div>
-            <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
-            <input
-              value={clientGarantieProlongee}
-              onChange={(e) => setClientGarantieProlongee(e.target.value)}
-              placeholder="Facultatif"
-              style={{ ...champInput, marginBottom: 0 }}
-            />
+            {!comptoir && (
+              <>
+                <label style={labelStyle}>Garantie prolongée — numéro de contrat</label>
+                <input
+                  value={clientGarantieProlongee}
+                  onChange={(e) => setClientGarantieProlongee(e.target.value)}
+                  placeholder="Facultatif"
+                  style={{ ...champInput, marginBottom: 0 }}
+                />
+              </>
+            )}
           </>
         )}
       </div>
 
-      <div style={stylePanneau}>
+      {!comptoir && <div style={stylePanneau}>
         <TitrePanneau icone="vehicule" teinte={TEINTES.bleu} titre="Véhicule" />
         <ChoixVehiculeClient
           key={clientSelectionne?.id || "nouveau-client"}
@@ -346,16 +397,18 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
           onVehiculeModifie={(data) => setClientSelectionne((c) => ({ ...c, vehicules: c.vehicules.map((v) => (v.id === data.id ? data : v)) }))}
           permettreNonPrecise={!CLIENT.vehiculeObligatoire}
         />
-      </div>
+      </div>}
 
-      {CLIENT.photosArrivee && (
+      {CLIENT.photosArrivee && !comptoir && (
         <div style={stylePanneau}>
           <TitrePanneau icone="camera" teinte={TEINTES.neutre} titre="Photos à l'arrivée" sousTitre="Gardées en référence en haut du bon, jamais imprimées." />
           <PrisePhotosArrivee valeurs={photosArrivee} onChange={setPhotosArrivee} />
         </div>
       )}
 
-      <div style={stylePanneau}>
+      {/* Facture comptoir : pas de lignes à entrer ici — la fiche s'ouvre
+          directement sur les pièces (ligne « Vente au comptoir » créée d'office) */}
+      {!comptoir && <div style={stylePanneau}>
         <TitrePanneau icone="outils" teinte={TEINTES.ambre} titre="Problèmes signalés" sousTitre="Chaque ligne devient une tâche du bon." />
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
           {problemes.map((valeur, i) => (
@@ -397,9 +450,9 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
         <button type="button" onClick={ajouterLigneProbleme} style={boutonPointille}>
           + Ajouter une autre ligne de problème
         </button>
-      </div>
+      </div>}
 
-      <div style={stylePanneau}>
+      {!comptoir && <div style={stylePanneau}>
         <TitrePanneau icone="calendrier" teinte={TEINTES.vert} titre="Date prévue" />
         <SelecteurDatePrevue valeur={datePrevue} onChange={setDatePrevue} />
         {calendrierActif && (
@@ -421,7 +474,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {erreur && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--danger-fond)", border: "1px solid var(--danger)", borderRadius: 12, padding: "10px 14px", fontSize: 13.5, fontWeight: 600, marginBottom: 10 }}>
@@ -435,7 +488,7 @@ export default function NouveauBon({ clientsExistants, calendrierActif = true })
       )}
 
       <button type="submit" disabled={enCours} className="bouton-3d" style={{ width: "100%", padding: 13, borderRadius: 12, fontWeight: 700, fontSize: 15, marginBottom: 16 }}>
-        {enCours ? "Création…" : "Créer le bon de travail"}
+        {enCours ? "Création…" : comptoir ? "Créer la facture comptoir" : "Créer le bon de travail"}
       </button>
     </form>
   );

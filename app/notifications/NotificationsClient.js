@@ -6,6 +6,7 @@ import BandeauSection from "../components/BandeauSection";
 import ActivationNotifications from "../components/ActivationNotifications";
 import { depuis } from "../components/Cloche";
 import { TYPES_NOTIFICATIONS, FREQUENCES_CEDULEES, JOURS_SEMAINE } from "@/lib/typesNotifications";
+import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "../components/StyleSection";
 
 const TYPES = Object.entries(TYPES_NOTIFICATIONS);
 
@@ -60,35 +61,33 @@ function Historique({ notificationsInitiales }) {
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div className="titre-section" style={{ margin: 0 }}>Reçues {nonLues > 0 && `· ${nonLues} non lue${nonLues > 1 ? "s" : ""}`}</div>
-        {nonLues > 0 && (
-          <button onClick={toutLire} style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 12, cursor: "pointer", padding: 0 }}>
-            Tout marquer lu
-          </button>
-        )}
-      </div>
-      {notifications.length === 0 && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Aucune notification pour l'instant.</p>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={stylePanneau}>
+      <TitrePanneau
+        icone="cloche" teinte={TEINTES.ambre} titre="Reçues"
+        sousTitre={notifications.length === 0 ? undefined : nonLues > 0 ? `${nonLues} non lue${nonLues > 1 ? "s" : ""}` : "Tout est lu"}
+        droite={nonLues > 0 && <button onClick={toutLire} style={{ ...boutonLien, whiteSpace: "nowrap", marginTop: 4 }}>Tout marquer lu</button>}
+      />
+      {notifications.length === 0 && <Vide>Aucune notification pour l'instant.</Vide>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {notifications.map((n) => (
           <button
             key={n.id}
             onClick={() => ouvrir(n)}
             style={{
-              textAlign: "left", padding: "10px 12px", borderRadius: 10, cursor: "pointer", color: "var(--text)",
-              border: `1px solid ${n.lue ? "var(--border)" : "var(--accent-ombre)"}`, background: n.lue ? "transparent" : "var(--bg)",
+              position: "relative", overflow: "hidden", textAlign: "left", padding: "11px 14px 11px 16px", borderRadius: 12, cursor: "pointer", color: "var(--text)", fontFamily: "inherit",
+              border: `1px solid ${n.lue ? "var(--border)" : "var(--accent)"}`, background: n.lue ? "var(--surface)" : TEINTES.ambre.fond,
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: n.lue ? 500 : 700 }}>{n.titre}</span>
-              <span style={{ fontSize: 10.5, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{depuis(n.creeLe)}</span>
+            {!n.lue && <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+              <span style={{ fontSize: 14, fontWeight: n.lue ? 600 : 800, minWidth: 0, overflowWrap: "anywhere" }}>{n.titre}</span>
+              <span style={{ fontSize: 11.5, color: "var(--text-muted)", whiteSpace: "nowrap", flexShrink: 0 }}>{depuis(n.creeLe)}</span>
             </div>
-            {n.corps && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3, whiteSpace: "pre-wrap" }}>{n.corps}</div>}
+            {n.corps && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{n.corps}</div>}
           </button>
         ))}
       </div>
-      {notifications.length > 0 && <p style={{ fontSize: 10.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les notifications sont effacées après 60 jours.</p>}
+      {notifications.length > 0 && <Aide>Les notifications sont effacées après 60 jours.</Aide>}
     </div>
   );
 }
@@ -111,25 +110,24 @@ function Preferences({ coupeesInitiales }) {
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <div className="titre-section">Ce que je veux recevoir</div>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="reglages" teinte={TEINTES.vert} titre="Ce que je veux recevoir" sousTitre="Tu reçois un type seulement s'il te concerne ou si ton rôle est coché dans « Qui reçoit quoi »." />
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {TYPES.map(([type, t]) => (
-          <label key={type} style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: t.obligatoire ? "default" : "pointer", opacity: t.obligatoire ? 0.7 : 1 }}>
-            <input type="checkbox" checked={t.obligatoire || !coupees.includes(type)} disabled={t.obligatoire} onChange={() => basculer(type)} style={{ marginTop: 3 }} />
-            <span>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{t.icone} {t.label}</span>
-              <span style={{ display: "block", fontSize: 11.5, color: "var(--text-muted)" }}>
-                {t.description}{t.obligatoire && " Toujours reçu."}
+        {TYPES.map(([type, t]) => {
+          const recu = t.obligatoire || !coupees.includes(type);
+          return (
+            <label key={type} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 12px", borderRadius: 12, border: `1px solid ${recu ? "var(--success)" : "var(--border)"}`, background: recu ? TEINTES.vert.fond : "var(--surface)", cursor: t.obligatoire ? "default" : "pointer" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{t.icone} {t.label}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{t.description}</span>
+                {t.obligatoire && <span style={{ display: "inline-block", marginTop: 6 }}><Pastille couleur="var(--text-muted)" fond="var(--surface-alt)">Toujours reçu</Pastille></span>}
               </span>
-            </span>
-          </label>
-        ))}
+              <input type="checkbox" checked={recu} disabled={t.obligatoire} onChange={() => basculer(type)} style={{ width: 20, height: 20, flexShrink: 0, accentColor: "var(--success)" }} />
+            </label>
+          );
+        })}
       </div>
-      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "10px 0 0" }}>
-        Tu reçois un type seulement s'il te concerne ou si ton rôle est coché dans « Qui reçoit quoi ».
-      </p>
-      {erreur && <p style={{ fontSize: 12, color: "var(--danger)", margin: "8px 0 0" }}>{erreur}</p>}
+      <MessageInfo texte={erreur} erreur />
     </div>
   );
 }
@@ -164,44 +162,32 @@ function EnvoiMessage({ gestion }) {
     }
   }
 
-  const choix = (valeur, libelle) => (
-    <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12.5, cursor: "pointer" }}>
-      <input type="radio" name="mode-destinataires" checked={mode === valeur} onChange={() => setMode(valeur)} /> {libelle}
-    </label>
-  );
-
   return (
-    <form className="carte" style={{ marginBottom: 12 }} onSubmit={soumettre}>
-      <div className="titre-section">📣 Envoyer un message à l'équipe</div>
-      <textarea className="champ champ-espace" rows={3} maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Ex. : Réunion d'équipe demain à 8 h." required />
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 8 }}>
-        {choix("tous", "Toute l'équipe")}
-        {choix("roles", "Par rôle")}
-        {choix("employes", "Employés précis")}
-      </div>
+    <form style={stylePanneau} onSubmit={soumettre}>
+      <TitrePanneau icone="courriel" teinte={TEINTES.ambre} titre="Envoyer un message à l'équipe" sousTitre="Reçu sur le téléphone de ceux qui ont activé les notifications, et à la cloche 🔔 pour tous." />
+      <label style={{ ...labelStyle, marginTop: 0 }}>Message</label>
+      <textarea rows={3} maxLength={500} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Ex. : Réunion d'équipe demain à 8 h." required style={{ ...champInput, resize: "vertical" }} />
+      <label style={labelStyle}>Destinataires</label>
+      <Puces>
+        <Puce actif={mode === "tous"} onClick={() => setMode("tous")}>Toute l'équipe</Puce>
+        <Puce actif={mode === "roles"} onClick={() => setMode("roles")}>Par rôle</Puce>
+        <Puce actif={mode === "employes"} onClick={() => setMode("employes")}>Employés précis</Puce>
+      </Puces>
       {mode === "roles" && (
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-          {gestion.roles.map((r) => (
-            <label key={r.cle} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12.5, cursor: "pointer" }}>
-              <input type="checkbox" checked={roles.includes(r.cle)} onChange={() => basculer(roles, setRoles, r.cle)} /> {r.nom}
-            </label>
-          ))}
-        </div>
+        <SousChoix titre="Rôles">
+          {gestion.roles.map((r) => <Puce key={r.cle} coche actif={roles.includes(r.cle)} onClick={() => basculer(roles, setRoles, r.cle)}>{r.nom}</Puce>)}
+        </SousChoix>
       )}
       {mode === "employes" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 6, marginBottom: 8 }}>
-          {gestion.employes.map((e) => (
-            <label key={e.id} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12.5, cursor: "pointer" }}>
-              <input type="checkbox" checked={employeIds.includes(e.id)} onChange={() => basculer(employeIds, setEmployeIds, e.id)} /> {e.nom}
-            </label>
-          ))}
-          {gestion.employes.length === 0 && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Aucun autre employé actif.</span>}
-        </div>
+        <SousChoix titre="Employés">
+          {gestion.employes.map((e) => <Puce key={e.id} coche actif={employeIds.includes(e.id)} onClick={() => basculer(employeIds, setEmployeIds, e.id)}>{e.nom}</Puce>)}
+          {gestion.employes.length === 0 && <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Aucun autre employé actif.</span>}
+        </SousChoix>
       )}
-      <button type="submit" className="bouton-3d" disabled={occupe || !message.trim()} style={{ width: "100%", padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+      <button type="submit" className="bouton-3d" disabled={occupe || !message.trim()} style={{ ...boutonPrincipal, marginTop: 14 }}>
         {occupe ? "Envoi…" : "Envoyer le message"}
       </button>
-      {info.texte && <p style={{ fontSize: 12, color: info.erreur ? "var(--danger)" : "var(--text-muted)", margin: "8px 0 0" }}>{info.texte}</p>}
+      <MessageInfo texte={info.texte} erreur={info.erreur} />
     </form>
   );
 }
@@ -284,132 +270,118 @@ function NotificationsCedulees({ gestion }) {
   };
   const champ = (cle, valeur) => setEdition((ed) => ({ ...ed, [cle]: valeur }));
   const basculerDans = (cle, valeur) => setEdition((ed) => ({ ...ed, [cle]: ed[cle].includes(valeur) ? ed[cle].filter((v) => v !== valeur) : [...ed[cle], valeur] }));
-  const petitBouton = { background: "none", border: "none", color: "var(--accent)", fontSize: 12, cursor: "pointer", padding: 0 };
-  const caseACocher = { display: "flex", gap: 6, alignItems: "center", fontSize: 12.5, cursor: "pointer" };
 
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <div className="titre-section">⏰ Notifications cédulées</div>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Envoyées toutes seules à l'heure choisie — ex. le début et la fin du break ou du dîner.
-      </p>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="horloge" teinte={TEINTES.bleu} titre="Notifications cédulées" sousTitre="Envoyées toutes seules à l'heure choisie — ex. le début et la fin du break ou du dîner." />
 
-      {cedulees.length === 0 && !edition && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>Aucune notification cédulée.</p>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-        {cedulees.map((c) => (
-          <div key={c.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", opacity: c.actif ? 1 : 0.55 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{formatHeure(c.heure)} · {c.titre}</span>
-              {!c.actif && c.frequence !== "UNE_FOIS" && <span style={{ fontSize: 10.5, color: "var(--text-muted)" }}>En pause</span>}
-            </div>
-            {c.message && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, whiteSpace: "pre-wrap" }}>{c.message}</div>}
-            <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 3 }}>🔁 {resumeFrequence(c)} · 👥 {resumeDestinataires(c, gestion)}</div>
-            <div style={{ display: "flex", gap: 14, marginTop: 6 }}>
+      {cedulees.length === 0 && !edition && <Vide>Aucune notification cédulée.</Vide>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        {cedulees.map((c) => {
+          const envoyee = c.frequence === "UNE_FOIS" && !c.actif && c.dernierEnvoi;
+          return (
+            <div key={c.id} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", background: c.actif ? "var(--surface)" : "var(--surface-alt)" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", opacity: c.actif ? 1 : 0.65 }}>
+                <span style={{ flexShrink: 0, minWidth: 58, padding: "7px 6px", borderRadius: 10, background: TEINTES.bleu.fond, color: TEINTES.bleu.couleur, fontSize: 13.5, fontWeight: 800, textAlign: "center", whiteSpace: "nowrap" }}>
+                  {formatHeure(c.heure)}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, overflowWrap: "anywhere" }}>{c.titre}</span>
+                    {!c.actif && !envoyee && <Pastille couleur="var(--avertissement)" fond={TEINTES.ambre.fond}>En pause</Pastille>}
+                    {envoyee && <Pastille couleur="var(--success)" fond={TEINTES.vert.fond}>Envoyée</Pastille>}
+                  </div>
+                  {c.message && <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{c.message}</div>}
+                  <LigneIcone icone="echange">{resumeFrequence(c)}</LigneIcone>
+                  <LigneIcone icone="utilisateurs">{resumeDestinataires(c, gestion)}</LigneIcone>
+                </div>
+              </div>
               {aSupprimer === c.id ? (
-                <>
-                  <span style={{ fontSize: 12 }}>Supprimer ?</span>
-                  <button onClick={() => supprimer(c.id)} style={{ ...petitBouton, color: "var(--danger)" }}>Oui, supprimer</button>
-                  <button onClick={() => setASupprimer(null)} style={petitBouton}>Annuler</button>
-                </>
+                <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: "var(--danger-fond)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Supprimer cette notification cédulée ?</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <BoutonAction icone="poubelle" couleur="#fff" fond="var(--danger)" bordure="var(--danger)" compact onClick={() => supprimer(c.id)}>Oui, supprimer</BoutonAction>
+                    <BoutonAction compact onClick={() => setASupprimer(null)}>Annuler</BoutonAction>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <button onClick={() => modifier(c)} style={petitBouton}>Modifier</button>
-                  {!(c.frequence === "UNE_FOIS" && !c.actif && c.dernierEnvoi) && (
-                    <button onClick={() => basculerActif(c)} style={petitBouton}>{c.actif ? "Mettre en pause" : "Réactiver"}</button>
-                  )}
-                  <button onClick={() => setASupprimer(c.id)} style={{ ...petitBouton, color: "var(--danger)" }}>Supprimer</button>
-                </>
+                <div style={{ display: "grid", gridTemplateColumns: envoyee ? "1fr 1fr" : "1fr 1fr 1fr", gap: 6, marginTop: 10 }}>
+                  <BoutonAction icone="crayon" couleur="var(--accent-ombre)" compact onClick={() => modifier(c)}>Modifier</BoutonAction>
+                  {!envoyee && <BoutonAction icone={c.actif ? "bloque" : "crochet"} compact onClick={() => basculerActif(c)}>{c.actif ? "Pause" : "Réactiver"}</BoutonAction>}
+                  <BoutonAction icone="poubelle" couleur="var(--danger)" compact onClick={() => setASupprimer(c.id)}>Supprimer</BoutonAction>
+                </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {!edition && (
-        <button className="bouton-3d" onClick={() => { setErreur(""); setEdition({ ...CEDULEE_VIDE }); }} style={{ width: "100%", padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+        <button type="button" onClick={() => { setErreur(""); setEdition({ ...CEDULEE_VIDE }); }} style={boutonPointille}>
           + Ajouter une notification cédulée
         </button>
       )}
 
       {edition && (
-        <form onSubmit={enregistrer} style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{edition.id ? "Modifier la notification" : "Nouvelle notification cédulée"}</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-            {MODELES_CEDULES.map((m) => (
-              <button key={m} type="button" onClick={() => champ("titre", m)} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 999, border: "1px solid var(--border)", background: edition.titre === m ? "var(--bg)" : "transparent", color: "var(--text)", cursor: "pointer" }}>
-                {m}
-              </button>
-            ))}
-          </div>
-          <input className="champ champ-espace" maxLength={80} value={edition.titre} onChange={(e) => champ("titre", e.target.value)} placeholder="Titre — ex. : Début du dîner" required />
-          <textarea className="champ champ-espace" rows={2} maxLength={500} value={edition.message} onChange={(e) => champ("message", e.target.value)} placeholder="Message (facultatif) — ex. : Bon appétit! Retour à 12 h 30." />
+        <form onSubmit={enregistrer} style={{ padding: 14, borderRadius: 14, border: "1px solid var(--accent)", background: "var(--bg)" }}>
+          <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>{edition.id ? "Modifier la notification" : "Nouvelle notification cédulée"}</div>
+          <Puces>
+            {MODELES_CEDULES.map((m) => <Puce key={m} actif={edition.titre === m} onClick={() => champ("titre", m)}>{m}</Puce>)}
+          </Puces>
+          <label style={labelStyle}>Titre</label>
+          <input maxLength={80} value={edition.titre} onChange={(e) => champ("titre", e.target.value)} placeholder="Ex. : Début du dîner" required style={champInput} />
+          <label style={labelStyle}>Message</label>
+          <textarea rows={2} maxLength={500} value={edition.message} onChange={(e) => champ("message", e.target.value)} placeholder="Facultatif — ex. : Bon appétit! Retour à 12 h 30." style={{ ...champInput, resize: "vertical" }} />
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-            <label style={{ fontSize: 12, flex: "1 1 120px" }}>
-              Heure
-              <input type="time" className="champ" value={edition.heure} onChange={(e) => champ("heure", e.target.value)} required />
-            </label>
-            <label style={{ fontSize: 12, flex: "2 1 180px" }}>
-              Fréquence
-              <select className="champ" value={edition.frequence} onChange={(e) => champ("frequence", e.target.value)}>
+          <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", gap: 8 }}>
+            <div>
+              <label style={labelStyle}>Heure</label>
+              <input type="time" value={edition.heure} onChange={(e) => champ("heure", e.target.value)} required style={champInput} />
+            </div>
+            <div>
+              <label style={labelStyle}>Fréquence</label>
+              <select value={edition.frequence} onChange={(e) => champ("frequence", e.target.value)} style={champInput}>
                 {Object.entries(FREQUENCES_CEDULEES).map(([cle, nom]) => <option key={cle} value={cle}>{nom}</option>)}
               </select>
-            </label>
+            </div>
           </div>
           {edition.frequence === "JOURS" && (
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-              {Object.entries(JOURS_SEMAINE).map(([cle, nom]) => (
-                <label key={cle} style={caseACocher}>
-                  <input type="checkbox" checked={edition.jours.includes(cle)} onChange={() => basculerDans("jours", cle)} /> {nom}
-                </label>
-              ))}
-            </div>
+            <SousChoix titre="Jours">
+              {Object.entries(JOURS_SEMAINE).map(([cle, nom]) => <Puce key={cle} coche actif={edition.jours.includes(cle)} onClick={() => basculerDans("jours", cle)}>{nom}</Puce>)}
+            </SousChoix>
           )}
           {edition.frequence === "UNE_FOIS" && (
-            <label style={{ fontSize: 12, display: "block", marginBottom: 8 }}>
-              Date
-              <input type="date" max="9999-12-31" className="champ" value={edition.date} onChange={(e) => champ("date", e.target.value)} required />
-            </label>
-          )}
-
-          <div style={{ fontSize: 12, marginBottom: 4 }}>Destinataires</div>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 8 }}>
-            {[["tous", "Toute l'équipe"], ["choix", "Rôles ou employés précis"]].map(([valeur, libelle]) => (
-              <label key={valeur} style={caseACocher}>
-                <input type="radio" name="destinataires-cedulee" checked={edition.tous === (valeur === "tous")} onChange={() => champ("tous", valeur === "tous")} /> {libelle}
-              </label>
-            ))}
-          </div>
-          {!edition.tous && (
             <>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
-                {gestion.roles.map((r) => (
-                  <label key={r.cle} style={caseACocher}>
-                    <input type="checkbox" checked={edition.roles.includes(r.cle)} onChange={() => basculerDans("roles", r.cle)} /> {r.nom}
-                  </label>
-                ))}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 6, marginBottom: 8 }}>
-                {gestion.equipe.map((e) => (
-                  <label key={e.id} style={caseACocher}>
-                    <input type="checkbox" checked={edition.employeIds.includes(e.id)} onChange={() => basculerDans("employeIds", e.id)} /> {e.nom}
-                  </label>
-                ))}
-              </div>
+              <label style={labelStyle}>Date</label>
+              <input type="date" max="9999-12-31" value={edition.date} onChange={(e) => champ("date", e.target.value)} required style={champInput} />
             </>
           )}
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="submit" className="bouton-3d" disabled={occupe || !edition.titre.trim()} style={{ flex: 1, padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
+          <label style={labelStyle}>Destinataires</label>
+          <Puces>
+            <Puce actif={edition.tous} onClick={() => champ("tous", true)}>Toute l'équipe</Puce>
+            <Puce actif={!edition.tous} onClick={() => champ("tous", false)}>Rôles ou employés précis</Puce>
+          </Puces>
+          {!edition.tous && (
+            <>
+              <SousChoix titre="Rôles">
+                {gestion.roles.map((r) => <Puce key={r.cle} coche actif={edition.roles.includes(r.cle)} onClick={() => basculerDans("roles", r.cle)}>{r.nom}</Puce>)}
+              </SousChoix>
+              <SousChoix titre="Employés">
+                {gestion.equipe.map((e) => <Puce key={e.id} coche actif={edition.employeIds.includes(e.id)} onClick={() => basculerDans("employeIds", e.id)}>{e.nom}</Puce>)}
+              </SousChoix>
+            </>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
+            <button type="submit" className="bouton-3d" disabled={occupe || !edition.titre.trim()} style={{ ...boutonPrincipal, fontSize: 14 }}>
               {occupe ? "Enregistrement…" : "Enregistrer"}
             </button>
-            <button type="button" onClick={() => { setEdition(null); setErreur(""); }} style={{ padding: "10px 14px", borderRadius: 10, fontSize: 13, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", cursor: "pointer" }}>
-              Annuler
-            </button>
+            <BoutonAction onClick={() => { setEdition(null); setErreur(""); }}>Annuler</BoutonAction>
           </div>
         </form>
       )}
-      {erreur && <p style={{ fontSize: 12, color: "var(--danger)", margin: "8px 0 0" }}>{erreur}</p>}
+      <MessageInfo texte={erreur} erreur />
     </div>
   );
 }
@@ -433,29 +405,36 @@ function QuiAActive({ abonnes }) {
   const actives = abonnes.filter((e) => e.appareils.length > 0).length;
   const fmtDate = (d) => new Date(d).toLocaleDateString("fr-CA", { day: "numeric", month: "short", year: "numeric" });
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <div className="titre-section">📱 Qui a activé les notifications</div>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        {actives} employé{actives > 1 ? "s" : ""} sur {abonnes.length}. Sans notifications activées, les avis restent seulement dans la cloche de l&apos;appli.
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {abonnes.map((e) => (
-          <div key={e.id} style={{ background: "var(--bg)", borderRadius: 6, padding: "6px 10px", fontSize: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <strong>{e.nom}</strong>
-              <span style={{ whiteSpace: "nowrap", color: e.appareils.length > 0 ? "var(--success)" : "#C9A227" }}>
-                {e.appareils.length > 0
-                  ? `🔔 ${e.appareils.length} appareil${e.appareils.length > 1 ? "s" : ""}`
-                  : "🔕 Pas activées"}
+    <div style={stylePanneau}>
+      <TitrePanneau
+        icone="telephone" teinte={TEINTES.bleu} titre="Qui a activé les notifications"
+        sousTitre="Sans notifications activées, les avis restent seulement dans la cloche de l'appli."
+        droite={<span style={{ marginTop: 4 }}><Pastille couleur={actives === abonnes.length ? "var(--success)" : "var(--avertissement)"} fond={actives === abonnes.length ? TEINTES.vert.fond : TEINTES.ambre.fond}>{actives} / {abonnes.length}</Pastille></span>}
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {abonnes.map((e) => {
+          const actif = e.appareils.length > 0;
+          return (
+            <div key={e.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, background: actif ? TEINTES.vert.fond : "var(--surface-alt)", color: actif ? "var(--success)" : "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>
+                {e.nom.charAt(0).toUpperCase()}
               </span>
-            </div>
-            {e.appareils.map((a) => (
-              <div key={a.id} style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
-                {nomAppareil(a.appareil)} — depuis le {fmtDate(a.creeLe)}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{e.nom}</span>
+                  {actif
+                    ? <Pastille couleur="var(--success)" fond={TEINTES.vert.fond}>{e.appareils.length} appareil{e.appareils.length > 1 ? "s" : ""}</Pastille>
+                    : <Pastille couleur="var(--avertissement)" fond={TEINTES.ambre.fond}>Pas activées</Pastille>}
+                </div>
+                {e.appareils.map((a) => (
+                  <div key={a.id} style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
+                    {nomAppareil(a.appareil)} — depuis le {fmtDate(a.creeLe)}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -489,33 +468,96 @@ function QuiRecoitQuoi({ gestion }) {
   }
 
   return (
-    <div className="carte" style={{ marginBottom: 12 }}>
-      <div className="titre-section">⚙️ Qui reçoit quoi</div>
-      <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Coche les rôles qui reçoivent chaque type d'avis. Les employés n'ont aucun choix : ils reçoivent ce qui est coché pour leur rôle, plus ce qui les concerne.
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={stylePanneau}>
+      <TitrePanneau icone="utilisateurs" teinte={TEINTES.neutre} titre="Qui reçoit quoi" sousTitre="Coche les rôles qui reçoivent chaque type d'avis. Les employés reçoivent ce qui est coché pour leur rôle, plus ce qui les concerne." />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {TYPES.map(([type, t]) => (
-          <div key={type} style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{t.icone} {t.label}</div>
-            <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginBottom: 6 }}>{t.description}</div>
-            {t.concerne && <div style={{ fontSize: 11.5, marginBottom: 6 }}>👤 Toujours : {t.concerne.charAt(0).toLowerCase() + t.concerne.slice(1)}{t.parRole ? ", et :" : ""}</div>}
+          <div key={type} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{t.icone} {t.label}</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{t.description}</div>
+            {t.concerne && (
+              <LigneIcone icone="personne">Toujours : {t.concerne.charAt(0).toLowerCase() + t.concerne.slice(1)}{t.parRole ? ", et :" : ""}</LigneIcone>
+            )}
             {t.parRole && (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {gestion.roles.map((r) => (
-                  <label key={r.cle} style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12.5, cursor: "pointer" }}>
-                    <input type="checkbox" checked={(rolesParType[type] || []).includes(r.cle)} onChange={() => basculer(type, r.cle)} /> {r.nom}
-                  </label>
-                ))}
+              <div style={{ marginTop: 8 }}>
+                <Puces>
+                  {gestion.roles.map((r) => <Puce key={r.cle} coche actif={(rolesParType[type] || []).includes(r.cle)} onClick={() => basculer(type, r.cle)}>{r.nom}</Puce>)}
+                </Puces>
               </div>
             )}
           </div>
         ))}
       </div>
-      <button className="bouton-3d" disabled={occupe || !modifie} onClick={enregistrer} style={{ width: "100%", padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 700, marginTop: 12 }}>
+      <button type="button" className="bouton-3d" disabled={occupe || !modifie} onClick={enregistrer} style={{ ...boutonPrincipal, marginTop: 14 }}>
         {occupe ? "Enregistrement…" : "Enregistrer"}
       </button>
-      {info.texte && <p style={{ fontSize: 12, color: info.erreur ? "var(--danger)" : "var(--text-muted)", margin: "8px 0 0" }}>{info.texte}</p>}
+      <MessageInfo texte={info.texte} erreur={info.erreur} />
     </div>
   );
 }
+
+// ---------- Pièces communes de la page ----------
+
+// Choix en puce arrondie (destinataires, rôles, jours, modèles). coche :
+// choix multiple, avec un crochet quand il est sélectionné.
+function Puce({ actif, coche, onClick, children }) {
+  return (
+    <button
+      type="button" onClick={onClick} aria-pressed={actif}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+        border: `1px solid ${actif ? "var(--accent)" : "var(--border)"}`, background: actif ? TEINTES.ambre.fond : "var(--surface)", color: actif ? "var(--accent-ombre)" : "var(--text)",
+      }}
+    >
+      {coche && actif && <Icone nom="crochet" taille={14} couleur="var(--accent-ombre)" />}
+      {children}
+    </button>
+  );
+}
+const Puces = ({ children }) => <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{children}</div>;
+
+function SousChoix({ titre, children }) {
+  return (
+    <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: "var(--surface-alt)" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6 }}>{titre}</div>
+      <Puces>{children}</Puces>
+    </div>
+  );
+}
+
+function LigneIcone({ icone, children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12.5, color: "var(--text-muted)", marginTop: 4 }}>
+      <span style={{ display: "flex", marginTop: 1, flexShrink: 0 }}><Icone nom={icone} taille={14} couleur="var(--text-muted)" /></span>
+      <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{children}</span>
+    </div>
+  );
+}
+
+const Vide = ({ children }) => (
+  <div style={{ padding: "14px 12px", borderRadius: 12, background: "var(--surface-alt)", color: "var(--text-muted)", fontSize: 13, textAlign: "center", marginBottom: 12 }}>{children}</div>
+);
+const Aide = ({ children }) => <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>{children}</p>;
+
+// Résultat d'un envoi ou d'un enregistrement (rien si vide)
+function MessageInfo({ texte, erreur }) {
+  if (!texte) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, padding: "10px 12px", borderRadius: 12, fontSize: 13, fontWeight: 600, background: erreur ? "var(--danger-fond)" : TEINTES.vert.fond, border: `1px solid ${erreur ? "var(--danger)" : "var(--success)"}` }}>
+      <span style={{ display: "flex", marginTop: 1, flexShrink: 0 }}><Icone nom={erreur ? "alerte" : "crochet"} taille={16} couleur={erreur ? "var(--danger)" : "var(--success)"} /></span>
+      <span style={{ minWidth: 0 }}>{texte}</span>
+    </div>
+  );
+}
+
+const labelStyle = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4, marginTop: 10 };
+const champInput = {
+  width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
+  background: "var(--bg)", color: "var(--text)", fontSize: 13.5, boxSizing: "border-box", fontFamily: "inherit",
+};
+const boutonPrincipal = { width: "100%", padding: 12, borderRadius: 12, fontWeight: 700, fontSize: 15 };
+const boutonLien = { fontSize: 12.5, fontWeight: 700, color: "var(--accent-ombre)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", fontFamily: "inherit" };
+const boutonPointille = {
+  width: "100%", padding: "11px 8px", borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  color: "var(--accent-ombre)", background: "none", border: "1.5px dashed var(--accent)",
+};

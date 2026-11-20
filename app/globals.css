@@ -19,6 +19,11 @@
   --danger-fond: rgba(193, 91, 74, 0.14);
   --bleu-fond: rgba(79, 130, 192, 0.15);
   --surface-alt: #262420;
+  /* Séries d'un graphique à deux couleurs (ex. ventes en boutique / en
+     ligne) : paire vérifiée pour le daltonisme et le contraste sur --surface,
+     dans chaque thème */
+  --serie-1: #b8791f;
+  --serie-2: #4f82c0;
 }
 
 /* Thème clair — fond blanc, activé via l'attribut data-theme sur <html>
@@ -42,6 +47,8 @@ html[data-theme="light"] {
   --danger-fond: rgba(178, 63, 44, 0.09);
   --bleu-fond: rgba(63, 111, 163, 0.10);
   --surface-alt: #faf8f3;
+  --serie-1: #b8791f;
+  --serie-2: #3a72b8;
 }
 
 * { box-sizing: border-box; }
@@ -370,3 +377,94 @@ a { color: inherit; }
 .logo-clair { display: none; }
 html[data-theme="light"] .logo-clair { display: inline-block; }
 html[data-theme="light"] .logo-sombre { display: none; }
+
+/* Ajout d'une pièce à un bon (PiecesBon, app/bons/BonDetailClient.js) : sur
+   cellulaire, le choix de la pièce prend toute la largeur, sur sa propre
+   rangée ; scanner, quantité et « + Ajouter » suivent en dessous, en gros
+   boutons faciles à toucher. Dès 700 px : tout sur une rangée (styles du
+   composant). */
+.ajout-piece-libelle { display: none; }
+@media (max-width: 699px) {
+  .ajout-piece { flex-wrap: wrap; }
+  .ajout-piece > button { min-height: 46px; min-width: 46px; }
+  .ajout-piece-choix { flex: 1 1 100% !important; order: -1; }
+  .ajout-piece-choix > button { min-height: 46px; font-size: 15px !important; padding: 10px 12px !important; align-items: center; }
+  .ajout-piece-qte { flex: 1 1 0 !important; width: auto !important; min-width: 56px; min-height: 46px; font-size: 16px !important; }
+  .ajout-piece-plus { flex: 2 1 0; font-weight: 700; }
+  .ajout-piece-libelle { display: inline; font-size: 14px; }
+}
+
+/* Élevage → Viande : une coupe en stock. Une rangée de colonnes sur un écran
+   large ; sur un téléphone, une petite carte où le bouton « Vendre » reste
+   visible sans faire défiler de côté. */
+.ligne-coupe {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "nom action" "stock valeur" "ecoule ecoule" "prix gel";
+  gap: 6px 12px;
+  align-items: center;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-coupe.entete { display: none; }
+.ligne-coupe > .stock { white-space: nowrap; }
+.ligne-coupe > .valeur, .ligne-coupe > .gel { text-align: right; }
+@media (min-width: 800px) {
+  .ligne-coupe {
+    grid-template-columns: 1.5fr 1.2fr 1.3fr 1fr 0.9fr 1.4fr auto;
+    grid-template-areas: "nom stock ecoule prix valeur gel action";
+    padding: 9px 8px;
+  }
+  .ligne-coupe.entete {
+    display: grid;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .ligne-coupe > .stock, .ligne-coupe > .prix, .ligne-coupe > .valeur { text-align: right; }
+  .ligne-coupe > .gel { text-align: left; }
+}
+
+/* Élevage → Coupes et rendements : une coupe à régler. Une rangée de champs
+   sur un écran large ; sur un téléphone, une carte de deux champs de large,
+   chaque champ sous son étiquette (les étiquettes remplacent l'en-tête). */
+.reglage-coupe {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "nom nom" "rend paquet" "boutique enligne" "offerte active" "action action";
+  gap: 8px 10px;
+  align-items: start;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.reglage-coupe.entete { display: none; }
+.reglage-coupe .etiquette { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 3px; }
+.reglage-coupe input[type="text"], .reglage-coupe input:not([type]) { width: 100%; }
+.reglage-coupe .case { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding: 4px 0; }
+@media (min-width: 800px) {
+  .reglage-coupe {
+    grid-template-columns: 1.7fr 0.7fr 0.7fr 0.9fr 0.9fr 70px 60px 96px;
+    grid-template-areas: "nom rend paquet boutique enligne offerte active action";
+    padding: 8px;
+  }
+  .reglage-coupe.entete {
+    display: grid;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .reglage-coupe .etiquette, .reglage-coupe .case > span { display: none; }
+  .reglage-coupe .case { justify-content: center; padding-top: 8px; }
+  .reglage-coupe.entete > .centre { text-align: center; }
+}
+
+/* Ligne avec pastilles (module Immobilier) : sur téléphone, les pastilles
+   passent sous le texte au lieu de l'écraser */
+.ligne-pastilles { flex-wrap: wrap; row-gap: 4px; }
+.ligne-pastilles > :first-child { flex: 1 1 220px; }
+.ligne-pastilles > :last-child { flex-shrink: 0; margin-left: auto; }

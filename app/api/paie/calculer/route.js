@@ -13,7 +13,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Employé et période requis." }, { status: 400 });
   }
 
-  const resultat = await calculerPaiePourEmploye(employeId, { periodeDebut, periodeFin, typePaie, heuresManuelles, montantVacances });
+  const resultat = await calculerPaiePourEmploye(employeId, { periodeDebut, periodeFin, dateVersement: new Date(), typePaie, heuresManuelles, montantVacances });
   if (resultat.erreur) {
     return NextResponse.json({ erreur: resultat.erreur }, { status: resultat.erreur === "Employé introuvable." ? 404 : 400 });
   }

@@ -5,6 +5,7 @@ import { assurerPlanComptable, assurerCategoriesDepense, assurerCategorieInventa
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
 import EnTete from "../../../components/EnTete";
 import ComptesAPayerClient from "./ComptesAPayerClient";
+import { lectureFactureConfiguree } from "@/lib/lectureFacture";
 
 export default async function ComptesAPayer(props) {
   const searchParams = await props.searchParams;
@@ -45,6 +46,7 @@ export default async function ComptesAPayer(props) {
         tpsTaux={Number(dict.tps_taux || 5)} tvqTaux={Number(dict.tvq_taux || 9.975)}
         comptesTresorerie={comptesTresorerie} pieces={pieces} categorieInventaireId={categorieInventaire?.id}
         fournisseurInitial={typeof searchParams?.fournisseur === "string" ? searchParams.fournisseur : null}
+        lectureFacture={lectureFactureConfiguree()}
       />
     </div>
   );

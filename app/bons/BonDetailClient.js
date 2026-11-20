@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SectionDepots from "../components/SectionDepots";
@@ -9,6 +10,8 @@ import ReglementRetour from "../components/ReglementRetour";
 import SelecteurDatePrevue from "../components/SelecteurDatePrevue";
 import { bonEstAVenir, cleJourQuebec, libelleJour, heureQuebec, dateCourteQuebec, valeurDateHeureLocale } from "@/lib/regroupementDates";
 import { libelleVehicule, texteKilometrage } from "@/lib/vehicules";
+import BoutonTexto from "../components/BoutonTexto";
+import { MESSAGES_TEXTO } from "@/lib/textos";
 import FichiersRendezVous from "../components/FichiersRendezVous";
 import RecherchePieces from "../components/RecherchePieces";
 import { PhotosArriveeBon } from "../components/PhotosArrivee";
@@ -17,10 +20,12 @@ import { CLIENT } from "@/lib/client";
 import { LIBELLE_MATERIEL_ATELIER, TAUX_MATERIEL_ATELIER, montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte, libelleEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache, tacheAuForfait, libelleContenuKit } from "@/lib/kits";
+import TableauRentabilite from "@/app/components/TableauRentabilite";
 import { separerPiecesSoumission, totauxLignesFixes, coutLignesPieces } from "@/lib/piecesSoumission";
 import { nomClientBon } from "@/lib/nomClient";
 import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
+import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import PiecesHorsInventaire from "./PiecesHorsInventaire";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
@@ -30,7 +35,7 @@ import { adresseComplete } from "@/lib/adresse";
 import { compresserImage } from "@/lib/images";
 import { correspondRecherche } from "@/lib/recherche";
 import BoutonEnvoiCourriel from "@/app/components/BoutonEnvoiCourriel";
-import { argent, nombre } from "@/lib/format";
+import { argent } from "@/lib/format";
 import { Icone, TEINTES, Pastille, TitreGroupe } from "../components/StyleSection";
 
 // Même numéro que COMPTE_MAIN_OEUVRE de lib/comptabilite.js (non importable
@@ -65,12 +70,18 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
   const [rechercheWeb, setRechercheWeb] = useState(null);
   // Il faut au moins le NIV, ou la marque et le modèle, pour chercher
+  // Facture comptoir (lib/comptoir.js) : sans véhicule ni main-d'œuvre
+  const comptoir = !!bon.comptoir;
+  // Pièces de l'inventaire dans une section en haut (profil
+  // piecesEnHautDuBon) — toujours sur une facture comptoir, pour y arriver
+  // directement plutôt que dans la carte de sa ligne
+  const piecesEnHaut = CLIENT.piecesEnHautDuBon || comptoir;
   const vehiculeRecherchable = !!bon.vehicule && !!(bon.vehicule.niv || (bon.vehicule.marque && bon.vehicule.modele));
   const [nouveauProbleme, setNouveauProbleme] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -80,6 +91,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   const factureExiste = !!bon.facture;
   // Pièces d'une soumission facturée (lignes fixes) : section à part, au début
   const { pieces: piecesSoumission, taches: tachesAffichees } = separerPiecesSoumission(bon.problemes);
+  const piecesDesTaches = tachesAffichees.flatMap((pr) => pr.pieces);
   // Pièce commandée pas encore reçue : le bon ne se facture pas avant
   const aDesPiecesBo = piecesBo(bon).length > 0;
   // Bon interne sur un véhicule à vendre : sa facture (sans taxes) est payée
@@ -341,7 +353,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
   const tvqEstime = totalFacture * (tvqTaux / 100);
   const totalAvecTaxesEstime = totalFacture + tpsEstime + tvqEstime;
 
-  // Rentabilité de la facture : coûtant réel des pièces vendues + coût réel
+  // Rentabilité de la facture (ou du bon pas encore facturé) : coûtant réel des pièces vendues + coût réel
   // de la main-d'œuvre (heures poinçonnées sur ce bon × vrai taux horaire de
   // chaque employé, pas le taux facturé au client) — comparé au montant
   // facturé avant taxes.
@@ -358,10 +370,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       .reduce((s2, t) => s2 + dureeHeures(t.debut, t.fin) * (t.employe?.tauxHoraireEmploye || coutHoraireMecanicien), 0),
     0
   );
-  const totalDepensesFacture = coutPieces + coutMainOeuvre;
-  const factureAvantTaxesPourRentabilite = bon.facture ? bon.facture.totalFacture : totalFacture;
-  const ratioDepenses = factureAvantTaxesPourRentabilite > 0 ? (totalDepensesFacture / factureAvantTaxesPourRentabilite) * 100 : 0;
-  const rentabilitePourcent = 100 - ratioDepenses;
+  const libelleCoutMainOeuvre = coutMainOeuvreFixe > 0 ? "Coût main-d'œuvre (heures estimées × coûtant horaire)" : "Coût réel main-d'œuvre (taux employés)";
 
   async function sauvegarderEscompte() {
     setEnCours(true);
@@ -373,6 +382,85 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
     setEnCours(false);
     router.refresh();
   }
+
+  // Lignes du bon (pièces, pièces hors inventaire, tâches) — sous la
+  // facturation pour un bon, au-dessus pour une facture comptoir
+  const sectionLignes = (
+    <>
+      {/* Une fois facturé, la section n'est cachée que vide (ex. bon d'une
+          soumission facturée : ses pièces sont dans la section « Pièces »
+          ci-dessous). Un bon qui a des pièces hors inventaire ET des pièces de
+          l'inventaire montre les deux. */}
+      {piecesEnHaut && peutModifier && tachesAffichees.length > 0 && !(factureExiste && piecesDesTaches.length === 0) && (
+        <PiecesBon
+          titre={comptoir ? "Pièces de l'inventaire" : "Pièces du bon"}
+          style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
+          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={piecesDesTaches}
+          inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
+          onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
+        />
+      )}
+
+      {/* Pièces à ligne fixe : d'une soumission facturée, ou hors inventaire
+          (achetées pour ce bon seulement) — au début, avant les tâches */}
+      <PiecesHorsInventaire bonId={bon.id} lignes={piecesSoumission} modifiable={peutModifier && !factureExiste} onRafraichir={() => router.refresh()} />
+
+      {CLIENT.noteInterneBon && (
+        <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />
+      )}
+
+      <div style={{ marginTop: 24 }}>
+        <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{tachesAffichees.length} tâche{tachesAffichees.length > 1 ? "s" : ""}</Pastille>}>
+          {comptoir ? "Lignes" : "Tâches"}
+        </TitreGroupe>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {tachesAffichees.map((pr, idx) => (
+          <LigneTache
+            key={pr.id}
+            probleme={pr}
+            index={idx}
+            bonId={bon.id}
+            inventaire={inventaire}
+            fournisseurs={fournisseurs}
+            peutCommander={peutCommander}
+            employes={employes}
+            postesRevenu={postesRevenu}
+            peutModifier={peutModifier}
+            peutPoinconner={peutPoinconner}
+            comptoir={comptoir}
+            piecesEnHaut={piecesEnHaut}
+            estGerant={estGerant}
+            moi={moi}
+            verrouille={factureExiste}
+            peutSupprimer={peutModifier && !factureExiste && tachesAffichees.length > 1}
+            onSupprimer={() => {
+              if (pr.pieces.length > 0 && !window.confirm(`Supprimer la tâche « ${pr.description} » ? Ses pièces retourneront en stock.`)) return;
+              supprimerProbleme(pr.id);
+            }}
+            onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb(pr.description) : null}
+            onRafraichir={() => router.refresh()}
+          />
+        ))}
+      </div>
+
+      {peutModifier && !factureExiste && (
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <input
+            value={nouveauProbleme}
+            onChange={(e) => setNouveauProbleme(e.target.value)}
+            placeholder={comptoir ? "Ajouter une ligne…" : "Ajouter une tâche…"}
+            style={{ ...champStyle, padding: "11px 12px", borderRadius: 12, fontSize: 14 }}
+          />
+          <button onClick={ajouterProbleme} disabled={enCours} aria-label="Ajouter la tâche" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
+            <Icone nom="plus" taille={20} />
+          </button>
+        </div>
+      )}
+
+    </>
+  );
 
   return (
     <div className="conteneur-page">
@@ -387,12 +475,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: STATUTS[bon.statut].color }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
-          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>Bon #{bon.numero}</span>
+          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{comptoir ? "Facture comptoir" : "Bon"} #{bon.numero}</span>
           <StatusPill statut={bon.statut} />
         </div>
-        <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />
+        {!comptoir && <DatePrevueBon bon={bon} modifiable={peutModifier && !factureExiste} />}
 
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 14, paddingTop: 14, borderTop: comptoir ? "none" : "1px solid var(--border)" }}>
           <span style={tuileIcone(TEINTES.ambre)}><Icone nom="utilisateurs" taille={20} couleur={TEINTES.ambre.couleur} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <ClientBon bon={bon} clients={clientsChoix} peutModifierNom={peutModifier && !factureExiste} />
@@ -415,7 +503,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+        {!comptoir && <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
           <span style={tuileIcone(TEINTES.bleu)}><Icone nom="vehicule" taille={20} couleur={TEINTES.bleu.couleur} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <VehiculeBon bon={bon} modifiable={peutModifier && !factureExiste && !bon.vehiculeVente} />
@@ -430,7 +518,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </button>
             )}
           </div>
-        </div>
+        </div>}
         {rechercheWeb !== null && (
           <RecherchePieces
             vehicule={bon.vehicule}
@@ -456,18 +544,20 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
 
       {/* Actions : boutons de même largeur, sur une ou deux rangées */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-        <Link href={`/bons/${bon.id}/commande`} target="_blank" style={boutonActionBon}>
-          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer bon de travail
-        </Link>
+        {!comptoir && (
+          <Link href={`/bons/${bon.id}/commande`} target="_blank" style={boutonActionBon}>
+            <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer bon de travail
+          </Link>
+        )}
         <Link href={`/bons/${bon.id}/imprimer`} target="_blank" style={boutonActionBon}>
-          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> {bon.facture ? "Imprimer facture" : "Imprimer bon de commande"}
+          <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> {bon.facture || comptoir ? "Imprimer facture" : "Imprimer bon de commande"}
         </Link>
         {/* Le bon de commande en PDF au client ; une fois facturé, l'envoi
             de la facture se fait dans la section Facture */}
         {peutModifier && !bon.facture && (
-          <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle="📧 Envoyer le bon" style={boutonActionBon} />
+          <BoutonEnvoiCourriel url={`/api/bons/${bon.id}/envoyer-facture`} courrielDefaut={bon.client.courriel} libelle={comptoir ? "📧 Envoyer l'aperçu" : "📧 Envoyer le bon"} style={boutonActionBon} />
         )}
-        {peutEnvoyer && !factureExiste && (
+        {peutEnvoyer && !factureExiste && !comptoir && (
           <Link href={`/gerant/jobs-deplacement?bon=${bon.id}`} style={boutonActionBon}>
             <Icone nom="vehicule" taille={17} couleur="var(--accent-ombre)" /> En déplacement
           </Link>
@@ -494,9 +584,13 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
       )}
 
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
-        Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise.
+        {comptoir
+          ? "Ajoute les pièces de l'inventaire à une ligne, ou change le poste d'une ligne pour facturer un service à prix fixe, puis émets la facture."
+          : "Le statut évolue automatiquement : En attente → En cours dès qu'un poinçon démarre → Facturé quand la facture est émise."}
       </div>
 
+      {/* Facture comptoir : les lignes de pièces d'abord, la facturation ensuite */}
+      {comptoir && <div style={{ marginBottom: 20 }}>{sectionLignes}</div>}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
           <span style={tuileIcone(TEINTES.vert)}><Icone nom="banque" taille={18} couleur={TEINTES.vert.couleur} /></span>
@@ -512,10 +606,12 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
               </div>
               <StatutFacturePill statut={bon.facture.statut} />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-              <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {argent(bon.facture.tauxHoraireUtilise)}/h)</span>
-              <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalMainOeuvre)}</span>
-            </div>
+            {!(comptoir && bon.facture.totalMainOeuvre <= 0.005) && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                <span style={{ color: "var(--text-muted)" }}>Main-d'œuvre ({fmtHeures(bon.facture.heuresFacturees)} × {argent(bon.facture.tauxHoraireUtilise)}/h)</span>
+                <span style={{ fontWeight: 600 }}>{argent(bon.facture.totalMainOeuvre)}</span>
+              </div>
+            )}
             {bon.facture.totalAutresRevenus > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                 <span style={{ color: "var(--text-muted)" }}>Autres services</span>
@@ -556,37 +652,17 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             </div>
 
             {estGerant && bon.facture.totalFacture > 0 && ( // facture de retour (négative) : pas de rentabilité
-              <div style={{ marginTop: 4, marginBottom: 12, padding: 10, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>
-                  📊 Rentabilité de cette facture
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Coûtant des pièces vendues</span>
-                  <span>{argent(coutPieces)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 3 }}>
-                  <span style={{ color: "var(--text-muted)" }}>{coutMainOeuvreFixe > 0 ? "Coût main-d'œuvre (heures estimées × coûtant horaire)" : "Coût réel main-d'œuvre (taux employés)"}</span>
-                  <span>{argent(coutMainOeuvre)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 5, marginTop: 3, borderTop: "1px solid var(--border)", marginBottom: 6 }}>
-                  <span style={{ color: "var(--text-muted)" }}>Total des dépenses</span>
-                  <span style={{ fontWeight: 600 }}>{argent(totalDepensesFacture)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    Rentabilité (dépenses = {nombre(ratioDepenses, 0)} % de la facture avant taxes)
-                  </span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: rentabilitePourcent >= 0 ? "var(--success)" : "var(--danger)" }}>
-                    {nombre(rentabilitePourcent, 0)} %
-                  </span>
-                </div>
-              </div>
+              <TableauRentabilite
+                titre="Rentabilité de cette facture" document="de la facture"
+                coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}
+                avantTaxes={bon.facture.totalFacture} style={{ marginTop: 4, marginBottom: 12 }}
+              />
             )}
 
             {peutModifier && !payeeParCoutant && (
               <div style={{ marginBottom: 12 }}>
                 <AvisVehiculePret
-                  bon={bon}
+                  bon={bon} nomEntreprise={nomEntreprise}
                   boutonCourriel={
                     <button
                       onClick={declencherEnvoiCourriel}
@@ -720,7 +796,8 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
           </>
         ) : (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+            {/* Facture comptoir : pas de main-d'œuvre, sauf du temps entré quand même */}
+            {!(comptoir && totalMainOeuvre <= 0.005 && !heuresEnCours) && <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
               <span style={{ color: "var(--text-muted)" }}>
                 Main-d'œuvre ({fmtHeures(totalHeuresTerminees)} × {argent(tauxHoraireEffectif)}/h){heuresEnCours ? " *" : ""}
                 {peutModifier && (
@@ -728,7 +805,7 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 )}
               </span>
               <span style={{ fontWeight: 600 }}>{argent(totalMainOeuvre)}</span>
-            </div>
+            </div>}
             {afficherTauxHoraire && (
               <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
                 <input
@@ -805,6 +882,15 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
             </div>
             {heuresEnCours && <p style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 6 }}>* Un poinçon est encore actif — le total augmentera une fois arrêté.</p>}
 
+            {/* Même tableau que sous la facture, sur l'estimé du bon (profil rentabiliteBonEtSoumission) */}
+            {CLIENT.rentabiliteBonEtSoumission && estGerant && totalFacture > 0 && (
+              <TableauRentabilite
+                titre="Rentabilité bon" document="du bon"
+                coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}
+                avantTaxes={totalFacture} style={{ marginTop: 12 }}
+              />
+            )}
+
             {/* Dépôts (lib/depots.js) : appliqués à la facture à son émission */}
             {!bon.vehiculeVente && (
               <SectionDepots
@@ -812,6 +898,9 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
                 cible={{ bonId: bon.id }} peutModifier={peutModifier}
               />
             )}
+
+            {/* Photos des tâches au client avant la facture (profil envoiPhotosCourriel) */}
+            {CLIENT.envoiPhotosCourriel && peutModifier && !comptoir && !bon.vehiculeVente && <EnvoiPhotosBon bon={bon} />}
 
             {peutModifier && (
               <div style={{ marginTop: 12 }}>
@@ -839,79 +928,13 @@ export default function BonDetailClient({ bon, inventaire, employes, postesReven
         )}
       </div>
 
-      {/* Bon d'une soumission facturée : ses pièces sont dans la section « Pièces » ci-dessous */}
-      {CLIENT.piecesEnHautDuBon && peutModifier && tachesAffichees.length > 0 && !(piecesSoumission.length > 0 && factureExiste) && (
-        <PiecesBon
-          titre="Pièces du bon"
-          style={{ marginTop: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, padding: 18 }}
-          bonId={bon.id} problemeId={tachesAffichees[0].id} pieces={tachesAffichees.flatMap((pr) => pr.pieces)}
-          inventaire={inventaire} fournisseurs={fournisseurs} peutCommander={peutCommander} verrouille={factureExiste}
-          onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb("") : null} onRafraichir={() => router.refresh()}
-        />
-      )}
-
-      {/* Pièces à ligne fixe : d'une soumission facturée, ou hors inventaire
-          (achetées pour ce bon seulement) — au début, avant les tâches */}
-      <PiecesHorsInventaire bonId={bon.id} lignes={piecesSoumission} modifiable={peutModifier && !factureExiste} onRafraichir={() => router.refresh()} />
-
-      {CLIENT.noteInterneBon && (
-        <NoteInterne bonId={bon.id} note={bon.noteInterne || ""} modifiable={peutModifier} onRafraichir={() => router.refresh()} />
-      )}
-
-      <div style={{ marginTop: 24 }}>
-        <TitreGroupe couleur="var(--accent)" droite={<Pastille couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)">{tachesAffichees.length} tâche{tachesAffichees.length > 1 ? "s" : ""}</Pastille>}>
-          Tâches
-        </TitreGroupe>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {tachesAffichees.map((pr, idx) => (
-          <LigneTache
-            key={pr.id}
-            probleme={pr}
-            index={idx}
-            bonId={bon.id}
-            inventaire={inventaire}
-            fournisseurs={fournisseurs}
-            peutCommander={peutCommander}
-            employes={employes}
-            postesRevenu={postesRevenu}
-            peutModifier={peutModifier}
-            peutPoinconner={peutPoinconner}
-            estGerant={estGerant}
-            moi={moi}
-            verrouille={factureExiste}
-            peutSupprimer={peutModifier && !factureExiste && tachesAffichees.length > 1}
-            onSupprimer={() => {
-              if (pr.pieces.length > 0 && !window.confirm(`Supprimer la tâche « ${pr.description} » ? Ses pièces retourneront en stock.`)) return;
-              supprimerProbleme(pr.id);
-            }}
-            onRechercherPieces={vehiculeRecherchable ? () => setRechercheWeb(pr.description) : null}
-            onRafraichir={() => router.refresh()}
-          />
-        ))}
-      </div>
-
-      {peutModifier && !factureExiste && (
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <input
-            value={nouveauProbleme}
-            onChange={(e) => setNouveauProbleme(e.target.value)}
-            placeholder="Ajouter une tâche…"
-            style={{ ...champStyle, padding: "11px 12px", borderRadius: 12, fontSize: 14 }}
-          />
-          <button onClick={ajouterProbleme} disabled={enCours} aria-label="Ajouter la tâche" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 46, borderRadius: 12, border: "none", background: "var(--accent)", color: "#221f18", cursor: "pointer" }}>
-            <Icone nom="plus" taille={20} />
-          </button>
-        </div>
-      )}
-
+      {!comptoir && sectionLignes}
       <PiecesACommander bon={bon} lignes={bon.piecesACommander || []} inventaire={inventaire.filter((p) => !p.estKit)} fournisseurs={fournisseurs} modifiable={peutModifier} peutCommander={peutCommander} verrouille={factureExiste} />
     </div>
   );
 }
 
-function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
+function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutCommander, employes, postesRevenu, peutModifier, peutPoinconner, comptoir = false, piecesEnHaut = CLIENT.piecesEnHautDuBon, estGerant, moi, verrouille, peutSupprimer, onSupprimer, onRechercherPieces, onRafraichir }) {
   const [erreurPhoto, setErreurPhoto] = useState("");
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const [suppressionPhoto, setSuppressionPhoto] = useState(null); // id de la photo en cours de suppression
@@ -986,6 +1009,18 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
     });
     setEnCours(false);
     setEntreeEnEdition(null);
+    onRafraichir();
+  }
+
+  async function annulerChronoOublie(entree) {
+    if (!window.confirm(`Annuler le chrono de ${entree.employe?.nom || "cet employé"} ? Il est resté ouvert après la facture : ses heures ne sont ni sur la facture ni dans la paie, rien d'autre ne change.`)) return;
+    setEnCours(true);
+    const res = await fetch(`/api/entrees-temps/${entree.id}`, { method: "DELETE" });
+    setEnCours(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.erreur || "Impossible d'annuler ce chrono.");
+    }
     onRafraichir();
   }
 
@@ -1105,8 +1140,11 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
   }
 
   return (
-    <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
-      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
+    <div style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 16px 14px 20px" }}>
+      {/* Bande de couleur rognée aux coins arrondis — sans rogner la carte, pour que la liste des pièces puisse en dépasser */}
+      <div style={{ position: "absolute", inset: 0, borderRadius: 15, overflow: "hidden", pointerEvents: "none" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: "var(--accent)" }} />
+      </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
         {editionNom ? (
           <div style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -1229,8 +1267,9 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
         </div>
       )}
 
-      {/* Horodateur propre à cette tâche */}
-      <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
+      {/* Horodateur propre à cette tâche — pas sur une facture comptoir
+          (sauf du temps déjà entré, pour pouvoir le corriger) */}
+      {!(comptoir && probleme.entreesTemps.length === 0) && <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lignesTemps.length > 0 ? 6 : 0 }}>
           <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)" }}>
             ⏱ Temps sur cette tâche · <TotalTemps heuresTerminees={heuresTerminees} debutsActifs={debutsActifs} />{(probleme.categorieRevenu && probleme.categorieRevenu !== "MAIN_OEUVRE") ? " (pour la paie — ne facture pas le client)" : tacheAuForfait(probleme) ? " (pour la paie — main-d'œuvre comprise dans le kit)" : ""}
@@ -1254,7 +1293,18 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
             {lignesTemps.map((l) => (
               <div key={l.employe.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                 <span style={{ color: "var(--text-muted)" }}>{l.employe.nom}</span>
-                {l.active ? <LiveTimer debut={l.active.debut} /> : <span style={{ fontWeight: 600 }}>{fmtHeures(l.termine)}</span>}
+                {l.active ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <LiveTimer debut={l.active.debut} />
+                    {/* Chrono oublié sur un bon déjà facturé : ses heures ne sont
+                        pas sur la facture, on peut seulement l'annuler */}
+                    {verrouille && peutModifier && (
+                      <button onClick={() => annulerChronoOublie(l.active)} disabled={enCours} style={{ ...boutonTexte, color: "var(--danger)" }}>
+                        Annuler ce chrono
+                      </button>
+                    )}
+                  </span>
+                ) : <span style={{ fontWeight: 600 }}>{fmtHeures(l.termine)}</span>}
               </div>
             ))}
           </div>
@@ -1317,7 +1367,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Photos */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
@@ -1354,7 +1404,7 @@ function LigneTache({ probleme, index, bonId, inventaire, fournisseurs, peutComm
         </div>
       )}
 
-      {peutModifier && !CLIENT.piecesEnHautDuBon && (
+      {peutModifier && !piecesEnHaut && (
         <PiecesBon
           titre="Pièces pour cette tâche" style={{ marginTop: 12, paddingTop: 10, borderTop: "1px dashed var(--border)" }}
           bonId={bonId} problemeId={probleme.id} pieces={probleme.pieces} inventaire={inventaire} fournisseurs={fournisseurs}
@@ -1384,6 +1434,11 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
   const [recherchePiece, setRecherchePiece] = useState("");
   const [afficherSuggestionsPiece, setAfficherSuggestionsPiece] = useState(false);
   const boiteRecherchePieceRef = useRef(null);
+  // Sur cellulaire, le choix de pièce s'ouvre en plein écran, calé sur la
+  // partie de l'écran que le clavier laisse visible (zoneVisible)
+  const panneauPieceRef = useRef(null);
+  const [choixPleinEcran, setChoixPleinEcran] = useState(false);
+  const [zoneVisible, setZoneVisible] = useState(null);
   const [qtePiece, setQtePiece] = useState("1");
   const [erreurPiece, setErreurPiece] = useState("");
   const [confirmationPiece, setConfirmationPiece] = useState("");
@@ -1413,6 +1468,7 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
 
   useEffect(() => {
     function surClicExterieur(e) {
+      if (panneauPieceRef.current?.contains(e.target)) return;
       if (boiteRecherchePieceRef.current && !boiteRecherchePieceRef.current.contains(e.target)) {
         setAfficherSuggestionsPiece(false);
       }
@@ -1420,6 +1476,39 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     document.addEventListener("mousedown", surClicExterieur);
     return () => document.removeEventListener("mousedown", surClicExterieur);
   }, []);
+
+  // Choix de pièce en plein écran : la page derrière ne défile plus, et le
+  // panneau suit la zone visible — le clavier du téléphone ne cache ni le
+  // champ de recherche ni la liste.
+  const pleinEcranOuvert = afficherSuggestionsPiece && choixPleinEcran;
+  useEffect(() => {
+    if (!pleinEcranOuvert) return;
+    const vv = window.visualViewport;
+    function mesurer() {
+      // « Texte plus gros » (zoom du body, globals.css) grossit aussi le panneau
+      const zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
+      setZoneVisible({
+        haut: (vv?.offsetTop || 0) / zoom,
+        hauteur: (vv?.height || window.innerHeight) / zoom,
+      });
+    }
+    mesurer();
+    vv?.addEventListener("resize", mesurer);
+    vv?.addEventListener("scroll", mesurer);
+    const defilement = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      vv?.removeEventListener("resize", mesurer);
+      vv?.removeEventListener("scroll", mesurer);
+      document.body.style.overflow = defilement;
+    };
+  }, [pleinEcranOuvert]);
+
+  function basculerChoixPiece() {
+    setChoixPleinEcran(window.matchMedia("(max-width: 699px)").matches);
+    setAfficherSuggestionsPiece((v) => !v);
+    setRecherchePiece("");
+  }
 
   function choisirPiece(p) {
     setPieceChoisie(p.id);
@@ -1469,7 +1558,13 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
       const habituel = [pieceSelectionnee.fournisseurId, ...(pieceSelectionnee.fournisseurs || []).map((f) => f.fournisseurId)]
         .find((id) => id && fournisseurs.some((f) => f.id === id));
       const manque = Math.max(1, parseInt(qtePiece) || 1) - Math.max(0, pieceSelectionnee.qte);
-      setCommandeBo({ fournisseurId: habituel || "", qteCommande: String(manque) });
+      // Déjà en commande ailleurs ? La B/O peut attendre cette commande-là
+      // plutôt que d'en commander une de plus
+      const pieceId = pieceSelectionnee.id;
+      setCommandeBo({ fournisseurId: habituel || "", qteCommande: String(manque), enCommande: null, pieceId });
+      const res = await fetch(`/api/bons/${bonId}/pieces/commander?pieceId=${encodeURIComponent(pieceId)}`);
+      const data = res.ok ? await res.json().catch(() => ({})) : {};
+      setCommandeBo((c) => (c && c.pieceId === pieceId ? { ...c, enCommande: data.commandes || [] } : c));
       return;
     }
     setEnCours(true);
@@ -1490,6 +1585,30 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
     setConfirmationPiece(pieceSelectionnee?.estKit ? "Kit ajouté — ses pièces sont déduites de l'inventaire ✓" : "Pièce ajoutée et déduite de l'inventaire ✓");
     onRafraichir();
     setTimeout(() => setConfirmationPiece(""), 2500);
+  }
+
+  // B/O sur une commande ouverte qui en attend déjà assez : rien de plus n'est commandé
+  async function reserverSurCommande(commande) {
+    setErreurPiece("");
+    setEnCours(true);
+    const res = await fetch(`/api/bons/${bonId}/pieces/commander`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ problemeId, pieceId: pieceChoisie, qte: Math.max(1, parseInt(qtePiece) || 1), commandeId: commande.id }),
+    });
+    setEnCours(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setErreurPiece(data.erreur || "Erreur lors de la mise en B/O.");
+      return;
+    }
+    setCommandeBo(null);
+    setPieceChoisie("");
+    setRecherchePiece("");
+    setQtePiece("1");
+    setConfirmationPiece(`${data.enStock > 0 ? `${data.enStock} sortie(s) du stock, ` : ""}${data.aCommander} en B/O — attend(ent) la commande ${data.numero}, rien de plus commandé ✓`);
+    onRafraichir();
+    setTimeout(() => setConfirmationPiece(""), 4000);
   }
 
   async function commanderEnBo() {
@@ -1619,16 +1738,16 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
       )}
 
       {!verrouille && (
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="ajout-piece" style={{ display: "flex", gap: 6 }}>
           <button type="button" onClick={() => setScannerOuvert(true)} title="Scanner une pièce" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>📷</button>
           {scannerOuvert && <ScannerCodeBarres titre="Scanner une pièce pour ce bon" onDetecte={scanDetecte} onFermer={() => setScannerOuvert(false)} />}
           {onRechercherPieces && (
             <button type="button" onClick={onRechercherPieces} title="Rechercher la pièce chez les fournisseurs (web)" style={{ ...boutonAjout, padding: "0 10px", fontSize: 15 }}>🔎</button>
           )}
-          <div ref={boiteRecherchePieceRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
+          <div ref={boiteRecherchePieceRef} className="ajout-piece-choix" style={{ position: "relative", flex: 1, minWidth: 0 }}>
             <button
               type="button"
-              onClick={() => { setAfficherSuggestionsPiece((v) => !v); setRecherchePiece(""); }}
+              onClick={basculerChoixPiece}
               style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "7px 8px", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 6 }}
             >
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: pieceSelectionnee ? "var(--text)" : "var(--text-muted)" }}>
@@ -1636,51 +1755,83 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
               </span>
               <span style={{ color: "var(--text-muted)" }}>▾</span>
             </button>
-            {afficherSuggestionsPiece && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
-                <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>
-                  <input
-                    autoFocus
-                    value={recherchePiece}
-                    onChange={(e) => setRecherchePiece(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") setAfficherSuggestionsPiece(false);
-                      if (e.key === "Enter" && suggestionsPieces.length > 0) { e.preventDefault(); choisirPiece(suggestionsPieces[0]); }
-                    }}
-                    placeholder="🔍 Rechercher (nom ou numéro)…"
-                    style={{ ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px" }}
-                  />
-                </div>
-                <div style={{ maxHeight: 260, overflowY: "auto" }}>
+            {afficherSuggestionsPiece && (() => {
+              const pe = choixPleinEcran;
+              const champRecherche = (
+                <input
+                  autoFocus
+                  value={recherchePiece}
+                  onChange={(e) => setRecherchePiece(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setAfficherSuggestionsPiece(false);
+                    if (e.key === "Enter" && suggestionsPieces.length > 0) { e.preventDefault(); choisirPiece(suggestionsPieces[0]); }
+                  }}
+                  placeholder="🔍 Rechercher (nom ou numéro)…"
+                  enterKeyHint="search" autoComplete="off" autoCorrect="off"
+                  style={pe
+                    ? { ...champStyle, minWidth: 0, fontSize: 16, padding: "11px 12px" }
+                    : { ...champStyle, width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px" }}
+                />
+              );
+              const liste = (
+                <>
                   {suggestionsPieces.length === 0 ? (
-                    <div style={{ padding: "8px 10px", fontSize: 12, color: "var(--text-muted)" }}>{peutCommander || CLIENT.stockNegatifBons ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
+                    <div style={{ padding: pe ? "14px" : "8px 10px", fontSize: pe ? 14 : 12, color: "var(--text-muted)" }}>{peutCommander || CLIENT.stockNegatifBons ? "Aucune pièce trouvée" : "Aucune pièce en stock trouvée"}</div>
                   ) : suggestionsPieces.slice(0, MAX_SUGGESTIONS_PIECES).map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => choisirPiece(p)}
-                      style={{ display: "block", width: "100%", textAlign: "left", padding: "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: 12, cursor: "pointer" }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: pe ? "13px 14px" : "7px 10px", background: p.id === pieceChoisie ? "var(--surface-2, rgba(127,127,127,0.12))" : "none", border: "none", borderBottom: "1px solid var(--border)", color: "var(--text)", fontSize: pe ? 15 : 12, cursor: "pointer" }}
                     >
                       {p.nom} — <span style={p.qte <= 0 ? { color: "#D9822B" } : undefined}>{p.qte <= 0 ? (CLIENT.stockNegatifBons ? `${p.estKit ? "kit · " : ""}${p.qte} en stock` : "0 en stock · à commander") : libelleStock(p)}</span>
-                      {p.numero && <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
+                      {p.numero && <span style={{ fontSize: pe ? 13 : 11, color: "var(--text-muted)" }}> · #{p.numero}</span>}
                     </button>
                   ))}
                   {suggestionsPieces.length > MAX_SUGGESTIONS_PIECES && (
-                    <div style={{ padding: "8px 10px", fontSize: 11.5, color: "var(--text-muted)" }}>
+                    <div style={{ padding: pe ? "12px 14px" : "8px 10px", fontSize: pe ? 13 : 11.5, color: "var(--text-muted)" }}>
                       … et {suggestionsPieces.length - MAX_SUGGESTIONS_PIECES} autres — tape un nom ou un numéro pour préciser.
                     </div>
                   )}
-                </div>
-              </div>
-            )}
+                </>
+              );
+              if (!pe) {
+                return (
+                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, zIndex: 10, marginTop: 2, overflow: "hidden" }}>
+                    <div style={{ padding: 6, borderBottom: "1px solid var(--border)" }}>{champRecherche}</div>
+                    <div style={{ maxHeight: 260, overflowY: "auto" }}>{liste}</div>
+                  </div>
+                );
+              }
+              return createPortal(
+                <div
+                  ref={panneauPieceRef} role="dialog" aria-modal="true" aria-label="Choisir une pièce"
+                  style={{
+                    position: "fixed", left: 0, right: 0, top: zoneVisible?.haut ?? 0, height: zoneVisible ? zoneVisible.hauteur : "100dvh",
+                    zIndex: 1000, background: "var(--bg)", color: "var(--text)", display: "flex", flexDirection: "column",
+                  }}
+                >
+                  <div style={{ padding: "calc(10px + env(safe-area-inset-top)) 12px 10px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+                    <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>Choisir une pièce</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {champRecherche}
+                      <button type="button" onClick={() => setAfficherSuggestionsPiece(false)} style={{ ...boutonAjout, padding: "0 14px", fontSize: 14, color: "var(--text)" }}>Fermer</button>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch" }}>{liste}</div>
+                </div>,
+                document.body
+              );
+            })()}
           </div>
           <input
             type="number" min={1} value={qtePiece}
             onChange={(e) => { setQtePiece(e.target.value); setCommandeBo(null); }}
             onBlur={() => setQtePiece(String(Math.max(1, parseInt(qtePiece) || 1)))}
+            className="ajout-piece-qte" inputMode="numeric" aria-label="Quantité"
             style={{ ...champStyle, flex: "none", width: 48, textAlign: "center", fontSize: 12, padding: "7px 4px" }}
           />
-          <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} style={{ ...boutonAjout, padding: "0 12px" }}>+</button>
+          <button onClick={ajouterPiece} disabled={!pieceChoisie || enCours} className="ajout-piece-plus" style={{ ...boutonAjout, padding: "0 12px", opacity: pieceChoisie ? 1 : 0.5 }}>+<span className="ajout-piece-libelle"> Ajouter</span></button>
         </div>
       )}
       {!verrouille && (
@@ -1770,6 +1921,8 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
         const manque = qteVoulue - enStock;
         const qteCommande = parseInt(commandeBo.qteCommande) || 0;
         const tropPeu = qteCommande < manque;
+        const enCommande = commandeBo.enCommande || [];
+        const suffisante = enCommande.find((c) => c.libre >= manque);
         return (
           <div style={{ marginTop: 8, padding: "10px 12px", border: "1px solid #D9822B", borderRadius: 8, fontSize: 12 }}>
             <div style={{ marginBottom: 8 }}>
@@ -1780,6 +1933,38 @@ function PiecesBon({ titre, style, bonId, problemeId, pieces, inventaire, fourni
                 Elle compte dans le total du bon ; le bon se facture une fois la commande reçue.
               </div>
             </div>
+            {commandeBo.enCommande === null && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>Vérification des commandes en cours…</div>
+            )}
+            {enCommande.length > 0 && (
+              <div style={{ marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: "var(--surface-alt)" }}>
+                <div style={{ marginBottom: 6 }}>
+                  📦 <strong>Déjà en commande</strong>
+                  {suffisante ? " — inutile d'en commander d'autres :" : " — pas assez de libres pour ce bon :"}
+                </div>
+                {enCommande.map((c) => (
+                  <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                    <span style={{ flex: 1, minWidth: 160 }}>
+                      <Link href={`/secretaire/inventaire/commandes/${c.id}`} style={{ color: "var(--accent)" }}>{c.numero}</Link>
+                      {" "}· {c.fournisseur} · {STATUTS_COMMANDE[c.statut]?.label || c.statut}
+                      <span style={{ color: "var(--text-muted)" }}>
+                        {" "}— {c.reste} à recevoir{c.reserve > 0 ? `, ${c.reserve} déjà pour d'autres bons` : ""} : <strong>{c.libre}</strong> libre{c.libre > 1 ? "s" : ""}
+                      </span>
+                    </span>
+                    {c.libre >= manque && (
+                      <button onClick={() => reserverSurCommande(c)} disabled={enCours} className="bouton-3d" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>
+                        📦 B/O sur {c.numero}
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {suffisante && (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                    La pièce sort du stock à la réception de cette commande. Sinon, commande-en quand même ci-dessous.
+                  </div>
+                )}
+              </div>
+            )}
             {fournisseurs.length === 0 ? (
               <div style={{ color: "var(--text-muted)" }}>
                 Aucun fournisseur au dossier — ajoute-le d'abord dans <Link href="/gerant/fournisseurs" style={{ color: "var(--accent)" }}>Fournisseurs</Link>.
@@ -2230,7 +2415,7 @@ function DatePrevueBon({ bon, modifiable }) {
 // même ligne, moitié-moitié, que « 📧 Envoyer par courriel » (boutonCourriel).
 // Profil envoiPhotosCourriel : en dessous, « 📷 Envoyer les photos » des
 // tâches en pièces jointes (POST /api/bons/[id]/envoyer-photos).
-function AvisVehiculePret({ bon, boutonCourriel }) {
+function AvisVehiculePret({ bon, boutonCourriel, nomEntreprise }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(null); // null | "avis" | "photos"
   const [courriel, setCourriel] = useState(bon.client.courriel || "");
@@ -2276,6 +2461,14 @@ function AvisVehiculePret({ bon, boutonCourriel }) {
           {enCours === "avis" ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau" : "🚗 Aviser le client"}
         </button>
       </div>
+      {/* Texto « véhicule prêt » : ouvre Messages, sans abonnement (lib/textos.js) */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+        <BoutonTexto
+          telephone={bon.client.telephone}
+          message={MESSAGES_TEXTO.vehiculePret({ nom: bon.clientNomAffiche || bon.client.nom, vehicule: bon.vehicule ? libelleVehicule(bon.vehicule) : "", nomEntreprise })}
+          libelle="💬 Aviser par texto" className="bouton-3d-sombre" style={{ ...styleBouton, flex: "1 1 100%" }}
+        />
+      </div>
       {CLIENT.envoiPhotosCourriel && (
         <button
           onClick={() => basculer("photos")}
@@ -2303,6 +2496,64 @@ function AvisVehiculePret({ bon, boutonCourriel }) {
         <p style={{ fontSize: 11, marginTop: 6, color: "var(--text-muted)" }}>
           Avisé le {dateCourteQuebec(bon.avisPretLe)} à {heureQuebec(bon.avisPretLe)}{bon.avisPretA ? ` (${bon.avisPretA})` : ""}.
         </p>
+      )}
+      {message && (
+        <p style={{ fontSize: 12, marginTop: 8, color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>
+      )}
+    </div>
+  );
+}
+
+// « 📷 Envoyer les photos » sur un bon pas encore facturé (profil
+// envoiPhotosCourriel) : même envoi que sous la facture (AvisVehiculePret),
+// photos des tâches en pièces jointes (POST /api/bons/[id]/envoyer-photos).
+function EnvoiPhotosBon({ bon }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [courriel, setCourriel] = useState(bon.client.courriel || "");
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState(null); // { texte, erreur }
+  const nbPhotos = bon.problemes.reduce((s, pr) => s + (pr.photos?.length || 0), 0);
+
+  async function envoyer() {
+    setEnCours(true);
+    setMessage(null);
+    const res = await fetch(`/api/bons/${bon.id}/envoyer-photos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courriel }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    if (!res.ok) {
+      setMessage({ texte: data.erreur || "Erreur lors de l'envoi.", erreur: true });
+      return;
+    }
+    setOuvert(false);
+    setMessage({ texte: `${data.nombre} photo(s) envoyée(s) à ${data.destinataire} ✓` });
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        onClick={() => { setMessage(null); setOuvert(!ouvert); }}
+        disabled={enCours || nbPhotos === 0}
+        title={nbPhotos === 0 ? "Aucune photo sur les tâches de ce bon" : "Courriel au client : les photos des tâches en pièces jointes"}
+        className="bouton-3d-sombre"
+        style={{ width: "100%", padding: 10, borderRadius: 8, fontSize: 13, fontWeight: 700 }}
+      >
+        {enCours ? "Envoi…" : `📷 Envoyer les photos${nbPhotos ? ` (${nbPhotos})` : ""}`}
+      </button>
+      {ouvert && (
+        <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
+          <input
+            type="email" placeholder="courriel@client.com" value={courriel}
+            onChange={(e) => setCourriel(e.target.value)} autoFocus
+            style={{ flex: 1, minWidth: 0, padding: "8px 9px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}
+          />
+          <button onClick={envoyer} disabled={!courriel.trim() || enCours} className="bouton-3d" style={{ padding: "0 14px", borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+            Envoyer les photos
+          </button>
+        </div>
       )}
       {message && (
         <p style={{ fontSize: 12, marginTop: 8, color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>

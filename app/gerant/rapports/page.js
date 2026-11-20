@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { dateAujourdhuiQuebec, limitesJourQuebec, dateQuebecStr, jourSemaineQuebec, dateHeureQuebecVersUTC, FUSEAU } from "@/lib/temps";
 import { chargerReglagesDisponibilites } from "@/lib/disponibilites";
-import { estPoinconSuspect, JOURS_POINCONS_OUBLIES } from "@/lib/productivite";
+import { estPoinconSuspect, JOURS_POINCONS_OUBLIES, productiviteActif } from "@/lib/productivite";
 import { chargerHeuresJour } from "@/lib/heuresJour";
 import EnTete from "../../components/EnTete";
 import RapportsClient from "./RapportsClient";
@@ -18,6 +18,7 @@ export default async function RapportJournalier(props) {
   const searchParams = await props.searchParams;
   const session = await obtenirSession();
   if (!(await aAccesSection(session, "jobs-temps-reel"))) redirect("/gerant");
+  if (!(await productiviteActif())) redirect("/gerant");
 
   const dateStr = searchParams?.date || dateAujourdhuiQuebec();
   const { debut: debutJour, fin: finJour } = limitesJourQuebec(dateStr);

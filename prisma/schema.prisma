@@ -52,14 +52,22 @@ model User {
   salaireAnnuel      Float? // pour un employé salarié (montant fixe)
   frequencePaie      String    @default("BIHEBDOMADAIRE") // "HEBDOMADAIRE" | "BIHEBDOMADAIRE" | "BIMENSUEL" | "MENSUEL"
   tauxVacances       Float     @default(4) // % du salaire brut accumulé en vacances (minimum légal QC : 4%, ou 6% après 3 ans)
+  montantTd1         Float? // « montant total de la demande » du formulaire TD1 fédéral — vide = montant personnel de base de l'année (lib/paie.js)
+  dateNaissance      DateTime? // journée civile (midi UTC) — sert aux cotisations au RRQ selon l'âge (18 ans, 73 ans) ; vide = cotise normalement
+  exemptionAE        Boolean   @default(false) // emploi non assurable à l'assurance-emploi (propriétaire qui contrôle plus de 40 % des actions votantes, lien de dépendance)
+  exemptionRRQ       Boolean   @default(false) // a choisi de cesser de cotiser au RRQ (65 ans ou plus, rente de retraite, formulaire RR-50)
+  exemptionCNESST    Boolean   @default(false) // dirigeant non couvert par la CNESST (pas de protection personnelle) : aucune prime sur son salaire
+  montantTp10153     Float? // crédits d'impôt personnels du formulaire TP-1015.3 (Québec) — vide = montant personnel de base de l'année
   creeLe             DateTime  @default(now())
   derniereActivite   DateTime? // dernière page ou action dans le logiciel (au plus 2 min de retard) — « en ligne » si récente, voir lib/presence.js ; vidée à la déconnexion
 
   entreesTemps         EntreeTemps[]
   entreesTempsInternes EntreeTempsInterne[]
   heuresJour           HeuresJourEmploye[]
+  quarts               Quart[] // pointage de présence (arrivée, départ, dîner, pause) — lib/quarts.js
   photosAjoutees       Photo[]
   paies                Paie[]
+  retenues             RetenueEmploye[] // REER, assurance collective… retenus à chaque paie
   envoisRecus          EnvoiBon[] // bons qui lui ont été envoyés (section « Jobs en déplacement »)
   positionsGps         PositionGps[]
   abonnementsPush      AbonnementPush[] // téléphones où il reçoit les notifications
@@ -107,6 +115,7 @@ model Vehicule {
   niv           String? // numéro d'identification du véhicule — exactement 17 caractères
   plaque        String?
   kilometrage   Int? // dernier kilométrage connu (au dernier bon ou à la dernière mise à jour)
+  rappelEntretienLe DateTime? // dernier rappel d'entretien envoyé au client pour ce véhicule (lib/rappelsEntretien.js)
   bons          BonTravail[]
   soumissions   Soumission[]
   vehiculeVente VehiculeVente? // si c'est un véhicule à vendre de l'entreprise
@@ -154,6 +163,10 @@ model BonTravail {
   // demandée par le client) ; vide = le nom du dossier. Le dossier, le
   // véhicule et le reste ne changent pas. Voir lib/nomClient.js.
   clientNomAffiche    String?
+  // Facture comptoir : vente de pièces ou de services sans véhicule ni
+  // main-d'œuvre (pas de poinçon, absent de la vue des mécaniciens). Même
+  // fiche et même facture qu'un bon. Voir lib/comptoir.js.
+  comptoir            Boolean        @default(false)
   creeLe              DateTime       @default(now())
 
   @@index([vehiculeVenteId])
@@ -191,6 +204,8 @@ model PieceACommander {
   creeLe      DateTime   @default(now())
 
   @@index([bonId])
+  @@index([pieceId])
+  @@index([commandeId])
 }
 
 // ---------- VÉHICULES À VENDRE (profil vehiculesAVendre) ----------
@@ -241,6 +256,9 @@ model FactureVente {
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   referenceVersement String?
   creePar            String?
+
+  @@index([clientId])
+  @@index([compteTresorerieId])
 }
 
 // ---------- FACTURATION ----------
@@ -281,6 +299,7 @@ model Facture {
 
   @@index([statut])
   @@index([dateEmission])
+  @@index([compteTresorerieId])
 }
 
 // Un encaissement reçu sur une facture : une facture peut se payer en
@@ -306,6 +325,7 @@ model PaiementFacture {
   creditClient       CreditClient? // rempli quand ce paiement est du crédit client appliqué
 
   @@index([factureId])
+  @@index([compteTresorerieId])
 }
 
 // Dépôt encaissé avant la facture, sur une soumission ou un bon de commande
@@ -337,6 +357,7 @@ model DepotClient {
 
   @@index([soumissionId])
   @@index([bonId])
+  @@index([compteTresorerieId])
 }
 
 // Crédit client (lib/creditClient.js) : un mouvement par ligne, le solde du
@@ -372,6 +393,7 @@ model CreditClient {
 
   @@index([clientId])
   @@index([factureId])
+  @@index([compteTresorerieId])
 }
 
 model Probleme {
@@ -415,6 +437,7 @@ model Probleme {
 
   @@index([bonId])
   @@index([retourDeProblemeId])
+  @@index([retourPieceId])
 }
 
 model Photo {
@@ -427,6 +450,7 @@ model Photo {
   ajouteeLe  DateTime @default(now())
 
   @@index([problemeId])
+  @@index([employeId])
 }
 
 // Photos du véhicule à son arrivée, prises à la création du bon : une par
@@ -479,6 +503,8 @@ model Piece {
   estKit        Boolean               @default(false)
   composantsKit ComposantKit[]        @relation("ComposantsDuKit")
   dansKits      ComposantKit[]        @relation("PieceDansKit") // kits qui contiennent cette pièce
+
+  @@index([fournisseurId])
 }
 
 // Ligne d'un kit : une pièce d'inventaire (pieceId, quantité entière par
@@ -534,6 +560,8 @@ model CommandeFournisseur {
   sessionsPartsTech SessionPartsTech[]
   creePar       String?
   creeLe        DateTime                   @default(now())
+
+  @@index([fournisseurId])
 }
 
 // Recherche ouverte dans PartsTech depuis une commande en brouillon (voir
@@ -567,6 +595,7 @@ model LigneCommandeFournisseur {
   coutUnitaire      Float // prix prévu à la commande, avant taxes
 
   @@index([commandeId])
+  @@index([pieceId])
 }
 
 model PieceUtilisee {
@@ -667,8 +696,20 @@ model Soumission {
   taches          TacheSoumission[]
   depots          DepotClient[] // dépôts encaissés sur la soumission (lib/depots.js)
   creeLe          DateTime          @default(now())
+  // Approbation en ligne par le client (lib/approbationSoumission.js) : lien
+  // secret de la page publique, puis sa réponse. La réponse ne change pas le
+  // statut : c'est l'atelier qui transforme ensuite la soumission en bon.
+  jetonClient     String?           @unique
+  envoyeeLe       DateTime? // dernier envoi du lien par courriel
+  reponseClient   String? // "APPROUVEE" | "REFUSEE" — vide tant que le client n'a pas répondu
+  reponseLe       DateTime?
+  signataireNom   String? // nom entré par le client en signant
+  signatureClient String? // image PNG de la signature (data URL)
+  noteClient      String? // message laissé par le client avec sa réponse
 
   @@index([statut])
+  @@index([clientId])
+  @@index([vehiculeId])
 }
 
 model TacheSoumission {
@@ -678,6 +719,9 @@ model TacheSoumission {
   soumissionId String
   soumission   Soumission     @relation(fields: [soumissionId], references: [id], onDelete: Cascade)
   pieces       PieceEstimee[]
+  refusee      Boolean        @default(false) // tâche décochée par le client à l'approbation en ligne — pas reprise sur le bon
+
+  @@index([soumissionId])
 }
 
 model PieceEstimee {
@@ -694,6 +738,7 @@ model PieceEstimee {
   tacheSoumission   TacheSoumission @relation(fields: [tacheSoumissionId], references: [id], onDelete: Cascade)
 
   @@index([pieceId])
+  @@index([tacheSoumissionId])
 }
 
 // ---------- RENDEZ-VOUS ----------
@@ -726,6 +771,7 @@ model RendezVous {
   creeLe           DateTime    @default(now())
 
   @@index([date])
+  @@index([clientId])
 }
 
 // Fichier joint par le client sur le site de réservation (photo, devis…),
@@ -886,6 +932,7 @@ model EntreeTempsInterne {
   ajouteLe       DateTime?
 
   @@index([employeId])
+  @@index([tacheInterneId])
 }
 
 // Heures réellement travaillées par un employé une journée donnée, entrées
@@ -904,7 +951,7 @@ model HeuresJourEmploye {
   @@unique([employeId, date])
 }
 
-// ---------- PAIE (estimation — voir avertissements dans l'interface) ----------
+// ---------- PAIE (logiciel non certifié — voir lib/paie.js et les avertissements dans l'interface) ----------
 
 // Un lot regroupe une ou plusieurs paies traitées ensemble (traitement par
 // lot). BROUILLON = calculé mais pas encore comptabilisé, encore modifiable.
@@ -912,6 +959,68 @@ model HeuresJourEmploye {
 // créée. La correction reste au niveau d'une paie individuelle (voir Paie.statut) —
 // un lot n'a pas de statut "corrigée" propre, une correction ne concerne
 // jamais tout le lot à la fois.
+// Pointage de quart (module « Pointage de quart et feuilles de temps »,
+// lib/quarts.js) : le temps de PRÉSENCE, distinct du temps par tâche
+// (EntreeTemps, EntreeTempsInterne) qui sert à facturer. Un quart TRAVAIL va
+// de l'arrivée au départ ; les DINER et PAUSE sont des segments à l'intérieur.
+// Les heures gardées ici sont toujours les heures réelles du pointage :
+// l'arrondi ne s'applique qu'au calcul (lib/quartsCalculs.js).
+model Quart {
+  id            String    @id @default(cuid())
+  employeId     String
+  employe       User      @relation(fields: [employeId], references: [id])
+  type          String    @default("TRAVAIL") // "TRAVAIL" | "DINER" | "PAUSE"
+  debut         DateTime
+  fin           DateTime? // null = en cours
+  ouvertAuto    Boolean   @default(false) // arrivée non pointée : ouvert par le premier poinçon de tâche
+  fermeAuto     Boolean   @default(false) // départ non pointé : fermé à la fin du dernier poinçon de tâche de la journée
+  // Corrigé par le gérant : heures d'origine gardées à la première
+  // correction ; le détail de chaque correction est dans CorrectionQuart
+  debutOriginal DateTime?
+  finOriginal   DateTime?
+  modifiePar    String?
+  modifieLe     DateTime?
+  ajoutePar     String? // quart entré à la main par le gérant
+  creeLe        DateTime  @default(now())
+
+  @@index([employeId, debut])
+}
+
+// Journal des corrections de pointage — qui, quand, ancienne et nouvelle
+// valeur, raison. Jamais modifié ni supprimé (litige, vérification de la
+// CNESST) : aucune clé étrangère, il survit au quart et à l'employé.
+model CorrectionQuart {
+  id         String   @id @default(cuid())
+  quartId    String?
+  employeId  String? // employé concerné ; vide pour un verrouillage de période
+  employeNom String?
+  jour       String // "AAAA-MM-JJ" (Québec) du quart, ou début de la période
+  action     String // "AJOUT" | "MODIFICATION" | "SUPPRESSION" | "VERROUILLAGE" | "REOUVERTURE" | "PRIME"
+  ancienne   String? // valeur avant, en clair (heure du Québec)
+  nouvelle   String? // valeur après
+  raison     String?
+  parId      String?
+  parNom     String
+  creeLe     DateTime @default(now())
+
+  @@index([jour])
+  @@index([employeId])
+}
+
+// Période de feuille de temps (souvent deux semaines). Verrouillée une fois
+// approuvée par le gérant : plus aucun pointage de cette période ne se corrige.
+model PeriodeTemps {
+  id          String    @id @default(cuid())
+  debut       String // "AAAA-MM-JJ", jour au Québec, bornes incluses
+  fin         String
+  statut      String    @default("OUVERTE") // "OUVERTE" | "VERROUILLEE"
+  primes      Json? // primes de la période, pour l'export vers la paie : { employeId: montant }
+  approuvePar String?
+  approuveLe  DateTime?
+
+  @@unique([debut, fin])
+}
+
 model LotPaie {
   id                  String    @id @default(cuid())
   numero              String    @unique // "PAIE-0007"
@@ -934,9 +1043,11 @@ model Paie {
   lot                LotPaie?  @relation(fields: [lotId], references: [id])
   periodeDebut       DateTime
   periodeFin         DateTime
-  heuresTravaillees  Float     @default(0)
+  heuresTravaillees  Float     @default(0) // heures régulières payées (sans les heures supplémentaires)
   heuresHorodateur   Float? // total réellement poinçonné, informatif seulement — heuresTravaillees peut différer (horaire d'ouverture par défaut, ou ajusté manuellement)
-  boni               Float     @default(0) // prime/extra ajouté au brut, imposé comme le reste
+  heuresSupplementaires Float  @default(0) // heures au-delà de 40 dans une semaine, payées à taux et demi (lib/heuresPaie.js) — en plus de heuresTravaillees
+  indemniteFeries    Float     @default(0) // indemnité des jours fériés de la période, en dollars, comprise dans salaireBrut
+  boni               Float     @default(0) // prime/extra ajouté au brut, imposé par la méthode des gratifications
   salaireBrut        Float
   rrqEmploye         Float     @default(0) // cotisation de base + 1re supplémentaire
   rrq2Employe        Float     @default(0) // 2e cotisation supplémentaire au RRQ (gains entre le MGA et le MSGA) — T4 case 17A, RL-1 case B.B
@@ -949,9 +1060,16 @@ model Paie {
   rrqEmployeur       Float     @default(0)
   rrq2Employeur      Float     @default(0) // même montant que rrq2Employe
   rqapEmployeur      Float     @default(0)
+  retenuesDeductibles Float    @default(0) // cotisations à un REER ou à un régime de retraite retenues sur cette paie : réduisent le revenu imposable, comprises dans totalDeductions
+  retenuesApresImpot Float     @default(0) // autres retenues propres à l'employé (assurance collective…), comprises dans totalDeductions
+  retenuesDetail     Json? // détail des deux totaux ci-dessus, tel qu'appliqué : [{ libelle, type, montant }] — voir lib/retenuesPaie.js
   aeEmployeur        Float     @default(0)
+  fssEmployeur       Float     @default(0) // cotisation de l'employeur au Fonds des services de santé
+  cntEmployeur       Float     @default(0) // cotisation de l'employeur relative aux normes du travail
+  cnesstEmployeur    Float     @default(0) // prime de l'employeur à la CNESST, au taux réglé (0 si non réglé)
   vacancesAccumulees Float     @default(0) // % du brut accumulé en vacances cette paie-ci
   typePaie           String    @default("REGULIERE") // "REGULIERE" | "VACANCES" — une paie de vacances puise dans le solde accumulé au lieu d'en créer
+  vacancesForfaitaire Boolean  @default(false) // paie de vacances versée EN PLUS du salaire (sans congé pris) : imposée comme un paiement forfaitaire (lib/paie.js) ; sinon elle remplace le salaire de la période
   statut             String    @default("BROUILLON") // "BROUILLON" | "VERSEE" | "CORRIGEE"
   corrigeeParId      String? // pointe vers la nouvelle paie qui remplace celle-ci
   dateVersement      DateTime?
@@ -961,6 +1079,21 @@ model Paie {
 
   @@index([employeId])
   @@index([lotId])
+}
+
+// Retenue propre à un employé, appliquée à chaque paie régulière en plus des
+// retenues obligatoires — voir lib/retenuesPaie.js
+model RetenueEmploye {
+  id        String   @id @default(cuid())
+  employeId String
+  employe   User     @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  libelle   String // ex. « REER », « Assurance collective »
+  type      String   @default("APRES_IMPOT") // "REER" (réduit le revenu imposable) | "APRES_IMPOT"
+  montant   Float // par paie
+  actif     Boolean  @default(true)
+  creeLe    DateTime @default(now())
+
+  @@index([employeId])
 }
 
 // Catégories d'inventaire — chacune reliée à un compte de revenu, pour que
@@ -984,6 +1117,8 @@ model RapprochementBancaire {
   ecart              Float // relevé − (ouverture + lignes pointées) ; toujours 0 depuis la nouvelle logique, peut être ≠ 0 dans l'ancien historique
   creeLe             DateTime          @default(now())
   lignes             LigneEcriture[]
+
+  @@index([compteTresorerieId])
 }
 
 // Un fichier de relevé importé (Transactions bancaires) : copie de l'original
@@ -1072,6 +1207,8 @@ model RegleBancaire {
   creeLe              DateTime          @default(now())
 
   @@unique([signature, sens])
+  @@index([fournisseurId])
+  @@index([categorieDepenseId])
 }
 
 // ---------- COMPTES À PAYER ----------
@@ -1133,6 +1270,8 @@ model Depense {
 
   @@index([statut])
   @@index([fournisseurId])
+  @@index([compteTresorerieId])
+  @@index([commandeFournisseurId])
 }
 
 // Une ligne de fractionnement d'une dépense — chacune débite son propre
@@ -1156,6 +1295,8 @@ model LigneDepense {
   qteRecue           Int?
 
   @@index([depenseId])
+  @@index([categorieDepenseId])
+  @@index([pieceId])
 }
 
 // ---------- IMMOBILISATIONS ET AMORTISSEMENT ----------
@@ -1249,6 +1390,8 @@ model FermeturePeriodeHistorique {
   motif       String? // obligatoire pour REOUVERTURE seulement
   resumeJson  String? // JSON.stringify() du résumé, rempli seulement pour "FERMETURE"
   creeLe      DateTime         @default(now())
+
+  @@index([periodeId])
 }
 
 // ---------- TEMPS (horodateur) ----------
@@ -1378,7 +1521,9 @@ model NotificationCedulee {
 model Bete {
   id               String      @id @default(cuid())
   numero           String      @unique // "BT-001"
-  identifiant      String? // boucle d'oreille (ATQ) ou autre identification officielle
+  identifiant      String? // boucle d'oreille ATQ en service : 15 chiffres, unique au troupeau (lib/elevage.js)
+  boucles          BoucleBete[] // boucles remplacées
+  deplacements     DeplacementBete[]
   nom              String?
   sexe             String // "FEMELLE" | "TAUREAU" | "BOUVILLON" (mâle castré)
   genetique        String? // "FULLBLOOD" | "PUREBRED" | "CROISE"
@@ -1391,16 +1536,97 @@ model Bete {
   mereId           String?
   mere             Bete?       @relation("MereVeaux", fields: [mereId], references: [id], onDelete: SetNull)
   veaux            Bete[]      @relation("MereVeaux")
-  pere             String? // taureau ou semence (IA), texte libre
+  pere             String? // taureau hors troupeau ou semence (IA), texte libre — sert quand pereId est vide
+  pereId           String? // taureau du troupeau
+  pereBete         Bete?       @relation("PereVeaux", fields: [pereId], references: [id], onDelete: SetNull)
+  veauxPere        Bete[]      @relation("PereVeaux")
+  saillies         Saillie[]   @relation("SailliesFemelle")
+  sailliesTaureau  Saillie[]   @relation("SailliesTaureau")
+  saillieOrigine   Saillie?    @relation("SaillieVeau") // la saillie dont elle est née
   statut           String      @default("ACTIVE") // "ACTIVE" | "ABATTUE" | "VENDUE" (sur pied) | "MORTE"
   dateSortie       DateTime? // abattage, vente sur pied ou mort
   prixVente        Float? // vente sur pied, avant taxes
   notes            String?
   pesees           PeseeBete[]
   frais            FraisBete[]
+  soins            SoinBete[]
   abattage         Abattage?
   creePar          String?
   creeLe           DateTime    @default(now())
+
+  @@index([mereId])
+  @@index([pereId])
+}
+
+// Boucle d'oreille remplacée (perdue, illisible…) : l'ancienne reste au
+// dossier de la bête, la nouvelle devient Bete.identifiant
+model BoucleBete {
+  id            String   @id @default(cuid())
+  beteId        String
+  bete          Bete     @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  numero        String // l'ancienne boucle
+  remplaceePar  String // la boucle posée à sa place
+  retireeLe     DateTime
+  raison        String // "PERDUE" | "ILLISIBLE" | "ERREUR" | "AUTRE"
+  note          String?
+  creePar       String?
+  creeLe        DateTime @default(now())
+
+  @@index([beteId])
+}
+
+// Déplacement d'une bête : changement d'enclos ou de pâturage (INTERNE), ou
+// passage d'un site à un autre (ENTREE, SORTIE) — ceux-là se déclarent à
+// Agri-Traçabilité Québec. L'emplacement d'une bête est le lieu de son
+// dernier déplacement. L'achat, la vente, l'abattage et la mort restent sur
+// la fiche ; le registre les réunit (lib/registreElevage.js).
+model DeplacementBete {
+  id           String   @id @default(cuid())
+  beteId       String
+  bete         Bete     @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date         DateTime
+  type         String // "INTERNE" | "ENTREE" | "SORTIE"
+  lieu         String? // enclos ou pâturage d'arrivée (INTERNE, ENTREE)
+  site         String? // site de provenance (ENTREE) ou de destination (SORTIE) : nom et numéro de site
+  transporteur String? // transporteur et plaque du véhicule
+  note         String?
+  creePar      String?
+  creeLe       DateTime @default(now())
+
+  @@index([beteId, date])
+  @@index([date])
+}
+
+// Événement du registre marqué « déclaré à ATQ » — cle : identifiant de
+// l'événement (« naissance:<id de la bête> », « depl:<id du déplacement> »…)
+model DeclarationAtq {
+  cle        String   @id
+  declareLe  DateTime @default(now())
+  declarePar String?
+}
+
+// Reproduction : saillie naturelle ou insémination d'une femelle, par un
+// taureau du troupeau (taureauId) ou une semence / un taureau de
+// l'extérieur (semence, texte). Le vêlage est prévu GESTATION_JOURS plus
+// tard (lib/elevageCalculs.js) ; l'enregistrer crée la fiche du veau.
+model Saillie {
+  id        String   @id @default(cuid())
+  femelleId String
+  femelle   Bete     @relation("SailliesFemelle", fields: [femelleId], references: [id], onDelete: Cascade)
+  date      DateTime
+  type      String // "NATURELLE" | "IA"
+  taureauId String?
+  taureau   Bete?    @relation("SailliesTaureau", fields: [taureauId], references: [id], onDelete: SetNull)
+  semence   String? // taureau hors troupeau ou paillette
+  statut    String   @default("EN_ATTENTE") // "EN_ATTENTE" | "GESTANTE" (confirmée) | "VIDE" (non gestante ou perdue) | "VELEE"
+  veauId    String?  @unique
+  veau      Bete?    @relation("SaillieVeau", fields: [veauId], references: [id], onDelete: SetNull)
+  note      String?
+  creePar   String?
+  creeLe    DateTime @default(now())
+
+  @@index([femelleId, date])
+  @@index([taureauId])
 }
 
 model PeseeBete {
@@ -1426,6 +1652,28 @@ model FraisBete {
   montant     Float // avant taxes
 
   @@index([beteId])
+}
+
+// Registre de santé d'une bête : vaccins, vermifuges, traitements, visites
+// du vétérinaire. Un délai de retrait (jours avant que la viande puisse être
+// consommée) bloque l'abattage jusqu'à son échéance ; un rappel annonce le
+// prochain soin du même type (lib/elevageCalculs.js). Le coût d'un soin
+// s'entre à part, dans les frais de la bête.
+model SoinBete {
+  id           String    @id @default(cuid())
+  beteId       String
+  bete         Bete      @relation(fields: [beteId], references: [id], onDelete: Cascade)
+  date         DateTime
+  type         String // "VACCIN" | "VERMIFUGE" | "TRAITEMENT" | "VISITE" | "AUTRE"
+  produit      String? // nom du vaccin ou du médicament, ou motif de la visite
+  dose         String? // "5 ml sous-cutané"…
+  retraitJours Int? // délai de retrait avant l'abattage, en jours
+  rappelLe     DateTime? // prochain soin du même type à prévoir
+  note         String?
+  creePar      String?
+  creeLe       DateTime  @default(now())
+
+  @@index([beteId, date])
 }
 
 model Abattage {
@@ -1473,6 +1721,7 @@ model LotViande {
   ventes         VenteViande[]
 
   @@unique([abattageId, coupeId])
+  @@index([coupeId])
 }
 
 model VenteViande {
@@ -1538,6 +1787,8 @@ model UniteCopro {
   travaux    TravailCopro[]
   documents  DocumentCopro[]
   creeLe     DateTime         @default(now())
+
+  @@index([batimentId])
 }
 
 model CoproprietaireCopro {
@@ -1609,6 +1860,8 @@ model EspaceCopro {
   creeLe       DateTime       @default(now())
 
   @@unique([type, numero])
+  @@index([batimentId])
+  @@index([uniteId])
 }
 
 // Budget annuel adopté : réparti entre les unités selon leur quote-part
@@ -1685,6 +1938,9 @@ model DemandeCopro {
   creeLe           DateTime             @default(now())
 
   @@index([statut])
+  @@index([batimentId])
+  @@index([uniteId])
+  @@index([coproprietaireId])
 }
 
 // Bon de travail : réparation ou entretien confié à un fournisseur
@@ -1720,6 +1976,11 @@ model TravailCopro {
   creeLe        DateTime            @default(now())
 
   @@index([statut])
+  @@index([demandeId])
+  @@index([entretienId])
+  @@index([batimentId])
+  @@index([uniteId])
+  @@index([fournisseurId])
 }
 
 // Journal d'un bon de travail : changements de statut et notes
@@ -1759,6 +2020,8 @@ model EntretienCopro {
   creeLe        DateTime       @default(now())
 
   @@index([prochaineDate])
+  @@index([batimentId])
+  @@index([fournisseurId])
 }
 
 // Document du syndicat (procès-verbal, règlement, états financiers…) ou
@@ -1783,6 +2046,7 @@ model DocumentCopro {
 
   @@index([categorie])
   @@index([uniteId])
+  @@index([batimentId])
 }
 
 // Photos et pièces jointes d'une demande ou d'un bon de travail
@@ -1801,4 +2065,289 @@ model FichierCopro {
 
   @@index([demandeId])
   @@index([travailId])
+}
+
+// ============================================================
+// IMMOBILIER — module « Immobilier » (Administrateur → Modules), inactif
+// tant que le super-administrateur ne l'active pas. Pour le propriétaire
+// d'un ou de plusieurs immeubles locatifs : immeubles et logements,
+// locataires et baux, loyers et paiements, dépenses, réparations et
+// documents. Volontairement autonome : relié ni à la comptabilité, ni aux
+// fournisseurs, ni aux clients (à brancher au cas par cas selon le client).
+// Voir lib/immobilier.js et lib/immobilierCalculs.js.
+// ============================================================
+
+model ImmeubleImmo {
+  id                   String           @id @default(cuid())
+  nom                  String
+  adresse              String?
+  ville                String?
+  codePostal           String?
+  type                 String           @default("PLEX") // voir TYPES_IMMEUBLE dans lib/immobilierCalculs.js
+  anneeConstruction    Int?
+  dateAchat            DateTime?
+  prixAchat            Float?
+  evaluationMunicipale Float?
+  valeurEstimee        Float?
+  soldeHypotheque      Float?
+  notes                String?
+  logements            LogementImmo[]
+  depenses             DepenseImmo[]
+  reparations          ReparationImmo[]
+  documents            DocumentImmo[]
+  creeLe               DateTime         @default(now())
+}
+
+// Logement, local commercial, stationnement ou rangement loué
+model LogementImmo {
+  id          String           @id @default(cuid())
+  immeubleId  String
+  immeuble    ImmeubleImmo     @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  numero      String // « 1 », « 201 », « Local A »
+  type        String           @default("LOGEMENT") // "LOGEMENT" | "COMMERCIAL" | "STATIONNEMENT" | "RANGEMENT" | "AUTRE"
+  pieces      String? // « 4 ½ »
+  etage       String?
+  superficie  Float? // pi²
+  loyerVise   Float? // loyer demandé à la prochaine location
+  // Relevé 31 : numéro du logement que Revenu Québec détermine (case A,
+  // le même d'une année à l'autre) et adresse civique propre au logement
+  // quand elle diffère de celle de l'immeuble (plex : « 314 rue Champlain »)
+  numeroLogementRq String?
+  adresseCivique   String?
+  notes       String?
+  baux        BailImmo[]
+  reparations ReparationImmo[]
+  documents   DocumentImmo[]
+  creeLe      DateTime         @default(now())
+
+  @@unique([immeubleId, numero])
+}
+
+model LocataireImmo {
+  id             String           @id @default(cuid())
+  nom            String
+  courriel       String?
+  telephone      String?
+  telephone2     String?
+  contactUrgence String?
+  // Portail du locataire (/portail-locataire/<jeton>) : lien secret, null = aucun accès
+  jetonPortail        String?   @unique
+  dernierAccesPortail DateTime?
+  avisCourriel        Boolean   @default(true) // reçoit par courriel le suivi de ses demandes
+  notes          String?
+  baux           BailImmo[]
+  reparations    ReparationImmo[]
+  documents      DocumentImmo[]
+  creeLe         DateTime         @default(now())
+}
+
+// Bail d'un logement : un ou plusieurs locataires (colocataires). En cours
+// = statut ACTIF. dateFin vide = durée indéterminée. Le renouvellement crée
+// un nouveau bail (le précédent passe à TERMINE) : l'historique des loyers
+// reste lisible.
+model BailImmo {
+  id            String          @id @default(cuid())
+  logementId    String
+  logement      LogementImmo    @relation(fields: [logementId], references: [id], onDelete: Cascade)
+  locataires    LocataireImmo[]
+  dateDebut     DateTime
+  dateFin       DateTime?
+  loyer         Float // loyer mensuel
+  jourPaiement  Int             @default(1)
+  services      String? // codes séparés par des virgules (SERVICES_BAIL)
+  statut        String          @default("ACTIF") // "ACTIF" | "TERMINE" | "RESILIE"
+  nouveauLoyer  Float? // loyer proposé au renouvellement
+  avisEnvoyeLe  DateTime? // avis de modification envoyé au locataire
+  reponseAvis   String? // "ACCEPTE" | "REFUSE" | "QUITTE" (réponse du locataire)
+  terminaisonLe DateTime? // date réelle de départ (fin anticipée, résiliation)
+  notes         String?
+  charges       ChargeImmo[]
+  paiements     PaiementImmo[]
+  documents     DocumentImmo[]
+  releves31     Releve31Immo[]
+  envois        EnvoiImmo[]
+  creeLe        DateTime        @default(now())
+
+  @@index([logementId])
+  @@index([statut])
+}
+
+// Ce qui est dû sur un bail : loyer du mois (periode « 2026-11 », une seule
+// fois par bail et par mois), frais, autre
+model ChargeImmo {
+  id          String   @id @default(cuid())
+  bailId      String
+  bail        BailImmo @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  date        DateTime
+  periode     String?
+  type        String   @default("LOYER") // "LOYER" | "FRAIS" | "AUTRE"
+  description String?
+  montant     Float
+  creePar     String?
+  creeLe      DateTime @default(now())
+
+  @@unique([bailId, periode, type])
+  @@index([bailId, date])
+}
+
+model PaiementImmo {
+  id        String   @id @default(cuid())
+  bailId    String
+  bail      BailImmo @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  date      DateTime
+  montant   Float
+  mode      String? // voir MODES_PAIEMENT dans lib/immobilierCalculs.js
+  reference String?
+  note      String?
+  creePar   String?
+  creeLe    DateTime @default(now())
+
+  @@index([bailId, date])
+}
+
+// Dépense d'un immeuble (taxes, assurance, intérêts, énergie…) — les
+// réparations comptent à part, par leur coût réel
+model DepenseImmo {
+  id          String       @id @default(cuid())
+  immeubleId  String
+  immeuble    ImmeubleImmo @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  date        DateTime
+  categorie   String // voir CATEGORIES_DEPENSE
+  description String?
+  montant     Float
+  payeA       String? // à qui (texte libre : aucun lien aux fournisseurs)
+  reference   String?
+  creePar     String?
+  creeLe      DateTime     @default(now())
+
+  @@index([immeubleId, date])
+}
+
+// Réparation ou entretien d'un immeuble ou d'un logement (signalée par un
+// locataire ou prévue par le propriétaire)
+model ReparationImmo {
+  id                    String         @id @default(cuid())
+  numero                String         @unique // « RP-001 »
+  titre                 String
+  description           String?
+  categorie             String?
+  priorite              String         @default("NORMALE") // "URGENTE" | "HAUTE" | "NORMALE" | "BASSE"
+  statut                String         @default("NOUVELLE") // "NOUVELLE" | "PLANIFIEE" | "EN_COURS" | "TERMINEE" | "ANNULEE"
+  immeubleId            String
+  immeuble              ImmeubleImmo   @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  logementId            String?
+  logement              LogementImmo?  @relation(fields: [logementId], references: [id], onDelete: SetNull)
+  locataireId           String? // locataire qui l'a signalée
+  locataire             LocataireImmo? @relation(fields: [locataireId], references: [id], onDelete: SetNull)
+  signalePar            String?
+  source       String         @default("INTERNE") // "INTERNE" | "PORTAIL" (demande du locataire)
+  reponse      String? // message au locataire, affiché dans son portail
+  entrepreneur          String? // texte libre : aucun lien aux fournisseurs
+  telephoneEntrepreneur String?
+  datePrevue            DateTime?
+  dateFin               DateTime?
+  coutEstime            Float?
+  coutReel              Float?
+  numeroFacture         String?
+  notes                 String?
+  fichiers              FichierImmo[]
+  creePar               String?
+  creeLe                DateTime       @default(now())
+
+  @@index([statut])
+  @@index([immeubleId])
+  @@index([logementId])
+  @@index([locataireId])
+}
+
+// Bail signé, avis, état des lieux, police d'assurance, compte de taxes…
+model DocumentImmo {
+  id          String         @id @default(cuid())
+  titre       String
+  categorie   String
+  date        DateTime?
+  expireLe    DateTime? // assurance, contrat : rappel au tableau de bord
+  description String?
+  visibleLocataire Boolean     @default(false) // montré dans le portail des locataires concernés
+  immeubleId  String?
+  immeuble    ImmeubleImmo?  @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  logementId  String?
+  logement    LogementImmo?  @relation(fields: [logementId], references: [id], onDelete: SetNull)
+  bailId      String?
+  bail        BailImmo?      @relation(fields: [bailId], references: [id], onDelete: SetNull)
+  locataireId String?
+  locataire   LocataireImmo? @relation(fields: [locataireId], references: [id], onDelete: SetNull)
+  nom         String
+  typeMime    String
+  taille      Int
+  donnees     Bytes
+  creePar     String?
+  creeLe      DateTime       @default(now())
+
+  @@index([categorie])
+  @@index([immeubleId])
+  @@index([logementId])
+  @@index([bailId])
+  @@index([locataireId])
+}
+
+// Suivi du relevé 31 d'un bail pour une année (logement occupé au 31
+// décembre) : produit auprès de Revenu Québec, copie remise au locataire.
+// Les relevés eux-mêmes se produisent dans le service en ligne de Revenu
+// Québec ; l'appli prépare les données et suit l'avancement.
+model Releve31Immo {
+  id        String    @id @default(cuid())
+  annee     Int
+  bailId    String
+  bail      BailImmo  @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  produitLe DateTime?
+  remisLe   DateTime?
+  creePar   String?
+  creeLe    DateTime  @default(now())
+
+  @@unique([annee, bailId])
+}
+
+// Journal des courriels envoyés aux locataires (avis, rappels, relevés de
+// compte, reçus) : preuve d'envoi, montrée sur la fiche du bail
+model EnvoiImmo {
+  id            String    @id @default(cuid())
+  date          DateTime  @default(now())
+  type          String // "DOCUMENT" | "RELEVE" | "RECU"
+  sujet         String
+  destinataires String // adresses, séparées par des virgules
+  bailId        String?
+  bail          BailImmo? @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  documentId    String? // document envoyé (DocumentImmo), s'il y a lieu
+  paiementId    String? // paiement du reçu envoyé
+  erreur        String? // envoi refusé : la raison
+  envoyePar     String?
+
+  @@index([bailId, date])
+}
+
+// Photos et pièces jointes d'une réparation
+model FichierImmo {
+  id           String         @id @default(cuid())
+  reparationId String
+  reparation   ReparationImmo @relation(fields: [reparationId], references: [id], onDelete: Cascade)
+  nom          String
+  typeMime     String
+  taille       Int
+  donnees      Bytes
+  ajoutePar    String?
+  creeLe       DateTime       @default(now())
+
+  @@index([reparationId])
+}
+
+// Essais de connexion ratés (lib/protectionConnexion.js) : trop d'essais pour
+// un même courriel ou une même adresse IP bloquent la connexion un moment.
+// Les lignes de plus d'un jour sont effacées au fil des connexions.
+model TentativeConnexion {
+  id     String   @id @default(cuid())
+  cle    String // "courriel:<adresse>" ou "ip:<adresse>"
+  creeLe DateTime @default(now())
+
+  @@index([cle, creeLe])
 }

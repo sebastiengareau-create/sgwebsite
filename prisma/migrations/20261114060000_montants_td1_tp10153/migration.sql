@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "montantTd1" DOUBLE PRECISION,
+ADD COLUMN     "montantTp10153" DOUBLE PRECISION;

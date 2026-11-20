@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { productiviteActif } from "@/lib/productivite";
 import { dateHeureQuebecVersUTC } from "@/lib/temps";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -12,7 +13,7 @@ const HEURE = /^\d{2}:\d{2}$/;
 // quand) pour l'historique des tâches internes.
 export async function POST(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "jobs-temps-reel"))) {
+  if (!(await aAccesSection(session, "jobs-temps-reel")) || !(await productiviteActif())) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 

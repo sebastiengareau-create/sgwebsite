@@ -6,7 +6,8 @@ import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import { useOrdreFiches } from "../../../components/NavigationFiches";
-import { argent } from "@/lib/format";
+import { argent, nombre } from "@/lib/format";
+import { JOURS_ALERTE, JOURS_COUVERTURE } from "@/lib/reapprovisionnement";
 
 const FILTRES = [
   { code: "encours", label: "En cours", statuts: ["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"] },
@@ -17,7 +18,7 @@ const FILTRES = [
 
 const dateFr = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
-export default function CommandesClient({ commandes, fournisseurs, suggestions, fournisseurInitial }) {
+export default function CommandesClient({ commandes, fournisseurs, suggestions, joursVentes, fournisseurInitial }) {
   const router = useRouter();
   const [fournisseurId, setFournisseurId] = useState(fournisseurInitial || "");
   const [filtre, setFiltre] = useState("encours");
@@ -67,7 +68,7 @@ export default function CommandesClient({ commandes, fournisseurs, suggestions, 
       </div>
 
       {suggestions.length > 0 && (
-        <Reapprovisionnement suggestions={suggestions} fournisseurs={fournisseurs} enCours={enCours} onCommander={creer} />
+        <Reapprovisionnement suggestions={suggestions} joursVentes={joursVentes} fournisseurs={fournisseurs} enCours={enCours} onCommander={creer} />
       )}
 
       <div style={{ display: "flex", gap: 4, marginBottom: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
@@ -112,7 +113,7 @@ export default function CommandesClient({ commandes, fournisseurs, suggestions, 
 // Pièces sous le seuil minimum, regroupées par fournisseur proposé : une
 // commande par fournisseur en un clic (le fournisseur reste modifiable
 // pièce par pièce).
-function Reapprovisionnement({ suggestions, fournisseurs, enCours, onCommander }) {
+function Reapprovisionnement({ suggestions, joursVentes, fournisseurs, enCours, onCommander }) {
   const [ouvert, setOuvert] = useState(false);
   const [choix, setChoix] = useState(() => Object.fromEntries(suggestions.map((s) => [s.pieceId, { fournisseurId: s.fournisseurId || "", qte: String(s.qte), coche: true }])));
 
@@ -134,7 +135,7 @@ function Reapprovisionnement({ suggestions, fournisseurs, enCours, onCommander }
       {ouvert && (
         <>
           <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 10px" }}>
-            Stock (plus ce qui est déjà commandé, brouillons compris) au seuil minimum ou sous. Quantité proposée : jusqu'au seuil maximum. Les pièces s'ajoutent au brouillon déjà ouvert chez le fournisseur, s'il y en a un.
+            Pièces au seuil minimum ou sous lui, ou qui seront épuisées d&apos;ici {JOURS_ALERTE} jours au rythme des ventes des {joursVentes} derniers jours (stock plus ce qui est déjà commandé, brouillons compris). Quantité proposée : de quoi couvrir {JOURS_COUVERTURE} jours de ventes, ou jusqu&apos;au seuil maximum. Les plus pressantes en premier ; les pièces s&apos;ajoutent au brouillon déjà ouvert chez le fournisseur, s&apos;il y en a un.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {suggestions.map((s) => {
@@ -147,6 +148,12 @@ function Reapprovisionnement({ suggestions, fournisseurs, enCours, onCommander }
                     <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>
                       {s.numero} · stock {s.stock} / min {s.qteMin}{s.enCommande > 0 ? ` · ${s.enCommande} déjà commandée${s.enCommande > 1 ? "s" : ""}` : ""}
                     </div>
+                    {s.joursRestants !== null && (
+                      <div style={{ fontSize: 10.5, color: s.joursRestants < 7 ? "var(--danger)" : "var(--text-muted)", fontWeight: s.joursRestants < 7 ? 700 : 400 }}>
+                        {s.vendu} vendue{s.vendu > 1 ? "s" : ""} en {joursVentes} jours (≈ {nombre(s.parMois, 1)} par mois) · {s.joursRestants === 0 ? "plus de stock" : `stock pour environ ${s.joursRestants} jour${s.joursRestants > 1 ? "s" : ""}`}
+                        {s.raison === "VENTES" && " · proposée selon les ventes"}
+                      </div>
+                    )}
                     <select value={c.fournisseurId} onChange={(e) => maj(s.pieceId, "fournisseurId", e.target.value)} style={{ ...champStyle, marginBottom: 0, marginTop: 4, padding: "5px 8px", fontSize: 12 }}>
                       <option value="">Choisir le fournisseur…</option>
                       {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}

@@ -1,7 +1,8 @@
 import LogoClient from "./LogoClient";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { prisma } from "@/lib/prisma";
-import { obtenirSession, aAccesSection, nomAffichageRole } from "@/lib/auth";
+import { lireParametres } from "@/lib/parametres";
+import { obtenirSession, obtenirFicheSession, aAccesSection, nomAffichageRole, CLES_MODULES } from "@/lib/auth";
 import MenuHamburger from "./MenuHamburger";
 import { versionEnLigne } from "@/lib/version";
 import BarreLaterale from "./BarreLaterale";
@@ -22,25 +23,28 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "jobs-deplacement", href: "/gerant/jobs-deplacement", label: "Jobs en déplacement", icone: "vehicule", groupe: "Opérations", moduleParam: "module_jobs_deplacement", moduleActifSeulementSi: "actif" },
   { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "horloge", groupe: "Opérations" },
   { cle: "copropriete", href: "/copropriete", label: "Copropriété", icone: "immeuble", groupe: "Opérations", moduleParam: "module_copropriete", moduleActifSeulementSi: "actif" },
+  { cle: "immobilier", href: "/immobilier", label: "Immobilier", icone: "maison", groupe: "Opérations", moduleParam: "module_immobilier", moduleActifSeulementSi: "actif" },
   { cle: "inventaire", href: "/secretaire/inventaire", label: "Inventaire", icone: "boite", groupe: "Achats et stock" },
   { cle: "fournisseurs", href: "/gerant/fournisseurs", label: "Fournisseurs", icone: "immeuble", groupe: "Achats et stock" },
   { cle: "elevage", href: "/elevage", label: "Élevage", icone: "drapeau", groupe: "Achats et stock", moduleParam: "module_elevage", moduleActifSeulementSi: "actif" },
   { cle: "comptabilite", href: "/gerant/comptabilite", label: "Comptabilité", icone: "banque", groupe: "Finances", moduleParam: "module_comptabilite" },
   { cle: "paie", href: "/gerant/paie", label: "Paie", icone: "calculatrice", groupe: "Finances", moduleParam: "module_paie", moduleActifSeulementSi: "actif" },
   { cle: "employes", href: "/gerant/employes", label: "Employés", icone: "utilisateurs", groupe: "Équipe" },
-  { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Productivité par employés", icone: "tendance", groupe: "Équipe" },
+  { cle: "employes", href: "/gerant/feuilles-temps", label: "Feuilles de temps", icone: "horloge", groupe: "Équipe", moduleParam: "module_quarts", moduleActifSeulementSi: "actif" },
+  { cle: "jobs-temps-reel", href: "/gerant/rapports", label: "Productivité par employés", icone: "tendance", groupe: "Équipe", moduleParam: "module_productivite" },
   { cle: "parametres", href: "/gerant/parametres", label: "Paramètres", icone: "reglages", groupe: "Configuration" },
 ];
 
 export default async function EnTete({ nom, role }) {
-  const labelRole = await nomAffichageRole(role);
-  const { nomEntreprise } = await obtenirInfosEntreprise();
   const session = await obtenirSession();
 
-  const parametres = await prisma.parametre.findMany({
-    where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_elevage", "module_copropriete"] } },
-  });
-  const dictModules = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
+  // Réglages déjà lus d'avance avec la session (lib/auth.js) : en mémoire
+  const [dictModules, labelRole, { nomEntreprise }, fiche] = await Promise.all([
+    lireParametres(CLES_MODULES),
+    nomAffichageRole(role),
+    obtenirInfosEntreprise(),
+    obtenirFicheSession(session),
+  ]);
 
   function moduleActif(section) {
     if (!section.moduleParam) return true;
@@ -48,42 +52,42 @@ export default async function EnTete({ nom, role }) {
     return dictModules[section.moduleParam] !== "inactif";
   }
 
-  let estSuperAdmin = role === "DEVELOPPEUR";
-  if (!estSuperAdmin && session?.id) {
-    const utilisateur = await prisma.user.findUnique({ where: { id: session.id }, select: { estSuperAdmin: true } });
-    estSuperAdmin = utilisateur?.estSuperAdmin || false;
-  }
+  const estSuperAdmin = role === "DEVELOPPEUR" || !!fiche?.estSuperAdmin;
+  const mesTachesOffertes = session?.id && session.role !== "DEVELOPPEUR" && dictModules.module_jobs_deplacement === "actif";
+  // Notifications (cloche 🔔) : tout employé, si le module est actif — le
+  // développeur n'a pas de fiche employé, donc rien à recevoir
+  const notificationsActives = dictModules.module_notifications !== "inactif";
+  const estEmploye = notificationsActives && session?.id && session.role !== "DEVELOPPEUR";
+  const sectionsOffertes = SECTIONS_EMPRUNTABLES.filter(moduleActif);
+
+  // Le reste en parallèle : compteurs, accès à chaque section du menu
+  const [nbMesTaches, nbNonLues, accesSections, documentsPermis, accesNotifications] = await Promise.all([
+    mesTachesOffertes ? prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } }) : 0,
+    estEmploye ? prisma.notification.count({ where: { employeId: session.id, lue: false } }) : 0,
+    // Sections empruntables — vérifiées une par une via le même système que
+    // les pages elles-mêmes utilisent, pour que le menu corresponde toujours
+    // exactement à ce que la personne peut vraiment ouvrir
+    Promise.all(sectionsOffertes.map((section) => aAccesSection(session, section.cle))),
+    // Documents (lettres aux employés ou aux clients) : section Documents,
+    // avec Employés ou Clients — voir lib/documentsServeur.js
+    destinatairesPermis(session),
+    notificationsActives ? aAccesSection(session, "notifications") : false,
+  ]);
 
   const liens = [];
 
   // Bons envoyés à cet employé (section « Jobs en déplacement ») — lien
   // offert à tous quand le module est actif, peu importe les sections :
   // c'est là aussi qu'on active les notifications, avant le premier envoi
-  if (session?.id && session.role !== "DEVELOPPEUR" && dictModules.module_jobs_deplacement === "actif") {
-    const nbMesTaches = await prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } });
-    liens.push({ href: "/mes-taches", label: "Mes tâches", icone: "presse", groupe: "Accueil", accent: nbMesTaches > 0, badge: nbMesTaches });
-  }
+  if (mesTachesOffertes) liens.push({ href: "/mes-taches", label: "Mes tâches", icone: "presse", groupe: "Accueil", accent: nbMesTaches > 0, badge: nbMesTaches });
 
-  // Sections empruntables — vérifiées une par une via le même système que
-  // les pages elles-mêmes utilisent, pour que le menu corresponde toujours
-  // exactement à ce que la personne peut vraiment ouvrir
-  for (const section of SECTIONS_EMPRUNTABLES) {
-    if (!moduleActif(section)) continue;
-    if (await aAccesSection(session, section.cle)) {
-      liens.push({ href: section.href, label: section.label, icone: section.icone, groupe: section.groupe });
-    }
-  }
+  sectionsOffertes.forEach((section, i) => {
+    if (accesSections[i]) liens.push({ href: section.href, label: section.label, icone: section.icone, groupe: section.groupe });
+  });
 
-  // Documents (lettres aux employés ou aux clients) : section Documents,
-  // avec Employés ou Clients — voir lib/documentsServeur.js
-  if ((await destinatairesPermis(session)).length > 0) liens.push({ href: "/gerant/documents", label: "Documents", icone: "document", groupe: "Finances" });
+  if (documentsPermis.length > 0) liens.push({ href: "/gerant/documents", label: "Documents", icone: "document", groupe: "Finances" });
 
-  // Notifications (cloche 🔔) : tout employé, si le module est actif — le
-  // développeur n'a pas de fiche employé, donc rien à recevoir
-  const notificationsActives = dictModules.module_notifications !== "inactif";
-  const estEmploye = notificationsActives && session?.id && session.role !== "DEVELOPPEUR";
-  const nbNonLues = estEmploye ? await prisma.notification.count({ where: { employeId: session.id, lue: false } }) : 0;
-  if (estEmploye || (notificationsActives && await aAccesSection(session, "notifications"))) liens.push({ href: "/notifications", label: "Notifications", icone: "cloche", groupe: "Accueil", badge: nbNonLues });
+  if (estEmploye || accesNotifications) liens.push({ href: "/notifications", label: "Notifications", icone: "cloche", groupe: "Accueil", badge: nbNonLues });
 
   if (estSuperAdmin) liens.push({ href: "/gerant/administrateur", label: "Administrateur", icone: "bouclier", groupe: "Configuration", accent: true });
 

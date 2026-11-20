@@ -22,11 +22,21 @@ export async function POST(request, props) {
     include: {
       facture: true,
       vehiculeVente: { include: { factureVente: true } },
-      problemes: { include: { pieces: { include: { piece: true } }, entreesTemps: true } },
+      problemes: { include: { pieces: { include: { piece: true } }, entreesTemps: { include: { employe: { select: { nom: true } } } } } },
     },
   });
   if (!bon) return NextResponse.json({ erreur: "Bon introuvable." }, { status: 404 });
   if (bon.facture) return NextResponse.json({ erreur: "Ce bon a déjà une facture." }, { status: 409 });
+  // Horodateur encore actif : ses heures ne sont pas encore comptées (seuls
+  // les poinçons arrêtés se facturent) et le bon, une fois figé, ne
+  // permettrait plus de l'arrêter. On l'arrête avant de facturer.
+  const actifs = bon.problemes.flatMap((pr) => pr.entreesTemps.filter((t) => !t.fin).map((t) => `${t.employe?.nom || "un employé"} (${pr.description})`));
+  if (actifs.length > 0) {
+    return NextResponse.json(
+      { erreur: `Horodateur encore actif : ${actifs.join(", ")}. Arrête-le (ou corrige son heure de fin) avant de facturer.` },
+      { status: 409 }
+    );
+  }
   // Pièce commandée pas encore reçue (B/O) : pas sortie du stock, coût inconnu
   const piecesBo = bon.problemes.flatMap((pr) => pr.pieces.filter((l) => l.bo));
   if (piecesBo.length > 0) {

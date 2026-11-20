@@ -7,7 +7,8 @@ import ScannerCodeBarres from "../../../../components/ScannerCodeBarres";
 import RecherchePieces from "../../../../components/RecherchePieces";
 import { ResultatPourCommande } from "../../../../components/ResultatsRecherchePieces";
 import { BoutonPartsTech, PanierPartsTech, AttentePanierPartsTech } from "./PartsTech";
-import { STATUTS_COMMANDE, resteARecevoir, quantiteSuggeree } from "@/lib/commandesFournisseurs";
+import { STATUTS_COMMANDE, resteARecevoir } from "@/lib/commandesFournisseurs";
+import { suggestionReappro } from "@/lib/reapprovisionnement";
 import { trouverPieceParScan, pieceCorrespond } from "@/lib/codesBarres";
 import { fournisseurPropose } from "@/lib/recherchePieces";
 import { argent } from "@/lib/format";
@@ -18,7 +19,7 @@ const aujourdhui = () => new Date().toLocaleDateString("en-CA", { timeZone: "Ame
 const arrondi = (n) => Math.round(n * 100) / 100;
 const fmt = (n) => `${argent(n)}`;
 
-export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces, partstech = null, paniersPartsTech = [], attentePanierPartsTech = false }) {
+export default function CommandeDetailClient({ commande, pieces, fournisseurs, enCommande, ventes = { venduParPiece: {}, jours: 90 }, tpsTaux, tvqTaux, peutVoirDepenses, sitesPieces, partstech = null, paniersPartsTech = [], attentePanierPartsTech = false }) {
   const router = useRouter();
   const statut = STATUTS_COMMANDE[commande.statut] || { label: commande.statut, couleur: "var(--text)" };
   const dejaRecue = commande.lignes.some((l) => l.qteRecue > 0);
@@ -60,12 +61,13 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
     });
   }
 
-  // Pièces de ce fournisseur (habituel ou déjà liées) sous le seuil, qui ne
-  // sont pas déjà sur cette commande.
+  // Pièces de ce fournisseur (habituel ou déjà liées) sous le seuil ou
+  // bientôt épuisées au rythme des ventes (lib/reapprovisionnement.js), qui
+  // ne sont pas déjà sur cette commande.
   const aReapprovisionner = pieces
     .filter((p) => !lignes.some((l) => l.pieceId === p.id))
     .filter((p) => p.fournisseurId === commande.fournisseurId || p.fournisseurs.some((f) => f.fournisseurId === commande.fournisseurId))
-    .map((p) => ({ piece: p, qte: quantiteSuggeree(p, enCommande[p.id] || 0) }))
+    .map((p) => ({ piece: p, qte: suggestionReappro(p, { enCommande: enCommande[p.id] || 0, vendu: ventes.venduParPiece[p.id] || 0, jours: ventes.jours })?.qte || 0 }))
     .filter((s) => s.qte > 0);
 
   async function envoyerPatch(corps) {
@@ -242,7 +244,7 @@ export default function CommandeDetailClient({ commande, pieces, fournisseurs, e
                 {(() => {
                   const outils = [
                     commande.statut === "BROUILLON" && { cle: "rech", icone: "loupe", label: "Rechercher chez nos fournisseurs", onClick: ouvrirRecherche },
-                    aReapprovisionner.length > 0 && { cle: "seuil", icone: "plus", label: `${aReapprovisionner.length} pièce${aReapprovisionner.length > 1 ? "s" : ""} sous le seuil minimum`, onClick: () => aReapprovisionner.forEach((s) => ajouterPiece(s.piece, s.qte)) },
+                    aReapprovisionner.length > 0 && { cle: "seuil", icone: "plus", label: `${aReapprovisionner.length} pièce${aReapprovisionner.length > 1 ? "s" : ""} à réapprovisionner`, onClick: () => aReapprovisionner.forEach((s) => ajouterPiece(s.piece, s.qte)) },
                   ].filter(Boolean);
                   if (outils.length === 0) return null;
                   return (

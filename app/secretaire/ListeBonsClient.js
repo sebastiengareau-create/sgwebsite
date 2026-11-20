@@ -7,6 +7,7 @@ import DossiersParMois, { DossiersParMoisACharger } from "../components/Dossiers
 import { dateBon, bonEstAVenir, regrouperParJour, cleMoisQuebec, heureQuebec, dateCourteQuebec, cleJourQuebec } from "@/lib/regroupementDates";
 import { correspondRecherche } from "@/lib/recherche";
 import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
+import { separerPiecesSoumission, ligneDePieceSoumission } from "@/lib/piecesSoumission";
 
 const STATUTS = {
   EN_ATTENTE: { label: "En attente", color: "#C9A227" },
@@ -33,6 +34,27 @@ const ETAPES = ["PLANIFIE", "EN_ATTENTE", "EN_COURS", "TERMINE"];
 // (moisAnciens) : chaque dossier se charge à son ouverture (lib/listeBons.js).
 function dateFacturation(b) {
   return b.facture?.dateEmission || dateBon(b);
+}
+// Date qui classe un bon dans la liste : sa facturation s'il est facturé
+// (les bons facturés se suivent par date de facture), sinon sa date prévue.
+function dateClassement(b) {
+  return b.statut === "TERMINE" ? dateFacturation(b) : dateBon(b);
+}
+// Contenu d'un bon pour sa carte : les vraies tâches (sans les lignes de
+// pièces hors inventaire / de soumission, compte 4010) et le nombre de
+// pièces — quantités additionnées, pièces de l'inventaire et hors
+// inventaire ensemble (les retours, en quantité négative, ne comptent pas).
+function contenuBon(b) {
+  const { pieces, taches } = separerPiecesSoumission(b.problemes);
+  const qtes = [
+    ...taches.flatMap((pr) => pr.pieces.map((l) => l.qte)),
+    ...pieces.map((pr) => ligneDePieceSoumission(pr).qte),
+  ];
+  return {
+    taches,
+    premiere: taches[0] || b.problemes[0],
+    nbPieces: qtes.reduce((s, q) => s + Math.max(0, q || 0), 0),
+  };
 }
 function separerFactures(bons) {
   const moisCourant = cleMoisQuebec(new Date());
@@ -87,6 +109,7 @@ export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
     <div className="conteneur-page-large" style={{ padding: 16, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein href="/secretaire/nouveau" icone="plus">Nouveau bon</BoutonPlein>
+        <BoutonPlein href="/secretaire/comptoir" icone="document">Facture comptoir</BoutonPlein>
         <div style={{ position: "relative", flex: "1 1 100%", minWidth: 0, order: 3 }}>
           <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
             <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
@@ -129,7 +152,7 @@ export default function ListeBonsClient({ bons, moisAnciens, filtreActuel }) {
         <EtatVide />
       ) : vue === "liste" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {regrouperParJour(recents, dateBon).map((g) => (
+          {regrouperParJour(recents, dateClassement).map((g) => (
             <section key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <EnTeteGroupe groupe={g} />
               {g.elements.map((b) => <CarteBon key={b.id} b={b} />)}
@@ -168,7 +191,7 @@ function TableauBons({ bons, ouvert, moisACharger, nombreACharger, chargerMois }
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {regrouperParJour(recents, dateBon).map((g) => (
+              {regrouperParJour(recents, dateClassement).map((g) => (
                 <div key={g.cle} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <EnTeteGroupe groupe={g} compact />
                   {g.elements.map((b) => <CarteBonCompacte key={b.id} b={b} />)}
@@ -191,19 +214,20 @@ function TableauBons({ bons, ouvert, moisACharger, nombreACharger, chargerMois }
 
 function CarteBonCompacte({ b }) {
   const infos = infosEtape(etape(b));
+  const { taches, premiere } = contenuBon(b);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{ position: "relative", overflow: "hidden", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "9px 10px 9px 14px" }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: infos.color }} />
         <BanderoleBo bon={b} compact style={{ marginBottom: 6 }} />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>#{b.numero}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{b.comptoir ? "🧾 " : ""}#{b.numero}</span>
           {b.datePrevue && <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 12, color: "var(--text-muted)" }}><Icone nom="horloge" taille={13} /> {heureQuebec(b.datePrevue)}</span>}
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
-        {b.problemes[0] && (
+        {premiere && (
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {b.problemes[0].description}{b.problemes.length > 1 ? ` (+${b.problemes.length - 1})` : ""}
+            {premiere.description}{taches.length > 1 ? ` (+${taches.length - 1})` : ""}
           </div>
         )}
         {b.datePrevue && cleJourQuebec(b.datePrevue) !== cleJourQuebec(b.creeLe) && (
@@ -216,26 +240,26 @@ function CarteBonCompacte({ b }) {
 
 function CarteBon({ b }) {
   const infos = infosEtape(etape(b));
-  const date = new Date(dateBon(b));
-  const nbPieces = b.problemes.reduce((s, p) => s + p.pieces.length, 0);
+  const date = new Date(dateClassement(b));
+  const { taches, premiere, nbPieces } = contenuBon(b);
   return (
     <Link href={`/bons/${b.id}`} style={{ textDecoration: "none", color: "inherit" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "stretch", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 12 }}>
         <PastilleDate date={date} couleur={infos.color} heure={b.datePrevue ? heureQuebec(b.datePrevue) : null} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>#{b.numero}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{b.comptoir ? "🧾 Comptoir " : ""}#{b.numero}</span>
             <Pastille couleur={infos.color} fond={`${infos.color}22`}>{infos.label}</Pastille>
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.client.nom}</div>
-          {b.problemes[0] && (
+          {premiere && (
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {b.problemes[0].description}
+              {premiere.description}
             </div>
           )}
           <BanderoleBo bon={b} compact style={{ marginTop: 6 }} />
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
-            {b.problemes.length} tâche{b.problemes.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
+            {taches.length} tâche{taches.length !== 1 ? "s" : ""} · {nbPieces} pièce{nbPieces !== 1 ? "s" : ""} · Créé le {dateCourteQuebec(b.creeLe)}
           </div>
         </div>
       </div>

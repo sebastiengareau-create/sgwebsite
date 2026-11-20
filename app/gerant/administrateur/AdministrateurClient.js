@@ -6,7 +6,7 @@ import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
-export default function AdministrateurClient({ modules, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
+export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, immoDemo, paieDemo, quartsDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
   const router = useRouter();
   const [enCoursId, setEnCoursId] = useState(null);
   const [verrouille, setVerrouille] = useState(verrouilleInit);
@@ -60,12 +60,16 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
 
   async function toggle(moduleId, nouveauStatut) {
     setEnCoursId(moduleId);
-    await fetch("/api/administrateur/modules", {
+    const res = await fetch("/api/administrateur/modules", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ module: moduleId, actif: nouveauStatut }),
     });
     setEnCoursId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      window.alert(data.erreur || "Le changement n'a pas pu être enregistré.");
+    }
     router.refresh();
   }
 
@@ -119,6 +123,13 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
         ))}
       </Panneau>
 
+      {atelierDemo && <AtelierDemo etat={atelierDemo} />}
+      {troupeauDemo && <TroupeauDemo etat={troupeauDemo} />}
+      {paieDemo && <PaieDemo etat={paieDemo} />}
+      {quartsDemo && <QuartsDemo etat={quartsDemo} />}
+      {coproDemo && <CoproDemo etat={coproDemo} />}
+      {immoDemo && <ImmoDemo etat={immoDemo} />}
+
       {estDeveloppeur && (
         <Panneau titre="Affichage">
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>Pour toi seulement.</p>
@@ -167,9 +178,96 @@ export default function AdministrateurClient({ modules, verrouilleInit, estDevel
   );
 }
 
+// Atelier de démonstration (lib/atelierDemo.js) : clients, véhicules,
+// inventaire, bons, factures, soumissions et rendez-vous pour présenter le
+// logiciel — se charge dans un atelier sans bon, se retire d'un coup
+function AtelierDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/atelier-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué."
+      : methode === "POST" ? `Atelier de démonstration chargé : ${data.clients} clients, ${data.bons} bons, ${data.factures} factures.`
+      : `Atelier de démonstration retiré : ${data.clients} clients, ${data.bons} bons.${data.gardes > 0 ? ` ${data.gardes} pièce(s), fournisseur(s) ou employé(s) gardés : ils servent à un vrai dossier.` : ""}`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer l'atelier de démonstration ? Ses ${etat.clients} clients disparaissent avec leurs véhicules, leurs ${etat.bons} bons (y compris ceux ajoutés pendant les essais), leurs factures et leurs paiements, ainsi que les pièces, fournisseurs et employés de démonstration. Les vrais dossiers ne sont pas touchés.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Atelier de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter ou essayer le logiciel : huit clients et leurs véhicules, un inventaire avec des pièces sous le minimum, deux mécaniciens, des bons à chaque étape (en attente, chrono en marche, à facturer), dix semaines de factures (payées, en retard, payée en partie), des soumissions et des rendez-vous.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Atelier de démonstration chargé : {etat.clients} clients, {etat.bons} bons.</span>
+          <a href="/gerant" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir la vue d'ensemble</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer l'atelier de démonstration"}</button>
+        </div>
+      ) : etat.bonsAtelier > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>L'atelier contient déjà {etat.bonsAtelier} bon{etat.bonsAtelier > 1 ? "s" : ""} de travail : l'atelier de démonstration ne se charge que dans un atelier sans bon.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger l'atelier de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Troupeau de démonstration du module Élevage (lib/elevageDemo.js) : se
+// charge dans un troupeau vide, se retire d'un coup
+function TroupeauDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/elevage-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué." : methode === "POST" ? `${data.betes} bêtes de démonstration ajoutées.` : `${data.betes} bêtes de démonstration retirées.`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer les ${etat.demo} bêtes de démonstration, avec leurs pesées, leurs paquets et leurs ventes ? Les vraies bêtes ne sont pas touchées.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Troupeau de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Élevage : neuf bêtes wagyu avec leurs pesées, frais et soins, une vache gestante, deux bêtes abattues avec leurs paquets, et des ventes sur neuf mois.
+      </p>
+      {etat.demo > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>{etat.demo} bêtes de démonstration dans le troupeau.</span>
+          <a href="/elevage" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir le troupeau</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer le troupeau de démonstration"}</button>
+        </div>
+      ) : etat.betes > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Le troupeau contient déjà {etat.betes} bête{etat.betes > 1 ? "s" : ""} : le troupeau de démonstration ne se charge que dans un troupeau vide.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger le troupeau de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
 const ICONES_MODULES = {
   calendrier: "calendrier", comptabilite: "banque", paie: "calculatrice", notifications: "alerte",
-  documents: "document", jobs_deplacement: "vehicule", elevage: "drapeau", copropriete: "immeuble",
+  documents: "document", jobs_deplacement: "vehicule", elevage: "drapeau", copropriete: "immeuble", immobilier: "maison",
 };
 
 // Interrupteur marche/arrêt, bien visible même éteint (thème clair ou sombre)
@@ -210,5 +308,179 @@ function Segments({ options, valeur, onChange, disabled }) {
         );
       })}
     </div>
+  );
+}
+
+// Copropriété de démonstration du module Copropriété (lib/coproprieteDemo.js) :
+// se charge dans une copropriété vide, se retire d'un coup
+function CoproDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/copropriete-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    const resume = `${data.unites} unités, ${data.coproprietaires} copropriétaires, ${data.demandes} demandes, ${data.travaux} bons de travail`;
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué." : methode === "POST" ? `Copropriété de démonstration chargée : ${resume}.` : `Copropriété de démonstration retirée : ${resume}.`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer la copropriété de démonstration ? Son immeuble disparaît avec ses ${etat.unites} unités, ses copropriétaires, ses charges et paiements, ses demandes et bons de travail (y compris ceux ajoutés pendant les essais), ses entretiens, ses documents et ses budgets. Un vrai immeuble ajouté à côté n'est pas touché.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Copropriété de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Copropriété : un immeuble de 13 unités et ses copropriétaires, stationnements et rangements, deux budgets, six mois de cotisations et de paiements (une unité en retard, une cotisation spéciale), des demandes et des bons de travail à chaque étape, l'entretien préventif, des documents et quatre accès au portail.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Copropriété de démonstration chargée : {etat.unites} unités.</span>
+          <a href="/copropriete" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir la copropriété</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer la copropriété de démonstration"}</button>
+        </div>
+      ) : !etat.vide ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>La copropriété contient déjà des immeubles, des unités, des copropriétaires ou un budget : la copropriété de démonstration ne se charge que dans une copropriété vide.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la copropriété de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Immobilier de démonstration du module Immobilier (lib/immobilierDemo.js) :
+// se charge dans un parc immobilier vide, se retire d'un coup
+function ImmoDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/immobilier-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    const resume = `${data.immeubles} immeubles, ${data.logements} logements, ${data.locataires} locataires, ${data.reparations} réparations`;
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué." : methode === "POST" ? `Immobilier de démonstration chargé : ${resume}.` : `Immobilier de démonstration retiré : ${resume}.`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer l'immobilier de démonstration ? Ses ${etat.immeubles} immeubles disparaissent avec leurs logements, baux, loyers et paiements, dépenses, réparations et documents (y compris ceux ajoutés pendant les essais), et ses locataires. Un vrai immeuble ajouté à côté n'est pas touché.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Immobilier de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Immobilier : trois immeubles (triplex, sixplex, immeuble mixte avec deux commerces), leurs locataires et leurs baux (un à renouveler, des avis de modification à envoyer, un logement vacant), douze mois de loyers et de paiements avec des retards, un an de dépenses, des réparations à chaque étape et des documents (avis de modification, rappel de retard, avis de visite, état des lieux et fiches de bail générés par l'appli ; assurance qui expire bientôt) et trois locataires avec accès à leur portail.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Immobilier de démonstration chargé : {etat.immeubles} immeubles, {etat.logements} logements.</span>
+          <a href="/immobilier" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir l'immobilier</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer l'immobilier de démonstration"}</button>
+        </div>
+      ) : !etat.vide ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Le module contient déjà des immeubles ou des locataires : l'immobilier de démonstration ne se charge que dans un parc vide.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger l'immobilier de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Paie de démonstration du module Paie (lib/paieDemo.js) : se charge s'il
+// n'y a encore aucun lot de paie, se retire d'un coup
+function PaieDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/paie-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué."
+      : methode === "POST" ? `Paie de démonstration chargée : ${data.employes} employés, ${data.lots} lots, ${data.paies} paies.`
+      : `Paie de démonstration retirée : ${data.employes} employés, ${data.paies} paies, ${data.lots} lots.${data.gardes > 0 ? ` ${data.gardes} employé(s) de démonstration désactivé(s) plutôt que supprimé(s) : ils ont servi à un vrai dossier.` : ""}`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer la paie de démonstration ? Ses ${etat.employes} employés disparaissent avec leurs ${etat.paies} paies (y compris celles faites pendant les essais), les écritures de ces paies, leurs heures et leurs retenues. Les vrais employés et leurs paies ne sont pas touchés.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Paie de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le module Paie sans toucher aux vrais employés : quatre employés fictifs (trois à l'heure, une à salaire ; REER, assurance collective, vacances à 6 %), dix semaines d'heures poinçonnées avec une semaine d'heures supplémentaires, trois lots comptabilisés (talons, cumulatifs, remises à payer) et le lot de la dernière période en brouillon, prêt à traiter.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Paie de démonstration chargée : {etat.employes} employés, {etat.paies} paies.</span>
+          <a href="/gerant/paie" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir la paie</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer la paie de démonstration"}</button>
+        </div>
+      ) : etat.lots > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Il y a déjà {etat.lots} lot{etat.lots > 1 ? "s" : ""} de paie : la paie de démonstration ne se charge que s'il n'y en a encore aucun.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger la paie de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
+  );
+}
+
+// Pointage de démonstration du module Pointage de quart (lib/quartsDemo.js) :
+// se charge s'il n'y a encore aucune période de feuille de temps, se retire d'un coup
+function QuartsDemo({ etat }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function appeler(methode) {
+    setEnCours(true);
+    setMessage("");
+    const res = await fetch("/api/administrateur/quarts-demo", { method: methode });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(!res.ok ? data.erreur || "L'opération a échoué."
+      : methode === "POST" ? `Pointage de démonstration chargé : ${data.employes} employés, ${data.quarts} pointages, une période verrouillée et la période en cours.`
+      : `Pointage de démonstration retiré : ${data.employes} employés, ${data.quarts} pointages.${data.gardes > 0 ? ` ${data.gardes} employé(s) de démonstration désactivé(s) plutôt que supprimé(s) : ils ont servi à un vrai dossier.` : ""}`);
+    router.refresh();
+  }
+  function retirer() {
+    if (window.confirm(`Retirer le pointage de démonstration ? Ses ${etat.employes} employés disparaissent avec leurs ${etat.quarts} pointages, leur temps, leur journal de corrections, la période verrouillée et les deux bons « flotte de démonstration ». Les vrais employés et leurs pointages ne sont pas touchés.`)) appeler("DELETE");
+  }
+
+  const bouton = { padding: "9px 14px", borderRadius: 10, fontSize: 13.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" };
+  return (
+    <Panneau titre="Pointage de démonstration">
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
+        Pour présenter le pointage de quart et les feuilles de temps sans toucher aux vrais employés : trois employés fictifs qui pointent depuis six semaines (efficacité élevée, moyenne et faible), une période approuvée et verrouillée avec heures supplémentaires, prime et corrections au journal, et la période en cours avec ce qu'un gérant doit régler (départ non pointé, temps hors quart, quart resté ouvert). Crée aussi un client et deux bons « flotte de démonstration » à 0 $ pour porter le temps sur les bons.
+      </p>
+      {etat.charge ? (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>Pointage de démonstration chargé : {etat.employes} employés, {etat.quarts} pointages.</span>
+          <a href="/gerant/feuilles-temps" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent-ombre)" }}>Voir les feuilles de temps</a>
+          <button type="button" onClick={retirer} disabled={enCours} style={{ ...bouton, marginLeft: "auto", background: "var(--surface)", border: "1px solid var(--danger)", color: "var(--danger)" }}>{enCours ? "…" : "Retirer le pointage de démonstration"}</button>
+        </div>
+      ) : etat.periodes > 0 ? (
+        <p style={{ fontSize: 13.5, margin: 0 }}>Il y a déjà {etat.periodes} période{etat.periodes > 1 ? "s" : ""} de feuille de temps : le pointage de démonstration ne se charge que s'il n'y en a encore aucune.</p>
+      ) : (
+        <button type="button" onClick={() => appeler("POST")} disabled={enCours} className="bouton-3d" style={bouton}>{enCours ? "Chargement…" : "Charger le pointage de démonstration"}</button>
+      )}
+      {message && <p style={{ fontSize: 13, fontWeight: 700, margin: "10px 0 0" }}>{message}</p>}
+    </Panneau>
   );
 }

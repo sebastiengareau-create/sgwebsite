@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent, kg } from "@/lib/elevageCalculs";
+import { Icone, TEINTES, TitrePanneau, stylePanneau } from "../components/StyleSection";
 
 export const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
@@ -78,12 +79,13 @@ export function Onglets({ options, valeur, onChange }) {
 }
 
 // Petite carte de chiffre : bande de couleur à gauche, comme les autres sections
-export function Statistique({ valeur, label, teinte = "var(--accent)" }) {
+export function Statistique({ valeur, label, teinte = "var(--accent)", note, couleur }) {
   return (
     <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "14px 14px 14px 18px" }}>
       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte }} />
-      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums" }}>{valeur}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums", color: couleur }}>{valeur}</div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{label}</div>
+      {note && <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, opacity: 0.85 }}>{note}</div>}
     </div>
   );
 }
@@ -93,12 +95,14 @@ export function NavElevage({ actif }) {
   const liens = [
     { href: "/elevage", label: "🐂 Troupeau" },
     { href: "/elevage/viande", label: "🥩 Viande" },
+    { href: "/elevage/registre", label: "📒 Registre" },
     { href: "/elevage/coupes", label: "📐 Coupes et rendements" },
   ];
-  // Onglets de même largeur, comme dans la section Opérations
+  // Onglets de même largeur, comme dans la section Opérations — 2 × 2 sur
+  // cellulaire, jamais un onglet seul en bas
   return (
     <nav style={{
-      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 4, marginBottom: 16,
+      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 4, marginBottom: 16,
       padding: 4, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)",
     }}>
       {liens.map((l) => {
@@ -162,5 +166,34 @@ export function TableEstimation({ lignes }) {
         </tr>
       ))}
     </Tableau>
+  );
+}
+
+// Panneau d'une fiche, avec sa tuile d'icône
+export function Section({ titre, icone = "liste", teinte = TEINTES.ambre, sousTitre, children, droite }) {
+  return (
+    <div style={stylePanneau}>
+      <TitrePanneau icone={icone} teinte={teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
+      {children}
+    </div>
+  );
+}
+
+// Panneaux côte à côte sur un écran large, empilés sur un téléphone
+export function DeuxColonnes({ children }) {
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))", columnGap: 16, alignItems: "start" }}>{children}</div>;
+}
+
+// Lien d'action dans l'en-tête d'un panneau (Modifier, Annuler…)
+export function LienPanneau({ onClick, couleur = "var(--accent-ombre)", children }) {
+  return <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 0", fontSize: 13, fontWeight: 700, color: couleur, whiteSpace: "nowrap", fontFamily: "inherit" }}>{children}</button>;
+}
+
+// Petit bouton à icône (retirer une ligne)
+export function BoutonRetirer({ titre, onClick }) {
+  return (
+    <button type="button" onClick={onClick} title={titre} aria-label={titre} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" }}>
+      <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
+    </button>
   );
 }

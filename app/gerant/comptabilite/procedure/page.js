@@ -41,7 +41,7 @@ const ETAPES = [
     titre: "Remises gouvernementales",
     obligatoire: false,
     description: "Comptabilise le paiement de la TPS/TVQ et des DAS (impôts, RRQ, RQAP, AE) dus pour le mois. Pas vérifié par le logiciel pour fermer, mais garde tes comptes à jour et évite les surprises au mois suivant.",
-    lien: { href: "/gerant/comptabilite/remise-gouvernementale", label: "🏛️ Remise gouvernementale" },
+    lien: { href: "/gerant/comptabilite/remise-gouvernementale", label: "🏛️ Remises à payer" },
   },
   {
     numero: 6,

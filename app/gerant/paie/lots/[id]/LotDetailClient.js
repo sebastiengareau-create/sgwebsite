@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { argent, nombre } from "@/lib/format";
+import { detailRetenues } from "@/lib/retenuesPaie";
 import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "../../../../components/StyleSection";
 
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
@@ -91,6 +92,7 @@ export default function LotDetailClient({ lot, checklist, employesDisponibles })
     setEnCours(false);
     if (!res.ok) {
       setErreur(data.erreur || "Erreur lors du traitement.");
+      router.refresh(); // un traitement interrompu a pu verser une partie des paies
       return;
     }
     setAvertissements(data.avertissements || []);
@@ -244,6 +246,9 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
   const [heuresValeur, setHeuresValeur] = useState(String(paie.heuresTravaillees));
   const [montantValeur, setMontantValeur] = useState(String(paie.salaireBrut));
   const [boniValeur, setBoniValeur] = useState(String(paie.boni || 0));
+  const [forfaitaireValeur, setForfaitaireValeur] = useState(!!paie.vacancesForfaitaire);
+  const [heuresSupValeur, setHeuresSupValeur] = useState(String(paie.heuresSupplementaires || 0));
+  const [feriesValeur, setFeriesValeur] = useState(String(paie.indemniteFeries || 0));
   const modifiable = estBrouillon && paie.employe.typeRemuneration !== "SALAIRE";
   const corrigee = paie.statut === "CORRIGEE";
 
@@ -252,7 +257,7 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
     : `${argent((paie.employe.tauxHoraireEmploye || 0))}/h`;
 
   function recalculer() {
-    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur } : { heuresManuelles: heuresValeur, boni: boniValeur });
+    onAjuster(paie.id, estVacances ? { montantVacances: montantValeur, vacancesForfaitaire: forfaitaireValeur } : { heuresManuelles: heuresValeur, heuresSupManuelles: heuresSupValeur, indemniteFeriesManuelle: feriesValeur, boni: boniValeur });
   }
 
   return (
@@ -270,6 +275,9 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
             {infoRemuneration}
             {!estVacances && (paie.heuresTravaillees > 0 || paie.employe.typeRemuneration !== "SALAIRE") && ` · ${nombre(paie.heuresTravaillees)} h`}
             {!estVacances && paie.heuresHorodateur != null && paie.heuresHorodateur !== paie.heuresTravaillees && ` (${nombre(paie.heuresHorodateur)} h réelles)`}
+            {estVacances && (paie.vacancesForfaitaire ? " · en plus du salaire" : " · remplace le salaire")}
+            {paie.heuresSupplementaires > 0 && ` · ${nombre(paie.heuresSupplementaires)} h supp.`}
+            {paie.indemniteFeries > 0 && ` · férié ${argent(paie.indemniteFeries)}`}
             {paie.boni > 0 && ` · +${argent(paie.boni)} boni`}
           </span>
         </span>
@@ -290,14 +298,29 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
                 <div>
                   <label style={labelStyle}>Montant de vacances ($)</label>
                   <input type="number" min={0} step="0.01" value={montantValeur} onChange={(e) => setMontantValeur(e.target.value)} style={champStyle} />
+                  <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, marginBottom: 10, cursor: "pointer" }}>
+                    <input type="checkbox" checked={forfaitaireValeur} onChange={(e) => setForfaitaireValeur(e.target.checked)} style={{ marginTop: 3 }} />
+                    <span>
+                      <span style={{ fontWeight: 700 }}>Versées en plus du salaire, sans congé</span>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>Impôt calculé comme pour un boni. Décochée : la paie remplace le salaire de la période.</span>
+                    </span>
+                  </label>
                 </div>
               ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
                     <label style={labelStyle}>
-                      Heures{paie.heuresHorodateur != null && <span> ({nombre(paie.heuresHorodateur)} h réelles)</span>}
+                      Heures régulières{paie.heuresHorodateur != null && <span> ({nombre(paie.heuresHorodateur)} h réelles)</span>}
                     </label>
                     <input type="number" min={0} step="0.01" value={heuresValeur} onChange={(e) => setHeuresValeur(e.target.value)} style={champStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Heures supp. (taux et demi)</label>
+                    <input type="number" min={0} step="0.01" value={heuresSupValeur} onChange={(e) => setHeuresSupValeur(e.target.value)} style={champStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Jours fériés ($)</label>
+                    <input type="number" min={0} step="0.01" value={feriesValeur} onChange={(e) => setFeriesValeur(e.target.value)} style={champStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Boni / extra ($)</label>
@@ -319,6 +342,9 @@ function LignePaie({ paie, estBrouillon, estVacances, enCours, onAjuster, onReti
           <LigneRetenue label="Assurance-emploi" valeur={paie.aeEmploye} />
           <LigneRetenue label="Impôt fédéral" valeur={paie.impotFederal} />
           <LigneRetenue label="Impôt Québec" valeur={paie.impotQuebec} />
+          {detailRetenues(paie).map((r, i) => (
+            <LigneRetenue key={`${r.libelle}-${i}`} label={`${r.libelle}${r.type === "REER" ? " (réduit l'impôt)" : ""}`} valeur={r.montant} />
+          ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 12px", borderRadius: 12, background: "var(--danger-fond)", marginTop: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)" }}>Total des retenues</span>
             <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--danger)" }}>{argent(paie.totalDeductions)}</span>

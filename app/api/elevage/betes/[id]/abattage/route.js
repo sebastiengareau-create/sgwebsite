@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sessionElevage, normaliserAbattage, normaliserLot } from "@/lib/elevage";
+import { sessionElevage, normaliserAbattage, normaliserLot, retraitBloquant } from "@/lib/elevage";
 
 // Abattage et découpe : la carcasse, puis les paquets reçus du boucher pour
 // chaque coupe (proposés selon les rendements, corrigés au besoin). Une
-// coupe à 0 paquet n'a pas de lot. La bête sort du troupeau.
+// coupe à 0 paquet n'a pas de lot. La bête sort du troupeau. Refusé tant
+// qu'un délai de retrait (soin) court encore à la date d'abattage.
 export async function POST(request, props) {
   const params = await props.params;
   const session = await sessionElevage();
   if (!session) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
-  const bete = await prisma.bete.findUnique({ where: { id: params.id }, include: { abattage: { select: { id: true } } } });
+  const bete = await prisma.bete.findUnique({ where: { id: params.id }, include: { abattage: { select: { id: true } }, soins: true } });
   if (!bete) return NextResponse.json({ erreur: "Bête introuvable." }, { status: 404 });
   if (bete.abattage) return NextResponse.json({ erreur: "Cette bête est déjà abattue." }, { status: 409 });
   if (bete.statut !== "ACTIVE") return NextResponse.json({ erreur: "Cette bête n'est plus au troupeau — remets-la au troupeau d'abord." }, { status: 409 });
@@ -17,6 +18,8 @@ export async function POST(request, props) {
   const body = await request.json();
   const abattage = normaliserAbattage(body);
   if (abattage.erreur) return NextResponse.json({ erreur: abattage.erreur }, { status: 400 });
+  const retrait = retraitBloquant(bete.soins, abattage.data.date);
+  if (retrait) return NextResponse.json({ erreur: retrait }, { status: 409 });
 
   const coupes = await prisma.coupeViande.findMany({ select: { id: true, nom: true } });
   const lots = [];

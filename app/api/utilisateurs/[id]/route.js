@@ -76,6 +76,22 @@ export async function PATCH(request, props) {
   if (body.salaireAnnuel !== undefined) data.salaireAnnuel = body.salaireAnnuel === "" ? null : Number(body.salaireAnnuel);
   if (body.frequencePaie && ["HEBDOMADAIRE", "BIHEBDOMADAIRE", "BIMENSUEL", "MENSUEL"].includes(body.frequencePaie)) data.frequencePaie = body.frequencePaie;
   if (body.tauxVacances !== undefined && body.tauxVacances !== "") data.tauxVacances = Number(body.tauxVacances);
+  // Exemptions de cotisations (lib/paie.js, exemptionsEmploye)
+  if (body.dateNaissance !== undefined) {
+    if (body.dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(body.dateNaissance)) return NextResponse.json({ erreur: "Date de naissance invalide." }, { status: 400 });
+    // Journée civile, ancrée à midi UTC pour rester le même jour dans tous les fuseaux
+    data.dateNaissance = body.dateNaissance ? new Date(`${body.dateNaissance}T12:00:00Z`) : null;
+  }
+  for (const champ of ["exemptionAE", "exemptionRRQ", "exemptionCNESST"]) {
+    if (body[champ] !== undefined) data[champ] = body[champ] === true;
+  }
+  // Montants déclarés par l'employé (TD1 fédéral, TP-1015.3 du Québec) — vide = montant de base de l'année
+  for (const champ of ["montantTd1", "montantTp10153"]) {
+    if (body[champ] === undefined) continue;
+    const montant = body[champ] === "" || body[champ] === null ? null : Number(body[champ]);
+    if (montant !== null && !(montant >= 0)) return NextResponse.json({ erreur: "Montant de crédits personnels invalide." }, { status: 400 });
+    data[champ] = montant;
+  }
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
   // NAS (feuillets T4 / RL-1) : réservé à qui a la section Paie
   if (body.nas !== undefined) {
@@ -153,7 +169,8 @@ export async function DELETE(request, props) {
   // temps sur une tâche interne.
   const [entrees, entreesInternes, photos, paies] = await Promise.all([
     prisma.entreeTemps.count({ where: { employeId: params.id } }),
-    prisma.entreeTempsInterne.count({ where: { employeId: params.id } }),
+    // Tâches internes et quarts pointés : du temps travaillé aussi
+    Promise.all([prisma.entreeTempsInterne.count({ where: { employeId: params.id } }), prisma.quart.count({ where: { employeId: params.id } })]).then(([a, b]) => a + b),
     prisma.photo.count({ where: { employeId: params.id } }),
     prisma.paie.count({ where: { employeId: params.id } }),
   ]);

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroBon, prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { CLIENT } from "@/lib/client";
+import { tachesRetenues } from "@/lib/approbationCalculs";
 import { clientEtVehiculeDuBon, totauxSoumission, sortDuStock, manqueStockSoumission, sortirPieceSoumissionDuStock, messagePieceSoumission } from "@/lib/soumissions";
 import { posterFactureEmise, COMPTE_MAIN_OEUVRE } from "@/lib/comptabilite";
 
@@ -33,6 +34,8 @@ export async function POST(request, props) {
     include: { taches: { include: { pieces: true } }, vehicule: true },
   });
   if (!soumission) return NextResponse.json({ erreur: "Soumission introuvable." }, { status: 404 });
+  // Approuvée en ligne par le client : seuls les travaux qu'il a cochés sont repris
+  soumission.taches = tachesRetenues(soumission);
   if (soumission.bonId) {
     return NextResponse.json({ erreur: "Cette soumission a déjà un bon (ou une facture). Remets-la en attente d'abord." }, { status: 409 });
   }

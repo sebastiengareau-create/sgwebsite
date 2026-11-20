@@ -41,19 +41,70 @@ on décide quand et à qui une modification s'applique.
 - **Nom, adresse, téléphone…** : dans l'appli (Administrateur →
   Informations de l'entreprise), donc dans la base du client.
 - **Modules** (Administrateur → Modules) : sections entières activées ou non
-  dans l'appli de chaque installation, sans changer le profil — ex. Paie,
-  Jobs en déplacement, **Élevage** (troupeau de bœuf wagyu, découpe et vente
-  de viande, `lib/elevage.js`), qui cohabite avec l'Inventaire ou le remplace
+  dans l'appli de chaque installation, sans changer le profil — ex. Paie
+  (paie de démonstration à charger ou retirer dans Administrateur : employés
+  fictifs, heures, lots comptabilisés et un lot en brouillon, `lib/paieDemo.js`),
+  Jobs en déplacement, **Productivité par employés** (rapport de
+  productivité et rentabilité par employé, actif par défaut,
+  `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
+  de viande, registre de soins avec délai de retrait, saillies, vêlages et lignée
+  avec alerte de consanguinité, courbe de poids et gain visé, date d'abattage prévue selon le poids visé, boucle ATQ validée, déplacements et
+  registre à déclarer à Agri-Traçabilité Québec (`lib/registreElevage.js`),
+  étiquettes à code QR
+  des paquets et page publique de traçabilité `/tracabilite/<lot>`,
+  `lib/elevage.js` ; troupeau de démonstration à charger ou retirer dans
+  Administrateur, `lib/elevageDemo.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
+  **Pointage de quart et feuilles de temps** (inactif par défaut,
+  `lib/quarts.js`) : l'employé pointe arrivée, dîner, pause et départ à
+  l'horodateur — le temps de présence, distinct du temps par tâche ; feuilles
+  de temps par période (`/gerant/feuilles-temps`, accès « Employés ») avec
+  heures supplémentaires à la semaine, efficacité (présence comparée au temps
+  sur les bons), anomalies, corrections consignées, verrouillage et export
+  CSV / Excel. Actif, la paie et la productivité prennent les heures de
+  présence au lieu de l'horaire d'ouverture. Pointage de démonstration à
+  charger ou retirer dans Administrateur (employés fictifs, période
+  verrouillée, anomalies à régler, `lib/quartsDemo.js`).
   **Copropriété** (syndicat de copropriété : unités et quotes-parts,
   copropriétaires et historique des propriétaires, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents
-  et portail sécurisé des copropriétaires, `lib/copropriete.js`).
+  et portail sécurisé des copropriétaires, `lib/copropriete.js` ; copropriété
+  de démonstration à charger ou retirer dans Administrateur,
+  `lib/coproprieteDemo.js`).
+  **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
+  immeubles locatifs — immeubles et logements, locataires et baux avec les
+  délais d'avis de modification du TAL et le renouvellement, loyers du mois,
+  paiements et retards, dépenses et rendement par immeuble, réparations avec
+  photos, documents avec date d'expiration, avis, rappels, état des lieux et
+  reçus générés en PDF (`lib/pdfImmobilier.js`), préparation et suivi des
+  relevés 31 (`/immobilier/releve-31`), portail sécurisé des locataires
+  (`/portail-locataire/<jeton>` : bail, compte et reçus, documents partagés,
+  demandes de réparation, réponse à l'avis de modification), envoi par
+  courriel des avis, relevés de compte et reçus avec journal des envois
+  (`lib/immobilierCourriel.js`, exige l'envoi de courriel configuré),
+  `lib/immobilier.js` ;
+  volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
+  modules — à brancher client par client ; parc de démonstration à charger ou
+  retirer dans Administrateur, `lib/immobilierDemo.js`).
+  **Double vérification à la connexion** (inactive par défaut : gérants et
+  niveau 4 reçoivent un code par courriel après leur mot de passe,
+  `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
+- **Atelier de démonstration** (Administrateur → Atelier de démonstration,
+  `lib/atelierDemo.js`) : clients, véhicules, inventaire, fournisseurs, deux
+  mécaniciens, bons à chaque étape, dix semaines de factures, soumissions et
+  rendez-vous, à charger dans un atelier sans bon de travail puis à retirer
+  d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
+  au modèle de base (réglage `atelierDemo` du profil, absent chez les
+  clients). Les vrais dossiers ne sont pas touchés.
+- **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
+  modèle de base seulement) : « DÉMO » dans le haut et, sous le logo Garage,
+  les autres déclinaisons (Ferme, Copropriété, Immobilier, Premium) en texte
+  de leur couleur (`DECLINAISONS_DEMO`, `lib/marque.js`).
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
   tous — discrète (bas de la page de connexion, Paramètres → À propos),
   jamais sur les documents du client. Le badge (GARAGE, FERME, COPROPRIÉTÉ,
-  BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
+  IMMOBILIER, BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
   dans le profil. Logos en fichiers pour les pages d'accueil :
   `public/marque/`. Site de vente www.kontrolshop.com (page statique, à part
   de l'appli, publiée chez WHC par GitHub Actions) : `site-kontrolshop/`.

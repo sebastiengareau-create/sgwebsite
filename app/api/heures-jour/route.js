@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { productiviteActif } from "@/lib/productivite";
 
 // Heures réellement travaillées par un employé une journée (Productivité par
 // employés → « Coût du jour »). heures vide ou null : retire la correction,
 // on revient aux heures prévues de l'horaire.
 export async function PUT(request) {
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "jobs-temps-reel"))) {
+  if (!(await aAccesSection(session, "jobs-temps-reel")) || !(await productiviteActif())) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 

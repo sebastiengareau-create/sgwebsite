@@ -11,6 +11,7 @@ import { trouverBonsNonFactures } from "@/lib/bons";
 import { messageBonsNonFactures } from "@/lib/bonsNonFactures";
 import { normaliserProvince, normaliserCodePostal } from "@/lib/adresse";
 import { bonsFacturesDuMois, rechercherBons } from "@/lib/listeBons";
+import { obtenirClientPassage, LIGNE_COMPTOIR_DEFAUT } from "@/lib/comptoir";
 
 // Liste des bons (Opérations) : contenu d'un dossier de mois passé
 // (?mois=YYYY-MM), ou recherche dans tout l'historique (?recherche=…)
@@ -38,28 +39,36 @@ export async function POST(request) {
 
   const {
     clientId, clientNom, clientTelephone, clientAdresse, clientVille, clientProvince, clientCodePostal,
-    clientGarantieProlongee,
+    clientGarantieProlongee, clientCourriel,
     problemes, datePrevue, ajouterAuCalendrier, dureeMinutes, forcer, confirmerDoublon,
-    vehiculeId, vehicule, confirmerBonNonFacture,
+    vehiculeId, vehicule, confirmerBonNonFacture, comptoir, clientPassage,
   } = await request.json();
 
-  const lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
-  const garantieProlongee = String(clientGarantieProlongee || "").trim() || null;
+  // Facture comptoir (lib/comptoir.js) : ni véhicule ni calendrier, et une
+  // ligne par défaut si aucune n'est entrée
+  const estComptoir = !!comptoir;
+  let lignesValides = (problemes || []).map((p) => p.trim()).filter(Boolean);
+  if (estComptoir && lignesValides.length === 0) lignesValides = [LIGNE_COMPTOIR_DEFAUT];
+  const courriel = String(clientCourriel || "").trim() || null;
+  if (courriel && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(courriel)) {
+    return NextResponse.json({ erreur: "Courriel du client invalide." }, { status: 400 });
+  }
+  const garantieProlongee = estComptoir ? null : String(clientGarantieProlongee || "").trim() || null;
 
-  if ((!clientId && !clientNom) || lignesValides.length === 0) {
+  if ((!clientId && !clientNom && !(estComptoir && clientPassage)) || lignesValides.length === 0) {
     return NextResponse.json({ erreur: "Champs manquants (au moins une tâche requise)." }, { status: 400 });
   }
 
   // Véhicule : un véhicule existant du dossier (vehiculeId) ou un nouveau
   // (vehicule), ajouté au dossier du client en même temps que le bon.
-  if (vehiculeId && !clientId) {
+  if (vehiculeId && !clientId && !estComptoir) {
     return NextResponse.json({ erreur: "Un nouveau client n'a pas encore de véhicule au dossier." }, { status: 400 });
   }
-  const nouveauVehicule = vehiculeId ? { vide: true } : normaliserVehicule(vehicule);
+  const nouveauVehicule = vehiculeId || estComptoir ? { vide: true } : normaliserVehicule(vehicule);
   if (nouveauVehicule.erreur) return NextResponse.json({ erreur: nouveauVehicule.erreur }, { status: 400 });
   // Profil vehiculeObligatoire : chaque bon porte sur un véhicule — au moins
   // une information, le reste peut se compléter plus tard
-  if (CLIENT.vehiculeObligatoire && !vehiculeId && nouveauVehicule.vide) {
+  if (CLIENT.vehiculeObligatoire && !estComptoir && !vehiculeId && nouveauVehicule.vide) {
     return NextResponse.json({ erreur: "Indique au moins une information sur le véhicule (marque, année, NIV, plaque…), ou choisis-en un du dossier du client." }, { status: 400 });
   }
 
@@ -70,19 +79,20 @@ export async function POST(request) {
   const duree = Math.max(15, Number(dureeMinutes) || 60);
   // Module Calendrier désactivé : jamais d'inscription (la case est cachée)
   const moduleCalendrier = await prisma.parametre.findUnique({ where: { cle: "module_calendrier" } });
-  const inscrireCalendrier = !!ajouterAuCalendrier && !!debutPrevu && moduleCalendrier?.valeur !== "inactif";
+  const inscrireCalendrier = !estComptoir && !!ajouterAuCalendrier && !!debutPrevu && moduleCalendrier?.valeur !== "inactif";
   if (inscrireCalendrier && !forcer) {
     const raison = await verifierCreneau(debutPrevu, duree);
     if (raison) return NextResponse.json({ erreur: raison, horsDisponibilite: true }, { status: 409 });
   }
 
   let idClientFinal = clientId;
+  if (!idClientFinal && estComptoir && clientPassage) idClientFinal = (await obtenirClientPassage()).id;
 
   if (!idClientFinal) {
     // Homonyme ou même téléphone : avertir, et créer quand même si
     // l'utilisateur confirme que c'est une autre personne.
     if (!confirmerDoublon) {
-      const doublons = await trouverDoublonsClient({ nom: clientNom, telephone: clientTelephone });
+      const doublons = await trouverDoublonsClient({ nom: clientNom, telephone: clientTelephone, courriel });
       if (doublons.length > 0) {
         return NextResponse.json(
           { erreur: `${messageDoublons(doublons)} Utilise la recherche pour le sélectionner, ou confirme qu'il s'agit d'un autre client.`, doublonPossible: true },
@@ -96,6 +106,7 @@ export async function POST(request) {
         numero: await prochainNumeroClient(),
         nom: clientNom,
         telephone: clientTelephone || null,
+        courriel,
         adresse: clientAdresse || null,
         ville: clientVille || null,
         province: normaliserProvince(clientProvince),
@@ -109,7 +120,7 @@ export async function POST(request) {
     if (!existe) return NextResponse.json({ erreur: "Client introuvable." }, { status: 404 });
     // Profil avertirBonNonFacture : le client a déjà un bon pas encore
     // facturé — créer seulement si l'utilisateur le confirme
-    if (CLIENT.avertirBonNonFacture && !confirmerBonNonFacture) {
+    if (CLIENT.avertirBonNonFacture && !estComptoir && !confirmerBonNonFacture) {
       const bons = await trouverBonsNonFactures({ clientId: idClientFinal });
       if (bons.length) {
         return NextResponse.json({ erreur: messageBonsNonFactures(existe.nom, bons, idClientFinal), bonNonFacture: true }, { status: 409 });
@@ -118,7 +129,7 @@ export async function POST(request) {
   }
 
   let vehiculeDuBon = null;
-  if (vehiculeId) {
+  if (vehiculeId && !estComptoir) {
     const v = await prisma.vehicule.findUnique({ where: { id: vehiculeId } });
     if (!v || v.clientId !== idClientFinal) {
       return NextResponse.json({ erreur: "Ce véhicule n'est pas au dossier de ce client." }, { status: 400 });
@@ -130,6 +141,10 @@ export async function POST(request) {
 
   // Garantie prolongée entrée sur le bon : complète le dossier d'un client
   // existant qui n'en a pas encore (jamais d'écrasement d'un numéro au dossier)
+  // Courriel entré sur le bon : même règle, pour un dossier qui n'en a pas
+  if (clientId && courriel) {
+    await prisma.client.updateMany({ where: { id: idClientFinal, OR: [{ courriel: null }, { courriel: "" }] }, data: { courriel } });
+  }
   if (clientId && garantieProlongee) {
     await prisma.client.updateMany({ where: { id: idClientFinal, garantieProlongee: null }, data: { garantieProlongee } });
   }
@@ -141,7 +156,8 @@ export async function POST(request) {
       clientId: idClientFinal,
       vehiculeId: vehiculeDuBon?.id || null,
       kilometrage: vehiculeDuBon?.kilometrage ?? null,
-      datePrevue: debutPrevu,
+      datePrevue: estComptoir ? null : debutPrevu,
+      comptoir: estComptoir,
       problemes: { create: lignesValides.map((description) => ({ description })) },
       rendezVous: inscrireCalendrier
         ? {

@@ -39,7 +39,10 @@ export async function DELETE(request, props) {
 
   const entreeExistante = await prisma.entreeTemps.findUnique({ where: { id: params.id }, include: { probleme: true } });
   if (!entreeExistante) return NextResponse.json({ erreur: "Entrée introuvable." }, { status: 404 });
-  if (await bonEstVerrouille(entreeExistante.probleme.bonId)) {
+  // Bon facturé : seul un chrono resté ouvert peut être annulé. Ses heures
+  // n'ont jamais été comptées (facture, écritures et paie ne prennent que
+  // les poinçons arrêtés), donc l'annuler ne change rien à ce qui est figé.
+  if (entreeExistante.fin && (await bonEstVerrouille(entreeExistante.probleme.bonId))) {
     return NextResponse.json({ erreur: MESSAGE_BON_VERROUILLE }, { status: 409 });
   }
 

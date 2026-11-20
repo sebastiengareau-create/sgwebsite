@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
+import { assurerQuartPourTache } from "@/lib/quarts";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -29,7 +30,10 @@ export async function POST(request, props) {
       return NextResponse.json({ statut: "arrete" });
     }
 
-    await prisma.entreeTempsInterne.create({ data: { employeId, tacheInterneId, debut: new Date() } });
+    // Comme pour un bon : la tâche se poinçonne dans un quart ouvert
+    const debut = new Date();
+    await assurerQuartPourTache(employeId, debut);
+    await prisma.entreeTempsInterne.create({ data: { employeId, tacheInterneId, debut } });
     return NextResponse.json({ statut: "demarre" });
   } catch (e) {
     return NextResponse.json({ erreur: "Erreur serveur : " + e.message }, { status: 500 });

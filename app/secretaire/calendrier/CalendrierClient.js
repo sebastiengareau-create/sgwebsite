@@ -1,5 +1,7 @@
 "use client";
 
+import BoutonTexto from "../../components/BoutonTexto";
+import { MESSAGES_TEXTO } from "@/lib/textos";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -120,7 +122,7 @@ function construireCouleursMotifs(rendezVous) {
   return carte;
 }
 
-export default function CalendrierClient({ jours, rendezVous, indisponibles, heuresParJour, capacite, dateSelectionnee }) {
+export default function CalendrierClient({ jours, rendezVous, indisponibles, heuresParJour, capacite, dateSelectionnee, nomEntreprise = "" }) {
   const router = useRouter();
   const [jourActif, setJourActif] = useState(jours.includes(dateSelectionnee) ? dateSelectionnee : jours[0]);
   const [vue, setVue] = useState("grille"); // "grille" | "liste"
@@ -248,7 +250,7 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
                   }>
                     Détail du rendez-vous
                   </TitreGroupe>
-                  <CarteRendezVous rdv={rdvSelectionne} onChange={() => router.refresh()} />
+                  <CarteRendezVous rdv={rdvSelectionne} nomEntreprise={nomEntreprise} onChange={() => router.refresh()} />
                 </div>
               );
             })()}
@@ -292,7 +294,7 @@ export default function CalendrierClient({ jours, rendezVous, indisponibles, heu
               ))}
               {rdvDuJour.length === 0 && <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>Aucun rendez-vous ce jour-là.</p>}
               {rdvDuJour.map((r) => (
-                <CarteRendezVous key={r.id} rdv={r} onChange={() => router.refresh()} />
+                <CarteRendezVous key={r.id} rdv={r} nomEntreprise={nomEntreprise} onChange={() => router.refresh()} />
               ))}
             </div>
           </>
@@ -511,7 +513,7 @@ function GrilleSemaine({ jours, rdvParJour, indisponibles, heuresParJour, couleu
   );
 }
 
-function CarteRendezVous({ rdv, onChange, compact }) {
+function CarteRendezVous({ rdv, onChange, compact, nomEntreprise }) {
   const router = useRouter();
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -618,6 +620,12 @@ function CarteRendezVous({ rdv, onChange, compact }) {
           <button onClick={() => convertir()} disabled={enCours} style={{ ...boutonAction, background: "var(--accent)", borderColor: "var(--accent)", color: "#221f18" }}>
             <Icone nom="presse" taille={16} /> Créer le bon
           </button>
+          {/* Rappel par texto, sans abonnement (lib/textos.js) */}
+          <BoutonTexto
+            telephone={rdv.clientTelephone || rdv.client?.telephone}
+            message={MESSAGES_TEXTO.rappelRendezVous({ nom: rdv.clientNom, quand: quandRendezVous(rdv.date), nomEntreprise })}
+            libelle="💬 Rappel" style={boutonAction} title="Texto de rappel au client — ouvre Messages avec le message déjà écrit"
+          />
           <button onClick={annuler} disabled={enCours} style={boutonAction}>
             Annuler
           </button>
@@ -628,6 +636,13 @@ function CarteRendezVous({ rdv, onChange, compact }) {
       )}
     </div>
   );
+}
+
+// « le jeudi 12 novembre à 9 h 30 » (« à 9 h » pour une heure pile)
+const FORMAT_QUAND = new Intl.DateTimeFormat("fr-CA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
+function quandRendezVous(date) {
+  const p = Object.fromEntries(FORMAT_QUAND.formatToParts(new Date(date)).map((x) => [x.type, x.value]));
+  return `le ${p.weekday} ${p.day} ${p.month} à ${Number(p.hour)} h${p.minute === "00" ? "" : ` ${p.minute}`}`;
 }
 
 const boutonAction = {

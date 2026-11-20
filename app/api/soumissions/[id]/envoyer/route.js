@@ -4,6 +4,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { genererPdfSoumission } from "@/lib/pdfSoumission";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { courrielConfigure, courrielValide, envoyerDocumentPdf } from "@/lib/courrielDocuments";
+import { assurerLienSoumission, peutRepondre } from "@/lib/approbationSoumission";
 
 // Envoie la soumission au client, en PDF joint
 export async function POST(request, props) {
@@ -36,6 +37,12 @@ export async function POST(request, props) {
   const infosEntreprise = await obtenirInfosEntreprise();
   const { nomEntreprise } = infosEntreprise;
 
+  // Lien d'approbation en ligne, tant que le client peut encore répondre
+  const lien = peutRepondre(soumission) ? await assurerLienSoumission(soumission.id) : null;
+  const suite = lien
+    ? `Pour la consulter, choisir les travaux et l'approuver en ligne :\n${lien}\n\nPour toute question, répondez simplement à ce courriel ou appelez-nous.`
+    : "Pour toute question, répondez simplement à ce courriel ou appelez-nous.";
+
   let pdf;
   try {
     pdf = await genererPdfSoumission(soumission, infosEntreprise, dict);
@@ -50,11 +57,12 @@ export async function POST(request, props) {
       pdf,
       nomFichier: `soumission-${soumission.numero}.pdf`,
       sujet: `Soumission ${soumission.numero} — ${nomEntreprise}`,
-      texte: `Bonjour ${soumission.clientNom},\n\nVoici votre soumission ${soumission.numero}, en pièce jointe. Pour l'accepter ou pour toute question, répondez simplement à ce courriel ou appelez-nous.\n\nMerci de votre confiance,\n${nomEntreprise}`,
+      texte: `Bonjour ${soumission.clientNom},\n\nVoici votre soumission ${soumission.numero}, en pièce jointe.\n\n${suite}\n\nMerci de votre confiance,\n${nomEntreprise}`,
     });
   } catch (e) {
     return NextResponse.json({ erreur: "Échec de l'envoi : " + e.message }, { status: 500 });
   }
 
+  await prisma.soumission.update({ where: { id: soumission.id }, data: { envoyeeLe: new Date() } });
   return NextResponse.json({ ok: true, destinataire });
 }

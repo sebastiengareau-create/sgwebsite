@@ -1,6 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
 
+// Comme prisma/creer-migration.js : « npm run seed » lit DATABASE_URL dans .env
+if (!process.env.DATABASE_URL && require("fs").existsSync(".env")) process.loadEnvFile(".env");
+
 const prisma = new PrismaClient();
 
 async function main() {

@@ -13,7 +13,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Aucun paiement fourni." }, { status: 400 });
   }
 
-  const descriptionFinale = (description || "Remise gouvernementale") + (reference ? ` (réf. ${reference})` : "");
+  const descriptionFinale = (description || "Remise") + (reference ? ` (réf. ${reference})` : "");
 
   try {
     const total = await posterRemiseGouvernementale(paiements, descriptionFinale, session.nom);

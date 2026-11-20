@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { dateAujourdhuiQuebec } from "@/lib/temps";
 import EnTete from "../../components/EnTete";
 import PaieClient from "./PaieClient";
+import { lireTauxEmployeur, tauxPourAnnee, CLE_CONGE_PAQUES } from "@/lib/paie";
 
 function variation(actuel, precedent) {
   if (precedent === undefined || precedent === null || precedent === 0) return null;
@@ -16,6 +17,13 @@ export default async function Paie() {
 
   const modulePaie = await prisma.parametre.findUnique({ where: { cle: "module_paie" } });
   if (modulePaie?.valeur !== "actif") redirect("/gerant");
+
+  // Taux de l'employeur (FSS, CNESST) réglés dans l'appli, et le taux du FSS par défaut de l'année
+  const tauxEmployeur = {
+    ...(await lireTauxEmployeur()),
+    fssParDefaut: tauxPourAnnee(Number(dateAujourdhuiQuebec().slice(0, 4))).FSS.tauxParDefaut,
+    congePaques: (await prisma.parametre.findUnique({ where: { cle: CLE_CONGE_PAQUES } }))?.valeur || "VENDREDI",
+  };
 
   const [lots, employesActifs] = await Promise.all([
     prisma.lotPaie.findMany({
@@ -130,6 +138,7 @@ export default async function Paie() {
     <div>
       <EnTete nom={session.nom} role={session.role} />
       <PaieClient
+        tauxEmployeur={tauxEmployeur}
         lots={lotsAvecTotaux}
         employesActifs={employesActifs}
         kpis={kpis}

@@ -16,10 +16,12 @@ export default async function DetailEmploye(props) {
 
   // Le NAS n'est lu qu'avec l'accès à la Paie (feuillets T4 / RL-1)
   const peutVoirNas = await aAccesSection(session, "paie");
-  const [employeComplet, paies, modulePaie] = await Promise.all([
+  const [employeComplet, paies, modulePaie, retenues] = await Promise.all([
     prisma.user.findUnique({ where: { id: params.id }, omit: { pin: false, nas: !peutVoirNas } }),
     prisma.paie.findMany({ where: { employeId: params.id }, orderBy: { periodeFin: "desc" }, take: 10 }),
     prisma.parametre.findUnique({ where: { cle: "module_paie" } }),
+    // Retenues propres à l'employé (REER, assurance collective…) : avec l'accès à la Paie seulement
+    peutVoirNas ? prisma.retenueEmploye.findMany({ where: { employeId: params.id, actif: true }, orderBy: { creeLe: "asc" } }) : [],
   ]);
   if (!employeComplet) notFound();
   // Jamais envoyer au navigateur le mot de passe (même haché) ni le NIP —
@@ -78,7 +80,7 @@ export default async function DetailEmploye(props) {
         employe={employe} paies={paies} estMoi={employe.id === session.id} paieActif={modulePaie?.valeur === "actif"}
         soldeVacances={soldeVacances} heures={heures} nomsRoles={nomsRoles} peutModifierTheme={estGerantOuDev(session)}
         rolesAssignables={rolesAssignables} peutGererEmploye={peutGererEmploye}
-        peutRedigerLettre={await peutGererDestinataire(session, "EMPLOYE")} peutVoirNas={peutVoirNas}
+        peutRedigerLettre={await peutGererDestinataire(session, "EMPLOYE")} peutVoirNas={peutVoirNas} retenues={retenues}
         activite={session.role === "DEVELOPPEUR" ? texteDerniereActivite(employeComplet.derniereActivite) : null}
       />
       <NavigationFiches cle="employes" idCourant={employe.id} base="/gerant/employes" voisinsParDefaut={voisinsFiche(ordre.map((e) => e.id), employe.id)} />

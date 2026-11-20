@@ -14,7 +14,7 @@ export async function POST(request) {
     employeId, periodeDebut, periodeFin, heuresTravaillees, salaireBrutPeriode,
     rrqEmploye, rqapEmploye, aeEmploye, impotFederal, impotQuebec, totalDeductions, salaireNet,
     rrqEmployeur, rqapEmployeur, aeEmployeur, vacancesAccumulees, typePaie,
-    rrq2Employe = 0, rrq2Employeur = 0,
+    rrq2Employe = 0, rrq2Employeur = 0, fssEmployeur = 0, cntEmployeur = 0, cnesstEmployeur = 0,
   } = body;
 
   if (!employeId || !periodeDebut || !periodeFin) {
@@ -29,7 +29,7 @@ export async function POST(request) {
       heuresTravaillees: heuresTravaillees || 0,
       salaireBrut: salaireBrutPeriode,
       rrqEmploye, rqapEmploye, aeEmploye, impotFederal, impotQuebec, totalDeductions, salaireNet,
-      rrqEmployeur, rqapEmployeur, aeEmployeur, rrq2Employe, rrq2Employeur,
+      rrqEmployeur, rqapEmployeur, aeEmployeur, rrq2Employe, rrq2Employeur, fssEmployeur, cntEmployeur, cnesstEmployeur,
       vacancesAccumulees: vacancesAccumulees || 0,
       typePaie: typePaie === "VACANCES" ? "VACANCES" : "REGULIERE",
       statut: "VERSEE",
@@ -37,17 +37,18 @@ export async function POST(request) {
     },
   });
 
-  let avertissementComptable = null;
+  // Pas de paie « versée » sans son écriture comptable : si l'écriture
+  // échoue, la paie n'est pas gardée
   try {
     await posterPaie(paie, session.nom);
   } catch (e) {
+    await prisma.paie.delete({ where: { id: paie.id } });
     if (e.message.startsWith("PERIODE_LOCK:")) {
-      avertissementComptable = "La paie a été enregistrée, mais aucune écriture comptable n'a été créée : " + e.message.replace("PERIODE_LOCK:", "").split("\n")[0];
-    } else {
-      console.error("Erreur comptabilisation de la paie :", e);
-      avertissementComptable = "La paie a été enregistrée, mais la comptabilisation a échoué : " + e.message;
+      return NextResponse.json({ erreur: "Paie non enregistrée : " + e.message.replace("PERIODE_LOCK:", "").split("\n")[0] }, { status: 423 });
     }
+    console.error("Erreur comptabilisation de la paie :", e);
+    return NextResponse.json({ erreur: "Paie non enregistrée : la comptabilisation a échoué." }, { status: 500 });
   }
 
-  return NextResponse.json({ ...paie, avertissementComptable });
+  return NextResponse.json({ ...paie, avertissementComptable: null });
 }

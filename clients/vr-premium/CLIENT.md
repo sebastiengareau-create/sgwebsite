@@ -92,7 +92,9 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   **« 📷 Envoyer les photos »** sous la ligne « 📧 Envoyer par courriel » /
   « 🚗 Aviser le client » envoie par courriel au client les photos des tâches, en pièces
   jointes (`POST /api/bons/[id]/envoyer-photos`). Courriel du dossier
-  proposé, modifiable.
+  proposé, modifiable. Le même bouton est offert sur le **bon pas encore
+  facturé**, au-dessus de « Émettre la facture » (sauf facture comptoir et
+  bon interne).
 - `avertirBonNonFacture: true` — créer un bon pour un client qui a déjà un
   bon non facturé (en attente, planifié ou en cours) affiche un
   avertissement avec les numéros des bons : « Créer quand même un nouveau
@@ -143,6 +145,14 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   **annulée** revient aussi en attente : le bon et la facture annulée restent
   comme historique (seulement détachés), et la soumission peut être
   refacturée.
+- `rentabiliteBonEtSoumission: true` — le tableau de rentabilité de la
+  facture (gérant et niveau 4) s'affiche aussi sous le total estimé d'un bon
+  pas encore facturé (**Rentabilité bon**) et sous le total d'une soumission
+  (**Rentabilité soumission** : coûtant des pièces choisies dans
+  l'inventaire + heures estimées × « Coûtant horaire des mécaniciens »).
+  Une pièce estimée en texte libre n'a pas de coûtant : elle compte à 0 $,
+  signalé par une note sous le tableau
+  (`app/components/TableauRentabilite.js`).
 - `signatureFacture: true` — au bas des factures (facture d'un bon,
   facture de vente d'un véhicule, PDF envoyé par courriel), une ligne
   **« Signature : ______ »** pour signer, au lieu de la mention « VR
@@ -157,6 +167,12 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   facturée choisies dans l'inventaire ; une pièce entrée en texte libre
   (sans fiche) garde son nom seul.
 - `images` — logo et icônes dans `public/clients/vr-premium/`.
+
+- `secteurMarque: "premium"` — la marque du logiciel en **déclinaison
+  Premium** : logo kontrolshop métal or (`public/marque/kontrolshop-metal-premium.png`)
+  dans Paramètres → À propos, aiguille et badge « PREMIUM » or dans la
+  signature au bas de la page de connexion. Le logo de VR Premium reste en
+  vedette partout ailleurs.
 
 ## Historique
 

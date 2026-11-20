@@ -121,7 +121,7 @@ export default async function ImprimerBon(props) {
             </div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>{estFacturee ? "FACTURE" : "BON DE COMMANDE"}</div>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{bon.comptoir ? "FACTURE COMPTOIR" : estFacturee ? "FACTURE" : "BON DE COMMANDE"}</div>
             <div style={{ fontSize: 15, fontWeight: 700, fontFamily: "monospace", marginTop: 2 }}>
               #{estFacturee ? bon.facture.numero : bon.numero}
             </div>
@@ -160,7 +160,7 @@ export default async function ImprimerBon(props) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: COLONNES_TRAVAUX, alignItems: "end", marginBottom: 8 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888" }}>Détail des travaux</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888" }}>{bon.comptoir ? "Détail" : "Détail des travaux"}</div>
           <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Hrs</div>
           <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Qté</div>
           <div style={{ fontSize: 9, textTransform: "uppercase", color: "#aaa", textAlign: "right" }}>Prix</div>
@@ -224,17 +224,18 @@ export default async function ImprimerBon(props) {
           </div>
         )}
 
-        <div style={{ borderTop: "1px solid #ddd", marginTop: 20, paddingTop: 16 }}>
+        {/* Facture comptoir : pas de main-d'œuvre, sauf du temps entré quand même */}
+        {!(bon.comptoir && totalHeures <= 0.005) && <div style={{ borderTop: "1px solid #ddd", marginTop: 20, paddingTop: 16 }}>
           <div style={{ fontSize: 11, textTransform: "uppercase", color: "#888", marginBottom: 4 }}>Temps de main-d'œuvre (taux : {argent(tauxHoraireClient)}/h)</div>
           {totalHeures > 0.005 ? (
             <div style={{ fontSize: 13 }}>{fmtHeures(totalHeures)}</div>
           ) : (
             <div style={{ fontSize: 13, color: "#888" }}>Aucun temps enregistré</div>
           )}
-        </div>
+        </div>}
 
         <div style={{ marginTop: 16, marginLeft: "auto", width: 320, maxWidth: "100%" }}>
-          <LigneTotal label="Main-d'œuvre" valeur={totalMainOeuvre} />
+          {!(bon.comptoir && totalMainOeuvre <= 0.005) && <LigneTotal label="Main-d'œuvre" valeur={totalMainOeuvre} />}
           {totalAutresRevenus > 0 && <LigneTotal label="Autres services" valeur={totalAutresRevenus} />}
           <LigneTotal label="Pièces" valeur={totalPieces} />
           {totalMaterielAtelier > 0 && <LigneTotal label={LIBELLE_MATERIEL_ATELIER} valeur={totalMaterielAtelier} />}

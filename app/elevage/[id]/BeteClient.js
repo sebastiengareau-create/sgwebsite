@@ -3,29 +3,48 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../components/StyleSection";
+import { Icone, TEINTES, Pastille, TitrePanneau, BoutonAction, LigneDetail, stylePanneau } from "../../components/StyleSection";
 import { ChampsBete, FICHE_VIDE } from "../TroupeauClient";
 import {
-  SEXES, GENETIQUES, STATUTS_BETE, CATEGORIES_FRAIS, CANAUX, libelle, age, dateCourte, argent, kg,
+  SEXES, GENETIQUES, STATUTS_BETE, CATEGORIES_FRAIS, CANAUX, libelle, age, dateCourte, dateLisible, argent, kg,
   dernierePesee, gainMoyenQuotidien, peseesAvecGain, estimerDecoupe, totauxDecoupe, carcasseDepuisVif, stockLot, coutBete, revenusBete,
+  TYPES_SOIN, finRetrait, retraitEnCours, rappelsAFaire, joursAvant, gmqRecent, enCroissance, sousLaCible, nomBete,
 } from "@/lib/elevageCalculs";
+import EtiquettesElevage from "../EtiquettesElevage";
 import {
   champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Tableau, TableEstimation, cellule, celluleDroite, useApi, aujourdhui,
+  Section, LienPanneau, BoutonRetirer, Statistique, DeuxColonnes,
 } from "../ui";
+import { Lignee, Reproduction } from "./Reproduction";
+import CourbePoids from "./CourbePoids";
+import Identification from "./Identification";
+import { formaterBoucle } from "@/lib/registreElevage";
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const decimal = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().replace(".", ",");
 
-export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }) {
+export default function BeteClient({ bete, registre, coupes, rendementCarcasse, gmqCible, lieux }) {
+  const femelles = registre.filter((b) => b.sexe === "FEMELLE" && b.id !== bete.id);
+  const taureaux = registre.filter((b) => b.sexe === "TAUREAU" && b.id !== bete.id);
+  const veaux = bete.sexe === "FEMELLE" ? bete.veaux : bete.veauxPere;
   const statut = STATUTS_BETE.find((s) => s.code === bete.statut);
   const couleur = statut?.couleur || "var(--accent)";
-  const pesee = dernierePesee(bete.pesees);
-  const gmq = gainMoyenQuotidien(bete.pesees);
-  const cout = coutBete(bete);
-  const revenus = revenusBete(bete);
-  const aResultat = revenus > 0 || !!bete.abattage;
+  const active = bete.statut === "ACTIVE";
+  const retrait = active ? retraitEnCours(bete.soins) : null;
+  const rappelEnRetard = active && rappelsAFaire(bete.soins).some((r) => joursAvant(r.rappelLe) < 0);
+  const lente = sousLaCible(bete, gmqCible);
+  const aLignee = bete.mere || bete.pereBete || bete.pere;
+  const [onglet, setOnglet] = useState("resume");
+  const onglets = [
+    { code: "resume", label: "Résumé" },
+    { code: "croissance", label: "Croissance", alerte: !!lente },
+    { code: "sante", label: "Santé", alerte: !!retrait || rappelEnRetard },
+    { code: "reproduction", label: bete.sexe === "FEMELLE" ? "Reproduction" : "Lignée" },
+    { code: "couts", label: "Coûts et ventes" },
+    (bete.abattage || active) && { code: "abattage", label: bete.abattage ? "Viande" : "Abattage" },
+  ].filter(Boolean);
   return (
-    <div className="conteneur-page">
+    <div className="conteneur-page" style={{ maxWidth: 1100 }}>
       <Link href="/elevage" style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>← Retour au troupeau</Link>
 
       {/* Carte de la bête */}
@@ -37,66 +56,184 @@ export default function BeteClient({ bete, femelles, coupes, rendementCarcasse }
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{bete.numero}{bete.nom && ` — ${bete.nom}`}</div>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 2 }}>
-              {[libelle(SEXES, bete.sexe).split(" (")[0], bete.dateNaissance && age(bete.dateNaissance, bete.dateSortie || new Date()), bete.identifiant && `boucle ${bete.identifiant}`].filter(Boolean).join(" · ")}
+              {[libelle(SEXES, bete.sexe).split(" (")[0], bete.dateNaissance && age(bete.dateNaissance, bete.dateSortie || new Date()), bete.identifiant && `boucle ${formaterBoucle(bete.identifiant)}`].filter(Boolean).join(" · ")}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-              <Pastille couleur={couleur} fond="var(--surface-alt)">{statut?.label}{bete.dateSortie && ` le ${dateCourte(bete.dateSortie)}`}</Pastille>
+              <Pastille couleur={couleur} fond="var(--surface-alt)">{statut?.label}{bete.dateSortie && ` le ${dateLisible(bete.dateSortie)}`}</Pastille>
               {bete.pourcentageWagyu != null && <Pastille couleur={TEINTES.ambre.couleur} fond={TEINTES.ambre.fond}>{bete.pourcentageWagyu} % wagyu</Pastille>}
               {bete.abattage?.bms && <Pastille couleur={TEINTES.bleu.couleur} fond={TEINTES.bleu.fond}>BMS {bete.abattage.bms}</Pastille>}
+              {retrait && <Pastille couleur={TEINTES.rouge.couleur} fond={TEINTES.rouge.fond}>En retrait jusqu'au {dateLisible(retrait.fin)}</Pastille>}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grille-trois" style={{ marginBottom: 20 }}>
-        <CarteChiffre
-          titre="Dernier poids" montant={pesee ? kg(pesee.poids, 0) : "—"} teinte="var(--bleu)"
-          note={pesee ? `Pesée du ${dateCourte(pesee.date)}${gmq != null ? ` · ${decimal(gmq, 2)} kg/jour` : ""}` : "Aucune pesée"}
-        />
-        <CarteChiffre titre="Coût de revient" montant={argent(cout)} teinte="var(--accent)" note={`${bete.frais.length} frais${bete.coutAcquisition > 0 ? " + achat" : ""}`} />
-        {aResultat ? (
-          <CarteChiffre
-            titre="Résultat à ce jour" montant={argent(revenus - cout)}
-            couleur={revenus - cout >= 0 ? "var(--success)" : "var(--danger)"} teinte={revenus - cout >= 0 ? "var(--success)" : "var(--danger)"}
-            note={`Ventes ${argent(revenus)}`}
-          />
-        ) : (
-          <CarteChiffre titre="Âge" montant={bete.dateNaissance ? age(bete.dateNaissance, bete.dateSortie || new Date()) : "—"} teinte="var(--success)" note={bete.dateNaissance ? `Née le ${dateCourte(bete.dateNaissance)}` : "Date de naissance inconnue"} />
-        )}
+      <Chiffres bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} gmqCible={gmqCible} />
+      <OngletsFiche onglets={onglets} valeur={onglet} onChange={setOnglet} />
+
+      {onglet === "resume" && (
+        <>
+          {bete.abattage && <ProgressionVente bete={bete} />}
+          <DeuxColonnes>
+            <Fiche bete={bete} femelles={femelles} taureaux={taureaux} />
+            <Identification bete={bete} lieux={lieux} />
+          </DeuxColonnes>
+          {!bete.abattage && <Sortie bete={bete} />}
+        </>
+      )}
+      {onglet === "croissance" && <Pesees bete={bete} gmqCible={gmqCible} />}
+      {onglet === "sante" && <Soins bete={bete} />}
+      {onglet === "reproduction" && (
+        <>
+          <DeuxColonnes>
+            <Lignee bete={bete} registre={registre} />
+            {bete.sexe === "FEMELLE" && <Reproduction bete={bete} registre={registre} taureaux={taureaux.filter((t) => t.statut === "ACTIVE")} />}
+            {veaux.length > 0 && <Veaux veaux={veaux} />}
+          </DeuxColonnes>
+          {!aLignee && bete.sexe !== "FEMELLE" && veaux.length === 0 && (
+            <p style={{ fontSize: 13, color: "var(--text-muted)" }}>Aucun parent inscrit au troupeau. Les parents s'indiquent dans la fiche (Résumé → Modifier).</p>
+          )}
+        </>
+      )}
+      {onglet === "couts" && (
+        <DeuxColonnes>
+          <Rentabilite bete={bete} />
+          <Frais bete={bete} />
+        </DeuxColonnes>
+      )}
+      {onglet === "abattage" && (bete.abattage ? <Decoupe bete={bete} /> : <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} retrait={retrait} />)}
+    </div>
+  );
+}
+
+// Onglets de la fiche : remplissent la largeur, sur deux rangées sur un
+// téléphone. Un point rouge signale ce qui demande l'attention (retrait,
+// rappel en retard, croissance sous la cible).
+function OngletsFiche({ onglets, valeur, onChange }) {
+  return (
+    <div role="tablist" style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16, padding: 4, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+      {onglets.map((o) => {
+        const actif = o.code === valeur;
+        return (
+          <button
+            key={o.code} type="button" role="tab" aria-selected={actif} onClick={() => onChange(o.code)}
+            style={{
+              flex: "1 1 105px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit",
+              fontSize: 13.5, fontWeight: 700, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer", whiteSpace: "nowrap",
+              background: actif ? "var(--accent)" : "transparent", color: actif ? "#221f18" : "var(--text-muted)",
+            }}
+          >
+            {o.label}
+            {o.alerte && <span title="À surveiller" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", flexShrink: 0 }} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Viande d'une bête abattue : paquets reçus, vendus et en stock, ventes et
+// valeur du stock au prix boutique
+function bilanViande(bete) {
+  const lots = bete.abattage?.lots || [];
+  const recus = lots.reduce((s, l) => s + l.nbPaquets, 0);
+  const enStock = lots.reduce((s, l) => s + stockLot(l).paquets, 0);
+  const valeurStock = lots.reduce((s, l) => s + stockLot(l).poids * (l.coupe.prixBoutique || 0), 0);
+  return { lots, recus, enStock, vendus: recus - enStock, valeurStock };
+}
+
+// Les quatre chiffres du haut — ceux qui comptent selon l'état de la bête :
+// au troupeau (poids, âge, coût, valeur en viande), abattue (carcasse, coût,
+// ventes, profit prévu), vendue sur pied ou morte (résultat).
+function Chiffres({ bete, coupes, rendementCarcasse, gmqCible }) {
+  const pesee = dernierePesee(bete.pesees);
+  const cout = coutBete(bete);
+  const revenus = revenusBete(bete);
+  const signe = (n) => (n >= 0 ? "var(--success)" : "var(--danger)");
+  let cartes;
+  if (bete.abattage) {
+    const a = bete.abattage;
+    const v = bilanViande(bete);
+    const prevu = revenus + v.valeurStock - cout;
+    cartes = [
+      { label: "Carcasse froide", valeur: kg(a.poidsCarcasse, 0), teinte: "var(--bleu)", note: [a.bms && `BMS ${a.bms}`, a.poidsVif && `rendement ${decimal((a.poidsCarcasse / a.poidsVif) * 100)} %`].filter(Boolean).join(" · ") },
+      { label: "Coût de revient", valeur: argent(cout), teinte: "var(--accent)", note: a.poidsCarcasse > 0 ? `${argent(cout / a.poidsCarcasse)} par kg de carcasse` : null },
+      { label: "Ventes à ce jour", valeur: argent(revenus), teinte: "var(--success)", note: `${v.vendus} paquet${v.vendus > 1 ? "s" : ""} sur ${v.recus}` },
+      { label: v.enStock > 0 ? "Profit prévu" : "Profit", valeur: argent(prevu), teinte: signe(prevu), couleur: signe(prevu), note: v.enStock > 0 ? "si le reste se vend au prix boutique" : "tout est vendu" },
+    ];
+  } else {
+    const recent = enCroissance(bete) ? gmqRecent(bete.pesees) : null;
+    const carcasse = pesee ? carcasseDepuisVif(pesee.poids, rendementCarcasse) : 0;
+    const valeur = totauxDecoupe(estimerDecoupe(carcasse, coupes)).valeurBoutique;
+    cartes = [
+      {
+        label: "Dernier poids", valeur: pesee ? kg(pesee.poids, 0) : "—", teinte: "var(--bleu)",
+        note: !pesee ? "Aucune pesée" : recent ? `${decimal(recent.gmq, 2)} kg/jour (cible ${decimal(gmqCible, 2)})` : `pesée du ${dateLisible(pesee.date)}`,
+      },
+      { label: bete.statut === "ACTIVE" ? "Âge" : "Âge à la sortie", valeur: bete.dateNaissance ? age(bete.dateNaissance, bete.dateSortie || new Date()) : "—", teinte: "var(--success)", note: bete.dateNaissance ? `née le ${dateLisible(bete.dateNaissance)}` : "date de naissance inconnue" },
+      { label: "Coût de revient", valeur: argent(cout), teinte: "var(--accent)", note: bete.frais.length || bete.coutAcquisition > 0 ? `${bete.frais.length} frais${bete.coutAcquisition > 0 ? " + achat" : ""}` : "aucuns frais entrés" },
+      bete.statut === "ACTIVE"
+        ? { label: "Valeur en viande", valeur: valeur > 0 ? argent(valeur) : "—", teinte: "var(--accent-ombre)", note: valeur > 0 ? `≈ ${kg(carcasse, 0)} de carcasse, au prix boutique` : "pesée et prix des coupes requis" }
+        : bete.statut === "VENDUE"
+          ? { label: "Profit", valeur: argent(revenus - cout), teinte: signe(revenus - cout), couleur: signe(revenus - cout), note: `vendue sur pied ${argent(bete.prixVente)}` }
+          : { label: "Perte", valeur: argent(cout), teinte: "var(--danger)", couleur: cout > 0 ? "var(--danger)" : undefined, note: "coût non récupéré" },
+    ];
+  }
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
+      {cartes.map((c) => <Statistique key={c.label} {...c} />)}
+    </div>
+  );
+}
+
+// Barre de progression avec son libellé et son détail
+function Barre({ label, detail, part, couleur = "var(--accent)" }) {
+  const pct = Math.max(0, Math.min(1, part || 0)) * 100;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, fontSize: 13.5, marginBottom: 5 }}>
+        <span style={{ fontWeight: 700 }}>{label}</span>
+        <span style={{ color: "var(--text-muted)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{detail}</span>
       </div>
-
-      <Fiche bete={bete} femelles={femelles} />
-      <Rentabilite bete={bete} />
-      {bete.abattage ? <Decoupe bete={bete} /> : bete.statut === "ACTIVE" && <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} />}
-      <Pesees bete={bete} />
-      <Frais bete={bete} />
-      {bete.veaux.length > 0 && <Veaux veaux={bete.veaux} />}
-      {!bete.abattage && <Sortie bete={bete} />}
+      <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)} style={{ height: 10, borderRadius: 5, background: "var(--surface-alt)", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", borderRadius: 5, background: couleur }} />
+      </div>
     </div>
   );
 }
 
-function Section({ titre, icone = "liste", teinte = TEINTES.ambre, sousTitre, children, droite }) {
+// Où en est la vente de la viande d'une bête abattue : paquets écoulés, coût
+// récupéré, et profit attendu une fois le stock vendu. Tant qu'il reste des
+// paquets, un résultat encore négatif n'est pas une perte — seulement un
+// coût pas encore récupéré.
+function ProgressionVente({ bete }) {
+  const cout = coutBete(bete);
+  const revenus = revenusBete(bete);
+  const v = bilanViande(bete);
+  const prevu = revenus + v.valeurStock - cout;
+  const reste = cout - revenus;
+  const pct = (n) => `${Math.round(n * 100)} %`;
   return (
-    <div style={stylePanneau}>
-      <TitrePanneau icone={icone} teinte={teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
-      {children}
-    </div>
+    <Section titre="Vente de la viande" icone="graphique" teinte={TEINTES.vert} sousTitre={v.enStock > 0 ? `${v.enStock} paquet${v.enStock > 1 ? "s" : ""} encore en stock` : "Tout est vendu"}>
+      {v.recus > 0 && <Barre label="Paquets vendus" detail={`${v.vendus} sur ${v.recus} (${pct(v.vendus / v.recus)})`} part={v.vendus / v.recus} />}
+      {cout > 0 && <Barre label="Coût récupéré" detail={`${argent(revenus)} sur ${argent(cout)} (${pct(Math.min(1, revenus / cout))})`} part={revenus / cout} couleur={reste <= 0 ? "var(--success)" : "var(--accent)"} />}
+      <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px" }}>
+        {reste > 0
+          ? <>Il reste <strong style={{ color: "var(--text)" }}>{argent(reste)}</strong> à récupérer{v.enStock > 0 ? <> ; la viande en stock vaut <strong style={{ color: "var(--text)" }}>{argent(v.valeurStock)}</strong> au prix boutique.</> : "."}</>
+          : <>Le coût est récupéré : <strong style={{ color: "var(--success)" }}>{argent(-reste)}</strong> de profit à ce jour.</>}
+      </p>
+      {v.enStock > 0 && (
+        <Encadre label="Profit prévu, une fois tout vendu" valeur={argent(prevu)} couleur={prevu >= 0 ? "var(--success)" : "var(--danger)"} fond={prevu >= 0 ? "var(--success-fond)" : "var(--danger-fond)"} />
+      )}
+    </Section>
   );
 }
 
-// Lien d'action dans l'en-tête d'un panneau (Modifier, Annuler…)
-function LienPanneau({ onClick, couleur = "var(--accent-ombre)", children }) {
-  return <button type="button" onClick={onClick} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 0", fontSize: 13, fontWeight: 700, color: couleur, whiteSpace: "nowrap", fontFamily: "inherit" }}>{children}</button>;
-}
+// Formulaire d'ajout d'un panneau — replié tant qu'on ne fait que consulter
+const styleFormulaire = { background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 };
 
-// Petit bouton à icône (retirer une ligne)
-function BoutonRetirer({ titre, onClick }) {
-  return (
-    <button type="button" onClick={onClick} title={titre} aria-label={titre} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", verticalAlign: "middle" }}>
-      <Icone nom="poubelle" taille={14} couleur="var(--danger)" />
-    </button>
-  );
+function LienAjout({ ouvert, onClick }) {
+  return <LienPanneau onClick={onClick} couleur={ouvert ? "var(--text-muted)" : "var(--accent-ombre)"}>{ouvert ? "Fermer" : "+ Ajouter"}</LienPanneau>;
 }
 
 // Encadré de total (coût de revient, profit)
@@ -111,8 +248,9 @@ function Encadre({ label, valeur, couleur = "var(--accent-ombre)", fond = "rgba(
 
 // ---------- Fiche ----------
 
-function Fiche({ bete, femelles }) {
+function Fiche({ bete, femelles, taureaux }) {
   const [edition, setEdition] = useState(false);
+  const [etiquette, setEtiquette] = useState(false);
   const [fiche, setFiche] = useState(() => Object.fromEntries(Object.keys(FICHE_VIDE).map((k) => [k, k.startsWith("date") ? dateCourte(bete[k]) : bete[k] == null ? "" : String(bete[k])])));
   const { appeler, enCours, erreur } = useApi();
   const maj = (champ) => (e) => setFiche((f) => ({ ...f, [champ]: e.target.value }));
@@ -125,7 +263,7 @@ function Fiche({ bete, femelles }) {
   if (edition) {
     return (
       <Section titre="Fiche" icone="crayon" droite={bouton}>
-        <ChampsBete fiche={fiche} maj={maj} femelles={femelles} />
+        <ChampsBete fiche={fiche} maj={maj} femelles={femelles} taureaux={taureaux} />
         <Erreur texte={erreur} />
         <button onClick={enregistrer} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "…" : "Enregistrer"}</button>
       </Section>
@@ -134,13 +272,18 @@ function Fiche({ bete, femelles }) {
   return (
     <Section titre="Fiche" icone="presse" droite={bouton}>
       <LigneDetail premiere label="Sexe" valeur={libelle(SEXES, bete.sexe)} />
-      <LigneDetail label="Boucle d'oreille" valeur={bete.identifiant} />
-      <LigneDetail label="Naissance" valeur={bete.dateNaissance && `${dateCourte(bete.dateNaissance)} (${age(bete.dateNaissance, bete.dateSortie || new Date())})`} />
+      <LigneDetail label="Boucle d'oreille" valeur={formaterBoucle(bete.identifiant) || null} />
+      <LigneDetail label="Naissance" valeur={bete.dateNaissance && `${dateLisible(bete.dateNaissance)} (${age(bete.dateNaissance, bete.dateSortie || new Date())})`} />
       <LigneDetail label="Génétique" valeur={[bete.genetique && libelle(GENETIQUES, bete.genetique).split(" (")[0], bete.pourcentageWagyu != null && `${bete.pourcentageWagyu} % wagyu`].filter(Boolean).join(" · ")} />
       <LigneDetail label="Mère" valeur={bete.mere && <Link href={`/elevage/${bete.mere.id}`} style={{ color: "var(--accent-ombre)" }}>{bete.mere.numero}{bete.mere.nom ? ` — ${bete.mere.nom}` : ""}</Link>} />
-      <LigneDetail label="Père" valeur={bete.pere} />
-      <LigneDetail label="Origine" valeur={bete.origine === "ACHETEE" ? ["Achetée", bete.dateAcquisition && `le ${dateCourte(bete.dateAcquisition)}`, bete.provenance && `de ${bete.provenance}`, `pour ${argent(bete.coutAcquisition)}`].filter(Boolean).join(" ") : "Née ici"} />
+      <LigneDetail label="Père" valeur={bete.pereBete ? <Link href={`/elevage/${bete.pereBete.id}`} style={{ color: "var(--accent-ombre)" }}>{nomBete(bete.pereBete)}</Link> : bete.pere} />
+      <LigneDetail label="Origine" valeur={bete.origine === "ACHETEE" ? ["Achetée", bete.dateAcquisition && `le ${dateLisible(bete.dateAcquisition)}`, bete.provenance && `de ${bete.provenance}`, `pour ${argent(bete.coutAcquisition)}`].filter(Boolean).join(" ") : "Née ici"} />
       {bete.notes && <p style={{ fontSize: 13.5, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "10px 12px", borderRadius: 12, background: "var(--bg)" }}>{bete.notes}</p>}
+      {etiquette ? (
+        <EtiquettesElevage type="bete" beteId={bete.id} onFermer={() => setEtiquette(false)} />
+      ) : (
+        <div style={{ marginTop: 12 }}><BoutonAction icone="etiquette" onClick={() => setEtiquette(true)} style={{ width: "100%" }}>Imprimer l'étiquette de la bête (code QR)</BoutonAction></div>
+      )}
     </Section>
   );
 }
@@ -170,9 +313,11 @@ function Rentabilite({ bete }) {
       )}
       {bete.statut === "VENDUE" && <LigneDetail label="Vente sur pied" valeur={argent(bete.prixVente)} />}
       {bete.abattage && parCanal.map((c) => <LigneDetail key={c.code} label={`${c.icone} Ventes ${c.label.toLowerCase()}`} valeur={argent(c.total)} />)}
-      {(revenus > 0 || bete.abattage) && (
+      {valeurStock > 0 && revenus < cout ? (
+        <LigneDetail label="Reste à récupérer" valeur={argent(cout - revenus)} />
+      ) : (revenus > 0 || bete.abattage) && (
         <Encadre
-          label={valeurStock > 0 ? "Résultat à ce jour" : "Profit"} valeur={argent(revenus - cout)}
+          label={valeurStock > 0 ? "Profit à ce jour" : "Profit"} valeur={argent(revenus - cout)}
           couleur={revenus - cout >= 0 ? "var(--success)" : "var(--danger)"} fond={revenus - cout >= 0 ? "var(--success-fond)" : "var(--danger-fond)"}
         />
       )}
@@ -180,7 +325,7 @@ function Rentabilite({ bete }) {
         <>
           <LigneDetail premiere label="Viande en stock (prix boutique)" valeur={argent(valeurStock)} />
           <Encadre
-            label="Profit prévu (tout vendu en boutique)" valeur={argent(revenus + valeurStock - cout)}
+            label="Profit prévu, une fois tout vendu" valeur={argent(revenus + valeurStock - cout)}
             couleur={revenus + valeurStock - cout >= 0 ? "var(--success)" : "var(--danger)"} fond={revenus + valeurStock - cout >= 0 ? "var(--success-fond)" : "var(--danger-fond)"}
           />
         </>
@@ -191,7 +336,7 @@ function Rentabilite({ bete }) {
 
 // ---------- Avant l'abattage : estimation, puis abattage ----------
 
-function EstimationEtAbattage({ bete, coupes, rendementCarcasse }) {
+function EstimationEtAbattage({ bete, coupes, rendementCarcasse, retrait }) {
   const [abattre, setAbattre] = useState(false);
   const pesee = dernierePesee(bete.pesees);
   const carcasse = pesee ? carcasseDepuisVif(pesee.poids, rendementCarcasse) : 0;
@@ -203,6 +348,11 @@ function EstimationEtAbattage({ bete, coupes, rendementCarcasse }) {
       titre={abattre ? "Abattage et découpe" : "Si elle était abattue aujourd'hui"} icone={abattre ? "outils" : "balance"} teinte={abattre ? TEINTES.rouge : TEINTES.ambre}
       droite={<LienPanneau onClick={() => setAbattre((v) => !v)} couleur={abattre ? "var(--text-muted)" : "var(--danger)"}>{abattre ? "Annuler" : "Abattage…"}</LienPanneau>}
     >
+      {retrait && (
+        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", background: "var(--danger-fond)", borderRadius: 12, padding: "10px 12px", margin: "0 0 12px" }}>
+          ⚠️ Délai de retrait en cours{retrait.soin.produit ? ` (${retrait.soin.produit})` : ""} : pas d'abattage avant le {dateLisible(retrait.fin)}.
+        </p>
+      )}
       {abattre ? (
         <FormulaireAbattage bete={bete} coupes={coupes} poidsVifInitial={pesee?.poids} carcasseInitiale={carcasse} />
       ) : !pesee ? (
@@ -210,7 +360,7 @@ function EstimationEtAbattage({ bete, coupes, rendementCarcasse }) {
       ) : (
         <>
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 10px" }}>
-            {kg(pesee.poids, 0)} vif (pesée du {dateCourte(pesee.date)}) × {rendementCarcasse} % = <strong style={{ color: "var(--text)" }}>{kg(carcasse, 0)} de carcasse</strong>, découpée selon les <Link href="/elevage/coupes" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>rendements</Link> :
+            {kg(pesee.poids, 0)} vif (pesée du {dateLisible(pesee.date)}) × {rendementCarcasse} % = <strong style={{ color: "var(--text)" }}>{kg(carcasse, 0)} de carcasse</strong>, découpée selon les <Link href="/elevage/coupes" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>rendements</Link> :
           </p>
           <TableEstimation lignes={lignes} />
           <Encadre label={`${totaux.paquets} paquets · ${kg(totaux.poidsPaquets)} de viande`} valeur={totaux.valeurBoutique > 0 ? argent(totaux.valeurBoutique) : "—"} />
@@ -283,6 +433,7 @@ function Decoupe({ bete }) {
   const a = bete.abattage;
   const { appeler, enCours, erreur } = useApi();
   const [edition, setEdition] = useState(null); // id du lot corrigé
+  const [etiquettes, setEtiquettes] = useState(false);
   const totaux = a.lots.reduce((t, l) => {
     const s = stockLot(l);
     return { recus: t.recus + l.nbPaquets, estimes: t.estimes + l.paquetsEstimes, stock: t.stock + s.paquets, poids: t.poids + l.poidsTotal };
@@ -296,7 +447,7 @@ function Decoupe({ bete }) {
 
   return (
     <Section titre="Abattage et découpe" icone="outils" teinte={TEINTES.rouge}>
-      <LigneDetail premiere label="Date" valeur={`${dateCourte(a.date)}${a.abattoir ? ` — ${a.abattoir}` : ""}`} />
+      <LigneDetail premiere label="Date" valeur={`${dateLisible(a.date)}${a.abattoir ? ` — ${a.abattoir}` : ""}`} />
       {a.poidsVif && <LigneDetail label="Poids vif" valeur={kg(a.poidsVif)} />}
       <LigneDetail label="Carcasse froide" valeur={`${kg(a.poidsCarcasse)}${a.poidsVif ? ` (rendement ${decimal((a.poidsCarcasse / a.poidsVif) * 100)} %)` : ""}`} />
       {a.bms && <LigneDetail label="Persillage" valeur={`BMS ${a.bms}`} />}
@@ -333,22 +484,40 @@ function Decoupe({ bete }) {
         </Tableau>
       </div>
 
+      {etiquettes ? (
+        <EtiquettesElevage type="viande" beteId={bete.id} recus={totaux.recus} enStock={totaux.stock} onFermer={() => setEtiquettes(false)} />
+      ) : (
+        <div style={{ marginTop: 12 }}><BoutonAction icone="etiquette" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={() => setEtiquettes(true)} style={{ width: "100%" }}>Imprimer les étiquettes des paquets</BoutonAction></div>
+      )}
+
       {ventes.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Ventes de sa viande</div>
-          {ventes.map((v, i) => (
-            <LigneDetail
-              key={v.id} premiere={i === 0}
-              label={<>{dateCourte(v.date)} · {CANAUX.find((c) => c.code === v.canal)?.icone} {v.nbPaquets} × {v.coupe} ({kg(v.poids, 2)}){v.note && ` — ${v.note}`}</>}
-              valeur={argent(v.montant)}
-            />
-          ))}
+          {ventes.map((v, i) => <LigneVente key={v.id} vente={v} premiere={i === 0} />)}
         </div>
       )}
-      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>Élevage → Viande</Link> : les paquets les plus anciens partent en premier.</p>
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "10px 0 0" }}>Les ventes s'entrent dans <Link href="/elevage/viande" style={{ color: "var(--accent-ombre)", fontWeight: 700 }}>Élevage → Viande</Link> : en scannant l'étiquette du paquet, ou par coupe (les paquets les plus anciens partent en premier).</p>
       <Erreur texte={erreur} />
       {ventes.length === 0 && <div style={{ marginTop: 12 }}><BoutonAction icone="echange" couleur="var(--danger)" onClick={annuler} disabled={enCours} style={{ width: "100%" }}>Annuler l'abattage</BoutonAction></div>}
     </Section>
+  );
+}
+
+// Une vente sur deux lignes : coupe et montant, puis date, canal, poids et
+// note en petit. Le texte passe à la ligne au lieu de pousser le montant hors
+// de l'écran sur un téléphone.
+function LigneVente({ vente: v, premiere }) {
+  const canal = CANAUX.find((c) => c.code === v.canal);
+  return (
+    <div style={{ padding: "9px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", fontSize: 13.5 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{v.nbPaquets} × {v.coupe}</span>
+        <span style={{ fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{argent(v.montant)}</span>
+      </div>
+      <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2, overflowWrap: "anywhere" }}>
+        {dateLisible(v.date)} · {canal?.icone} {canal?.label} · {kg(v.poids, 2)}{v.note && ` — ${v.note}`}
+      </div>
+    </div>
   );
 }
 
@@ -374,14 +543,21 @@ function CorrectionLot({ lot, onFin }) {
 
 // ---------- Pesées ----------
 
-function Pesees({ bete }) {
+function Pesees({ bete, gmqCible }) {
+  const recent = gmqRecent(bete.pesees);
+  const suivie = enCroissance(bete);
+  const sousCible = suivie && recent && recent.gmq < gmqCible;
   const [champs, setChamps] = useState({ date: aujourdhui(), poids: "", note: "" });
+  const [ajout, setAjout] = useState(false);
   const { appeler, enCours, erreur } = useApi();
   const liste = peseesAvecGain(bete.pesees).reverse();
   const gmq = gainMoyenQuotidien(bete.pesees);
 
   async function ajouter() {
-    if (await appeler(`/api/elevage/betes/${bete.id}/pesees`, "POST", champs)) setChamps((c) => ({ ...c, poids: "", note: "" }));
+    if (await appeler(`/api/elevage/betes/${bete.id}/pesees`, "POST", champs)) {
+      setChamps((c) => ({ ...c, poids: "", note: "" }));
+      setAjout(false);
+    }
   }
   async function retirer(id) {
     if (window.confirm("Retirer cette pesée ?")) await appeler(`/api/elevage/betes/${bete.id}/pesees?peseeId=${id}`, "DELETE");
@@ -391,36 +567,134 @@ function Pesees({ bete }) {
     <Section
       titre="Pesées" icone="graphique" teinte={TEINTES.bleu}
       sousTitre={gmq != null ? `Gain moyen ${decimal(gmq, 2)} kg/jour` : undefined}
+      droite={bete.statut === "ACTIVE" && <LienAjout ouvert={ajout} onClick={() => setAjout((v) => !v)} />}
     >
-      {bete.statut === "ACTIVE" && (
-        <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+      {ajout && (
+        <div style={styleFormulaire}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <input type="date" max="9999-12-31" value={champs.date} onChange={(e) => setChamps((c) => ({ ...c, date: e.target.value }))} style={{ ...champStyle, marginBottom: 0 }} />
-            <input inputMode="decimal" value={champs.poids} onChange={(e) => setChamps((c) => ({ ...c, poids: e.target.value }))} placeholder="Poids (kg)" style={{ ...champStyle, marginBottom: 0 }} />
+            <input inputMode="decimal" autoFocus value={champs.poids} onChange={(e) => setChamps((c) => ({ ...c, poids: e.target.value }))} placeholder="Poids (kg)" style={{ ...champStyle, marginBottom: 0 }} />
           </div>
           <input value={champs.note} onChange={(e) => setChamps((c) => ({ ...c, note: e.target.value }))} placeholder="Note (sevrage, finition…)" style={{ ...champStyle, marginTop: 8, marginBottom: 8 }} />
           <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter la pesée</BoutonAction>
         </div>
       )}
       <Erreur texte={erreur} />
-      {liste.length === 0 ? (
-        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucune pesée.</p>
-      ) : (
-        liste.map((p, i) => (
-          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>{dateCourte(p.date)}</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{[age(bete.dateNaissance, p.date), p.note].filter(Boolean).join(" · ")}</div>
-            </div>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <span style={{ textAlign: "right" }}>
-                <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{kg(p.poids)}</span>
-                <span style={{ display: "block", fontSize: 12, color: p.gain == null ? "var(--text-muted)" : p.gain >= 0 ? "var(--success)" : "var(--danger)" }}>{p.gain == null ? "—" : `${p.gain >= 0 ? "+" : ""}${decimal(p.gain, 2)} kg/jour`}</span>
-              </span>
-              <BoutonRetirer titre="Retirer la pesée" onClick={() => retirer(p.id)} />
-            </span>
+      <DeuxColonnes>
+        {(bete.pesees.length >= 2 || (recent && bete.statut === "ACTIVE")) && (
+          <div>
+            {bete.pesees.length >= 2 && <CourbePoids pesees={bete.pesees} dateNaissance={bete.dateNaissance} cible={suivie ? gmqCible : null} />}
+            {recent && bete.statut === "ACTIVE" && (
+              <p style={{ fontSize: 13, fontWeight: 700, margin: "0 0 12px", padding: "9px 12px", borderRadius: 12, color: sousCible ? "var(--danger)" : "var(--text)", background: sousCible ? "var(--danger-fond)" : "var(--surface-alt)" }}>
+                {sousCible ? "⚠️ " : ""}Gain récent : {decimal(recent.gmq, 2)} kg/jour depuis le {dateLisible(recent.depuis)}
+                {suivie && ` — cible ${decimal(gmqCible, 2)} kg/jour`}
+              </p>
+            )}
           </div>
-        ))
+        )}
+        <div>
+          {liste.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucune pesée.</p>
+          ) : (
+            liste.map((p, i) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{dateLisible(p.date)}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{[age(bete.dateNaissance, p.date), p.note].filter(Boolean).join(" · ")}</div>
+                </div>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                  <span style={{ textAlign: "right" }}>
+                    <span style={{ display: "block", fontSize: 14.5, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{kg(p.poids)}</span>
+                    <span style={{ display: "block", fontSize: 12, color: p.gain == null ? "var(--text-muted)" : p.gain >= 0 ? "var(--success)" : "var(--danger)" }}>{p.gain == null ? "—" : `${p.gain >= 0 ? "+" : ""}${decimal(p.gain, 2)} kg/jour`}</span>
+                  </span>
+                  <BoutonRetirer titre="Retirer la pesée" onClick={() => retirer(p.id)} />
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </DeuxColonnes>
+    </Section>
+  );
+}
+
+// ---------- Santé et soins ----------
+
+const SOIN_VIDE = { type: "VACCIN", produit: "", dose: "", retraitJours: "", rappelLe: "", note: "" };
+
+function Soins({ bete }) {
+  const [champs, setChamps] = useState({ date: aujourdhui(), ...SOIN_VIDE });
+  const [ajout, setAjout] = useState(false);
+  const { appeler, enCours, erreur } = useApi();
+  const maj = (champ) => (e) => setChamps((c) => ({ ...c, [champ]: e.target.value }));
+  const active = bete.statut === "ACTIVE";
+  const retrait = active ? retraitEnCours(bete.soins) : null;
+  const rappels = active ? rappelsAFaire(bete.soins) : [];
+
+  async function ajouter() {
+    if (await appeler(`/api/elevage/betes/${bete.id}/soins`, "POST", champs)) {
+      setChamps((c) => ({ ...c, ...SOIN_VIDE, type: c.type }));
+      setAjout(false);
+    }
+  }
+  async function retirer(id) {
+    if (window.confirm("Retirer ce soin du registre ?")) await appeler(`/api/elevage/betes/${bete.id}/soins?soinId=${id}`, "DELETE");
+  }
+
+  return (
+    <Section
+      titre="Santé et soins" icone="bouclier" teinte={TEINTES.vert}
+      sousTitre={retrait ? `En retrait jusqu'au ${dateLisible(retrait.fin)}` : bete.soins.length > 0 ? `${bete.soins.length} soin${bete.soins.length > 1 ? "s" : ""} au registre` : undefined}
+      droite={active && <LienAjout ouvert={ajout} onClick={() => setAjout((v) => !v)} />}
+    >
+      {rappels.map((r) => {
+        const jours = joursAvant(r.rappelLe);
+        return (
+          <p key={r.id} style={{ fontSize: 13, fontWeight: 700, margin: "0 0 8px", padding: "9px 12px", borderRadius: 12, color: jours < 0 ? "var(--danger)" : "var(--text)", background: jours < 0 ? "var(--danger-fond)" : "rgba(232,163,61,0.16)" }}>
+            🔔 {libelle(TYPES_SOIN, r.type).split(" (")[0]}{r.produit ? ` — ${r.produit}` : ""} à refaire le {dateLisible(r.rappelLe)}
+            {jours < 0 ? ` (en retard de ${-jours} j)` : jours === 0 ? " (aujourd'hui)" : ` (dans ${jours} j)`}
+          </p>
+        );
+      })}
+      {ajout && (
+        <div style={styleFormulaire}>
+          <div style={grille2}>
+            <Champ label="Date"><input type="date" max="9999-12-31" value={champs.date} onChange={maj("date")} style={champStyle} /></Champ>
+            <Champ label="Type de soin">
+              <select value={champs.type} onChange={maj("type")} style={champStyle}>
+                {TYPES_SOIN.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
+              </select>
+            </Champ>
+            <Champ label="Produit ou motif"><input value={champs.produit} onChange={maj("produit")} placeholder="Nom du vaccin, du médicament…" style={champStyle} /></Champ>
+            <Champ label="Dose"><input value={champs.dose} onChange={maj("dose")} placeholder="5 ml sous-cutané" style={champStyle} /></Champ>
+            <Champ label="Délai de retrait (jours)"><input inputMode="numeric" value={champs.retraitJours} onChange={maj("retraitJours")} placeholder="Aucun" style={champStyle} /></Champ>
+            <Champ label="Rappel à prévoir le"><input type="date" max="9999-12-31" value={champs.rappelLe} onChange={maj("rappelLe")} style={champStyle} /></Champ>
+          </div>
+          <input value={champs.note} onChange={maj("note")} placeholder="Note (vétérinaire, numéro de lot du produit…)" style={champStyle} />
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Le délai de retrait bloque l'abattage jusqu'à son échéance. Le coût du soin s'entre dans les frais de la bête.</p>
+          <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter au registre</BoutonAction>
+        </div>
+      )}
+      <Erreur texte={erreur} />
+      {bete.soins.length === 0 ? (
+        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucun soin au registre.</p>
+      ) : (
+        bete.soins.map((s, i) => {
+          const fin = finRetrait(s);
+          const enRetrait = active && fin && dateCourte(fin) > aujourdhui();
+          return (
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, overflowWrap: "anywhere" }}>{libelle(TYPES_SOIN, s.type).split(" (")[0]}{s.produit && ` — ${s.produit}`}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere" }}>
+                  {[dateLisible(s.date), s.dose, s.rappelLe && `rappel le ${dateLisible(s.rappelLe)}`, s.note, s.creePar && `par ${s.creePar}`].filter(Boolean).join(" · ")}
+                </div>
+                {fin && <div style={{ fontSize: 12, fontWeight: 700, color: enRetrait ? "var(--danger)" : "var(--text-muted)" }}>Retrait de {s.retraitJours} j — {enRetrait ? "jusqu'au" : "terminé le"} {dateLisible(fin)}</div>}
+              </div>
+              <BoutonRetirer titre="Retirer ce soin" onClick={() => retirer(s.id)} />
+            </div>
+          );
+        })
       )}
     </Section>
   );
@@ -430,12 +704,16 @@ function Pesees({ bete }) {
 
 function Frais({ bete }) {
   const [champs, setChamps] = useState({ date: aujourdhui(), categorie: "ALIMENTATION", description: "", montant: "" });
+  const [ajout, setAjout] = useState(false);
   const { appeler, enCours, erreur } = useApi();
   const maj = (champ) => (e) => setChamps((c) => ({ ...c, [champ]: e.target.value }));
   const total = bete.frais.reduce((s, f) => s + f.montant, 0);
 
   async function ajouter() {
-    if (await appeler(`/api/elevage/betes/${bete.id}/frais`, "POST", champs)) setChamps((c) => ({ ...c, description: "", montant: "" }));
+    if (await appeler(`/api/elevage/betes/${bete.id}/frais`, "POST", champs)) {
+      setChamps((c) => ({ ...c, description: "", montant: "" }));
+      setAjout(false);
+    }
   }
   async function retirer(id) {
     if (window.confirm("Retirer ces frais ?")) await appeler(`/api/elevage/betes/${bete.id}/frais?fraisId=${id}`, "DELETE");
@@ -444,9 +722,10 @@ function Frais({ bete }) {
   return (
     <Section
       titre="Frais de la bête" icone="banque" teinte={TEINTES.ambre}
-      droite={<span style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", paddingTop: 2 }}>{argent(total)}</span>}
+      sousTitre={`Total ${argent(total)}`}
+      droite={<LienAjout ouvert={ajout} onClick={() => setAjout((v) => !v)} />}
     >
-      <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+      {ajout && <div style={styleFormulaire}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
           <input type="date" max="9999-12-31" value={champs.date} onChange={maj("date")} style={{ ...champStyle, marginBottom: 0 }} />
           <select value={champs.categorie} onChange={maj("categorie")} style={{ ...champStyle, marginBottom: 0 }}>
@@ -456,13 +735,14 @@ function Frais({ bete }) {
           <input inputMode="decimal" value={champs.montant} onChange={maj("montant")} placeholder="Montant ($)" style={{ ...champStyle, marginBottom: 0 }} />
         </div>
         <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter les frais</BoutonAction>
-      </div>
+      </div>}
       <Erreur texte={erreur} />
+      {bete.frais.length === 0 && <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Aucuns frais entrés pour cette bête.</p>}
       {bete.frais.map((f, i) => (
         <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{libelle(CATEGORIES_FRAIS, f.categorie)}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateCourte(f.date)}{f.description && ` · ${f.description}`}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateLisible(f.date)}{f.description && ` · ${f.description}`}</div>
           </div>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <strong style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{argent(f.montant)}</strong>
@@ -483,7 +763,7 @@ function Veaux({ veaux }) {
           <Link key={v.id} href={`/elevage/${v.id}`} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", color: "var(--text)", textDecoration: "none" }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{v.numero}{v.nom ? ` — ${v.nom}` : ""}</div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{libelle(SEXES, v.sexe).split(" (")[0]}{v.dateNaissance && ` · né le ${dateCourte(v.dateNaissance)}`}</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{libelle(SEXES, v.sexe).split(" (")[0]}{v.dateNaissance && ` · né le ${dateLisible(v.dateNaissance)}`}</div>
             </div>
             <Pastille couleur={st?.couleur || "var(--text-muted)"} fond="var(--surface-alt)">{st?.label || v.statut}</Pastille>
             <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />

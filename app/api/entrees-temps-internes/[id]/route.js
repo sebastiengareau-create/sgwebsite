@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { productiviteActif } from "@/lib/productivite";
 import { dateHeureLocaleVersUTC } from "@/lib/temps";
 
 const FORMAT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
@@ -12,7 +13,7 @@ const FORMAT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 export async function PATCH(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
-  if (!(await aAccesSection(session, "jobs-temps-reel"))) {
+  if (!(await aAccesSection(session, "jobs-temps-reel")) || !(await productiviteActif())) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 

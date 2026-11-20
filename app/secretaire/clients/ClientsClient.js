@@ -89,6 +89,13 @@ export default function ClientsClient({ clients, peutImporter, nouveauInitial })
       </GrilleChiffres>
 
       <GroupeLiens
+        titre="Relance" teinte={TEINTES.ambre}
+        liens={[
+          { href: "/secretaire/clients/rappels", icone: "cloche", label: "Rappels d'entretien", detail: "Clients dont le véhicule n'est pas revenu depuis un moment" },
+        ]}
+      />
+
+      <GroupeLiens
         titre="Rapports" teinte={TEINTES.vert}
         liens={[
           { href: "/gerant/comptabilite/rapports/comptes-clients", target: "_blank", icone: "banque", label: "Comptes à recevoir", detail: "Soldes dus par client et par âge" },
