@@ -1,7 +1,7 @@
 # Déclinaison du logo métal kontrolshop : recolore l'orange (aiguille, cadran,
 # SHOP) vers la teinte du secteur, efface GARAGE et pose le mot rendu par mot.cjs.
 # Usage : python3 scripts/logo-metal/recolor.py public/marque/kontrolshop-metal-garage.png mot.png sortie.png <teinte> <étendue> <saturation> <luminosité>
-# Réglages utilisés : ferme 120 0.6 0.8 0.68 · copropriété 212 0.6 0.95 0.95 · premium 40 0.3 0.75 0.86 (teinte -1 : pas de recoloration)
+# Réglages utilisés : ferme 120 0.6 0.8 0.68 · copropriété 212 0.6 0.95 0.95 · immobilier 272 0.5 0.72 0.92 · premium 40 0.3 0.75 0.86 (teinte -1 : pas de recoloration)
 import sys, numpy as np
 from PIL import Image
 def rgb2hsv(a):
