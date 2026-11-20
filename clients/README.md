@@ -102,7 +102,8 @@ on décide quand et à qui une modification s'applique.
   de leur couleur (`DECLINAISONS_DEMO`, `lib/marque.js`).
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
-  tous — discrète (bas de la page de connexion, Paramètres → À propos),
+  tous — discrète (bas de la page de connexion, Paramètres → À propos, avec
+  un lien vers www.kontrolshop.com, `SITE_WEB`),
   jamais sur les documents du client. Le badge (GARAGE, FERME, COPROPRIÉTÉ,
   IMMOBILIER, BOUTIQUE, PREMIUM) et la couleur de l'aiguille suivent `secteurMarque`
   dans le profil. Logos en fichiers pour les pages d'accueil :
