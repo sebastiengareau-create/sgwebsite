@@ -10,6 +10,9 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import { CLIENT } from "@/lib/client";
 import { kitsDisponibles } from "@/lib/kits";
 import { soldeCredit } from "@/lib/creditClient";
+import { inspectionActive, lireGrilles } from "@/lib/inspections";
+import { pointsARevoir } from "@/lib/rappelsInspection";
+import { resumeGrilles } from "@/lib/grillesInspection";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -22,7 +25,7 @@ export default async function DetailBonPage(props) {
   // qu'une lecture après l'autre
   const [
     bon, inventaireBrut, employes, postesRevenu, comptesTresorerie, dict,
-    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise },
+    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise }, moduleInspection,
   ] = await Promise.all([
     prisma.bonTravail.findUnique({
       where: { id: params.id },
@@ -64,6 +67,14 @@ export default async function DetailBonPage(props) {
         },
         // Fichiers joints au rendez-vous d'où vient le bon : noms seulement
         rendezVous: { select: { fichiers: { select: { id: true, nom: true }, orderBy: { creeLe: "asc" } } } },
+        // Inspections numériques : de quoi résumer chacune sur la carte du bon
+        inspections: {
+          orderBy: { creeLe: "asc" },
+          select: {
+            id: true, titre: true, statut: true, creeLe: true, envoyeeLe: true, reponseClient: true,
+            points: { select: { etat: true, approbation: true, problemeId: true } },
+          },
+        },
       },
     }),
     // Seulement ce qu'utilisent le choix de pièce, le scan et les pièces à
@@ -99,6 +110,7 @@ export default async function DetailBonPage(props) {
     // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
     aAccesSection(session, "inventaire"),
     obtenirInfosEntreprise(), // signe les textos au client
+    inspectionActive(),
   ]);
   if (!bon) notFound();
 
@@ -115,7 +127,7 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
-  const [creditClient, fournisseurs, clientsChoix] = await Promise.all([
+  const [creditClient, fournisseurs, clientsChoix, grillesInspection, aRevoirInspection] = await Promise.all([
     // Crédit du client disponible pour la facture (lib/creditClient.js)
     bon.vehiculeVenteId ? 0 : soldeCredit(bon.clientId),
     peutCommander
@@ -124,6 +136,12 @@ export default async function DetailBonPage(props) {
     // Choix d'un autre client (« Changer » sous le nom) : bon modifiable seulement
     peutModifier && !bon.facture && !bon.vehiculeVenteId
       ? prisma.client.findMany({ select: { id: true, nom: true, numero: true, telephone: true }, orderBy: { nom: "asc" } })
+      : [],
+    // Grilles offertes pour commencer une inspection (Paramètres → Grilles d'inspection)
+    moduleInspection ? lireGrilles().then(resumeGrilles) : [],
+    // Points notés à surveiller aux visites précédentes de ce véhicule
+    moduleInspection && bon.vehiculeId && !bon.comptoir
+      ? pointsARevoir([bon.vehiculeId], { saufBonId: bon.id }).then((parVehicule) => parVehicule.get(bon.vehiculeId) || [])
       : [],
   ]);
 
@@ -153,6 +171,9 @@ export default async function DetailBonPage(props) {
         moi={session.id}
         clientsChoix={clientsChoix}
         creditClient={creditClient}
+        moduleInspection={moduleInspection}
+        grillesInspection={grillesInspection}
+        aRevoirInspection={aRevoirInspection}
       />
     </div>
   );

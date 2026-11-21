@@ -93,13 +93,31 @@ on décide quand et à qui une modification s'applique.
   volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
   modules — à brancher client par client ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js`).
+  **Inspection numérique** (active par défaut, `lib/inspections.js`) :
+  inspection multipoint lancée depuis le bon, avec une grille complète, rapide
+  ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`),
+  que chaque garage peut modifier dans Paramètres → Grilles d'inspection
+  (gardées dans sa base, réglage `grilles_inspection`), avec les seuils qui
+  proposent l'état d'un point selon sa mesure — plaquettes en mm, pneus en
+  /32 po, batterie en V (réglage `seuils_inspection`). Le
+  technicien note chaque point (OK, à surveiller, urgent, sans objet) avec
+  mesure, constat, photos et travail recommandé ; le comptoir met les prix et
+  envoie le rapport par courriel ou texto (`/inspection/<jeton>`), où le
+  client voit les photos, coche les travaux, signe et approuve ; les travaux
+  approuvés s'ajoutent ensuite au bon en tâches. À la visite suivante du
+  véhicule, la carte du bon montre les points restés à surveiller (à ajouter
+  au bon ou à écarter), la nouvelle inspection montre ce qui avait été noté
+  point par point, et le rappel d'entretien par courriel les mentionne
+  (`lib/rappelsInspection.js`).
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
 - **Atelier de démonstration** (Administrateur → Atelier de démonstration,
   `lib/atelierDemo.js`) : clients, véhicules, inventaire, fournisseurs, deux
-  mécaniciens, bons à chaque étape, dix semaines de factures, soumissions et
-  rendez-vous, à charger dans un atelier sans bon de travail puis à retirer
+  mécaniciens, bons à chaque étape, dix semaines de factures, soumissions,
+  rendez-vous et inspections numériques (approuvée, envoyée avec un lien à
+  essayer, en cours, et des points à revoir au rendez-vous de demain), à
+  charger dans un atelier sans bon de travail puis à retirer
   d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.

@@ -153,6 +153,7 @@ model BonTravail {
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
   envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
   photosArrivee       PhotoArrivee[] // photos du véhicule à son arrivée (4 coins + tableau de bord), hors impression
+  inspections         Inspection[] // inspections numériques multipoints du véhicule (lib/inspections.js)
   // Dernier avis « véhicule prêt » envoyé au client (voir lib/avisClient.js)
   avisPretLe          DateTime?
   avisPretA           String? // courriel à qui l'avis a été envoyé
@@ -434,6 +435,7 @@ model Probleme {
   photos              Photo[]
   pieces              PieceUtilisee[]
   entreesTemps        EntreeTemps[]
+  pointsInspection    PointInspection[] // points d'inspection dont le travail recommandé est devenu cette tâche
 
   @@index([bonId])
   @@index([retourDeProblemeId])
@@ -466,6 +468,77 @@ model PhotoArrivee {
   ajouteeLe DateTime   @default(now())
 
   @@unique([bonId, position])
+}
+
+// Inspection numérique multipoint d'un véhicule, faite sur un bon
+// (lib/inspections.js). Les points sont copiés de la grille choisie
+// (lib/grillesInspection.js) : changer une grille ne touche pas aux
+// inspections déjà faites. Une fois terminée, le rapport (photos, constats,
+// travaux recommandés et leur prix) part au client par un lien secret
+// (/inspection/<jeton>) : il coche les travaux qu'il accepte, signe et
+// approuve — comme une soumission (lib/approbationSoumission.js).
+model Inspection {
+  id              String            @id @default(cuid())
+  bonId           String
+  bon             BonTravail        @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  grille          String // clé de la grille de départ (ex. « complete »)
+  titre           String // nom de la grille, figé (ex. « Inspection complète »)
+  statut          String            @default("EN_COURS") // "EN_COURS" | "TERMINEE"
+  kilometrage     Int?
+  noteGenerale    String? // mot du technicien au client, en tête du rapport
+  technicienId    String? // employé qui a commencé l'inspection
+  technicienNom   String? // son nom, figé pour le rapport
+  termineeLe      DateTime?
+  creeLe          DateTime          @default(now())
+  // Rapport au client : lien secret, envoi, puis sa réponse (une seule)
+  jetonClient     String?           @unique
+  envoyeeLe       DateTime? // dernier envoi par courriel
+  reponseClient   String? // "APPROUVEE" | "REFUSEE" — vide tant que le client n'a pas répondu
+  reponseLe       DateTime?
+  signataireNom   String?
+  signatureClient String? // image PNG de la signature (data URL)
+  noteClient      String?
+  points          PointInspection[]
+
+  @@index([bonId])
+}
+
+// Un point vérifié d'une inspection (ex. « Plaquettes avant »)
+model PointInspection {
+  id             String            @id @default(cuid())
+  inspectionId   String
+  inspection     Inspection        @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  section        String // ex. « Freins »
+  libelle        String
+  ordre          Int
+  unite          String? // indication pour la mesure (ex. « mm », « /32 po »)
+  ajoute         Boolean           @default(false) // ajouté pendant l'inspection, hors grille
+  etat           String? // vide = pas encore vérifié ; "OK" | "SURVEILLER" | "URGENT" | "NA"
+  mesure         String? // ex. « 3 », « 6/32 »
+  constat        String? // ce que le technicien a vu (montré au client)
+  recommandation String? // travail recommandé (montré au client, devient la tâche du bon)
+  prixEstime     Float? // estimé du travail recommandé, avant taxes
+  approbation    String? // réponse du client : "APPROUVE" | "REFUSE"
+  problemeId     String? // tâche créée sur le bon à partir de ce point
+  probleme       Probleme?         @relation(fields: [problemeId], references: [id], onDelete: SetNull)
+  // Point à revoir à la visite suivante (à surveiller, ou urgent pas fait)
+  // écarté par le comptoir (ex. fait ailleurs) : il ne revient plus
+  rappelEcarteLe DateTime?
+  photos         PhotoInspection[]
+
+  @@index([inspectionId])
+  @@index([problemeId])
+}
+
+model PhotoInspection {
+  id        String          @id @default(cuid())
+  pointId   String
+  point     PointInspection @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  url       String // image en data URL, comme Photo
+  employeId String?
+  ajouteeLe DateTime        @default(now())
+
+  @@index([pointId])
 }
 
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------
