@@ -8,6 +8,9 @@ import { peutGererDestinataire } from "@/lib/documentsServeur";
 import { voisinsFiche } from "@/lib/navigationFiches";
 import NavigationFiches from "../../../components/NavigationFiches";
 import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from "@/lib/tresorerie";
+import { portailActif, lienPortailClient } from "@/lib/portailClient";
+import { obtenirInfosEntreprise } from "@/lib/config";
+import { courrielConfigure } from "@/lib/courrielDocuments";
 
 export default async function DetailClientPage(props) {
   const params = await props.params;
@@ -38,6 +41,13 @@ export default async function DetailClientPage(props) {
   if (!client) notFound();
   if (peutModifierCredit && client.credits.length > 0) await assurerComptesTresorerie();
   const comptesTresorerie = peutModifierCredit && client.credits.length > 0 ? await obtenirComptesTresoreriePourSelection() : [];
+  // Portail client (lib/portailClient.js) : le lien du client, s'il en a un
+  const portail = (await portailActif())
+    ? {
+      lien: client.jetonPortail ? lienPortailClient(client.jetonPortail) : null, creeLe: client.portailCreeLe, vuLe: client.portailVuLe,
+      courrielPret: courrielConfigure(), nomEntreprise: (await obtenirInfosEntreprise()).nomEntreprise,
+    }
+    : null;
 
   return (
     <div>
@@ -45,6 +55,7 @@ export default async function DetailClientPage(props) {
       <ClientDetailClient
         client={client} peutRedigerLettre={peutRedigerLettre}
         comptesTresorerie={comptesTresorerie} peutModifierCredit={peutModifierCredit} peutAccorderGeste={estGerantOuDev(session)}
+        portail={portail}
       />
       <NavigationFiches cle="clients" idCourant={client.id} base="/secretaire/clients" voisinsParDefaut={voisinsFiche(ordre.map((c) => c.id), client.id)} />
     </div>

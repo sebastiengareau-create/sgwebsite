@@ -99,6 +99,12 @@ model Client {
   // la section Documents) — exclu des envois groupés. Exigé par la loi
   // canadienne anti-pourriel (LCAP).
   promotionsRefuseesLe DateTime?
+  // Portail client (/portail-client/<jeton>, lib/portailClient.js) : lien
+  // secret propre au client ; null = aucun accès. Un nouveau lien rend
+  // l'ancien inutilisable.
+  jetonPortail      String?        @unique
+  portailCreeLe     DateTime?
+  portailVuLe       DateTime? // dernière visite du client sur son portail
   vehicules         Vehicule[]
   bons              BonTravail[]
   soumissions       Soumission[]

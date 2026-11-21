@@ -9,6 +9,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { ligneVille } from "@/lib/adresse";
 import DossierVehicules from "./DossierVehicules";
 import SectionCreditClient from "./SectionCreditClient";
+import CartePortail from "./CartePortail";
 import { libelleVehicule } from "@/lib/vehicules";
 import { formaterTelephone } from "@/lib/telephone";
 import { argent } from "@/lib/format";
@@ -23,7 +24,7 @@ const JOUR_MS = 86400000;
 
 const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "America/Toronto" });
 
-export default function ClientDetailClient({ client, peutRedigerLettre, comptesTresorerie = [], peutModifierCredit = false, peutAccorderGeste = false }) {
+export default function ClientDetailClient({ client, peutRedigerLettre, comptesTresorerie = [], peutModifierCredit = false, peutAccorderGeste = false, portail = null }) {
   const router = useRouter();
   const [modeEdition, setModeEdition] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -208,6 +209,8 @@ export default function ClientDetailClient({ client, peutRedigerLettre, comptesT
               })}
             </div>
           )}
+
+          {portail && <CartePortail client={client} portail={portail} />}
 
           <SectionCreditClient clientId={client.id} credits={client.credits} comptesTresorerie={comptesTresorerie} peutModifier={peutModifierCredit} peutAccorderGeste={peutAccorderGeste} />
 

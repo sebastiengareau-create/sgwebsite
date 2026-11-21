@@ -150,6 +150,15 @@ on décide quand et à qui une modification s'applique.
   (ou STOP) ne reçoit plus rien jusqu'à RETOUR (ou START). Réponses de
   Twilio signées (`/api/twilio/entrant`, `/api/twilio/statut`). Sans le
   module, le texto prérempli part du téléphone, gratuit (`lib/textos.js`).
+  **Portail client** (actif par défaut, `lib/portailClient.js`) : un lien
+  secret par client (`/portail-client/<jeton>`), créé et envoyé (courriel ou
+  texto) depuis sa fiche, révocable ; le client y voit son solde à payer
+  (paiement en ligne si actif), ses travaux en cours, les soumissions et
+  rapports d'inspection qui attendent sa réponse, ses rendez-vous, ses
+  véhicules (points à surveiller, pneus entreposés), ses factures en PDF, et
+  choisit s'il reçoit les promotions par courriel. Le lien est aussi ajouté
+  au courriel de la facture. Chaque client de l'atelier de démonstration a
+  son lien (« Voir comme le client »).
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).

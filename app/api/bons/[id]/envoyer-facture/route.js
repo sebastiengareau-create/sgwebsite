@@ -1,3 +1,4 @@
+import { portailActif, lienPortailClient } from "@/lib/portailClient";
 import { NextResponse } from "next/server";
 import { nomClientBon } from "@/lib/nomClient";
 import { prisma } from "@/lib/prisma";
@@ -68,10 +69,12 @@ export async function POST(request, props) {
   const lienPaiement = f && solde > 0 && (await paiementEnLigneActif()) ? await assurerLienPaiement(f.id) : null;
   const ligneSolde = f && solde > 0 && solde < f.totalAvecTaxes - 0.005 ? `\nSolde à payer : ${argent(solde)}` : "";
   const lignePaiement = lienPaiement ? `\n\nPour la payer en ligne, par carte :\n${lienPaiement}` : "";
+  // Portail client (lib/portailClient.js) : le lien de son dossier, s'il en a un
+  const lignePortail = bon.client.jetonPortail && (await portailActif()) ? `\n\nToutes vos factures et vos véhicules, dans votre dossier en ligne :\n${lienPortailClient(bon.client.jetonPortail)}` : "";
   const envoi = f
     ? {
         sujet: `Facture ${f.numero} — ${nomEntreprise}`,
-        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${argent(f.totalAvecTaxes)}${ligneSolde}${lignePaiement}\n\nMerci de votre confiance,\n${nomEntreprise}`,
+        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${argent(f.totalAvecTaxes)}${ligneSolde}${lignePaiement}${lignePortail}\n\nMerci de votre confiance,\n${nomEntreprise}`,
         nomFichier: `facture-${f.numero}.pdf`,
       }
     : bon.comptoir
