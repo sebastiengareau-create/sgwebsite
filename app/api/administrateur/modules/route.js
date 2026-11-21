@@ -22,6 +22,11 @@ export async function PATCH(request) {
     return NextResponse.json({ erreur: "La double vérification envoie un code par courriel : configure d'abord l'envoi de courriel (RESEND_API_KEY)." }, { status: 409 });
   }
 
+  // Sans clés Stripe, aucun paiement ne pourrait s'ouvrir ni s'inscrire
+  if (nomModule === "paiement_en_ligne" && actif && !(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET)) {
+    return NextResponse.json({ erreur: "Le paiement en ligne exige les clés de Stripe : ajoute STRIPE_SECRET_KEY et STRIPE_WEBHOOK_SECRET dans les variables Railway de l'installation." }, { status: 409 });
+  }
+
   await prisma.parametre.upsert({
     where: { cle: `module_${nomModule}` },
     update: { valeur: actif ? "actif" : "inactif" },

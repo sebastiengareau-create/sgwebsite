@@ -6,6 +6,8 @@ import { genererPdfFacture } from "@/lib/pdfFacture";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { courrielConfigure, courrielValide, envoyerDocumentPdf } from "@/lib/courrielDocuments";
 import { argent } from "@/lib/format";
+import { soldeFacture } from "@/lib/paiementsFactures";
+import { assurerLienPaiement, paiementEnLigneActif } from "@/lib/paiementEnLigne";
 
 // Envoie au client, en PDF joint, la facture du bon — ou, tant qu'il n'est
 // pas facturé, le bon de commande (aperçu des travaux et du total estimé,
@@ -60,10 +62,16 @@ export async function POST(request, props) {
   }
 
   const f = bon.facture;
+  // Paiement en ligne (lib/paiementEnLigne.js) : lien vers la page de
+  // paiement, s'il reste un solde
+  const solde = f ? soldeFacture(f) : 0;
+  const lienPaiement = f && solde > 0 && (await paiementEnLigneActif()) ? await assurerLienPaiement(f.id) : null;
+  const ligneSolde = f && solde > 0 && solde < f.totalAvecTaxes - 0.005 ? `\nSolde à payer : ${argent(solde)}` : "";
+  const lignePaiement = lienPaiement ? `\n\nPour la payer en ligne, par carte :\n${lienPaiement}` : "";
   const envoi = f
     ? {
         sujet: `Facture ${f.numero} — ${nomEntreprise}`,
-        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${argent(f.totalAvecTaxes)}\n\nMerci de votre confiance,\n${nomEntreprise}`,
+        texte: `Bonjour ${nomClientBon(bon)},\n\nVoici votre facture ${f.numero}, en pièce jointe.\n\nMontant total : ${argent(f.totalAvecTaxes)}${ligneSolde}${lignePaiement}\n\nMerci de votre confiance,\n${nomEntreprise}`,
         nomFichier: `facture-${f.numero}.pdf`,
       }
     : bon.comptoir

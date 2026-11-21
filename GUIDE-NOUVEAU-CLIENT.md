@@ -82,6 +82,18 @@ Chaque client a son **propre projet Railway complet** :
    variable `GOOGLE_PLACES_API_KEY`. Sans clé, les champs Ville et Code
    postal font quand même leurs suggestions (données locales). Voir
    `lib/googlePlaces.js`.
+10. Paiement en ligne (facultatif — module « Paiement en ligne (Stripe) ») :
+   le garage ouvre son propre compte Stripe (stripe.com). Dans Stripe →
+   Développeurs → Clés API, copie la clé secrète dans `STRIPE_SECRET_KEY`
+   (`sk_test_…` pour essayer, `sk_live_…` en vrai). Dans Développeurs →
+   Webhooks, ajoute un point de terminaison `<APP_URL>/api/stripe/webhook`
+   avec les événements `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded` et `checkout.session.expired`,
+   et copie son secret de signature (`whsec_…`) dans `STRIPE_WEBHOOK_SECRET`.
+   `APP_URL` doit être l'adresse publique : Stripe y renvoie le client. Puis
+   active le module dans Administrateur → Modules (refusé sans les deux clés)
+   et règle le dépôt demandé dans Paramètres → Paiement en ligne. Voir
+   `lib/paiementEnLigne.js`.
 
 ### 3. Initialiser la base de données de ce client
 Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`

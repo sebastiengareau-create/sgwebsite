@@ -12,6 +12,8 @@ import SitesPiecesSection from "./SitesPiecesSection";
 import PartsTechSection from "./PartsTechSection";
 import AProposSection from "./AProposSection";
 import GrillesInspectionSection from "./GrillesInspectionSection";
+import PaiementEnLigneSection from "./PaiementEnLigneSection";
+import { paiementEnLigneActif, lirePourcentDepot, modeTestStripe } from "@/lib/paiementEnLigne";
 import { inspectionActive, lireGrilles, CLE_GRILLES } from "@/lib/inspections";
 import { nbPointsGrille } from "@/lib/grillesInspection";
 import { lireConfig as lireConfigPartsTech } from "@/lib/partstech";
@@ -74,6 +76,29 @@ export default async function Parametres() {
     ? (await lireGrilles()).map((g) => ({ cle: g.cle, titre: g.titre, active: g.active, nbPoints: nbPointsGrille(g) }))
     : null;
 
+  // Paiement en ligne (module) : réglages et derniers paiements, avec ce qu'ils paient
+  let paiementEnLigne = null;
+  if (await paiementEnLigneActif()) {
+    const recents = await prisma.paiementEnLigne.findMany({ orderBy: { creeLe: "desc" }, take: 15 });
+    const [factures, soumissions, bons] = await Promise.all([
+      prisma.facture.findMany({ where: { id: { in: recents.map((p) => p.factureId).filter(Boolean) } }, select: { id: true, numero: true } }),
+      prisma.soumission.findMany({ where: { id: { in: recents.map((p) => p.soumissionId).filter(Boolean) } }, select: { id: true, numero: true } }),
+      prisma.bonTravail.findMany({ where: { id: { in: recents.map((p) => p.bonId).filter(Boolean) } }, select: { id: true, numero: true } }),
+    ]);
+    const numero = (liste, id) => liste.find((x) => x.id === id)?.numero || "?";
+    paiementEnLigne = {
+      modeTest: modeTestStripe(),
+      adresseAvis: `${(process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, "")}/api/stripe/webhook`,
+      pourcentInitial: await lirePourcentDepot(),
+      paiements: recents.map((p) => ({
+        ...p,
+        libelle: p.type === "FACTURE" ? `Facture ${numero(factures, p.factureId)}`
+          : p.type === "DEPOT_SOUMISSION" ? `Dépôt — soumission ${numero(soumissions, p.soumissionId)}`
+          : `Dépôt — bon ${numero(bons, p.bonId)}`,
+      })),
+    };
+  }
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
@@ -105,6 +130,7 @@ export default async function Parametres() {
       />
       <TachesInternesSection tachesInitiales={tachesInternes} />
       {grillesInspection && <GrillesInspectionSection grilles={grillesInspection} personnalisees={!!dict[CLE_GRILLES]} />}
+      {paiementEnLigne && <PaiementEnLigneSection {...paiementEnLigne} />}
       <SitesPiecesSection sitesInitiaux={lireSites(dict[CLE_SITES_PIECES])} />
       {CLIENT.partstech && <PartsTechSection configInitiale={await lireConfigPartsTech()} />}
       <AProposSection />
