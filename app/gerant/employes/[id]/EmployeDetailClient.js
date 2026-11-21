@@ -9,6 +9,7 @@ import { ChampAdresse, ChampVille, ChampCodePostal, remplisseurAdresse } from ".
 import { ligneVille } from "@/lib/adresse";
 import { formaterTelephone } from "@/lib/telephone";
 import { formaterNas, masquerNas } from "@/lib/nas";
+import { nomFamilleDe, prenomDe, CODES_DENTAIRES } from "@/lib/nomsFeuillets";
 import { argent } from "@/lib/format";
 import RetenuesEmploye from "./RetenuesEmploye";
 
@@ -29,6 +30,9 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   const remplir = remplisseurAdresse({ ville, setAdresse, setVille, setProvince, setCodePostal });
   const [assignation, setAssignation] = useState(employe.assignation || "");
   const [nas, setNas] = useState(formaterNas(employe.nas || ""));
+  const [prenom, setPrenom] = useState(employe.prenom || "");
+  const [nomFamille, setNomFamille] = useState(employe.nomFamille || "");
+  const [codeDentaireT4, setCodeDentaireT4] = useState(employe.codeDentaireT4 ?? "");
   const [dateEmbauche, setDateEmbauche] = useState(employe.dateEmbauche ? new Date(employe.dateEmbauche).toISOString().slice(0, 10) : "");
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState("");
   const [nouveauPin, setNouveauPin] = useState("");
@@ -50,7 +54,7 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
   async function sauvegarder() {
     setErreur("");
     setEnCours(true);
-    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances, montantTd1, montantTp10153, dateNaissance, exemptionAE, exemptionRRQ, exemptionCNESST };
+    const body = { nom, courriel, role, telephone, adresse, ville, province, codePostal, assignation, dateEmbauche, prenom, nomFamille, codeDentaireT4, typeRemuneration, tauxHoraireEmploye, salaireAnnuel, frequencePaie, tauxVacances, montantTd1, montantTp10153, dateNaissance, exemptionAE, exemptionRRQ, exemptionCNESST };
     if (peutModifierTheme) { body.theme = theme; body.tailleTexte = tailleTexte; }
     if (peutVoirNas) body.nas = nas;
     if (nouveauMotDePasse) body.motDePasse = nouveauMotDePasse;
@@ -199,6 +203,16 @@ export default function EmployeDetailClient({ employe, paies, estMoi, paieActif,
             <input value={assignation} onChange={(e) => setAssignation(e.target.value)} placeholder="Ex : Freins et suspension" className="champ" />
             <label className="etiquette">Date d'embauche</label>
             <input type="date" max="9999-12-31" value={dateEmbauche} onChange={(e) => setDateEmbauche(e.target.value)} className="champ" />
+            <label className="etiquette">Nom de famille et prénom, tels qu&apos;ils vont sur le T4, le RL-1 et le relevé d&apos;emploi</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input value={nomFamille} onChange={(e) => setNomFamille(e.target.value)} placeholder={nomFamilleDe(nom) || "Nom de famille"} aria-label="Nom de famille" className="champ" style={{ flex: 1, minWidth: 0 }} />
+              <input value={prenom} onChange={(e) => setPrenom(e.target.value)} placeholder={prenomDe(nom) || "Prénom"} aria-label="Prénom" className="champ" style={{ flex: 1, minWidth: 0 }} />
+            </div>
+            <label className="etiquette">Assurance dentaire offerte par l&apos;employeur (T4, case 45)</label>
+            <select value={codeDentaireT4} onChange={(e) => setCodeDentaireT4(e.target.value)} className="champ">
+              <option value="">Réglage de la paie (par défaut : aucun accès)</option>
+              {Object.entries(CODES_DENTAIRES).map(([code, libelle]) => <option key={code} value={code}>{code} — {libelle}</option>)}
+            </select>
             {peutVoirNas && (
               <>
                 <label className="etiquette">NAS — numéro d'assurance sociale (pour les T4 et RL-1)</label>

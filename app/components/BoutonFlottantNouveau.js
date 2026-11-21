@@ -21,7 +21,7 @@ const OPTIONS = [
 ];
 
 // Pages faites pour l'impression ou le PDF : pas de bouton par-dessus
-const PAGES_SANS_BOUTON = [/^\/login/, /\/imprimer/, /\/talons?(\/|$)/, /\/facture$/, /^\/bons\/[^/]+\/commande/, /^\/gerant\/comptabilite\/rapports\/.+/, /^\/gerant\/parametres\/grilles-inspection/];
+const PAGES_SANS_BOUTON = [/^\/login/, /\/imprimer/, /\/talons?(\/|$)/, /\/facture$/, /^\/bons\/[^/]+\/commande/, /^\/gerant\/comptabilite\/rapports\/.+/, /^\/gerant\/parametres\/grilles-inspection/, /^\/gerant\/paie\/releves-emploi\/[^/]+/];
 
 export default function BoutonFlottantNouveau({ sections = [] }) {
   const router = useRouter();
