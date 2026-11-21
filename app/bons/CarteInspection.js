@@ -3,16 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CLIENT } from "@/lib/client";
-import { grillesPour, resume, etapeInspection } from "@/lib/grillesInspection";
+import { resume, etapeInspection } from "@/lib/grillesInspection";
 import { Icone, TEINTES, Pastille } from "../components/StyleSection";
 
 // Carte « Inspection numérique » du bon (module Inspection, lib/inspections.js) :
 // les inspections faites sur ce véhicule, où elles en sont, et le bouton
-// pour en commencer une. modifiable : bon pas encore facturé.
-export default function CarteInspection({ bonId, inspections, modifiable }) {
+// pour en commencer une. grilles : celles offertes sur les bons (Paramètres
+// → Grilles d'inspection). modifiable : bon pas encore facturé.
+export default function CarteInspection({ bonId, inspections, grilles, modifiable }) {
   const router = useRouter();
-  const grilles = grillesPour(CLIENT.typeVehicules);
   const [choix, setChoix] = useState(inspections.length === 0);
   const [enCours, setEnCours] = useState(null);
   const [erreur, setErreur] = useState("");

@@ -95,7 +95,9 @@ on décide quand et à qui une modification s'applique.
   retirer dans Administrateur, `lib/immobilierDemo.js`).
   **Inspection numérique** (active par défaut, `lib/inspections.js`) :
   inspection multipoint lancée depuis le bon, avec une grille complète, rapide
-  ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`). Le
+  ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`),
+  que chaque garage peut modifier dans Paramètres → Grilles d'inspection
+  (gardées dans sa base, réglage `grilles_inspection`). Le
   technicien note chaque point (OK, à surveiller, urgent, sans objet) avec
   mesure, constat, photos et travail recommandé ; le comptoir met les prix et
   envoie le rapport par courriel ou texto (`/inspection/<jeton>`), où le

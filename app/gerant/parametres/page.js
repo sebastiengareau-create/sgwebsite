@@ -11,6 +11,9 @@ import TachesInternesSection from "./TachesInternesSection";
 import SitesPiecesSection from "./SitesPiecesSection";
 import PartsTechSection from "./PartsTechSection";
 import AProposSection from "./AProposSection";
+import GrillesInspectionSection from "./GrillesInspectionSection";
+import { inspectionActive, lireGrilles, CLE_GRILLES } from "@/lib/inspections";
+import { nbPointsGrille } from "@/lib/grillesInspection";
 import { lireConfig as lireConfigPartsTech } from "@/lib/partstech";
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import { CLIENT } from "@/lib/client";
@@ -66,6 +69,11 @@ export default async function Parametres() {
   const libelleMoisPrecedent = new Date(Date.UTC(anPrecedent, moisPrecedent - 1, 15))
     .toLocaleDateString("fr-CA", { month: "long", year: "numeric", timeZone: "UTC" });
 
+  // Grilles d'inspection (module Inspection numérique) : résumé et lien vers l'éditeur
+  const grillesInspection = (await inspectionActive())
+    ? (await lireGrilles()).map((g) => ({ cle: g.cle, titre: g.titre, active: g.active, nbPoints: nbPointsGrille(g) }))
+    : null;
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
@@ -96,6 +104,7 @@ export default async function Parametres() {
         urlFluxCalendrier={urlFlux}
       />
       <TachesInternesSection tachesInitiales={tachesInternes} />
+      {grillesInspection && <GrillesInspectionSection grilles={grillesInspection} personnalisees={!!dict[CLE_GRILLES]} />}
       <SitesPiecesSection sitesInitiaux={lireSites(dict[CLE_SITES_PIECES])} />
       {CLIENT.partstech && <PartsTechSection configInitiale={await lireConfigPartsTech()} />}
       <AProposSection />

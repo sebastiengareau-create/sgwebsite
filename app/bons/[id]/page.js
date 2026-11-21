@@ -10,7 +10,8 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import { CLIENT } from "@/lib/client";
 import { kitsDisponibles } from "@/lib/kits";
 import { soldeCredit } from "@/lib/creditClient";
-import { inspectionActive } from "@/lib/inspections";
+import { inspectionActive, lireGrilles } from "@/lib/inspections";
+import { resumeGrilles } from "@/lib/grillesInspection";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -125,7 +126,7 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
-  const [creditClient, fournisseurs, clientsChoix] = await Promise.all([
+  const [creditClient, fournisseurs, clientsChoix, grillesInspection] = await Promise.all([
     // Crédit du client disponible pour la facture (lib/creditClient.js)
     bon.vehiculeVenteId ? 0 : soldeCredit(bon.clientId),
     peutCommander
@@ -135,6 +136,8 @@ export default async function DetailBonPage(props) {
     peutModifier && !bon.facture && !bon.vehiculeVenteId
       ? prisma.client.findMany({ select: { id: true, nom: true, numero: true, telephone: true }, orderBy: { nom: "asc" } })
       : [],
+    // Grilles offertes pour commencer une inspection (Paramètres → Grilles d'inspection)
+    moduleInspection ? lireGrilles().then(resumeGrilles) : [],
   ]);
 
   return (
@@ -164,6 +167,7 @@ export default async function DetailBonPage(props) {
         clientsChoix={clientsChoix}
         creditClient={creditClient}
         moduleInspection={moduleInspection}
+        grillesInspection={grillesInspection}
       />
     </div>
   );
