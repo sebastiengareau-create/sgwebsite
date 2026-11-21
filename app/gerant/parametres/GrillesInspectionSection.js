@@ -20,7 +20,7 @@ export default function GrillesInspectionSection({ grilles, personnalisees }) {
           ))}
         </div>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px" }}>
-          Les points que le technicien vérifie quand il commence une inspection sur un bon. Un changement vaut pour les prochaines inspections.
+          Les points que le technicien vérifie quand il commence une inspection sur un bon, et les seuils qui proposent l'état d'un point selon sa mesure (plaquettes, pneus, batterie). Un changement vaut pour les prochaines inspections.
         </p>
         <Link href="/gerant/parametres/grilles-inspection" className="bouton-3d" style={{ display: "inline-block", padding: "9px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
           Modifier les grilles

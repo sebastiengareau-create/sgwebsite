@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { bonEstVerrouille } from "@/lib/bons";
 import { lireParametres } from "@/lib/parametres";
 import { obtenirInfosEntreprise } from "@/lib/config";
-import { inspectionActive, lienInspection } from "@/lib/inspections";
+import { inspectionActive, lienInspection, lireSeuils } from "@/lib/inspections";
 import EnTete from "../../../../components/EnTete";
 import InspectionClient from "./InspectionClient";
 
@@ -17,7 +17,7 @@ export default async function PageInspection(props) {
   if (!session) redirect("/login");
   if (!(await inspectionActive())) redirect(`/bons/${bonId}`);
 
-  const [inspection, verrouille, comptoir, dict, { nomEntreprise }] = await Promise.all([
+  const [inspection, verrouille, comptoir, dict, { nomEntreprise }, seuils] = await Promise.all([
     prisma.inspection.findFirst({
       where: { id: inspectionId, bonId },
       include: {
@@ -35,6 +35,7 @@ export default async function PageInspection(props) {
     aAccesSection(session, "operations"),
     lireParametres(["tps_taux", "tvq_taux"]),
     obtenirInfosEntreprise(),
+    lireSeuils(), // états proposés selon la mesure
   ]);
   if (!inspection) notFound();
 
@@ -49,6 +50,7 @@ export default async function PageInspection(props) {
         comptoir={comptoir}
         taux={{ tpsTaux: Number(dict.tps_taux || 5), tvqTaux: Number(dict.tvq_taux || 9.975) }}
         nomEntreprise={nomEntreprise}
+        seuils={seuils}
       />
     </div>
   );

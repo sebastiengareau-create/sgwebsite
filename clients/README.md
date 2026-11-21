@@ -97,7 +97,9 @@ on décide quand et à qui une modification s'applique.
   inspection multipoint lancée depuis le bon, avec une grille complète, rapide
   ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`),
   que chaque garage peut modifier dans Paramètres → Grilles d'inspection
-  (gardées dans sa base, réglage `grilles_inspection`). Le
+  (gardées dans sa base, réglage `grilles_inspection`), avec les seuils qui
+  proposent l'état d'un point selon sa mesure — plaquettes en mm, pneus en
+  /32 po, batterie en V (réglage `seuils_inspection`). Le
   technicien note chaque point (OK, à surveiller, urgent, sans objet) avec
   mesure, constat, photos et travail recommandé ; le comptoir met les prix et
   envoie le rapport par courriel ou texto (`/inspection/<jeton>`), où le

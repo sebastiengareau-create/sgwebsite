@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { lireParametre } from "@/lib/parametres";
-import { inspectionActive, lireGrilles, CLE_GRILLES } from "@/lib/inspections";
+import { inspectionActive, lireGrilles, lireSeuils, CLE_GRILLES } from "@/lib/inspections";
 import EnTete from "../../../components/EnTete";
 import EditeurGrilles from "./EditeurGrilles";
 
@@ -12,11 +12,11 @@ export default async function PageGrillesInspection() {
   if (!(await aAccesSection(session, "parametres"))) redirect("/gerant");
   if (!(await inspectionActive())) redirect("/gerant/parametres");
 
-  const [grilles, reglage] = await Promise.all([lireGrilles(), lireParametre(CLE_GRILLES)]);
+  const [grilles, reglage, seuils] = await Promise.all([lireGrilles(), lireParametre(CLE_GRILLES), lireSeuils()]);
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <EditeurGrilles grillesInitiales={grilles} personnalisees={!!reglage} />
+      <EditeurGrilles grillesInitiales={grilles} personnalisees={!!reglage} seuilsInitiaux={seuils} />
     </div>
   );
 }

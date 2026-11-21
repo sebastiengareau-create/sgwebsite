@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ETATS_POINT, parSection, resume, pointsRecommandes, totauxRecommandes, etapeInspection, estARecommander, avecUnite } from "@/lib/grillesInspection";
+import { ETATS_POINT, parSection, resume, pointsRecommandes, totauxRecommandes, etapeInspection, estARecommander, avecUnite, etatPropose } from "@/lib/grillesInspection";
 import { libelleVehicule } from "@/lib/vehicules";
 import { nomClientBon } from "@/lib/nomClient";
 import { compresserImage } from "@/lib/images";
@@ -24,7 +24,7 @@ const BOUTONS_ETAT = [
 
 const DATE_HEURE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
 
-export default function InspectionClient({ inspection: initiale, lien: lienInitial, verrouille, comptoir, taux, nomEntreprise }) {
+export default function InspectionClient({ inspection: initiale, lien: lienInitial, verrouille, comptoir, taux, nomEntreprise, seuils }) {
   const router = useRouter();
   const [insp, setInsp] = useState(() => { const { points, ...reste } = initiale; return reste; });
   const [points, setPoints] = useState(initiale.points);
@@ -228,7 +228,7 @@ export default function InspectionClient({ inspection: initiale, lien: lienIniti
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {parSection(points).map((section) => (
           <Section
-            key={section.titre} section={section} inspId={insp.id} remplissable={remplissable} comptoir={comptoir}
+            key={section.titre} section={section} inspId={insp.id} remplissable={remplissable} comptoir={comptoir} seuils={seuils}
             onToutOk={() => toutOk(section)} onAjouterPoint={(libelle) => ajouterPoint(section.titre, libelle)}
             onMajPoint={majPoint} onPhotos={ajouterPhotos} onSupprimerPhoto={supprimerPhoto} onSupprimerPoint={supprimerPoint}
           />
@@ -463,7 +463,7 @@ function TravailRecommande({ point, prixModifiable, repondu, peutAjouter, enCour
 
 // ---------- Points de l'inspection ----------
 
-function Section({ section, inspId, remplissable, comptoir, onToutOk, onAjouterPoint, onMajPoint, onPhotos, onSupprimerPhoto, onSupprimerPoint }) {
+function Section({ section, inspId, remplissable, comptoir, seuils, onToutOk, onAjouterPoint, onMajPoint, onPhotos, onSupprimerPhoto, onSupprimerPoint }) {
   const r = resume(section.points);
   const [ajout, setAjout] = useState(null); // null | texte du nouveau point
   const [occupe, setOccupe] = useState(false);
@@ -490,7 +490,7 @@ function Section({ section, inspId, remplissable, comptoir, onToutOk, onAjouterP
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {section.points.map((p) => (
           <Point
-            key={p.id} point={p} inspId={inspId} remplissable={remplissable} comptoir={comptoir}
+            key={p.id} point={p} inspId={inspId} remplissable={remplissable} comptoir={comptoir} seuils={seuils}
             onMaj={(champs) => onMajPoint(p.id, champs)} onPhotos={(f) => onPhotos(p.id, f)}
             onSupprimerPhoto={(photoId) => onSupprimerPhoto(p.id, photoId)} onSupprimer={() => onSupprimerPoint(p.id)}
           />
@@ -514,9 +514,13 @@ function Section({ section, inspId, remplissable, comptoir, onToutOk, onAjouterP
   );
 }
 
-function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSupprimerPhoto, onSupprimer }) {
+function Point({ point, inspId, remplissable, comptoir, seuils, onMaj, onPhotos, onSupprimerPhoto, onSupprimer }) {
   const etat = point.etat ? ETATS_POINT[point.etat] : null;
-  const aDetails = !!(point.mesure || point.constat || point.recommandation || point.photos.length);
+  // Point avec unité (plaquettes, pneus, batterie…) : la mesure se prend sur
+  // la ligne même, et l'état est proposé selon les seuils (Paramètres)
+  const mesureEnLigne = !!point.unite;
+  const propose = etatPropose(point.mesure, point.unite, seuils);
+  const aDetails = !!((!mesureEnLigne && point.mesure) || point.constat || point.recommandation || point.photos.length);
   const [ouvert, setOuvert] = useState(estARecommander(point) || aDetails);
   const [envoiPhoto, setEnvoiPhoto] = useState(false);
   const photo = useChoixPhoto(async (fichiers) => {
@@ -531,6 +535,17 @@ function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSuppr
     if (cle === "SURVEILLER" || cle === "URGENT") setOuvert(true);
   }
 
+  // Mesure enregistrée : sur un point pas encore vérifié, l'état proposé
+  // s'applique du même coup (le technicien peut le changer)
+  function enregistrerMesure(mesure) {
+    const p = etatPropose(mesure, point.unite, seuils);
+    if (p && !point.etat) {
+      if (p.etat === "SURVEILLER" || p.etat === "URGENT") setOuvert(true);
+      return onMaj({ mesure, etat: p.etat });
+    }
+    return onMaj({ mesure });
+  }
+
   const voirDetails = remplissable ? ouvert : aDetails;
 
   return (
@@ -540,6 +555,9 @@ function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSuppr
           {point.libelle}
           {point.ajoute && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginLeft: 6 }}>ajouté</span>}
         </div>
+        {!remplissable && mesureEnLigne && point.mesure && (
+          <span style={{ fontSize: 12.5, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{avecUnite(point.mesure, point.unite)}</span>
+        )}
         {!remplissable && etat && <Pastille couleur={etat.couleur} fond={etat.fond}>{etat.libelle}</Pastille>}
         {!remplissable && !etat && <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Non vérifié</span>}
         {remplissable && (
@@ -551,6 +569,21 @@ function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSuppr
           </button>
         )}
       </div>
+
+      {remplissable && mesureEnLigne && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Mesure</span>
+            <ChampEnregistre
+              valeur={point.mesure ?? ""} inputMode="decimal" aria-label={`Mesure : ${point.libelle} (${point.unite})`}
+              placeholder={point.unite === "mm" ? "ex. 3" : point.unite === "V" ? "ex. 12,6" : "ex. 5"} style={{ width: 86 }}
+              onEnregistrer={enregistrerMesure}
+            />
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{point.unite}</span>
+          </label>
+          <IndicePropose propose={propose} etat={point.etat} onAppliquer={() => choisirEtat(propose.etat)} />
+        </div>
+      )}
 
       {remplissable && (
         <div role="group" aria-label={`État : ${point.libelle}`} style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 8 }}>
@@ -576,10 +609,12 @@ function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSuppr
           {remplissable ? (
             <>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <label style={{ flex: "0 1 140px" }}>
-                  <span style={etiquette}>Mesure{point.unite ? ` (${point.unite})` : ""}</span>
-                  <ChampEnregistre valeur={point.mesure ?? ""} placeholder={point.unite === "mm" ? "ex. 3" : point.unite ? "ex. 5" : "ex. 32 lb/po²"} onEnregistrer={(v) => onMaj({ mesure: v })} />
-                </label>
+                {!mesureEnLigne && (
+                  <label style={{ flex: "0 1 140px" }}>
+                    <span style={etiquette}>Mesure</span>
+                    <ChampEnregistre valeur={point.mesure ?? ""} placeholder="ex. 32 lb/po²" onEnregistrer={(v) => onMaj({ mesure: v })} />
+                  </label>
+                )}
                 <label style={{ flex: "1 1 200px", minWidth: 0 }}>
                   <span style={etiquette}>Ce que tu as vu (le client le lit)</span>
                   <ChampEnregistre valeur={point.constat ?? ""} placeholder="ex. Usure avancée, fissures" onEnregistrer={(v) => onMaj({ constat: v })} />
@@ -602,7 +637,7 @@ function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSuppr
             </>
           ) : (
             <div style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 2 }}>
-              {point.mesure && <span><span style={{ color: "var(--text-muted)" }}>Mesure : </span>{avecUnite(point.mesure, point.unite)}</span>}
+              {point.mesure && !mesureEnLigne && <span><span style={{ color: "var(--text-muted)" }}>Mesure : </span>{point.mesure}</span>}
               {point.constat && <span><span style={{ color: "var(--text-muted)" }}>Constat : </span>{point.constat}</span>}
               {point.recommandation && <span><span style={{ color: "var(--text-muted)" }}>Recommandé : </span>{point.recommandation}</span>}
             </div>
@@ -648,6 +683,26 @@ function Point({ point, inspId, remplissable, comptoir, onMaj, onPhotos, onSuppr
 }
 
 // ---------- Petits morceaux ----------
+
+// État proposé selon la mesure : discret s'il est déjà choisi ; sinon (le
+// technicien a choisi autre chose), une suggestion avec « Appliquer »
+function IndicePropose({ propose, etat, onAppliquer }) {
+  if (!propose) return null;
+  const e = ETATS_POINT[propose.etat];
+  if (etat === propose.etat) {
+    return <span style={{ fontSize: 12, color: "var(--text-muted)" }}>État proposé : {propose.regle}</span>;
+  }
+  if (!etat || etat === "NA") return null;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12 }}>
+      <span style={{ color: "var(--text-muted)" }}>{propose.regle} : la mesure propose</span>
+      <b style={{ color: e.couleur }}>{e.libelle}</b>
+      <button type="button" onClick={onAppliquer} style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 999, border: `1px solid ${e.couleur}`, background: "none", color: e.couleur, cursor: "pointer" }}>
+        Appliquer
+      </button>
+    </span>
+  );
+}
 
 // Champ enregistré quand on le quitte (ou Entrée), seulement s'il a changé
 function ChampEnregistre({ valeur, onEnregistrer, multiligne = false, style, ...reste }) {

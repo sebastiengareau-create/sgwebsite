@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { UNITES_MESURE, LIMITES_GRILLES as L, nbPointsGrille, normaliserGrilles, nouvelleCleGrille } from "@/lib/grillesInspection";
+import { UNITES_MESURE, LIMITES_GRILLES as L, nbPointsGrille, normaliserGrilles, nouvelleCleGrille, normaliserSeuils, SEUILS_DEFAUT, UNITES_AVEC_SEUILS } from "@/lib/grillesInspection";
 import { Pastille } from "@/app/components/StyleSection";
 
 // Identifiants d'affichage des sections et des points (clés React), retirés
@@ -19,6 +19,11 @@ const sansIds = (grilles) => grilles.map((g) => ({
 }));
 const empreinte = (grilles) => JSON.stringify(sansIds(grilles));
 
+// Seuils en champs de formulaire (« 12,3 ») et retour
+const LIBELLES_SEUILS = { mm: "Plaquettes de frein", "/32 po": "Usure des pneus", V: "Batterie au repos" };
+const versChamp = (n) => (n == null ? "" : String(n).replace(".", ","));
+const seuilsEnChamps = (seuils) => Object.fromEntries(UNITES_AVEC_SEUILS.map((u) => [u, { urgent: versChamp(seuils?.[u]?.urgent), surveiller: versChamp(seuils?.[u]?.surveiller) }]));
+
 function deplacer(liste, i, sens) {
   const j = i + sens;
   if (j < 0 || j >= liste.length) return;
@@ -26,16 +31,20 @@ function deplacer(liste, i, sens) {
 }
 
 // Éditeur des grilles d'inspection du garage (Paramètres → Grilles d'inspection)
-export default function EditeurGrilles({ grillesInitiales, personnalisees: personnaliseesInit }) {
+export default function EditeurGrilles({ grillesInitiales, personnalisees: personnaliseesInit, seuilsInitiaux }) {
   const [grilles, setGrilles] = useState(() => avecIds(grillesInitiales));
   const [sauvegarde, setSauvegarde] = useState(() => empreinte(grillesInitiales));
+  const [seuils, setSeuils] = useState(() => seuilsEnChamps(seuilsInitiaux));
+  const [seuilsSauvegardes, setSeuilsSauvegardes] = useState(() => JSON.stringify(seuilsEnChamps(seuilsInitiaux)));
   const [personnalisees, setPersonnalisees] = useState(personnaliseesInit);
   const [ouverte, setOuverte] = useState(null); // cle de la grille déployée
   const [enCours, setEnCours] = useState(false);
   const [message, setMessage] = useState(null); // { texte, erreur }
   const [confirmer, setConfirmer] = useState(null); // "retablir" | cle de la grille à supprimer
 
-  const modifie = empreinte(grilles) !== sauvegarde;
+  const grillesModifiees = empreinte(grilles) !== sauvegarde;
+  const seuilsModifies = JSON.stringify(seuils) !== seuilsSauvegardes;
+  const modifie = grillesModifiees || seuilsModifies;
 
   // Changements pas enregistrés : le navigateur demande avant de quitter
   useEffect(() => {
@@ -66,23 +75,46 @@ export default function EditeurGrilles({ grillesInitiales, personnalisees: perso
     setOuverte(cle);
   }
 
+  // N'envoie que ce qui a changé : changer les seuils seulement ne fait pas
+  // des grilles d'origine les « grilles du garage »
   async function enregistrer() {
     setMessage(null);
-    const verif = normaliserGrilles(sansIds(grilles));
-    if (verif.erreur) return setMessage({ texte: verif.erreur, erreur: true });
+    const corps = {};
+    if (grillesModifiees) {
+      const verif = normaliserGrilles(sansIds(grilles));
+      if (verif.erreur) return setMessage({ texte: verif.erreur, erreur: true });
+      corps.grilles = verif.grilles;
+    }
+    if (seuilsModifies) {
+      const verif = normaliserSeuils(seuils);
+      if (verif.erreur) return setMessage({ texte: verif.erreur, erreur: true });
+      corps.seuils = verif.seuils;
+    }
     setEnCours(true);
     const res = await fetch("/api/parametres/grilles-inspection", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ grilles: verif.grilles }),
+      body: JSON.stringify(corps),
     }).catch(() => null);
     const data = await res?.json().catch(() => ({}));
     setEnCours(false);
     if (!res?.ok) return setMessage({ texte: data?.erreur || "Rien n'a été enregistré : vérifie la connexion et réessaie.", erreur: true });
-    setGrilles(avecIds(data.grilles));
-    setSauvegarde(empreinte(data.grilles));
-    setPersonnalisees(true);
-    setMessage({ texte: "Grilles enregistrées. Elles servent aux prochaines inspections." });
+    if (data.grilles) {
+      setGrilles(avecIds(data.grilles));
+      setSauvegarde(empreinte(data.grilles));
+      setPersonnalisees(true);
+    }
+    if (data.seuils) {
+      const champs = seuilsEnChamps(data.seuils);
+      setSeuils(champs);
+      setSeuilsSauvegardes(JSON.stringify(champs));
+    }
+    setMessage({ texte: "Enregistré. Les changements servent aux prochaines inspections." });
+  }
+
+  function changerSeuil(unite, niveau, valeur) {
+    setSeuils((avant) => ({ ...avant, [unite]: { ...avant[unite], [niveau]: valeur } }));
+    setMessage(null);
   }
 
   async function retablir() {
@@ -133,6 +165,38 @@ export default function EditeurGrilles({ grillesInitiales, personnalisees: perso
           + Nouvelle grille
         </button>
       )}
+
+      {/* États proposés selon la mesure */}
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, marginTop: 22 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 4px" }}>États proposés selon la mesure</h2>
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 12px" }}>
+          Quand le technicien entre la mesure d&apos;un point avec cette unité, l&apos;état est proposé : à la valeur « urgent » ou moins, Urgent ;
+          à la valeur « à surveiller » ou moins, À surveiller ; au-dessus, OK. Il peut toujours le changer. Laisse vide pour ne rien proposer.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 92px 92px", gap: "8px 10px", alignItems: "center" }}>
+          <span />
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--danger)" }}>Urgent à ou sous</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--avertissement)" }}>À surveiller à ou sous</span>
+          {UNITES_AVEC_SEUILS.map((u) => (
+            <div key={u} style={{ display: "contents" }}>
+              <span style={{ fontSize: 13.5, minWidth: 0 }}>{LIBELLES_SEUILS[u]} <span style={{ color: "var(--text-muted)" }}>({u})</span></span>
+              {["urgent", "surveiller"].map((niveau) => (
+                <input
+                  key={niveau} value={seuils[u][niveau]} inputMode="decimal" className="champ" style={{ fontSize: 14, textAlign: "right" }}
+                  aria-label={`${LIBELLES_SEUILS[u]} (${u}) : ${niveau === "urgent" ? "urgent" : "à surveiller"} à ou sous`}
+                  onChange={(e) => changerSeuil(u, niveau, e.target.value)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        <button
+          type="button" onClick={() => { setSeuils(seuilsEnChamps(SEUILS_DEFAUT)); setMessage(null); }}
+          style={{ marginTop: 12, background: "none", border: "none", padding: 0, fontSize: 12.5, color: "var(--text-muted)", textDecoration: "underline", cursor: "pointer" }}
+        >
+          Remettre les valeurs conseillées
+        </button>
+      </section>
 
       <div style={{ marginTop: 22 }}>
         {confirmer === "retablir" ? (
