@@ -10,6 +10,7 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import { CLIENT } from "@/lib/client";
 import { kitsDisponibles } from "@/lib/kits";
 import { soldeCredit } from "@/lib/creditClient";
+import { inspectionActive } from "@/lib/inspections";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -22,7 +23,7 @@ export default async function DetailBonPage(props) {
   // qu'une lecture après l'autre
   const [
     bon, inventaireBrut, employes, postesRevenu, comptesTresorerie, dict,
-    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise },
+    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise }, moduleInspection,
   ] = await Promise.all([
     prisma.bonTravail.findUnique({
       where: { id: params.id },
@@ -64,6 +65,14 @@ export default async function DetailBonPage(props) {
         },
         // Fichiers joints au rendez-vous d'où vient le bon : noms seulement
         rendezVous: { select: { fichiers: { select: { id: true, nom: true }, orderBy: { creeLe: "asc" } } } },
+        // Inspections numériques : de quoi résumer chacune sur la carte du bon
+        inspections: {
+          orderBy: { creeLe: "asc" },
+          select: {
+            id: true, titre: true, statut: true, creeLe: true, envoyeeLe: true, reponseClient: true,
+            points: { select: { etat: true, approbation: true, problemeId: true } },
+          },
+        },
       },
     }),
     // Seulement ce qu'utilisent le choix de pièce, le scan et les pièces à
@@ -99,6 +108,7 @@ export default async function DetailBonPage(props) {
     // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
     aAccesSection(session, "inventaire"),
     obtenirInfosEntreprise(), // signe les textos au client
+    inspectionActive(),
   ]);
   if (!bon) notFound();
 
@@ -153,6 +163,7 @@ export default async function DetailBonPage(props) {
         moi={session.id}
         clientsChoix={clientsChoix}
         creditClient={creditClient}
+        moduleInspection={moduleInspection}
       />
     </div>
   );

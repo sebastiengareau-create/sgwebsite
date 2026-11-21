@@ -93,6 +93,14 @@ on décide quand et à qui une modification s'applique.
   volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
   modules — à brancher client par client ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js`).
+  **Inspection numérique** (active par défaut, `lib/inspections.js`) :
+  inspection multipoint lancée depuis le bon, avec une grille complète, rapide
+  ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`). Le
+  technicien note chaque point (OK, à surveiller, urgent, sans objet) avec
+  mesure, constat, photos et travail recommandé ; le comptoir met les prix et
+  envoie le rapport par courriel ou texto (`/inspection/<jeton>`), où le
+  client voit les photos, coche les travaux, signe et approuve ; les travaux
+  approuvés s'ajoutent ensuite au bon en tâches.
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).

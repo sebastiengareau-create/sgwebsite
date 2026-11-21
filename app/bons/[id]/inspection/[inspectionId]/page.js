@@ -1,0 +1,55 @@
+import { notFound, redirect } from "next/navigation";
+import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { bonEstVerrouille } from "@/lib/bons";
+import { lireParametres } from "@/lib/parametres";
+import { obtenirInfosEntreprise } from "@/lib/config";
+import { inspectionActive, lienInspection } from "@/lib/inspections";
+import EnTete from "../../../../components/EnTete";
+import InspectionClient from "./InspectionClient";
+
+// Inspection numérique d'un véhicule (lib/inspections.js) : le technicien
+// vérifie chaque point ; le comptoir met les prix, envoie le rapport au
+// client et ajoute au bon les travaux approuvés.
+export default async function PageInspection(props) {
+  const { id: bonId, inspectionId } = await props.params;
+  const session = await obtenirSession();
+  if (!session) redirect("/login");
+  if (!(await inspectionActive())) redirect(`/bons/${bonId}`);
+
+  const [inspection, verrouille, comptoir, dict, { nomEntreprise }] = await Promise.all([
+    prisma.inspection.findFirst({
+      where: { id: inspectionId, bonId },
+      include: {
+        points: { orderBy: { ordre: "asc" }, include: { photos: { select: { id: true }, orderBy: { ajouteeLe: "asc" } } } },
+        bon: {
+          select: {
+            id: true, numero: true, clientNomAffiche: true,
+            client: { select: { nom: true, telephone: true, courriel: true } },
+            vehicule: true,
+          },
+        },
+      },
+    }),
+    bonEstVerrouille(bonId),
+    aAccesSection(session, "operations"),
+    lireParametres(["tps_taux", "tvq_taux"]),
+    obtenirInfosEntreprise(),
+  ]);
+  if (!inspection) notFound();
+
+  const { jetonClient, ...reste } = inspection;
+  return (
+    <div>
+      <EnTete nom={session.nom} role={session.role} />
+      <InspectionClient
+        inspection={reste}
+        lien={jetonClient ? lienInspection(jetonClient) : null}
+        verrouille={verrouille}
+        comptoir={comptoir}
+        taux={{ tpsTaux: Number(dict.tps_taux || 5), tvqTaux: Number(dict.tvq_taux || 9.975) }}
+        nomEntreprise={nomEntreprise}
+      />
+    </div>
+  );
+}

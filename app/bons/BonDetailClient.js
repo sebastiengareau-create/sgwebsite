@@ -27,6 +27,7 @@ import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import PiecesHorsInventaire from "./PiecesHorsInventaire";
+import CarteInspection from "./CarteInspection";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
@@ -70,7 +71,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -568,6 +569,11 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
           </button>
         )}
       </div>
+
+      {/* Inspection numérique multipoint (module Inspection) */}
+      {moduleInspection && !comptoir && (
+        <CarteInspection bonId={bon.id} inspections={bon.inspections || []} modifiable={!factureExiste} />
+      )}
 
       {factureExiste && (
         <div style={{
