@@ -22,6 +22,7 @@ const SECTIONS_EMPRUNTABLES = [
   { cle: "clients", href: "/secretaire/clients", label: "Clients", icone: "personne", groupe: "Opérations" },
   { cle: "jobs-deplacement", href: "/gerant/jobs-deplacement", label: "Jobs en déplacement", icone: "vehicule", groupe: "Opérations", moduleParam: "module_jobs_deplacement", moduleActifSeulementSi: "actif" },
   { cle: "horodateur", href: "/mecanicien", label: "Horodateur", icone: "horloge", groupe: "Opérations" },
+  { cle: "clients", href: "/textos", label: "Textos", icone: "bulle", groupe: "Opérations", moduleParam: "module_textos", moduleActifSeulementSi: "actif" },
   { cle: "pneus", href: "/pneus", label: "Entreposage de pneus", icone: "pneu", groupe: "Opérations", moduleParam: "module_pneus", moduleActifSeulementSi: "actif" },
   { cle: "copropriete", href: "/copropriete", label: "Copropriété", icone: "immeuble", groupe: "Opérations", moduleParam: "module_copropriete", moduleActifSeulementSi: "actif" },
   { cle: "immobilier", href: "/immobilier", label: "Immobilier", icone: "maison", groupe: "Opérations", moduleParam: "module_immobilier", moduleActifSeulementSi: "actif" },
@@ -62,7 +63,8 @@ export default async function EnTete({ nom, role }) {
   const sectionsOffertes = SECTIONS_EMPRUNTABLES.filter(moduleActif);
 
   // Le reste en parallèle : compteurs, accès à chaque section du menu
-  const [nbMesTaches, nbNonLues, accesSections, documentsPermis, accesNotifications] = await Promise.all([
+  const textosOfferts = dictModules.module_textos === "actif";
+  const [nbMesTaches, nbNonLues, accesSections, documentsPermis, accesNotifications, nbTextos] = await Promise.all([
     mesTachesOffertes ? prisma.envoiBon.count({ where: { employeId: session.id, statut: { in: STATUTS_ACTIFS } } }) : 0,
     estEmploye ? prisma.notification.count({ where: { employeId: session.id, lue: false } }) : 0,
     // Sections empruntables — vérifiées une par une via le même système que
@@ -73,6 +75,8 @@ export default async function EnTete({ nom, role }) {
     // avec Employés ou Clients — voir lib/documentsServeur.js
     destinatairesPermis(session),
     notificationsActives ? aAccesSection(session, "notifications") : false,
+    // Réponses de clients pas encore lues (module Textos automatiques)
+    textosOfferts ? prisma.texto.count({ where: { direction: "ENTRANT", lu: false } }) : 0,
   ]);
 
   const liens = [];
@@ -83,7 +87,7 @@ export default async function EnTete({ nom, role }) {
   if (mesTachesOffertes) liens.push({ href: "/mes-taches", label: "Mes tâches", icone: "presse", groupe: "Accueil", accent: nbMesTaches > 0, badge: nbMesTaches });
 
   sectionsOffertes.forEach((section, i) => {
-    if (accesSections[i]) liens.push({ href: section.href, label: section.label, icone: section.icone, groupe: section.groupe });
+    if (accesSections[i]) liens.push({ href: section.href, label: section.label, icone: section.icone, groupe: section.groupe, ...(section.href === "/textos" && { badge: nbTextos, accent: nbTextos > 0 }) });
   });
 
   if (documentsPermis.length > 0) liens.push({ href: "/gerant/documents", label: "Documents", icone: "document", groupe: "Finances" });

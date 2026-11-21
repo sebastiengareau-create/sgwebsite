@@ -27,6 +27,11 @@ export async function PATCH(request) {
     return NextResponse.json({ erreur: "Le paiement en ligne exige les clés de Stripe : ajoute STRIPE_SECRET_KEY et STRIPE_WEBHOOK_SECRET dans les variables Railway de l'installation." }, { status: 409 });
   }
 
+  // Sans les clés de Twilio, aucun texto ne pourrait partir
+  if (nomModule === "textos" && actif && !(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && (process.env.TWILIO_NUMERO || process.env.TWILIO_MESSAGING_SERVICE_SID))) {
+    return NextResponse.json({ erreur: "Les textos automatiques exigent un compte Twilio : ajoute TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN et TWILIO_NUMERO dans les variables Railway de l'installation." }, { status: 409 });
+  }
+
   await prisma.parametre.upsert({
     where: { cle: `module_${nomModule}` },
     update: { valeur: actif ? "actif" : "inactif" },

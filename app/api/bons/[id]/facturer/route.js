@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { totauxLignesFixes } from "@/lib/piecesSoumission";
 import { appliquerDepots } from "@/lib/depots";
 import { prisma } from "@/lib/prisma";
@@ -9,6 +9,7 @@ import { MODE_PAIEMENT_COUTANT, posterCapitalisationBon } from "@/lib/vehiculesA
 import { montantMaterielAtelier } from "@/lib/materielAtelier";
 import { montantEscompte } from "@/lib/escompte";
 import { heuresFacturablesTache } from "@/lib/kits";
+import { texterVehiculePret } from "@/lib/textosAuto";
 
 export async function POST(request, props) {
   const params = await props.params;
@@ -137,6 +138,9 @@ export async function POST(request, props) {
       console.error("Erreur application des dépôts :", e);
     }
   }
+
+  // Texto « véhicule prêt » (module Textos automatiques), après la réponse
+  if (!vehiculeVente) after(() => texterVehiculePret(bon.id));
 
   return NextResponse.json({ ...factureFinale, avertissementComptable });
 }

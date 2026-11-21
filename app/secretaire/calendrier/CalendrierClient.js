@@ -1,7 +1,7 @@
 "use client";
 
 import BoutonTexto from "../../components/BoutonTexto";
-import { MESSAGES_TEXTO } from "@/lib/textos";
+import { MESSAGES_TEXTO, quandRendezVous } from "@/lib/textos";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -624,7 +624,7 @@ function CarteRendezVous({ rdv, onChange, compact, nomEntreprise }) {
           <BoutonTexto
             telephone={rdv.clientTelephone || rdv.client?.telephone}
             message={MESSAGES_TEXTO.rappelRendezVous({ nom: rdv.clientNom, quand: quandRendezVous(rdv.date), nomEntreprise })}
-            libelle="💬 Rappel" style={boutonAction} title="Texto de rappel au client — ouvre Messages avec le message déjà écrit"
+            libelle="💬 Rappel" style={boutonAction} type="RAPPEL_RDV" rendezVousId={rdv.id} clientId={rdv.clientId || undefined} title="Texto de rappel au client — ouvre Messages avec le message déjà écrit"
           />
           <button onClick={annuler} disabled={enCours} style={boutonAction}>
             Annuler
@@ -636,13 +636,6 @@ function CarteRendezVous({ rdv, onChange, compact, nomEntreprise }) {
       )}
     </div>
   );
-}
-
-// « le jeudi 12 novembre à 9 h 30 » (« à 9 h » pour une heure pile)
-const FORMAT_QUAND = new Intl.DateTimeFormat("fr-CA", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
-function quandRendezVous(date) {
-  const p = Object.fromEntries(FORMAT_QUAND.formatToParts(new Date(date)).map((x) => [x.type, x.value]));
-  return `le ${p.weekday} ${p.day} ${p.month} à ${Number(p.hour)} h${p.minute === "00" ? "" : ` ${p.minute}`}`;
 }
 
 const boutonAction = {

@@ -396,7 +396,7 @@ function PanneauRapport({ insp, points, bon, vehicule, lien, comptoir, verrouill
           <BoutonTexto
             telephone={bon.client.telephone}
             message={async () => MESSAGES_TEXTO.inspection({ nom: nomClientBon(bon), vehicule, lien: await onLien(true), nomEntreprise })}
-            libelle="💬 Envoyer par texto"
+            libelle="💬 Envoyer par texto" type="LIEN" bonId={bon.id}
             style={{ flex: "1 1 150px", fontSize: 13, fontWeight: 700, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "none", color: "var(--text)", cursor: "pointer" }}
           />
           {lien ? (

@@ -208,7 +208,7 @@ function Rappels({ aVenir, jeux, restants, nomEntreprise, courrielPret, onRappel
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
                   {j.client.telephone && <a href={`tel:${j.client.telephone}`} style={petitBouton}>📞 {j.client.telephone}</a>}
-                  <BoutonTexto telephone={j.client.telephone} message={() => texto(j)} libelle="💬 Texto" style={{ ...petitBouton, cursor: "pointer" }} />
+                  <BoutonTexto telephone={j.client.telephone} message={() => texto(j)} libelle="💬 Texto" style={{ ...petitBouton, cursor: "pointer" }} type="RAPPEL" clientId={j.client.id} />
                   {courrielPret && !sansCourriel(j) && (
                     <button type="button" disabled={enCours} onClick={() => envoyer([j.id])} style={{ ...petitBouton, cursor: "pointer" }}>📧 Courriel</button>
                   )}

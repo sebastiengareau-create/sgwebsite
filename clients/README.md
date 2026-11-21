@@ -131,6 +131,18 @@ on décide quand et à qui une modification s'applique.
   en dépôt (compte de trésorerie « Paiements en ligne (Stripe) », GL 1020),
   frais de Stripe en frais bancaires ; un paiement qui ne peut pas s'inscrire
   tout seul reste « à traiter » dans Paramètres.
+  **Textos automatiques (Twilio)** (inactif par défaut, option payante,
+  `lib/textosAuto.js`, exige `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` et
+  `TWILIO_NUMERO` — voir GUIDE-NOUVEAU-CLIENT.md) : chaque envoi s'active à
+  part dans Paramètres → Textos automatiques — les boutons « 💬 Texto »
+  envoient du numéro de l'atelier sans ouvrir Messages, texto « véhicule
+  prêt » à la facturation du bon (avec le lien de paiement en ligne s'il
+  reste un solde), rappel la veille du rendez-vous à l'heure choisie, et
+  réponses des clients dans la page Textos (`/textos`, accès « Clients »,
+  conversations par numéro, avis à l'atelier). Un client qui répond ARRET
+  (ou STOP) ne reçoit plus rien jusqu'à RETOUR (ou START). Réponses de
+  Twilio signées (`/api/twilio/entrant`, `/api/twilio/statut`). Sans le
+  module, le texto prérempli part du téléphone, gratuit (`lib/textos.js`).
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
