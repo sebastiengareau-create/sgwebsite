@@ -41,7 +41,7 @@ export default function LienPaiementFacture({ bon, nomEntreprise }) {
         <BoutonTexto
           telephone={bon.client.telephone}
           message={async () => MESSAGES_TEXTO.paiement({ nom: nomClientBon(bon), numero: bon.facture.numero, solde: argent(solde), lien: await lien(), nomEntreprise })}
-          libelle="💬 Envoyer le lien par texto"
+          libelle="💬 Envoyer le lien par texto" type="LIEN" bonId={bon.id} clientId={bon.clientId}
           style={bouton}
         />
         <button type="button" onClick={copier} style={bouton}>🔗 Copier le lien</button>

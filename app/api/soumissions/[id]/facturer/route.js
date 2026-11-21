@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { rattacherDepotsAuBon, appliquerDepots } from "@/lib/depots";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { prochainNumeroBon, prochainNumeroFacture, creerAvecNumero } from "@/lib/numerotation";
 import { CLIENT } from "@/lib/client";
+import { texterVehiculePret } from "@/lib/textosAuto";
 import { tachesRetenues } from "@/lib/approbationCalculs";
 import { clientEtVehiculeDuBon, totauxSoumission, sortDuStock, manqueStockSoumission, sortirPieceSoumissionDuStock, messagePieceSoumission } from "@/lib/soumissions";
 import { posterFactureEmise, COMPTE_MAIN_OEUVRE } from "@/lib/comptabilite";
@@ -150,6 +151,9 @@ export async function POST(request, props) {
   } catch (e) {
     console.error("Erreur application des dépôts :", e);
   }
+
+  // Texto « véhicule prêt » (module Textos automatiques), après la réponse
+  after(() => texterVehiculePret(bon.id));
 
   return NextResponse.json({ bonId: bon.id, bonNumero: bon.numero, factureNumero: facture.numero, avertissementComptable });
 }

@@ -626,6 +626,42 @@ model PaiementEnLigne {
   @@index([statut])
 }
 
+// Textos automatiques (module « module_textos », lib/textosAuto.js) : chaque
+// texto envoyé au client par Twilio ou reçu de lui. Le numéro est en format
+// +1XXXXXXXXXX ; client, bon et rendez-vous sont notés sans clé étrangère
+// (un dossier supprimé laisse son historique de textos).
+model Texto {
+  id           String   @id @default(cuid())
+  direction    String // "SORTANT" | "ENTRANT"
+  telephone    String // numéro du client (+1XXXXXXXXXX)
+  corps        String
+  type         String   @default("MESSAGE") // SORTANT : "MESSAGE" (écrit à la main) | "VEHICULE_PRET" | "RAPPEL_RDV" | "LIEN" | "RAPPEL" | "ESSAI" | "AUTO_REPONSE" ; ENTRANT : "REPONSE"
+  statut       String   @default("ENVOYE") // SORTANT : "ENVOYE" | "LIVRE" | "ECHEC" ; ENTRANT : "RECU"
+  sid          String?  @unique // identifiant du message chez Twilio (SM…)
+  erreur       String? // ECHEC : raison donnée par Twilio
+  clientId     String?
+  bonId        String?
+  rendezVousId String?
+  employeId    String? // qui l'a envoyé ; vide : envoi automatique
+  employeNom   String?
+  lu           Boolean  @default(true) // ENTRANT : faux tant que personne n'a ouvert la conversation
+  creeLe       DateTime @default(now())
+
+  @@index([telephone, creeLe])
+  @@index([clientId])
+  @@index([bonId])
+  @@index([rendezVousId])
+  @@index([direction, lu])
+}
+
+// Numéros qui ont répondu ARRET (ou STOP) : plus aucun texto ne leur part,
+// jusqu'à ce qu'ils répondent RETOUR (ou START)
+model RefusTextos {
+  telephone String   @id // +1XXXXXXXXXX
+  motCle    String? // mot reçu (ARRET, STOP…)
+  creeLe    DateTime @default(now())
+}
+
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------
 
 model Piece {

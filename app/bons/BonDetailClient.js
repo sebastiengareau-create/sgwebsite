@@ -2482,12 +2482,14 @@ function AvisVehiculePret({ bon, boutonCourriel, nomEntreprise }) {
           {enCours === "avis" ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau" : "🚗 Aviser le client"}
         </button>
       </div>
-      {/* Texto « véhicule prêt » : ouvre Messages, sans abonnement (lib/textos.js) */}
+      {/* Texto « véhicule prêt » : ouvre Messages, sans abonnement (lib/textos.js),
+          ou part du numéro de l'atelier avec les textos automatiques (lib/textosAuto.js) */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
         <BoutonTexto
           telephone={bon.client.telephone}
           message={MESSAGES_TEXTO.vehiculePret({ nom: bon.clientNomAffiche || bon.client.nom, vehicule: bon.vehicule ? libelleVehicule(bon.vehicule) : "", nomEntreprise })}
           libelle="💬 Aviser par texto" className="bouton-3d-sombre" style={{ ...styleBouton, flex: "1 1 100%" }}
+          type="VEHICULE_PRET" bonId={bon.id} clientId={bon.clientId} onEnvoye={() => router.refresh()}
         />
       </div>
       {CLIENT.envoiPhotosCourriel && (
