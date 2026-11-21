@@ -96,6 +96,7 @@ model Client {
   bons              BonTravail[]
   soumissions       Soumission[]
   rendezVous        RendezVous[]
+  jeuxPneus         JeuPneus[] // pneus entreposés à l'atelier (module Entreposage de pneus, lib/pneus.js)
   facturesVente     FactureVente[]
   credits           CreditClient[] // crédit client : trop-payés, remboursements… (lib/creditClient.js)
   creeLe            DateTime       @default(now())
@@ -119,6 +120,7 @@ model Vehicule {
   bons          BonTravail[]
   soumissions   Soumission[]
   vehiculeVente VehiculeVente? // si c'est un véhicule à vendre de l'entreprise
+  jeuxPneus     JeuPneus[] // ses jeux de pneus (été, hiver…) gardés à l'atelier
   creeLe        DateTime       @default(now())
 
   @@index([clientId])
@@ -154,6 +156,7 @@ model BonTravail {
   envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
   photosArrivee       PhotoArrivee[] // photos du véhicule à son arrivée (4 coins + tableau de bord), hors impression
   inspections         Inspection[] // inspections numériques multipoints du véhicule (lib/inspections.js)
+  mouvementsPneus     MouvementPneus[] // pneus entreposés ou posés pendant ce bon (lib/pneus.js)
   // Dernier avis « véhicule prêt » envoyé au client (voir lib/avisClient.js)
   avisPretLe          DateTime?
   avisPretA           String? // courriel à qui l'avis a été envoyé
@@ -539,6 +542,56 @@ model PhotoInspection {
   ajouteeLe DateTime        @default(now())
 
   @@index([pointId])
+}
+
+// Entreposage de pneus (module « Entreposage de pneus », lib/pneus.js) : un
+// jeu de pneus d'un client, gardé à l'atelier d'une saison à l'autre. Il est
+// soit à l'entrepôt (à un emplacement), soit posé sur le véhicule, soit remis
+// (repris par le client ou jeté). Ses allées et venues : MouvementPneus.
+model JeuPneus {
+  id               String           @id @default(cuid())
+  numero           String           @unique // « PN-001 », sur les étiquettes
+  clientId         String
+  client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vehiculeId       String?
+  vehicule         Vehicule?        @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
+  saison           String // "HIVER" | "ETE" | "QUATRE_SAISONS"
+  marque           String?
+  modele           String?
+  dimension        String? // ex. « 225/65R17 »
+  quantite         Int              @default(4)
+  jantes           String           @default("SANS") // "SANS" | "ACIER" | "ALLIAGE"
+  anneeFabrication Int? // tirée du code DOT (ex. 2318 → 2018)
+  usure            String? // en /32 po, pneu par pneu, ex. « 8, 8, 7, 7 »
+  emplacement      String? // à l'entrepôt seulement, ex. « A-12 »
+  statut           String           @default("ENTREPOSE") // "ENTREPOSE" | "POSE" | "REMIS"
+  note             String?
+  rappelLe         DateTime? // dernier rappel de changement de saison au client
+  creeLe           DateTime         @default(now())
+  mouvements       MouvementPneus[]
+
+  @@index([clientId])
+  @@index([vehiculeId])
+  @@index([statut])
+}
+
+// Historique d'un jeu de pneus : entrée à l'entrepôt, sortie (posé sur le
+// véhicule), remise au client, déplacement, modification
+model MouvementPneus {
+  id          String      @id @default(cuid())
+  jeuId       String
+  jeu         JeuPneus    @relation(fields: [jeuId], references: [id], onDelete: Cascade)
+  type        String // "ENTREE" | "SORTIE" | "REMISE" | "DEPLACEMENT"
+  emplacement String? // à l'entrée ou au déplacement : le nouvel emplacement ; à la sortie : celui quitté
+  usure       String?
+  bonId       String? // bon du changement de pneus, s'il y en a un
+  bon         BonTravail? @relation(fields: [bonId], references: [id], onDelete: SetNull)
+  employeNom  String?
+  note        String?
+  date        DateTime    @default(now())
+
+  @@index([jeuId])
+  @@index([bonId])
 }
 
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------

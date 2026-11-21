@@ -193,7 +193,7 @@ function AtelierDemo({ etat }) {
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
     setMessage(!res.ok ? data.erreur || "L'opération a échoué."
-      : methode === "POST" ? `Atelier de démonstration chargé : ${data.clients} clients, ${data.bons} bons, ${data.factures} factures, ${data.inspections} inspections.`
+      : methode === "POST" ? `Atelier de démonstration chargé : ${data.clients} clients, ${data.bons} bons, ${data.factures} factures, ${data.inspections} inspections${data.pneus ? `, ${data.pneus} jeux de pneus` : ""}.`
       : `Atelier de démonstration retiré : ${data.clients} clients, ${data.bons} bons.${data.gardes > 0 ? ` ${data.gardes} pièce(s), fournisseur(s) ou employé(s) gardés : ils servent à un vrai dossier.` : ""}`);
     router.refresh();
   }
@@ -205,7 +205,7 @@ function AtelierDemo({ etat }) {
   return (
     <Panneau titre="Atelier de démonstration">
       <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "-6px 0 12px" }}>
-        Pour présenter ou essayer le logiciel : huit clients et leurs véhicules, un inventaire avec des pièces sous le minimum, deux mécaniciens, des bons à chaque étape (en attente, chrono en marche, à facturer), dix semaines de factures (payées, en retard, payée en partie), des soumissions, des rendez-vous et des inspections numériques (approuvée par le client, envoyée en attente de réponse, en cours, et des points à revoir au rendez-vous de demain).
+        Pour présenter ou essayer le logiciel : huit clients et leurs véhicules, un inventaire avec des pièces sous le minimum, deux mécaniciens, des bons à chaque étape (en attente, chrono en marche, à facturer), dix semaines de factures (payées, en retard, payée en partie), des soumissions, des rendez-vous, des inspections numériques (approuvée par le client, envoyée en attente de réponse, en cours, et des points à revoir au rendez-vous de demain) et des pneus entreposés (visibles avec le module Entreposage de pneus).
       </p>
       {etat.charge ? (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>

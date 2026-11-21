@@ -109,6 +109,17 @@ on décide quand et à qui une modification s'applique.
   au bon ou à écarter), la nouvelle inspection montre ce qui avait été noté
   point par point, et le rappel d'entretien par courriel les mentionne
   (`lib/rappelsInspection.js`).
+  **Entreposage de pneus** (inactif par défaut, `lib/pneus.js`) : les jeux de
+  pneus des clients gardés à l'atelier (`/pneus`, accès « Entreposage de
+  pneus », offert par défaut à la secrétaire et au mécanicien) — numéro
+  PN-001, saison, dimension, jantes, année DOT, usure, emplacement ;
+  historique des entrées, sorties, déplacements et remises ; étiquettes à code
+  QR qui ouvrent la fiche du jeu. Sur le bon, « Changement de saison » pose le
+  jeu entreposé et entrepose celui qui sort du véhicule à l'emplacement libéré,
+  avec la tâche et le prix de l'entreposage (réglage `pneus_prix_saison`, poste
+  4040) ajoutés au bon. Rappels de changement de saison (pneus d'hiver avant le
+  1er décembre, d'été au printemps) par courriel ou texto. Jeux de
+  démonstration avec l'atelier de démonstration.
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
@@ -116,7 +127,8 @@ on décide quand et à qui une modification s'applique.
   `lib/atelierDemo.js`) : clients, véhicules, inventaire, fournisseurs, deux
   mécaniciens, bons à chaque étape, dix semaines de factures, soumissions,
   rendez-vous et inspections numériques (approuvée, envoyée avec un lien à
-  essayer, en cours, et des points à revoir au rendez-vous de demain), à
+  essayer, en cours, et des points à revoir au rendez-vous de demain), des
+  pneus entreposés (visibles avec le module Entreposage de pneus), à
   charger dans un atelier sans bon de travail puis à retirer
   d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
