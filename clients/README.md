@@ -108,8 +108,9 @@ on décide quand et à qui une modification s'applique.
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
 - **Atelier de démonstration** (Administrateur → Atelier de démonstration,
   `lib/atelierDemo.js`) : clients, véhicules, inventaire, fournisseurs, deux
-  mécaniciens, bons à chaque étape, dix semaines de factures, soumissions et
-  rendez-vous, à charger dans un atelier sans bon de travail puis à retirer
+  mécaniciens, bons à chaque étape, dix semaines de factures, soumissions,
+  rendez-vous et trois inspections numériques (approuvée, envoyée avec un
+  lien à essayer, en cours), à charger dans un atelier sans bon de travail puis à retirer
   d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.
