@@ -120,6 +120,17 @@ on décide quand et à qui une modification s'applique.
   4040) ajoutés au bon. Rappels de changement de saison (pneus d'hiver avant le
   1er décembre, d'été au printemps) par courriel ou texto. Jeux de
   démonstration avec l'atelier de démonstration.
+  **Paiement en ligne (Stripe)** (inactif par défaut, `lib/paiementEnLigne.js`,
+  exige `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` — voir
+  GUIDE-NOUVEAU-CLIENT.md) : le client paie le solde de sa facture par carte
+  sur sa page `/payer/<jeton>` (lien dans le courriel de la facture, ou par
+  texto depuis la facture du bon), ou verse un dépôt après avoir approuvé en
+  ligne sa soumission ou les travaux de son inspection (pourcentage réglé dans
+  Paramètres → Paiement en ligne). Stripe confirme par un avis signé
+  (`/api/stripe/webhook`) : le paiement s'inscrit tout seul sur la facture ou
+  en dépôt (compte de trésorerie « Paiements en ligne (Stripe) », GL 1020),
+  frais de Stripe en frais bancaires ; un paiement qui ne peut pas s'inscrire
+  tout seul reste « à traiter » dans Paramètres.
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).

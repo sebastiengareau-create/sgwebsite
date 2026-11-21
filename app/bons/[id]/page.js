@@ -13,6 +13,7 @@ import { soldeCredit } from "@/lib/creditClient";
 import { inspectionActive, lireGrilles } from "@/lib/inspections";
 import { pointsARevoir } from "@/lib/rappelsInspection";
 import { pneusActif, lirePrixSaison } from "@/lib/pneus";
+import { paiementEnLigneActif } from "@/lib/paiementEnLigne";
 import { resumeGrilles } from "@/lib/grillesInspection";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
@@ -26,7 +27,7 @@ export default async function DetailBonPage(props) {
   // qu'une lecture après l'autre
   const [
     bon, inventaireBrut, employes, postesRevenu, comptesTresorerie, dict,
-    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise }, moduleInspection, modulePneus,
+    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise }, moduleInspection, modulePneus, paiementEnLigne,
   ] = await Promise.all([
     prisma.bonTravail.findUnique({
       where: { id: params.id },
@@ -113,6 +114,7 @@ export default async function DetailBonPage(props) {
     obtenirInfosEntreprise(), // signe les textos au client
     inspectionActive(),
     pneusActif(),
+    paiementEnLigneActif(),
   ]);
   if (!bon) notFound();
 
@@ -186,6 +188,7 @@ export default async function DetailBonPage(props) {
         grillesInspection={grillesInspection}
         aRevoirInspection={aRevoirInspection}
         pneus={modulePneus && !bon.comptoir ? { jeux: jeuxPneus, prixSaison: prixPneus } : null}
+        paiementEnLigne={paiementEnLigne}
       />
     </div>
   );

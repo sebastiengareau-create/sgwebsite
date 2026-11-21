@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { argent, nombre } from "@/lib/format";
 import { totauxTaches } from "@/lib/approbationCalculs";
 import CaseSignature from "@/app/components/CaseSignature";
+import DepotEnLigne from "@/app/components/DepotEnLigne";
 
 const DATE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Toronto" });
 const DATE_HEURE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
 
 const heures = (h) => `${Number.isInteger(h) ? h : nombre(h, 1)} h`;
 
-export default function ApprobationClient({ jeton, etat: etatInitial, soumission, taux, conditions, telephone }) {
+export default function ApprobationClient({ jeton, etat: etatInitial, soumission, taux, conditions, telephone, depotEnLigne }) {
+  const router = useRouter();
   const [etat, setEtat] = useState(etatInitial);
   // Travaux cochés : tous au départ ; après une réponse, ceux qui ont été approuvés
   const [coches, setCoches] = useState(() => new Set(soumission.taches.filter((t) => etatInitial === "A_REPONDRE" || !t.refusee).map((t) => t.id)));
@@ -56,6 +59,8 @@ export default function ApprobationClient({ jeton, etat: etatInitial, soumission
     setReponduLe(new Date().toISOString());
     setEtat(reponse);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // Dépôt en ligne : la page relue propose le dépôt sur les travaux approuvés
+    if (reponse === "APPROUVEE" && depotEnLigne) router.refresh();
   }
 
   return (
@@ -64,6 +69,11 @@ export default function ApprobationClient({ jeton, etat: etatInitial, soumission
         <Bandeau couleur="var(--success)" titre="Soumission approuvée — merci !">
           Approuvée{soumission.signataireNom || nom ? ` par ${soumission.signataireNom || nom}` : ""}{reponduLe ? ` le ${DATE_HEURE.format(new Date(reponduLe))}` : ""}. Nous communiquerons avec vous pour la suite.
         </Bandeau>
+      )}
+      {etat === "APPROUVEE" && depotEnLigne && (
+        <div style={{ marginBottom: 16 }}>
+          <DepotEnLigne {...depotEnLigne} route={`/api/paiement-en-ligne/soumission/${jeton}`} />
+        </div>
       )}
       {etat === "REFUSEE" && (
         <Bandeau couleur="var(--danger)" titre="Soumission refusée">

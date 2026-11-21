@@ -299,6 +299,9 @@ model Facture {
   // alors les paiements (modePaiement "MULTIPLE" s'ils ont été faits de plusieurs façons).
   montantPaye        Float             @default(0)
   paiements          PaiementFacture[]
+  // Lien secret de la page publique de paiement en ligne (/payer/<jeton>,
+  // lib/paiementEnLigne.js), créé au premier besoin
+  jetonPaiement      String?           @unique
   creditsTropPaye    CreditClient[] // excédents de paiement gardés en crédit client (lib/creditClient.js)
 
   @@index([statut])
@@ -592,6 +595,35 @@ model MouvementPneus {
 
   @@index([jeuId])
   @@index([bonId])
+}
+
+// Paiement en ligne (module « Paiement en ligne », lib/paiementEnLigne.js) :
+// une page de paiement Stripe ouverte pour le solde d'une facture ou pour un
+// dépôt (soumission approuvée en ligne, travaux d'une inspection). Quand
+// Stripe confirme le paiement (/api/stripe/webhook), il est inscrit comme un
+// paiement de facture ou un dépôt — une seule fois, même si l'avis revient.
+model PaiementEnLigne {
+  id                String    @id @default(cuid())
+  sessionId         String    @unique // session Stripe Checkout (cs_…)
+  type              String // "FACTURE" | "DEPOT_SOUMISSION" | "DEPOT_BON"
+  factureId         String?
+  soumissionId      String?
+  bonId             String? // dépôt sur le bon (travaux approuvés d'une inspection)
+  inspectionId      String?
+  montant           Float
+  statut            String    @default("OUVERT") // "OUVERT" | "PAYE" | "A_TRAITER" | "EXPIRE"
+  paymentIntentId   String?
+  fraisStripe       Float?
+  payeLe            DateTime?
+  paiementFactureId String? // paiement inscrit sur la facture
+  depotId           String? // dépôt inscrit
+  erreur            String? // A_TRAITER : pourquoi le paiement n'a pas pu être inscrit tout seul
+  creeLe            DateTime  @default(now())
+
+  @@index([factureId])
+  @@index([soumissionId])
+  @@index([bonId])
+  @@index([statut])
 }
 
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------

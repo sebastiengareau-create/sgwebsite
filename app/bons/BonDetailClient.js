@@ -29,6 +29,7 @@ import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import PiecesHorsInventaire from "./PiecesHorsInventaire";
 import CarteInspection from "./CarteInspection";
 import CartePneus from "./CartePneus";
+import LienPaiementFacture from "./LienPaiementFacture";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
@@ -72,7 +73,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [], aRevoirInspection = [], pneus = null }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [], aRevoirInspection = [], pneus = null, paiementEnLigne = false }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -672,6 +673,11 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
                 coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}
                 avantTaxes={bon.facture.totalFacture} style={{ marginTop: 4, marginBottom: 12 }}
               />
+            )}
+
+            {/* Paiement en ligne (module Paiement en ligne) : lien de la page de paiement */}
+            {peutModifier && paiementEnLigne && bon.facture.statut === "IMPAYEE" && bon.facture.totalAvecTaxes > (bon.facture.montantPaye || 0) + 0.005 && (
+              <LienPaiementFacture bon={bon} nomEntreprise={nomEntreprise} />
             )}
 
             {peutModifier && !payeeParCoutant && (

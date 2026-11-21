@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { argent, nombre } from "@/lib/format";
 import { ETATS_POINT, parSection, resume, pointsRecommandes, totauxRecommandes, avecUnite } from "@/lib/grillesInspection";
 import CaseSignature from "@/app/components/CaseSignature";
+import DepotEnLigne from "@/app/components/DepotEnLigne";
 
 const DATE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Toronto" });
 const DATE_HEURE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
 const pourcent = (t) => nombre(t, 3).replace(/[,.]?0+$/, "");
 
 // Rapport d'inspection montré au client (page publique /inspection/<jeton>)
-export default function RapportClient({ jeton, etat: etatInitial, rapport, taux, conditions, telephone }) {
+export default function RapportClient({ jeton, etat: etatInitial, rapport, taux, conditions, telephone, depotEnLigne }) {
+  const router = useRouter();
   const [etat, setEtat] = useState(etatInitial);
   const recommandes = pointsRecommandes(rapport.points);
   // Cochés au départ : les travaux urgents ; après une réponse, ceux approuvés
@@ -61,6 +64,8 @@ export default function RapportClient({ jeton, etat: etatInitial, rapport, taux,
     setReponduLe(new Date().toISOString());
     setEtat(reponse);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // Dépôt en ligne : la page relue propose le dépôt sur les travaux approuvés
+    if (reponse === "APPROUVEE" && depotEnLigne) router.refresh();
   }
 
   return (
@@ -69,6 +74,11 @@ export default function RapportClient({ jeton, etat: etatInitial, rapport, taux,
         <Bandeau couleur="var(--success)" titre="Travaux approuvés — merci !">
           Approuvés{rapport.signataireNom || nom ? ` par ${rapport.signataireNom || nom}` : ""}{reponduLe ? ` le ${DATE_HEURE.format(new Date(reponduLe))}` : ""}. Nous communiquerons avec vous pour la suite.
         </Bandeau>
+      )}
+      {etat === "APPROUVEE" && depotEnLigne && (
+        <div style={{ marginBottom: 16 }}>
+          <DepotEnLigne {...depotEnLigne} route={`/api/paiement-en-ligne/inspection/${jeton}`} />
+        </div>
       )}
       {etat === "REFUSEE" && (
         <Bandeau couleur="var(--text-muted)" titre="Réponse reçue : pas de travaux pour l'instant">

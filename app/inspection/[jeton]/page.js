@@ -4,6 +4,7 @@ import { lireParametres } from "@/lib/parametres";
 import { libelleVehicule } from "@/lib/vehicules";
 import { nomClientBon } from "@/lib/nomClient";
 import { peutRepondreInspection } from "@/lib/grillesInspection";
+import { paiementEnLigneActif, lirePourcentDepot, depotInspection, modeTestStripe } from "@/lib/paiementEnLigne";
 import LogoClient from "../../components/LogoClient";
 import RapportClient from "./RapportClient";
 
@@ -15,16 +16,19 @@ export const metadata = { title: "Rapport d'inspection", robots: { index: false,
 
 export default async function PageRapportInspection(props) {
   const { jeton } = await props.params;
-  const [entreprise, inspection, dict] = await Promise.all([
+  const { paiement } = await props.searchParams;
+  const [entreprise, inspection, dict, paiementActif, pourcentDepot] = await Promise.all([
     obtenirInfosEntreprise(),
     prisma.inspection.findUnique({
       where: { jetonClient: jeton },
       include: {
         points: { orderBy: { ordre: "asc" }, include: { photos: { select: { id: true }, orderBy: { ajouteeLe: "asc" } } } },
-        bon: { select: { numero: true, clientNomAffiche: true, client: { select: { nom: true } }, vehicule: true } },
+        bon: { select: { numero: true, clientNomAffiche: true, client: { select: { nom: true } }, vehicule: true, depots: { select: { montant: true } } } },
       },
     }),
     lireParametres(["tps_taux", "tvq_taux"]),
+    paiementEnLigneActif(),
+    lirePourcentDepot(),
   ]);
 
   // Lien inconnu, ou inspection rouverte pour modification
@@ -46,6 +50,10 @@ export default async function PageRapportInspection(props) {
   }
 
   const etat = peutRepondreInspection(inspection) ? "A_REPONDRE" : inspection.reponseClient || "CONSULTATION";
+  // Dépôt en ligne sur les travaux approuvés (lib/paiementEnLigne.js)
+  const depotEnLigne = paiementActif && pourcentDepot
+    ? { depot: await depotInspection(inspection, inspection.bon.depots, pourcentDepot), pourcent: pourcentDepot, retour: typeof paiement === "string" ? paiement : null, modeTest: modeTestStripe() }
+    : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px 16px 40px" }}>
@@ -84,6 +92,7 @@ export default async function PageRapportInspection(props) {
           taux={{ tpsTaux: Number(dict.tps_taux || 5), tvqTaux: Number(dict.tvq_taux || 9.975) }}
           conditions={entreprise.conditionsGenerales}
           telephone={entreprise.telephone}
+          depotEnLigne={depotEnLigne}
         />
       </div>
     </div>

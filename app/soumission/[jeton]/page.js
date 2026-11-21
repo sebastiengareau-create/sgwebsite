@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise, lignesEnteteEntreprise } from "@/lib/config";
 import { lireParametres } from "@/lib/parametres";
 import { peutRepondre } from "@/lib/approbationSoumission";
+import { paiementEnLigneActif, lirePourcentDepot, depotSoumission, modeTestStripe } from "@/lib/paiementEnLigne";
 import LogoClient from "../../components/LogoClient";
 import ApprobationClient from "./ApprobationClient";
 
@@ -12,7 +13,8 @@ export const metadata = { robots: { index: false, follow: false } };
 
 export default async function SoumissionClient(props) {
   const { jeton } = await props.params;
-  const [entreprise, soumission, dict] = await Promise.all([
+  const { paiement } = await props.searchParams;
+  const [entreprise, soumission, dict, paiementActif, pourcentDepot] = await Promise.all([
     obtenirInfosEntreprise(),
     prisma.soumission.findUnique({
       where: { jetonClient: jeton },
@@ -23,6 +25,8 @@ export default async function SoumissionClient(props) {
       },
     }),
     lireParametres(["taux_horaire_client", "tps_taux", "tvq_taux"]),
+    paiementEnLigneActif(),
+    lirePourcentDepot(),
   ]);
 
   if (!soumission) {
@@ -42,6 +46,10 @@ export default async function SoumissionClient(props) {
   // État montré au client : il peut répondre, il a déjà répondu, ou la
   // soumission a suivi son cours (travaux en cours, facturée)
   const etat = peutRepondre(soumission) ? "A_REPONDRE" : soumission.reponseClient || "TRAITEE";
+  // Dépôt en ligne après l'approbation (lib/paiementEnLigne.js)
+  const depotEnLigne = paiementActif && pourcentDepot
+    ? { depot: await depotSoumission(soumission, pourcentDepot), pourcent: pourcentDepot, retour: typeof paiement === "string" ? paiement : null, modeTest: modeTestStripe() }
+    : null;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px 16px 40px" }}>
@@ -78,6 +86,7 @@ export default async function SoumissionClient(props) {
           }}
           conditions={entreprise.conditionsGenerales}
           telephone={entreprise.telephone}
+          depotEnLigne={depotEnLigne}
         />
       </div>
     </div>
