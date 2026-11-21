@@ -521,6 +521,9 @@ model PointInspection {
   approbation    String? // réponse du client : "APPROUVE" | "REFUSE"
   problemeId     String? // tâche créée sur le bon à partir de ce point
   probleme       Probleme?         @relation(fields: [problemeId], references: [id], onDelete: SetNull)
+  // Point à revoir à la visite suivante (à surveiller, ou urgent pas fait)
+  // écarté par le comptoir (ex. fait ailleurs) : il ne revient plus
+  rappelEcarteLe DateTime?
   photos         PhotoInspection[]
 
   @@index([inspectionId])

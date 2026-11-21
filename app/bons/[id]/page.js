@@ -11,6 +11,7 @@ import { CLIENT } from "@/lib/client";
 import { kitsDisponibles } from "@/lib/kits";
 import { soldeCredit } from "@/lib/creditClient";
 import { inspectionActive, lireGrilles } from "@/lib/inspections";
+import { pointsARevoir } from "@/lib/rappelsInspection";
 import { resumeGrilles } from "@/lib/grillesInspection";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
@@ -126,7 +127,7 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
-  const [creditClient, fournisseurs, clientsChoix, grillesInspection] = await Promise.all([
+  const [creditClient, fournisseurs, clientsChoix, grillesInspection, aRevoirInspection] = await Promise.all([
     // Crédit du client disponible pour la facture (lib/creditClient.js)
     bon.vehiculeVenteId ? 0 : soldeCredit(bon.clientId),
     peutCommander
@@ -138,6 +139,10 @@ export default async function DetailBonPage(props) {
       : [],
     // Grilles offertes pour commencer une inspection (Paramètres → Grilles d'inspection)
     moduleInspection ? lireGrilles().then(resumeGrilles) : [],
+    // Points notés à surveiller aux visites précédentes de ce véhicule
+    moduleInspection && bon.vehiculeId && !bon.comptoir
+      ? pointsARevoir([bon.vehiculeId], { saufBonId: bon.id }).then((parVehicule) => parVehicule.get(bon.vehiculeId) || [])
+      : [],
   ]);
 
   return (
@@ -168,6 +173,7 @@ export default async function DetailBonPage(props) {
         creditClient={creditClient}
         moduleInspection={moduleInspection}
         grillesInspection={grillesInspection}
+        aRevoirInspection={aRevoirInspection}
       />
     </div>
   );

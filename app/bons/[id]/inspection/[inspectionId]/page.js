@@ -5,6 +5,7 @@ import { bonEstVerrouille } from "@/lib/bons";
 import { lireParametres } from "@/lib/parametres";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { inspectionActive, lienInspection, lireSeuils } from "@/lib/inspections";
+import { historiquePoints } from "@/lib/rappelsInspection";
 import EnTete from "../../../../components/EnTete";
 import InspectionClient from "./InspectionClient";
 
@@ -38,6 +39,8 @@ export default async function PageInspection(props) {
     lireSeuils(), // états proposés selon la mesure
   ]);
   if (!inspection) notFound();
+  // Ce que la dernière inspection de ce véhicule avait noté, point par point
+  const historique = await historiquePoints(inspection.bon.vehicule?.id, { inspectionId: inspection.id, avant: inspection.creeLe });
 
   const { jetonClient, ...reste } = inspection;
   return (
@@ -51,6 +54,7 @@ export default async function PageInspection(props) {
         taux={{ tpsTaux: Number(dict.tps_taux || 5), tvqTaux: Number(dict.tvq_taux || 9.975) }}
         nomEntreprise={nomEntreprise}
         seuils={seuils}
+        historique={historique}
       />
     </div>
   );

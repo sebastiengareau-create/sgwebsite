@@ -71,7 +71,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [] }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [], aRevoirInspection = [] }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -572,7 +572,7 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
 
       {/* Inspection numérique multipoint (module Inspection) */}
       {moduleInspection && !comptoir && (
-        <CarteInspection bonId={bon.id} inspections={bon.inspections || []} grilles={grillesInspection} modifiable={!factureExiste} />
+        <CarteInspection bonId={bon.id} inspections={bon.inspections || []} grilles={grillesInspection} aRevoir={aRevoirInspection} modifiable={!factureExiste} comptoir={peutModifier} />
       )}
 
       {factureExiste && (

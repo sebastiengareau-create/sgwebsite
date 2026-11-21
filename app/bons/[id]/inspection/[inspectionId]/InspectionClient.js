@@ -24,7 +24,7 @@ const BOUTONS_ETAT = [
 
 const DATE_HEURE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
 
-export default function InspectionClient({ inspection: initiale, lien: lienInitial, verrouille, comptoir, taux, nomEntreprise, seuils }) {
+export default function InspectionClient({ inspection: initiale, lien: lienInitial, verrouille, comptoir, taux, nomEntreprise, seuils, historique = {} }) {
   const router = useRouter();
   const [insp, setInsp] = useState(() => { const { points, ...reste } = initiale; return reste; });
   const [points, setPoints] = useState(initiale.points);
@@ -228,7 +228,7 @@ export default function InspectionClient({ inspection: initiale, lien: lienIniti
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {parSection(points).map((section) => (
           <Section
-            key={section.titre} section={section} inspId={insp.id} remplissable={remplissable} comptoir={comptoir} seuils={seuils}
+            key={section.titre} section={section} inspId={insp.id} remplissable={remplissable} comptoir={comptoir} seuils={seuils} historique={historique}
             onToutOk={() => toutOk(section)} onAjouterPoint={(libelle) => ajouterPoint(section.titre, libelle)}
             onMajPoint={majPoint} onPhotos={ajouterPhotos} onSupprimerPhoto={supprimerPhoto} onSupprimerPoint={supprimerPoint}
           />
@@ -463,7 +463,7 @@ function TravailRecommande({ point, prixModifiable, repondu, peutAjouter, enCour
 
 // ---------- Points de l'inspection ----------
 
-function Section({ section, inspId, remplissable, comptoir, seuils, onToutOk, onAjouterPoint, onMajPoint, onPhotos, onSupprimerPhoto, onSupprimerPoint }) {
+function Section({ section, inspId, remplissable, comptoir, seuils, historique, onToutOk, onAjouterPoint, onMajPoint, onPhotos, onSupprimerPhoto, onSupprimerPoint }) {
   const r = resume(section.points);
   const [ajout, setAjout] = useState(null); // null | texte du nouveau point
   const [occupe, setOccupe] = useState(false);
@@ -491,6 +491,7 @@ function Section({ section, inspId, remplissable, comptoir, seuils, onToutOk, on
         {section.points.map((p) => (
           <Point
             key={p.id} point={p} inspId={inspId} remplissable={remplissable} comptoir={comptoir} seuils={seuils}
+            precedent={historique[p.libelle.toLowerCase()]}
             onMaj={(champs) => onMajPoint(p.id, champs)} onPhotos={(f) => onPhotos(p.id, f)}
             onSupprimerPhoto={(photoId) => onSupprimerPhoto(p.id, photoId)} onSupprimer={() => onSupprimerPoint(p.id)}
           />
@@ -514,7 +515,7 @@ function Section({ section, inspId, remplissable, comptoir, seuils, onToutOk, on
   );
 }
 
-function Point({ point, inspId, remplissable, comptoir, seuils, onMaj, onPhotos, onSupprimerPhoto, onSupprimer }) {
+function Point({ point, inspId, remplissable, comptoir, seuils, precedent, onMaj, onPhotos, onSupprimerPhoto, onSupprimer }) {
   const etat = point.etat ? ETATS_POINT[point.etat] : null;
   // Point avec unité (plaquettes, pneus, batterie…) : la mesure se prend sur
   // la ligne même, et l'état est proposé selon les seuils (Paramètres)
@@ -569,6 +570,8 @@ function Point({ point, inspId, remplissable, comptoir, seuils, onMaj, onPhotos,
           </button>
         )}
       </div>
+
+      {precedent && <DerniereVisite precedent={precedent} />}
 
       {remplissable && mesureEnLigne && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
@@ -683,6 +686,20 @@ function Point({ point, inspId, remplissable, comptoir, seuils, onMaj, onPhotos,
 }
 
 // ---------- Petits morceaux ----------
+
+// Ce que la dernière inspection du véhicule avait noté pour ce point
+const DATE_COURTE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Toronto" });
+function DerniereVisite({ precedent }) {
+  const e = precedent.etat ? ETATS_POINT[precedent.etat] : null;
+  return (
+    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+      Dernière visite, {DATE_COURTE.format(new Date(precedent.date))} :{" "}
+      {precedent.mesure && <b style={{ color: "var(--text)" }}>{avecUnite(precedent.mesure, precedent.unite)}</b>}
+      {precedent.mesure && e && " · "}
+      {e && <b style={{ color: e.couleur }}>{e.libelle}</b>}
+    </div>
+  );
+}
 
 // État proposé selon la mesure : discret s'il est déjà choisi ; sinon (le
 // technicien a choisi autre chose), une suggestion avec « Appliquer »

@@ -104,15 +104,20 @@ on décide quand et à qui une modification s'applique.
   mesure, constat, photos et travail recommandé ; le comptoir met les prix et
   envoie le rapport par courriel ou texto (`/inspection/<jeton>`), où le
   client voit les photos, coche les travaux, signe et approuve ; les travaux
-  approuvés s'ajoutent ensuite au bon en tâches.
+  approuvés s'ajoutent ensuite au bon en tâches. À la visite suivante du
+  véhicule, la carte du bon montre les points restés à surveiller (à ajouter
+  au bon ou à écarter), la nouvelle inspection montre ce qui avait été noté
+  point par point, et le rappel d'entretien par courriel les mentionne
+  (`lib/rappelsInspection.js`).
   **Double vérification à la connexion** (inactive par défaut : gérants et
   niveau 4 reçoivent un code par courriel après leur mot de passe,
   `lib/protectionConnexion.js` — exige l'envoi de courriel configuré).
 - **Atelier de démonstration** (Administrateur → Atelier de démonstration,
   `lib/atelierDemo.js`) : clients, véhicules, inventaire, fournisseurs, deux
   mécaniciens, bons à chaque étape, dix semaines de factures, soumissions,
-  rendez-vous et trois inspections numériques (approuvée, envoyée avec un
-  lien à essayer, en cours), à charger dans un atelier sans bon de travail puis à retirer
+  rendez-vous et inspections numériques (approuvée, envoyée avec un lien à
+  essayer, en cours, et des points à revoir au rendez-vous de demain), à
+  charger dans un atelier sans bon de travail puis à retirer
   d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.
