@@ -8,6 +8,7 @@ import {
 } from "@/lib/immobilierCalculs";
 import { Onglets, PastilleCode, ChampsFormulaire, Erreur, boutonPrincipal, labelStyle } from "@/app/copropriete/ui";
 import BandeauSection from "@/app/components/BandeauSection";
+import CaseSignature from "@/app/components/CaseSignature";
 import { Icone, TEINTES, CarteChiffre, Pastille, TitrePanneau, BoutonAction, stylePanneau } from "@/app/components/StyleSection";
 
 function Bloc({ icone = "liste", teinte = TEINTES.ambre, titre, sousTitre, droite, children, style }) {
@@ -40,8 +41,10 @@ const ONGLETS = [
 ];
 
 const jour = (n) => (n === 1 ? "1er" : String(n));
+// Moment précis (signature, demande) : la journée au Québec
+const jourQc = (d) => new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Toronto" }).format(new Date(d));
 
-export default function PortailLocataireClient({ jeton, locataire, entreprise, baux, documents, reparations }) {
+export default function PortailLocataireClient({ jeton, locataire, entreprise, baux, documents, reparations, aSigner = [] }) {
   const [onglet, setOnglet] = useState("LOGEMENT");
   const actifs = baux.filter((b) => b.statut === "ACTIF");
   // Anciens baux : seulement s'il y reste un solde
@@ -49,6 +52,8 @@ export default function PortailLocataireClient({ jeton, locataire, entreprise, b
   const solde = [...actifs, ...anciens].reduce((t, b) => t + soldeBail(b), 0);
   const ouvertes = reparations.filter((r) => trouver(STATUTS_REPARATION, r.statut)?.ouverte).length;
   const avisAttente = actifs.filter((b) => b.avisEnvoyeLe && !b.reponseAvis && b.dateFin);
+  // L'avis de modification à signer se répond dans le bloc de l'avis
+  const docsASigner = aSigner.filter((d) => !(d.document.genre === "AVIS_MODIFICATION" && avisAttente.some((b) => b.id === d.document.bailId)));
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <div className="conteneur-page">
@@ -70,7 +75,21 @@ export default function PortailLocataireClient({ jeton, locataire, entreprise, b
           <CarteChiffre titre="Documents" montant={String(documents.length)} teinte="var(--bleu)" note="Bail, avis, reçus…" onClick={() => setOnglet("DOCUMENTS")} />
         </div>
 
-        {avisAttente.map((b) => <ReponseAvis key={b.id} bail={b} jeton={jeton} />)}
+        {docsASigner.length > 0 && (
+          <Bloc icone="document" teinte={TEINTES.ambre} titre={docsASigner.length > 1 ? `${docsASigner.length} documents à signer` : "Document à signer"} sousTitre="Lisez-le et signez-le en ligne" style={{ border: "1.5px solid var(--accent)" }}>
+            {docsASigner.map((d, i) => (
+              <a key={d.id} href={`/signature/${d.jeton}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", textDecoration: "none", color: "var(--text)" }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>✍️ {d.document.titre}</span>
+                  <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>Demandé le {jourQc(d.demandeLe)}</span>
+                </span>
+                <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+              </a>
+            ))}
+          </Bloc>
+        )}
+
+        {avisAttente.map((b) => <ReponseAvis key={b.id} bail={b} jeton={jeton} nomLocataire={locataire.nom} />)}
 
         <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
         {onglet === "LOGEMENT" && (
@@ -90,23 +109,32 @@ export default function PortailLocataireClient({ jeton, locataire, entreprise, b
   );
 }
 
-// Avis de modification en attente : le locataire répond d'ici un mois
-function ReponseAvis({ bail, jeton }) {
+// Avis de modification en attente : le locataire répond d'ici un mois, et
+// signe sa réponse (nom, signature, consentement) — elle est consignée au bail
+function ReponseAvis({ bail, jeton, nomLocataire }) {
   const router = useRouter();
+  const [choix, setChoix] = useState("");
+  const [nom, setNom] = useState(nomLocataire || "");
+  const [signature, setSignature] = useState(null);
+  const [consentement, setConsentement] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const debut = new Date(new Date(bail.dateFin).getTime() + 86400000);
   const limite = ajouterMois(bail.avisEnvoyeLe, 1);
-  const choix = [
-    { code: "ACCEPTE", label: `J'accepte (nouveau loyer de ${argent(bail.nouveauLoyer ?? bail.loyer)})`, confirmation: "Confirmer : vous acceptez la modification du bail." },
-    { code: "REFUSE", label: "Je refuse et je reste", confirmation: "Confirmer : vous refusez la modification et demeurez dans le logement. Le propriétaire pourra demander au Tribunal administratif du logement de fixer le loyer." },
-    { code: "QUITTE", label: "Je quitte à la fin du bail", confirmation: `Confirmer : vous quitterez le logement à la fin du bail, le ${dateLisible(bail.dateFin)}.` },
+  const options = [
+    { code: "ACCEPTE", label: `J'accepte (nouveau loyer de ${argent(bail.nouveauLoyer ?? bail.loyer)})` },
+    { code: "REFUSE", label: "Je refuse et je reste", detail: "Le propriétaire pourra demander au Tribunal administratif du logement de fixer le loyer." },
+    { code: "QUITTE", label: "Je quitte à la fin du bail", detail: `Le ${dateLisible(bail.dateFin)}.` },
   ];
-  async function repondre(c) {
-    if (!window.confirm(`${c.confirmation}\n\nVotre réponse sera transmise au propriétaire et ne pourra plus être changée ici.`)) return;
-    setEnCours(true);
+  async function repondre() {
     setErreur("");
-    const res = await fetch(`/api/portail-locataire/${jeton}/avis`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bailId: bail.id, reponse: c.code }) });
+    if (!choix) return setErreur("Choisissez votre réponse.");
+    if (!nom.trim()) return setErreur("Entrez votre nom.");
+    if (!signature) return setErreur("Signez dans la case.");
+    if (!consentement) return setErreur("Cochez la case de consentement.");
+    if (!window.confirm("Transmettre votre réponse signée au propriétaire ? Elle ne pourra plus être changée ici.")) return;
+    setEnCours(true);
+    const res = await fetch(`/api/portail-locataire/${jeton}/avis`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bailId: bail.id, reponse: choix, nom, signature, consentement }) });
     const data = await res.json().catch(() => ({}));
     setEnCours(false);
     if (!res.ok) return setErreur(data.erreur || "Envoi impossible.");
@@ -117,9 +145,30 @@ function ReponseAvis({ bail, jeton }) {
       <p style={{ fontSize: 13.5, margin: "0 0 10px" }}>
         À compter du <strong>{dateLisible(debut)}</strong>, votre loyer passerait de <strong>{argent(bail.loyer)}</strong> à <strong>{argent(bail.nouveauLoyer ?? bail.loyer)}</strong> par mois. Sans réponse d'ici un mois après la réception de l'avis, vous êtes réputé accepter.
       </p>
-      <div style={{ display: "grid", gap: 8 }}>
-        {choix.map((c) => <BoutonAction key={c.code} icone={c.code === "ACCEPTE" ? "crochet" : c.code === "QUITTE" ? "chevron" : "bloque"} onClick={() => repondre(c)} disabled={enCours}>{c.label}</BoutonAction>)}
+      <div style={{ display: "grid", gap: 8, marginBottom: 12 }} role="radiogroup">
+        {options.map((c) => (
+          <label key={c.code} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 11, borderRadius: 12, cursor: "pointer", background: "var(--bg)", border: `1.5px solid ${choix === c.code ? "var(--accent)" : "var(--border)"}` }}>
+            <input type="radio" name={`avis-${bail.id}`} checked={choix === c.code} onChange={() => setChoix(c.code)} style={{ width: 19, height: 19, marginTop: 1, accentColor: "var(--accent)" }} />
+            <span>
+              <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{c.label}</span>
+              {c.detail && <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{c.detail}</span>}
+            </span>
+          </label>
+        ))}
       </div>
+      {choix && (
+        <>
+          <label style={labelStyle}>Votre nom</label>
+          <input value={nom} onChange={(e) => setNom(e.target.value)} autoComplete="name" style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 16, marginBottom: 10, boxSizing: "border-box" }} />
+          <label style={labelStyle}>Votre signature</label>
+          <CaseSignature onChange={setSignature} />
+          <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, marginBottom: 12, cursor: "pointer" }}>
+            <input type="checkbox" checked={consentement} onChange={(e) => setConsentement(e.target.checked)} style={{ width: 19, height: 19, flexShrink: 0 }} />
+            <span>J'ai lu l'avis et je consens à signer ma réponse électroniquement ; ma signature électronique a la même valeur que ma signature à la main.</span>
+          </label>
+          <BoutonAction icone="crochet" onClick={repondre} disabled={enCours} style={{ width: "100%" }}>{enCours ? "Envoi…" : "Signer et transmettre ma réponse"}</BoutonAction>
+        </>
+      )}
       <Erreur texte={erreur} />
     </Bloc>
   );
@@ -149,7 +198,7 @@ function Bail({ bail, jeton, ancien }) {
           <Ligne label="Le loyer comprend" valeur={servicesLisibles(bail.services)} />
           <Ligne label="Pièces" valeur={bail.logement.pieces} />
           {bail.locataires.length > 1 && <Ligne label="Locataires" valeur={colocataires} />}
-          {bail.reponseAvis && <Ligne label="Renouvellement" valeur={bail.reponseAvis === "QUITTE" ? `Départ prévu le ${dateLisible(bail.dateFin)}` : bail.reponseAvis === "ACCEPTE" ? `Nouveau loyer de ${argent(bail.nouveauLoyer ?? bail.loyer)} accepté` : "Modification refusée"} />}
+          {bail.reponseAvis && <Ligne label="Renouvellement" valeur={`${bail.reponseAvis === "QUITTE" ? `Départ prévu le ${dateLisible(bail.dateFin)}` : bail.reponseAvis === "ACCEPTE" ? `Nouveau loyer de ${argent(bail.nouveauLoyer ?? bail.loyer)} accepté` : "Modification refusée"}${bail.reponseAvisLe ? ` — signé par ${bail.reponseAvisPar} le ${jourQc(bail.reponseAvisLe)}` : ""}`} />}
         </>
       )}
       {ancien && <Ligne premiere label="Bail" valeur={<PastilleCode liste={STATUTS_BAIL} code={bail.statut} />} />}
@@ -180,13 +229,13 @@ function Bail({ bail, jeton, ancien }) {
 
 function LienDocument({ d, jeton, premiere }) {
   return (
-    <a href={`/api/portail-locataire/${jeton}/documents/${d.id}`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", textDecoration: "none", color: "var(--text)" }}>
+    <a href={`/api/portail-locataire/${jeton}/documents/${d.id}${d.signeLe && d.genre ? "?version=signee" : ""}`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: premiere ? "none" : "1px solid var(--border)", textDecoration: "none", color: "var(--text)" }}>
       <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: TEINTES.bleu.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Icone nom="document" taille={18} couleur={TEINTES.bleu.couleur} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{d.titre}</span>
-        <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{dateLisible(d.date || d.creeLe)} · {taille(d.taille)}</span>
+        <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{dateLisible(d.date || d.creeLe)} · {taille(d.taille)}{d.signeLe && ` · ✅ signé le ${jourQc(d.signeLe)}`}</span>
       </span>
       <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
     </a>

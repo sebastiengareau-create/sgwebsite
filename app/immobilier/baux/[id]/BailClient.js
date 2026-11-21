@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
 import {
-  STATUTS_BAIL, REPONSES_AVIS, argent, libelle, dateLisible, dureeMois, etatFinBail, fenetreAvis, hausseLisible, datesRenouvellement, servicesLisibles,
-  soldeBail, releveBail, dateCourte,
+  STATUTS_BAIL, REPONSES_AVIS, MODES_PAIEMENT, CHAUFFAGES, ANIMAUX, FUMEUR, argent, libelle, dateLisible, dureeMois, etatFinBail, fenetreAvis, hausseLisible,
+  datesRenouvellement, servicesLisibles, soldeBail, releveBail, dateCourte,
 } from "@/lib/immobilierCalculs";
 import { champStyle, BoutonEnvoyer } from "../../ui";
 import {
@@ -65,10 +65,38 @@ function Details({ bail, locataires }) {
           <LigneInfo label="Loyer" valeur={`${argent(bail.loyer)} par mois, payable le ${bail.jourPaiement}`} />
           <LigneInfo label="Le loyer comprend" valeur={servicesLisibles(bail.services) || "—"} />
           {bail.terminaisonLe && <LigneInfo label="Départ" valeur={dateLisible(bail.terminaisonLe)} />}
-          {bail.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{bail.notes}</p>}
+          <Mentions bail={bail} />
+          {bail.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}><span style={{ color: "var(--text-muted)" }}>Notes internes : </span>{bail.notes}</p>}
         </>
       )}
     </Section>
+  );
+}
+
+// Mentions du bail complet remplies (sections B à G du formulaire du TAL)
+function Mentions({ bail }) {
+  const [tout, setTout] = useState(false);
+  const lignes = [
+    ["Accessoires", bail.accessoires],
+    ["Usage", bail.usageMixte ? "Habitation et usage professionnel ou commercial" : null],
+    ["Paiement", [bail.modePaiement && libelle(MODES_PAIEMENT, bail.modePaiement), bail.lieuPaiement, bail.chequesPostdates && "chèques postdatés acceptés", bail.premierPaiementLe && `1er paiement le ${dateLisible(bail.premierPaiementLe)}`].filter(Boolean).join(" · ")],
+    ["Chauffage", bail.chauffage && libelle(CHAUFFAGES, bail.chauffage)],
+    ["Animaux", bail.animaux && libelle(ANIMAUX, bail.animaux)],
+    ["Tabac", bail.fumeur && libelle(FUMEUR, bail.fumeur)],
+    ["Assurance", bail.assuranceResponsabilite ? "Responsabilité civile exigée" : null],
+    ["Règlement", bail.reglementRemisLe && `Remis le ${dateLisible(bail.reglementRemisLe)}`],
+    ["Travaux promis", bail.travauxPromis],
+    ["Conditions", bail.conditions],
+    ["Immeuble neuf (F)", bail.immeubleNeuf ? `Oui${bail.hausseMaximaleF ? ` — hausse maximale : ${bail.hausseMaximaleF}` : " — hausse maximale à indiquer"}` : null],
+    ["Loyer antérieur (G)", bail.loyerAncien != null ? `${argent(bail.loyerAncien)}${bail.loyerAncienNote ? ` — ${bail.loyerAncienNote}` : ""}` : bail.loyerAncienNote],
+    ["Caution", bail.caution],
+  ].filter(([, v]) => v);
+  if (lignes.length === 0) return <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "8px 0 0" }}>Mentions du bail complet (accessoires, animaux, règlement, sections F et G…) : à remplir dans Modifier, pour générer le bail de logement.</p>;
+  return (
+    <>
+      {(tout ? lignes : lignes.slice(0, 4)).map(([l, v]) => <LigneInfo key={l} label={l} valeur={<span style={{ whiteSpace: "pre-wrap" }}>{v}</span>} />)}
+      {lignes.length > 4 && <BoutonTexte onClick={() => setTout((x) => !x)}>{tout ? "Moins de détails" : `Toutes les mentions du bail (${lignes.length})`}</BoutonTexte>}
+    </>
   );
 }
 
@@ -106,6 +134,16 @@ function Renouvellement({ bail, etat }) {
       )}
       <Formulaire cadre={false} champs={champs} initial={initial} url={`/api/immobilier/baux/${bail.id}`} methode="PATCH" bouton="Enregistrer l'avis" />
       {bail.nouveauLoyer != null && <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "8px 0 0" }}>Hausse proposée : {hausseLisible(bail.loyer, bail.nouveauLoyer)}</p>}
+      {bail.reponseAvisLe && (
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginTop: 10, padding: 10, borderRadius: 12, border: "1px solid var(--success)", background: "var(--bg)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {bail.reponseAvisSignature && <img src={bail.reponseAvisSignature} alt="Signature" style={{ width: 150, height: "auto", background: "#fff", border: "1px solid var(--border)", borderRadius: 8 }} />}
+          <span style={{ fontSize: 13 }}>
+            ✍️ <strong>{libelle(REPONSES_AVIS, bail.reponseAvis)}</strong> — réponse signée en ligne par <strong>{bail.reponseAvisPar}</strong> le {new Intl.DateTimeFormat("fr-CA", { dateStyle: "long", timeStyle: "short", timeZone: "America/Toronto" }).format(new Date(bail.reponseAvisLe))}
+            {bail.reponseAvisIp && <span style={{ color: "var(--text-muted)", fontSize: 12 }}> · IP {bail.reponseAvisIp}</span>}
+          </span>
+        </div>
+      )}
       {f && bail.nouveauLoyer != null && <BoutonAvis bail={bail} />}
       {suite && (
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
@@ -165,7 +203,7 @@ function Documents({ bail, envoi }) {
   return (
     <Section titre="Documents du bail" droite={<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Document"}</BoutonTexte>}>
       {ajout && <FormulaireDocument fixe={{ bailId: bail.id, logementId: bail.logement.id }} categorie="BAIL" onFini={() => setAjout(false)} />}
-      <ListeDocuments documents={bail.documents} envoi={envoi} vide="Dépose ici le bail signé, les avis et l'état des lieux." />
+      <ListeDocuments documents={bail.documents} envoi={envoi} signataires={bail.locataires} vide="Dépose ici le bail signé, les avis et l'état des lieux, ou génère le bail de logement plus haut." />
     </Section>
   );
 }
@@ -218,14 +256,16 @@ function BoutonAvis({ bail }) {
   );
 }
 
+// signature : se fait signer en ligne (lib/signatureImmo.js)
 const TYPES_GENERES = [
-  { code: "AVIS_MODIFICATION", label: "Avis de modification du bail (hausse de loyer)", actif: true },
+  { code: "BAIL_LOGEMENT", label: "Bail de logement complet (à faire signer)", signature: true },
+  { code: "AVIS_MODIFICATION", label: "Avis de modification du bail (hausse de loyer)", actif: true, signature: true },
   { code: "AVIS_ACCES", label: "Avis d'accès au logement (24 h)" },
   { code: "RAPPEL_RETARD", label: "Rappel de loyer en retard", retard: true },
   { code: "MISE_EN_DEMEURE", label: "Mise en demeure de payer", retard: true },
   { code: "ETAT_LIEUX", label: "État des lieux (grille à remplir)" },
   { code: "AVIS_REPRISE", label: "Avis de reprise du logement", actif: true },
-  { code: "FICHE_BAIL", label: "Fiche de bail (pour remplir le formulaire du TAL)" },
+  { code: "FICHE_BAIL", label: "Fiche de bail (pour remplir le formulaire officiel du TAL)" },
 ];
 
 const MOTIFS = [
@@ -246,6 +286,7 @@ function limiteReprise(bail) {
 
 function GenerateurDocuments({ bail, envoi }) {
   const [envoyer, setEnvoyer] = useState(false);
+  const [faireSigner, setFaireSigner] = useState(true);
   const [type, setType] = useState("");
   const [v, setV] = useState({});
   const { appeler, enCours, erreur, setErreur } = useApi();
@@ -290,14 +331,23 @@ function GenerateurDocuments({ bail, envoi }) {
       { nom: "dateAvis", label: "Date de l'avis", type: "date" },
     ],
     FICHE_BAIL: [{ nom: "dateAvis", label: "Date", type: "date" }],
+    BAIL_LOGEMENT: [{ nom: "dateAvis", label: "Date du bail", type: "date" }, { nom: "lieu", label: "Signé à (ville)", placeholder: "Saint-Jean-sur-Richelieu" }],
   }[type] || [];
+  const def = TYPES_GENERES.find((t) => t.code === type);
+  const signer = Boolean(def?.signature && faireSigner);
+  // Bail de logement : mentions importantes encore vides
+  const manquantes = type === "BAIL_LOGEMENT" ? [
+    !bail.immeubleNeuf && bail.loyerAncien == null && !bail.loyerAncienNote && "le loyer le plus bas des 12 derniers mois (section G)",
+    bail.immeubleNeuf && !bail.hausseMaximaleF && "la hausse maximale de loyer de l'immeuble neuf (section F)",
+    !bail.modePaiement && "le mode de paiement",
+  ].filter(Boolean) : [];
 
   const lim = type === "AVIS_REPRISE" && limiteReprise(bail);
   const fenetre = type === "AVIS_MODIFICATION" && fenetreAvis(bail);
   return (
     <Section titre="Générer un document">
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Lettres prêtes à imprimer ou à envoyer, remplies avec les données du bail et rangées dans ses documents. Le bail lui-même se fait sur le formulaire obligatoire du TAL : la fiche de bail aide à le remplir.
+        Bail complet et lettres prêts à imprimer, à envoyer ou à faire signer en ligne, remplis avec les données du bail et rangés dans ses documents. Le suivi des signatures se fait dans Documents du bail.
       </p>
       <select value={type} onChange={(e) => choisir(e.target.value)} style={{ ...champStyle, marginBottom: 10 }}>
         <option value="">— Choisir un document —</option>
@@ -308,15 +358,27 @@ function GenerateurDocuments({ bail, envoi }) {
           {fenetre && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer entre le <strong>{dateLisible(fenetre.debut)}</strong> et le <strong>{dateLisible(fenetre.fin)}</strong>. Le bail sera noté « avis envoyé » à la date de l'avis.</p>}
           {lim && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer au moins {lim.mois} mois avant la fin du bail, au plus tard le <strong>{dateLisible(lim.date)}</strong>. La reprise ne peut prendre effet qu'à la fin du bail.</p>}
           {type === "MISE_EN_DEMEURE" && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>Envoie-la par courrier recommandé et garde la preuve de réception : elle servira au TAL.</p>}
+          {type === "BAIL_LOGEMENT" && (
+            <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>
+              Le bail reprend les sections A à H du formulaire obligatoire du TAL, remplies avec la fiche du bail et ses mentions (Bail → Modifier → Mentions du bail complet).
+              {manquantes.length > 0 && <strong style={{ color: "var(--danger)" }}> À compléter avant : {manquantes.join(", ")}.</strong>}
+            </p>
+          )}
           <ChampsFormulaire champs={champs} valeurs={v} maj={maj} />
-          {envoi && type !== "FICHE_BAIL" && type !== "ETAT_LIEUX" && (
+          {def?.signature && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, marginBottom: 10, cursor: "pointer" }}>
+              <input type="checkbox" checked={faireSigner} onChange={(e) => setFaireSigner(e.target.checked)} />
+              {type === "AVIS_MODIFICATION" ? "Demander aux locataires une réponse signée en ligne" : "Faire signer en ligne par les locataires et le locateur"}{envoi ? " (lien envoyé par courriel, PDF joint)" : " (liens à transmettre)"}
+            </label>
+          )}
+          {envoi && !signer && type !== "FICHE_BAIL" && type !== "ETAT_LIEUX" && (
             <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, marginBottom: 10, cursor: "pointer" }}>
               <input type="checkbox" checked={envoyer} onChange={(e) => setEnvoyer(e.target.checked)} /> Envoyer aussi par courriel aux locataires (PDF joint)
             </label>
           )}
-          {envoyer && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Le courriel est une preuve écrite d'envoi, consignée ci-dessous. Pour une mise en demeure ou si le locataire conteste la réception, envoie aussi une copie par courrier recommandé.</p>}
+          {envoyer && !signer && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Le courriel est une preuve écrite d'envoi, consignée ci-dessous. Pour une mise en demeure ou si le locataire conteste la réception, envoie aussi une copie par courrier recommandé.</p>}
           <Erreur texte={erreur} />
-          <button type="button" disabled={enCours} onClick={async () => { if (await generer(appeler, bail.id, { type, ...v, envoyer: envoyer && type !== "FICHE_BAIL" && type !== "ETAT_LIEUX" })) { setType(""); setEnvoyer(false); } }} className="bouton-3d" style={boutonPrincipal}>
+          <button type="button" disabled={enCours} onClick={async () => { if (await generer(appeler, bail.id, { type, ...v, faireSigner: signer, envoyer: !signer && envoyer && type !== "FICHE_BAIL" && type !== "ETAT_LIEUX" })) { setType(""); setEnvoyer(false); } }} className="bouton-3d" style={boutonPrincipal}>
             {enCours ? "Préparation…" : "📄 Générer le PDF"}
           </button>
         </>
@@ -325,7 +387,7 @@ function GenerateurDocuments({ bail, envoi }) {
   );
 }
 
-const TYPES_ENVOI = { DOCUMENT: "📄", RELEVE: "📊", RECU: "🧾" };
+const TYPES_ENVOI = { DOCUMENT: "📄", RELEVE: "📊", RECU: "🧾", SIGNATURE: "✍️" };
 
 // Journal des courriels envoyés : la preuve d'envoi
 function Envois({ bail, courriel, envoi }) {

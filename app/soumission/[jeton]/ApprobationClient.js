@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { argent, nombre } from "@/lib/format";
 import { totauxTaches } from "@/lib/approbationCalculs";
+import CaseSignature from "@/app/components/CaseSignature";
 
 const DATE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Toronto" });
 const DATE_HEURE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
@@ -215,84 +216,6 @@ function Ligne({ libelle, montant, grand = false, gras = false }) {
     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: grand ? 14 : 13, color: grand ? "var(--text)" : "var(--text-muted)", fontWeight: gras ? 700 : 400, marginTop: 4 }}>
       <span>{libelle}</span>
       <span style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{argent(montant)}</span>
-    </div>
-  );
-}
-
-// Case où signer du doigt, du stylet ou de la souris. Toujours sur fond
-// blanc avec encre foncée, peu importe le thème : c'est l'image conservée.
-function CaseSignature({ onChange }) {
-  const canvasRef = useRef(null);
-  const trace = useRef({ enCours: false, x: 0, y: 0 });
-  const [vide, setVide] = useState(true);
-
-  function preparer() {
-    const canvas = canvasRef.current;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = canvas.clientWidth * ratio;
-    canvas.height = canvas.clientHeight * ratio;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(ratio, ratio);
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-    ctx.strokeStyle = "#17150f";
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-  }
-  useEffect(preparer, []);
-
-  function position(e) {
-    const r = canvasRef.current.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  }
-  function debut(e) {
-    e.preventDefault();
-    canvasRef.current.setPointerCapture(e.pointerId);
-    trace.current = { enCours: true, ...position(e) };
-  }
-  function bouge(e) {
-    if (!trace.current.enCours) return;
-    const { x, y } = position(e);
-    const ctx = canvasRef.current.getContext("2d");
-    ctx.beginPath();
-    ctx.moveTo(trace.current.x, trace.current.y);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    trace.current = { enCours: true, x, y };
-    if (vide) setVide(false);
-  }
-  function fin() {
-    if (!trace.current.enCours) return;
-    trace.current.enCours = false;
-    if (!vide) onChange(canvasRef.current.toDataURL("image/png"));
-  }
-  function effacer() {
-    preparer();
-    setVide(true);
-    onChange(null);
-  }
-
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ position: "relative" }}>
-        <canvas
-          ref={canvasRef}
-          onPointerDown={debut} onPointerMove={bouge} onPointerUp={fin} onPointerCancel={fin}
-          aria-label="Case de signature"
-          style={{ display: "block", width: "100%", height: 160, background: "#fff", border: "1.5px dashed var(--border)", borderRadius: 12, touchAction: "none", cursor: "crosshair" }}
-        />
-        {vide && (
-          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#9c978a", pointerEvents: "none" }}>
-            Signez ici avec le doigt
-          </span>
-        )}
-      </div>
-      {!vide && (
-        <button type="button" onClick={effacer} style={{ marginTop: 6, background: "none", border: "none", padding: 0, fontSize: 13, color: "var(--text-muted)", textDecoration: "underline", cursor: "pointer" }}>
-          Effacer et recommencer
-        </button>
-      )}
     </div>
   );
 }

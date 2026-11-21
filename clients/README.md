@@ -75,11 +75,18 @@ on décide quand et à qui une modification s'applique.
   immeubles locatifs — immeubles et logements, locataires et baux avec les
   délais d'avis de modification du TAL et le renouvellement, loyers du mois,
   paiements et retards, dépenses et rendement par immeuble, réparations avec
-  photos, documents avec date d'expiration, avis, rappels, état des lieux et
-  reçus générés en PDF (`lib/pdfImmobilier.js`), préparation et suivi des
+  photos, documents avec date d'expiration, bail de logement complet (sections
+  A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
+  rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
+  **signature électronique** du bail, de la réponse à l'avis de modification
+  et de tout PDF déposé : lien personnel par courriel (`/signature/<jeton>`),
+  signature au doigt avec consentement, IP et empreinte SHA-256, version
+  signée et certificat de signature envoyés aux locataires
+  (`lib/signatureImmo.js`), préparation et suivi des
   relevés 31 (`/immobilier/releve-31`), portail sécurisé des locataires
   (`/portail-locataire/<jeton>` : bail, compte et reçus, documents partagés,
-  demandes de réparation, réponse à l'avis de modification), envoi par
+  demandes de réparation, réponse signée à l'avis de modification, documents
+  à signer), envoi par
   courriel des avis, relevés de compte et reçus avec journal des envois
   (`lib/immobilierCourriel.js`, exige l'envoi de courriel configuré),
   `lib/immobilier.js` ;

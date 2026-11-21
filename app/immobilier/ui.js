@@ -13,7 +13,8 @@ import {
 } from "../copropriete/ui";
 import {
   TYPES_LOGEMENT, SERVICES_BAIL, CATEGORIES_DOCUMENTS, CATEGORIES_REPARATION, PRIORITES, STATUTS_REPARATION, CATEGORIES_DEPENSE, MODES_PAIEMENT, TYPES_CHARGE,
-  servicesListe, trouver, dateLisible, argent, taille, etatExpiration, nomLogement,
+  CHAUFFAGES, ANIMAUX, FUMEUR,
+  servicesListe, trouver, dateLisible, argent, taille, etatExpiration, nomLogement, etatSignatures, STATUTS_SIGNATURE, REPONSES_AVIS, libelle,
 } from "@/lib/immobilierCalculs";
 
 export { nomLogement };
@@ -197,8 +198,32 @@ export function FormulaireReparation({ immeubles, locataires, fixe = {}, onFini 
 
 // ---------- Bail ----------
 
+// Mentions du bail complet (sections B à G du formulaire du TAL) : facultatives,
+// elles remplissent le bail de logement généré
+export const champsMentionsBail = (v) => [
+  { nom: "accessoires", label: "Accessoires et dépendances (stationnement n°, casier, remise, usage de la cour…)", pleineLargeur: true },
+  { nom: "usageMixte", label: "Usage aussi professionnel ou commercial (section B)", type: "case" },
+  { nom: "modePaiement", label: "Mode de paiement du loyer", type: "choix", vide: "—", options: MODES_PAIEMENT },
+  { nom: "lieuPaiement", label: "Lieu du paiement (si autre que virement)" },
+  { nom: "premierPaiementLe", label: "Date du premier paiement", type: "date" },
+  { nom: "chauffage", label: "Chauffage du logement", type: "choix", vide: "—", options: CHAUFFAGES },
+  { nom: "animaux", label: "Animaux", type: "choix", vide: "—", options: ANIMAUX },
+  { nom: "fumeur", label: "Tabac et cannabis", type: "choix", vide: "—", options: FUMEUR },
+  { nom: "reglementRemisLe", label: "Règlement de l'immeuble remis le (vide : aucun)", type: "date" },
+  { nom: "loyerAncien", label: "Loyer le plus bas des 12 mois avant le bail ($, section G)", type: "nombre" },
+  { nom: "loyerAncienNote", label: "Précision sur ce loyer (logement non loué, services différents…)", pleineLargeur: true },
+  { nom: "caution", label: "Caution (garant) : nom et coordonnées", pleineLargeur: true },
+  { nom: "chequesPostdates", label: "Le locataire accepte de remettre des chèques postdatés", type: "case" },
+  { nom: "assuranceResponsabilite", label: "Assurance responsabilité civile exigée du locataire", type: "case" },
+  { nom: "travauxPromis", label: "Travaux et réparations que le locateur s'engage à faire (et quand)", type: "long", lignes: 2 },
+  { nom: "conditions", label: "Autres services, conditions et restrictions (imprimés au bail, section E)", type: "long", lignes: 3 },
+  { nom: "immeubleNeuf", label: "Immeuble prêt pour l'habitation depuis 5 ans ou moins (section F : pas de fixation du loyer par le TAL)", type: "case" },
+  ...(v.immeubleNeuf ? [{ nom: "hausseMaximaleF", label: "Hausse de loyer maximale pendant ces 5 ans (ex. 3 % par année)", pleineLargeur: true }] : []),
+];
+const CHAMPS_MENTIONS = champsMentionsBail({ immeubleNeuf: true });
+
 // Nouveau bail ou modification : dates, loyer, services inclus, locataires
-// (déjà inscrits ou nouveau). initial : bail à modifier.
+// (déjà inscrits ou nouveau), mentions du bail complet. initial : bail à modifier.
 export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, onFini, cadre = true }) {
   const { appeler, enCours, erreur, setErreur } = useApi();
   const modif = Boolean(initial);
@@ -209,7 +234,9 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
   const [v, setV] = useState(() => (modif ? {
     dateDebut: String(initial.dateDebut).slice(0, 10), dateFin: initial.dateFin ? String(initial.dateFin).slice(0, 10) : "",
     loyer: String(initial.loyer).replace(".", ","), jourPaiement: String(initial.jourPaiement || 1), notes: initial.notes || "",
-  } : { dateDebut: debutDefaut, dateFin: `${Number(debutDefaut.slice(0, 4)) + 1}-06-30`, loyer: loyerSuggere ? String(loyerSuggere).replace(".", ",") : "", jourPaiement: "1", notes: "" }));
+    ...valeursDe(initial, CHAMPS_MENTIONS),
+  } : { dateDebut: debutDefaut, dateFin: `${Number(debutDefaut.slice(0, 4)) + 1}-06-30`, loyer: loyerSuggere ? String(loyerSuggere).replace(".", ",") : "", jourPaiement: "1", notes: "", ...valeursDe({}, CHAMPS_MENTIONS) }));
+  const [mentions, setMentions] = useState(false);
   const [services, setServices] = useState(() => new Set(servicesListe(initial?.services)));
   const [choisis, setChoisis] = useState(() => new Set((initial?.locataires || []).map((l) => l.id)));
   const [nouveau, setNouveau] = useState({ nom: "", telephone: "", courriel: "" });
@@ -222,13 +249,14 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
     ...(indetermine ? [] : [{ nom: "dateFin", label: "Fin du bail", type: "date" }]),
     { nom: "loyer", label: "Loyer mensuel ($)", type: "nombre" },
     { nom: "jourPaiement", label: "Payable le (jour du mois)", type: "nombre" },
-    { nom: "notes", label: "Notes (conditions particulières…)", type: "long", lignes: 2 },
+    { nom: "notes", label: "Notes internes (jamais imprimées au bail)", type: "long", lignes: 2 },
   ];
 
   async function envoyer() {
     if (choisis.size === 0 && !nouveau.nom.trim()) return setErreur("Inscris au moins un locataire.");
     const corps = {
       ...v, dateFin: indetermine ? "" : v.dateFin, services: [...services].join(","), locataireIds: [...choisis],
+      ...(v.immeubleNeuf ? {} : { hausseMaximaleF: "" }),
       ...(nouveau.nom.trim() ? { nouveauLocataire: nouveau } : {}),
       ...(modif ? {} : { logementId }),
     };
@@ -249,6 +277,17 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
             <input type="checkbox" checked={services.has(s.code)} onChange={() => basculer(services, setServices, s.code)} /> {s.label}
           </label>
         ))}
+      </div>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
+        <button type="button" onClick={() => setMentions((x) => !x)} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 13.5, fontWeight: 700, color: "var(--text)", width: "100%", textAlign: "left" }}>
+          {mentions ? "▾" : "▸"} Mentions du bail complet (sections B à G du formulaire du TAL)
+        </button>
+        {mentions && (
+          <div style={{ marginTop: 10 }}>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px" }}>Facultatives : elles remplissent le bail de logement généré (Générer un document → Bail de logement). Aucun dépôt de garantie ne peut être exigé au Québec.</p>
+            <ChampsFormulaire champs={champsMentionsBail(v)} valeurs={v} maj={maj} />
+          </div>
+        )}
       </div>
       <label style={labelStyle}>Locataires (colocataires : en cocher plusieurs)</label>
       {locataires.length > 0 && (
@@ -322,27 +361,152 @@ export function FormulaireDocument({ immeubles = [], fixe = {}, categorie = "BAI
 
 // Liste de documents, avec ouverture et suppression
 // envoi : bouton « ✉️ Envoyer » sur les documents rattachés à un bail ou un locataire
-export function ListeDocuments({ documents, vide = "Aucun document.", envoi = false }) {
+// signataires : locataires qui peuvent signer (fiche d'un bail) — active la
+// signature électronique des PDF (d.signatures : demandes déjà faites)
+export function ListeDocuments({ documents, vide = "Aucun document.", envoi = false, signataires = null }) {
+  const [ouvert, setOuvert] = useState(null);
   if (documents.length === 0) return <Vide>{vide}</Vide>;
   return documents.map((d) => {
     const cat = trouver(CATEGORIES_DOCUMENTS, d.categorie);
     const exp = etatExpiration(d.expireLe);
+    const sig = etatSignatures(d.signatures);
+    const signable = signataires && d.typeMime === "application/pdf" && (d.bailId || d.locataireId);
     return (
-      <div key={d.id} className="ligne-info ligne-pastilles" style={{ gap: 8 }}>
-        <a href={`/api/immobilier/documents/${d.id}`} target="_blank" rel="noreferrer" style={{ ...lien, minWidth: 0 }}>
-          {cat?.icone} {d.titre}
-          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{d.date && ` · ${dateLisible(d.date)}`} · {taille(d.taille)}</span>
-        </a>
-        <span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-          {exp && exp.code !== "OK" && <PastilleEtat etat={exp} />}
-          {envoi && (d.bailId || d.locataireId) && <BoutonEnvoyer url={`/api/immobilier/documents/${d.id}/envoyer`} confirmation={`Envoyer « ${d.titre} » par courriel au locataire ? Le PDF est joint ; l'envoi est consigné sur la fiche du bail.`} />}
-          <BasculeVisible d={d} />
-          <BoutonSupprimer url={`/api/immobilier/documents/${d.id}`} confirmation={`Supprimer le document « ${d.titre} » ?`}>✕</BoutonSupprimer>
-        </span>
+      <div key={d.id}>
+        <div className="ligne-info ligne-pastilles" style={{ gap: 8 }}>
+          <span style={{ minWidth: 0 }}>
+            <a href={`/api/immobilier/documents/${d.id}`} target="_blank" rel="noreferrer" style={lien}>
+              {cat?.icone} {d.titre}
+            </a>
+            <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{d.date && ` · ${dateLisible(d.date)}`} · {taille(d.taille)}</span>
+            {d.signeLe && <> · <a href={`/api/immobilier/documents/${d.id}?version=signee`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }}>{d.genre ? "✅ version signée" : "✅ certificat de signature"}</a></>}
+          </span>
+          <span style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+            {exp && exp.code !== "OK" && <PastilleEtat etat={exp} />}
+            {sig && <button type="button" onClick={() => setOuvert((x) => (x === d.id ? null : d.id))} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}><PastilleEtat etat={sig} /></button>}
+            {signable && !sig && <button type="button" onClick={() => setOuvert((x) => (x === d.id ? null : d.id))} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 700, color: "var(--accent)", whiteSpace: "nowrap" }}>✍️ Faire signer</button>}
+            {envoi && (d.bailId || d.locataireId) && <BoutonEnvoyer url={`/api/immobilier/documents/${d.id}/envoyer`} confirmation={`Envoyer « ${d.titre} » par courriel au locataire ? Le PDF est joint ; l'envoi est consigné sur la fiche du bail.`} />}
+            <BasculeVisible d={d} />
+            <BoutonSupprimer url={`/api/immobilier/documents/${d.id}`} confirmation={`Supprimer le document « ${d.titre} » ?${sig ? " Ses signatures disparaissent aussi." : ""}`}>✕</BoutonSupprimer>
+          </span>
+        </div>
+        {ouvert === d.id && (signable || sig) && <SignaturesDocument d={d} signataires={signataires || []} envoi={envoi} />}
       </div>
     );
   });
 }
+
+// ---------- Signature électronique (lib/signatureImmo.js) ----------
+
+const dateHeure = (d) => new Intl.DateTimeFormat("fr-CA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Toronto" }).format(new Date(d));
+
+// Demandes de signature d'un document (état, relance, lien, annulation) et
+// formulaire pour en faire une nouvelle
+function SignaturesDocument({ d, signataires, envoi }) {
+  const router = useRouter();
+  const { appeler, enCours, erreur } = useApi();
+  const actives = (d.signatures || []).filter((s) => s.statut !== "ANNULE");
+  const enAttente = actives.some((s) => s.statut === "EN_ATTENTE");
+  const avis = d.genre === "AVIS_MODIFICATION";
+  const peutDemander = !d.signeLe && !enAttente;
+  const [choisis, setChoisis] = useState(() => new Set(signataires.map((l) => l.id)));
+  const [locateur, setLocateur] = useState(d.genre === "BAIL_LOGEMENT");
+  const [parCourriel, setParCourriel] = useState(envoi);
+  const [message, setMessage] = useState("");
+  const [resultat, setResultat] = useState("");
+  const [copie, setCopie] = useState(null);
+
+  async function demander() {
+    setResultat("");
+    const data = await appeler(`/api/immobilier/documents/${d.id}/signatures`, "POST", { locataireIds: [...choisis], locateur, envoyer: parCourriel, message });
+    if (!data) return;
+    const e = data.envoi;
+    setResultat(e ? `Demande créée${e.envoyes ? ` — lien envoyé à ${e.envoyes} locataire${e.envoyes > 1 ? "s" : ""}` : ""}${e.sansCourriel?.length ? ` (sans courriel : ${e.sansCourriel.join(", ")} — copie-leur le lien)` : ""}${e.erreur ? ` — ${e.erreur}` : ""}.` : "Demande créée : copie les liens ci-dessous pour les transmettre.");
+  }
+  async function copier(s) {
+    const url = `${window.location.origin}/signature/${s.jeton}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopie(s.id);
+    } catch {
+      window.prompt("Lien de signature à transmettre :", url);
+    }
+  }
+  async function annuler(s) {
+    if (!window.confirm(`Annuler la demande de signature de ${s.nom} ? Son lien ne fonctionnera plus.`)) return;
+    await appeler(`/api/immobilier/signatures/${s.id}`, "DELETE");
+  }
+
+  return (
+    <div style={{ margin: "4px 0 12px", padding: 12, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)" }}>
+      {actives.length > 0 && (
+        <div style={{ marginBottom: peutDemander ? 12 : 0 }}>
+          {actives.map((s) => (
+            <div key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "6px 0", borderTop: "1px solid var(--border)", fontSize: 13 }}>
+              <span style={{ minWidth: 0 }}>
+                <strong>{s.role === "LOCATEUR" ? `Locateur — ${s.nom}` : s.nom}</strong>
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                  {s.statut === "EN_ATTENTE" && ` · demandé le ${dateHeure(s.demandeLe)}${s.envoyeLe ? ` · courriel envoyé${s.relances ? ` (${s.relances} relance${s.relances > 1 ? "s" : ""})` : ""}` : s.role === "LOCATAIRE" ? " · lien à transmettre" : ""}${s.vuLe ? ` · ouvert le ${dateHeure(s.vuLe)}` : " · pas encore ouvert"}`}
+                  {s.statut !== "EN_ATTENTE" && s.reponduLe && ` · le ${dateHeure(s.reponduLe)}${s.signataireNom && s.signataireNom !== s.nom ? ` (signé « ${s.signataireNom} »)` : ""}`}
+                  {s.reponseAvis && ` · ${libelle(REPONSES_AVIS, s.reponseAvis)}`}
+                </span>
+                {s.note && <span style={{ display: "block", fontSize: 12, fontStyle: "italic" }}>« {s.note} »</span>}
+              </span>
+              <span style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+                <PastilleCode liste={STATUTS_SIGNATURE} code={s.statut} />
+                {s.statut === "EN_ATTENTE" && (
+                  <>
+                    {s.role === "LOCATEUR"
+                      ? <a href={`/signature/${s.jeton}`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }}>✍️ Signer maintenant</a>
+                      : <>
+                        <button type="button" onClick={() => copier(s)} style={boutonLien}>{copie === s.id ? "✓ copié" : "🔗 Copier le lien"}</button>
+                        {envoi && s.courriel && <BoutonEnvoyer url={`/api/immobilier/signatures/${s.id}`} confirmation={`Relancer ${s.nom} par courriel ?`}>✉️ Relancer</BoutonEnvoyer>}
+                      </>}
+                    <button type="button" onClick={() => annuler(s)} disabled={enCours} style={{ ...boutonLien, color: "var(--text-muted)" }}>Annuler</button>
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+          {d.signeLe && <p style={{ fontSize: 12.5, margin: "8px 0 0" }}>✅ Toutes les signatures reçues le {dateHeure(d.signeLe)} : {d.genre ? "la version signée, avec le certificat de signature, a été produite" : "le certificat de signature accompagne le fichier d'origine"} et envoyée aux locataires qui ont un courriel.</p>}
+        </div>
+      )}
+      {peutDemander && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{actives.length ? "Nouvelle demande de signature (remplace la précédente : tous signent de nouveau)" : avis ? "Demander une réponse signée en ligne" : "Demander la signature en ligne"}</div>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>
+            {avis
+              ? "Chaque locataire reçoit un lien personnel : il lit l'avis, choisit sa réponse (accepte, refuse ou quitte) et la signe. Sa réponse s'inscrit au bail."
+              : "Chaque signataire reçoit un lien personnel : il lit le document, signe du doigt et consent à la signature électronique. Une fois toutes les signatures reçues, la version signée et son certificat sont produits et envoyés aux locataires."}
+          </p>
+          {signataires.map((l) => (
+            <label key={l.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, padding: "2px 0", cursor: "pointer" }}>
+              <input type="checkbox" checked={choisis.has(l.id)} onChange={() => setChoisis((x) => { const n = new Set(x); if (n.has(l.id)) n.delete(l.id); else n.add(l.id); return n; })} />
+              {l.nom} <span style={{ color: "var(--text-muted)", fontSize: 12 }}>{l.courriel || "— sans courriel : lien à transmettre"}</span>
+            </label>
+          ))}
+          {!avis && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, padding: "2px 0", cursor: "pointer" }}>
+              <input type="checkbox" checked={locateur} onChange={(e) => setLocateur(e.target.checked)} /> Le locateur signe aussi (lien « Signer maintenant » ici)
+            </label>
+          )}
+          {envoi && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, padding: "2px 0", cursor: "pointer" }}>
+              <input type="checkbox" checked={parCourriel} onChange={(e) => setParCourriel(e.target.checked)} /> Envoyer le lien par courriel aux locataires (PDF joint)
+            </label>
+          )}
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={2} maxLength={1000} placeholder="Message joint à la demande (facultatif)" style={{ ...champStyle, resize: "vertical", margin: "6px 0 8px" }} />
+          <Erreur texte={erreur} />
+          <button type="button" onClick={demander} disabled={enCours || choisis.size === 0} className="bouton-3d" style={{ ...boutonPrincipal, width: "auto", padding: "9px 14px" }}>{enCours ? "…" : "✍️ Demander la signature"}</button>
+        </>
+      )}
+      {resultat && <p style={{ fontSize: 12.5, fontWeight: 700, color: "var(--success)", margin: "8px 0 0" }}>{resultat}</p>}
+      {!peutDemander && enAttente && <button type="button" onClick={() => router.refresh()} style={{ ...boutonLien, marginTop: 6 }}>↻ Actualiser</button>}
+    </div>
+  );
+}
+
+const boutonLien = { background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 700, color: "var(--accent)", whiteSpace: "nowrap" };
 
 // Envoi par courriel (document, relevé, reçu) : confirmation, puis résultat
 // « Envoyé à 2 locataires » ou la raison du refus

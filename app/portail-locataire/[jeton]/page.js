@@ -30,11 +30,11 @@ export default async function PortailLocataire(props) {
   }
 
   const resume = await bauxDuLocataire(l.id);
-  const [baux, documents, reparations] = await Promise.all([
+  const [baux, documents, reparations, aSigner] = await Promise.all([
     prisma.bailImmo.findMany({
       where: { id: { in: resume.map((b) => b.id) } },
       select: {
-        id: true, statut: true, dateDebut: true, dateFin: true, loyer: true, jourPaiement: true, services: true, nouveauLoyer: true, avisEnvoyeLe: true, reponseAvis: true,
+        id: true, statut: true, dateDebut: true, dateFin: true, loyer: true, jourPaiement: true, services: true, nouveauLoyer: true, avisEnvoyeLe: true, reponseAvis: true, reponseAvisLe: true, reponseAvisPar: true,
         logement: { select: { id: true, numero: true, type: true, pieces: true, adresseCivique: true, immeuble: { select: { nom: true, adresse: true, ville: true, codePostal: true } } } },
         locataires: { select: { id: true, nom: true } },
         charges: { select: { id: true, date: true, type: true, description: true, montant: true } },
@@ -44,7 +44,7 @@ export default async function PortailLocataire(props) {
     }),
     prisma.documentImmo.findMany({
       where: filtreDocumentsLocataire(l.id, resume),
-      select: { id: true, titre: true, categorie: true, date: true, description: true, taille: true, creeLe: true },
+      select: { id: true, titre: true, categorie: true, date: true, description: true, taille: true, creeLe: true, signeLe: true, genre: true },
       orderBy: [{ date: { sort: "desc", nulls: "last" } }, { creeLe: "desc" }],
     }),
     prisma.reparationImmo.findMany({
@@ -56,6 +56,12 @@ export default async function PortailLocataire(props) {
       },
       orderBy: { creeLe: "desc" },
     }),
+    // Documents qu'il doit signer (lib/signatureImmo.js)
+    prisma.signatureImmo.findMany({
+      where: { locataireId: l.id, statut: "EN_ATTENTE" },
+      select: { id: true, jeton: true, demandeLe: true, document: { select: { titre: true, genre: true, bailId: true } } },
+      orderBy: { demandeLe: "desc" },
+    }),
   ]);
 
   return (
@@ -63,7 +69,7 @@ export default async function PortailLocataire(props) {
       jeton={jeton}
       locataire={{ id: l.id, nom: l.nom }}
       entreprise={{ nom: entreprise.nomEntreprise, telephone: entreprise.telephone, courriel: entreprise.courriel }}
-      {...JSON.parse(JSON.stringify({ baux, documents, reparations }))}
+      {...JSON.parse(JSON.stringify({ baux, documents, reparations, aSigner }))}
     />
   );
 }
