@@ -43,7 +43,14 @@ on décide quand et à qui une modification s'applique.
 - **Modules** (Administrateur → Modules) : sections entières activées ou non
   dans l'appli de chaque installation, sans changer le profil — ex. Paie
   (paie de démonstration à charger ou retirer dans Administrateur : employés
-  fictifs, heures, lots comptabilisés et un lot en brouillon, `lib/paieDemo.js`),
+  fictifs, heures, lots comptabilisés et un lot en brouillon, `lib/paieDemo.js` ;
+  fin d'année dans Paie → T4 et RL-1 (`/gerant/paie/fin-annee`) : déclaration T4
+  en XML pour le Transfert de fichiers par Internet de l'ARC, validée selon le
+  schéma 1-27-1 (`lib/finAnnee.js`), copies T4 des employés en PDF
+  (`lib/pdfT4.js`) ; le RL-1 XML attend la certification de kontrolshop par
+  Revenu Québec (`lib/rl1.js`) — d'ici là, sommaire à recopier dans Mon
+  dossier ; relevés d'emploi préparés à partir des paies, fichier .BLK pour
+  RE Web (`lib/releveEmploi.js`, `/gerant/paie/releves-emploi`)),
   Jobs en déplacement, **Productivité par employés** (rapport de
   productivité et rentabilité par employé, actif par défaut,
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente

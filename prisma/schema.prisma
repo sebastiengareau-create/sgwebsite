@@ -58,6 +58,12 @@ model User {
   exemptionRRQ       Boolean   @default(false) // a choisi de cesser de cotiser au RRQ (65 ans ou plus, rente de retraite, formulaire RR-50)
   exemptionCNESST    Boolean   @default(false) // dirigeant non couvert par la CNESST (pas de protection personnelle) : aucune prime sur son salaire
   montantTp10153     Float? // crédits d'impôt personnels du formulaire TP-1015.3 (Québec) — vide = montant personnel de base de l'année
+  // Noms tels qu'ils vont sur le T4, le RL-1 et le relevé d'emploi (nom de
+  // famille et prénom séparés) ; vides : tirés de « nom » (dernier mot =
+  // nom de famille), voir lib/finAnnee.js
+  prenom             String?
+  nomFamille         String?
+  codeDentaireT4     Int? // T4 case 45, accès à des soins dentaires payés par l'employeur (1 à 5) ; vide = réglage paie_code_dentaire (1 : aucun)
   creeLe             DateTime  @default(now())
   derniereActivite   DateTime? // dernière page ou action dans le logiciel (au plus 2 min de retard) — « en ligne » si récente, voir lib/presence.js ; vidée à la déconnexion
 
@@ -73,6 +79,7 @@ model User {
   abonnementsPush      AbonnementPush[] // téléphones où il reçoit les notifications
   notifications        Notification[] // avis reçus (cloche 🔔), voir lib/notifications.js
   notificationsCoupees String[]       @default([]) // types d'avis qu'il a choisi de ne plus recevoir (voir lib/typesNotifications.js)
+  relevesEmploi        ReleveEmploi[] // relevés d'emploi produits à son départ (lib/releveEmploi.js)
 }
 
 // ---------- CLIENTS ----------
@@ -1277,6 +1284,37 @@ model Paie {
 
 // Retenue propre à un employé, appliquée à chaque paie régulière en plus des
 // retenues obligatoires — voir lib/retenuesPaie.js
+// Relevé d'emploi (RE) d'un employé qui cesse de travailler, préparé à
+// partir de ses paies puis téléversé dans RE Web (fichier XML W-2.0, voir
+// lib/releveEmploi.js). Les « B… » sont les cases du relevé.
+model ReleveEmploi {
+  id                 String    @id @default(cuid())
+  employeId          String
+  employe            User      @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  raison             String // B16 : code de la raison (A00 manque de travail, E00 départ volontaire, M00 congédiement…)
+  premierJour        DateTime // B10 : premier jour de travail (journée civile, midi UTC)
+  dernierJourPaye    DateTime // B11 : dernier jour pour lequel l'employé a été payé
+  finDernierePeriode DateTime // B12 : fin de la dernière période de paie
+  typePeriode        String // B6 : W hebdomadaire, B aux deux semaines, S deux fois par mois, M mensuelle
+  rappel             String    @default("U") // B14 : U date inconnue, Y date prévue, N retour non prévu
+  dateRappel         DateTime? // B14 : date de rappel prévue (si Y)
+  profession         String? // B13
+  heuresAssurables   Int // B15A : total des heures assurables (arrondi à l'heure supérieure)
+  gainsParPeriode    Json // B15C : gains assurables par période de paie, la plus récente d'abord ([123.45, 0, …])
+  vacances           Json? // B17A : { code: "1"-"4", montant, debut?, fin? }
+  joursFeries        Json? // B17B : [{ date, montant }] (jours fériés après le dernier jour payé)
+  autresSommes       Json? // B17C : [{ code, montant, debut?, fin? }]
+  commentaires       String? // B18
+  statut             String    @default("BROUILLON") // "BROUILLON" | "TRANSMIS"
+  numeroSerie        String? // numéro donné par RE Web à la transmission (W…), pour une modification
+  transmisLe         DateTime?
+  creePar            String?
+  creeLe             DateTime  @default(now())
+  modifieLe          DateTime  @updatedAt
+
+  @@index([employeId])
+}
+
 model RetenueEmploye {
   id        String   @id @default(cuid())
   employeId String
