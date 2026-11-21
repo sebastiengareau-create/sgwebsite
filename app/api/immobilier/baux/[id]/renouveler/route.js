@@ -6,7 +6,14 @@ import { datesRenouvellement } from "@/lib/immobilierCalculs";
 // Renouvelle un bail : le bail actuel passe à « Terminé » et un nouveau bail
 // commence le lendemain de sa fin, avec les mêmes locataires, services et
 // jour de paiement. Corps : { loyer, dateDebut, dateFin } (par défaut :
-// nouveau loyer proposé, même durée).
+// nouveau loyer proposé, même durée). Les mentions du bail (accessoires,
+// conditions, règlement…) suivent aussi ; la section G (loyer antérieur) ne
+// vise qu'un nouveau locataire et ne suit pas.
+const MENTIONS_SUIVENT = [
+  "accessoires", "usageMixte", "modePaiement", "lieuPaiement", "chequesPostdates", "chauffage", "animaux", "fumeur", "assuranceResponsabilite",
+  "reglementRemisLe", "conditions", "immeubleNeuf", "hausseMaximaleF", "caution",
+];
+
 export async function POST(request, props) {
   const session = await sessionImmo();
   if (!session) return refus();
@@ -29,6 +36,7 @@ export async function POST(request, props) {
     return tx.bailImmo.create({
       data: {
         ...r.data, jourPaiement: bail.jourPaiement, services: bail.services,
+        ...Object.fromEntries(MENTIONS_SUIVENT.map((k) => [k, bail[k]])),
         notes: `Renouvellement du bail précédent (loyer de ${bail.loyer.toFixed(2).replace(".", ",")} $).`,
         locataires: { connect: bail.locataires },
       },

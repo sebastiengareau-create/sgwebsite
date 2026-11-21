@@ -2138,6 +2138,7 @@ model LocataireImmo {
   baux           BailImmo[]
   reparations    ReparationImmo[]
   documents      DocumentImmo[]
+  signatures     SignatureImmo[]
   creeLe         DateTime         @default(now())
 }
 
@@ -2160,6 +2161,32 @@ model BailImmo {
   avisEnvoyeLe  DateTime? // avis de modification envoyé au locataire
   reponseAvis   String? // "ACCEPTE" | "REFUSE" | "QUITTE" (réponse du locataire)
   terminaisonLe DateTime? // date réelle de départ (fin anticipée, résiliation)
+  // Réponse à l'avis signée en ligne (portail ou lien de signature) : qui,
+  // quand, sa signature (image PNG) et l'adresse IP — la preuve de la réponse
+  reponseAvisLe        DateTime?
+  reponseAvisPar       String?
+  reponseAvisSignature String?
+  reponseAvisIp        String?
+  // Mentions du bail (sections du formulaire du TAL), pour le bail complet
+  // généré (lib/pdfImmobilier.js) — toutes facultatives
+  accessoires             String? // B : stationnement, casier, remise, usage du terrain…
+  usageMixte              Boolean   @default(false) // B : logement aussi utilisé pour un usage professionnel ou commercial
+  modePaiement            String? // D : MODES_PAIEMENT
+  lieuPaiement            String? // D : où payer, si autre que virement
+  chequesPostdates        Boolean   @default(false) // D : le locataire accepte de remettre des chèques postdatés
+  premierPaiementLe       DateTime? // D : date du premier paiement (loyer au prorata, s'il y a lieu)
+  chauffage               String? // E : CHAUFFAGES (mode de chauffage du logement)
+  animaux                 String? // E : ANIMAUX
+  fumeur                  String? // E : FUMEUR
+  assuranceResponsabilite Boolean   @default(false) // E : assurance responsabilité civile exigée du locataire
+  reglementRemisLe        DateTime? // E : règlement de l'immeuble remis au locataire avant la conclusion du bail
+  travauxPromis           String? // E : travaux et réparations que le locateur s'engage à faire (et quand)
+  conditions              String? // E : autres services, conditions et restrictions (texte remis au locataire)
+  immeubleNeuf            Boolean   @default(false) // F : immeuble prêt pour l'habitation depuis 5 ans ou moins
+  hausseMaximaleF         String? // F : hausse maximale annuelle de loyer pendant ces 5 ans
+  loyerAncien             Float? // G : loyer le plus bas payé au cours des 12 mois précédant le début du bail
+  loyerAncienNote         String? // G : précision (logement non loué dans les 12 mois, services différents…)
+  caution                 String? // caution (garant) : nom et coordonnées
   notes         String?
   charges       ChargeImmo[]
   paiements     PaiementImmo[]
@@ -2283,6 +2310,16 @@ model DocumentImmo {
   donnees     Bytes
   creePar     String?
   creeLe      DateTime       @default(now())
+  // Document généré par l'appli : son type (TYPES_DOCUMENTS_GENERES) et un
+  // instantané des données qui l'ont produit — pour le reproduire à
+  // l'identique avec les signatures dans leurs cases (lib/signatureImmo.js)
+  genre          String?
+  instantane     Json?
+  // Signature électronique : une fois toutes les signatures reçues, la
+  // version signée (document + certificat de signature) et sa date
+  signatures     SignatureImmo[]
+  donneesSignees Bytes?
+  signeLe        DateTime?
 
   @@index([categorie])
   @@index([immeubleId])
@@ -2310,10 +2347,46 @@ model Releve31Immo {
 
 // Journal des courriels envoyés aux locataires (avis, rappels, relevés de
 // compte, reçus) : preuve d'envoi, montrée sur la fiche du bail
+// Demande de signature électronique d'un document (lib/signatureImmo.js) :
+// une par signataire — chaque locataire visé et, au besoin, le locateur.
+// Le signataire reçoit par courriel un lien secret (/signature/<jeton>) où
+// il lit le document, puis signe (ou refuse). L'empreinte SHA-256 du
+// document au moment de la demande prouve ce qui a été signé.
+model SignatureImmo {
+  id            String         @id @default(cuid())
+  documentId    String
+  document      DocumentImmo   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role          String         @default("LOCATAIRE") // "LOCATAIRE" | "LOCATEUR"
+  locataireId   String?
+  locataire     LocataireImmo? @relation(fields: [locataireId], references: [id], onDelete: SetNull)
+  nom           String // nom du signataire attendu
+  courriel      String?
+  jeton         String         @unique
+  ordre         Int            @default(0)
+  statut        String         @default("EN_ATTENTE") // "EN_ATTENTE" | "SIGNE" | "REFUSE" | "ANNULE"
+  empreinte     String // SHA-256 du document présenté
+  message       String? // mot du locateur joint à la demande
+  demandeLe     DateTime       @default(now())
+  envoyeLe      DateTime? // dernier envoi du lien par courriel
+  relances      Int            @default(0)
+  vuLe          DateTime? // première ouverture du lien
+  reponduLe     DateTime?
+  signataireNom String? // nom entré en signant
+  signature     String? // image PNG de la signature (data URL)
+  reponseAvis   String? // avis de modification : ACCEPTE | REFUSE | QUITTE
+  note          String? // message laissé avec la réponse
+  ip            String?
+  navigateur    String?
+  creePar       String?
+
+  @@index([documentId])
+  @@index([locataireId, statut])
+}
+
 model EnvoiImmo {
   id            String    @id @default(cuid())
   date          DateTime  @default(now())
-  type          String // "DOCUMENT" | "RELEVE" | "RECU"
+  type          String // "DOCUMENT" | "RELEVE" | "RECU" | "SIGNATURE"
   sujet         String
   destinataires String // adresses, séparées par des virgules
   bailId        String?

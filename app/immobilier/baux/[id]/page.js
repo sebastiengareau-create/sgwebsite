@@ -11,11 +11,17 @@ export default async function FicheBail(props) {
     prisma.bailImmo.findUnique({
       where: { id },
       include: {
-        logement: { select: { id: true, numero: true, type: true, pieces: true, immeuble: { select: { id: true, nom: true, adresse: true, ville: true } } } },
+        logement: { select: { id: true, numero: true, type: true, pieces: true, immeuble: { select: { id: true, nom: true, adresse: true, ville: true, anneeConstruction: true } } } },
         locataires: { select: { id: true, nom: true, telephone: true, courriel: true } },
         charges: { orderBy: { date: "asc" } },
         paiements: { orderBy: { date: "asc" } },
-        documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
+        documents: {
+          select: {
+            ...DOC_SANS_DONNEES,
+            signatures: { select: { id: true, role: true, nom: true, courriel: true, jeton: true, statut: true, demandeLe: true, envoyeLe: true, relances: true, vuLe: true, reponduLe: true, signataireNom: true, reponseAvis: true, note: true }, orderBy: { ordre: "asc" } },
+          },
+          orderBy: [{ date: "desc" }, { creeLe: "desc" }],
+        },
         envois: { orderBy: { date: "desc" }, take: 30 },
       },
     }),
