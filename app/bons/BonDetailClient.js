@@ -28,6 +28,7 @@ import PiecesACommander from "./PiecesACommander";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import PiecesHorsInventaire from "./PiecesHorsInventaire";
 import CarteInspection from "./CarteInspection";
+import CartePneus from "./CartePneus";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
@@ -71,7 +72,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [], aRevoirInspection = [] }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [], aRevoirInspection = [], pneus = null }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -573,6 +574,14 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
       {/* Inspection numérique multipoint (module Inspection) */}
       {moduleInspection && !comptoir && (
         <CarteInspection bonId={bon.id} inspections={bon.inspections || []} grilles={grillesInspection} aRevoir={aRevoirInspection} modifiable={!factureExiste} comptoir={peutModifier} />
+      )}
+
+      {/* Pneus entreposés du véhicule (module Entreposage de pneus) */}
+      {pneus && (
+        <CartePneus
+          bonId={bon.id} clientId={bon.clientId} vehiculeId={bon.vehiculeId} jeux={pneus.jeux} prixSaison={pneus.prixSaison}
+          modifiable={!factureExiste} comptoir={peutModifier}
+        />
       )}
 
       {factureExiste && (
