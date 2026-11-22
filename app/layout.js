@@ -6,6 +6,7 @@ import { FournisseurTextos } from "./components/ContexteTextos";
 import { envoiDirectActif } from "@/lib/textosAuto";
 import "./globals.css";
 import { image } from "@/lib/client";
+import { COURRIEL_SOUTIEN } from "@/lib/marque";
 
 // Obligatoire — sinon Next.js essaie de générer cette page (et les
 // métadonnées) pendant le build, avant que la base de données soit
@@ -104,10 +105,10 @@ function EcranVerrouille() {
           L'accès à ce logiciel a été temporairement suspendu. Merci de contacter :
         </p>
         <a
-          href="mailto:info@sgwebsite.online"
+          href={`mailto:${COURRIEL_SOUTIEN}`}
           style={{ display: "inline-block", padding: "12px 20px", borderRadius: 10, background: "var(--accent)", color: "#17150f", fontWeight: 700, fontSize: 14, textDecoration: "none" }}
         >
-          info@sgwebsite.online
+          {COURRIEL_SOUTIEN}
         </a>
       </div>
     </div>
