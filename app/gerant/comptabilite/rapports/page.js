@@ -5,6 +5,7 @@ import EnTete from "../../../components/EnTete";
 import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { TEINTES, GroupeLiens, TitrePanneau, stylePanneau } from "../../../components/StyleSection";
+import ExportJournal from "./ExportJournal";
 
 export default async function RapportsComptables() {
   const session = await obtenirSession();
@@ -43,16 +44,8 @@ export default async function RapportsComptables() {
         {groupes.map((g) => <GroupeLiens key={g.titre} {...g} />)}
 
         <div style={stylePanneau}>
-          <TitrePanneau icone="echange" teinte={TEINTES.ambre} titre="Export pour un comptable externe" sousTitre="Le journal général complet en .csv (s'ouvre dans Excel)" />
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 12px" }}>
-            Toutes les écritures, avec les comptes, débits, crédits, et qui les a créées.
-          </p>
-          <a
-            href="/api/comptabilite/export"
-            style={{ display: "block", textAlign: "center", padding: 13, borderRadius: 12, textDecoration: "none", fontSize: 15, fontWeight: 700, background: "var(--accent)", color: "#221f18" }}
-          >
-            Télécharger le journal complet (.csv)
-          </a>
+          <TitrePanneau icone="echange" teinte={TEINTES.ambre} titre="Export pour un comptable externe" sousTitre="Le journal général en .csv (s'ouvre dans Excel), pour la période choisie" />
+          <ExportJournal />
         </div>
       </div>
     </div>

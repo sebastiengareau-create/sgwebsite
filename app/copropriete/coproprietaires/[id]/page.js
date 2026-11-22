@@ -12,7 +12,7 @@ export default async function FicheCoproprietaire(props) {
     where: { id },
     include: {
       proprietes: {
-        include: { unite: { select: { id: true, numero: true, type: true, quotePart: true, charges: { select: { id: true, date: true, montant: true, type: true, description: true } }, paiements: { select: { id: true, date: true, montant: true, mode: true, reference: true } } } } },
+        include: { unite: { select: { id: true, numero: true, type: true, quotePart: true, occupants: { orderBy: [{ dateFin: { sort: "desc", nulls: "first" } }, { dateDebut: "desc" }] }, charges: { select: { id: true, date: true, montant: true, type: true, description: true } }, paiements: { select: { id: true, date: true, montant: true, mode: true, reference: true } } } } },
         orderBy: [{ dateFin: { sort: "desc", nulls: "first" } }, { dateDebut: "desc" }],
       },
       demandes: { select: { id: true, numero: true, titre: true, statut: true, creeLe: true }, orderBy: { creeLe: "desc" } },

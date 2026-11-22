@@ -27,6 +27,9 @@ import { ResultatPourBon } from "../components/ResultatsRecherchePieces";
 import PiecesACommander from "./PiecesACommander";
 import { STATUTS_COMMANDE } from "@/lib/commandesFournisseurs";
 import PiecesHorsInventaire from "./PiecesHorsInventaire";
+import CarteInspection from "./CarteInspection";
+import CartePneus from "./CartePneus";
+import LienPaiementFacture from "./LienPaiementFacture";
 import BanderoleBo, { piecesBo } from "../components/BanderoleBo";
 import ScannerCodeBarres from "../components/ScannerCodeBarres";
 import { trouverPieceParScan, pieceCorrespond, preparerRecherchePieces } from "@/lib/codesBarres";
@@ -70,7 +73,7 @@ function tempsEcoule(debutISO) {
   return `${h}:${m}:${sec}`;
 }
 
-export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0 }) {
+export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, employes, postesRevenu, comptesTresorerie, tauxHoraireClient, coutHoraireMecanicien, tpsTaux, tvqTaux, tpsNumero = "", tvqNumero = "", sitesPieces, fournisseurs, peutCommander, peutModifier, peutEnvoyer, peutPoinconner, estGerant, moi, clientsChoix = [], creditClient = 0, moduleInspection = false, grillesInspection = [], aRevoirInspection = [], pneus = null, paiementEnLigne = false }) {
   const router = useRouter();
   useEffect(() => preparerRecherchePieces(inventaire), [inventaire]);
   // Fenêtre « Rechercher des pièces » : null (fermée) ou la pièce de départ
@@ -569,6 +572,19 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
         )}
       </div>
 
+      {/* Inspection numérique multipoint (module Inspection) */}
+      {moduleInspection && !comptoir && (
+        <CarteInspection bonId={bon.id} inspections={bon.inspections || []} grilles={grillesInspection} aRevoir={aRevoirInspection} modifiable={!factureExiste} comptoir={peutModifier} />
+      )}
+
+      {/* Pneus entreposés du véhicule (module Entreposage de pneus) */}
+      {pneus && (
+        <CartePneus
+          bonId={bon.id} clientId={bon.clientId} vehiculeId={bon.vehiculeId} jeux={pneus.jeux} prixSaison={pneus.prixSaison}
+          modifiable={!factureExiste} comptoir={peutModifier}
+        />
+      )}
+
       {factureExiste && (
         <div style={{
           position: "relative", overflow: "hidden", display: "flex", gap: 12, alignItems: "center",
@@ -657,6 +673,11 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
                 coutPieces={coutPieces} coutMainOeuvre={coutMainOeuvre} libelleMainOeuvre={libelleCoutMainOeuvre}
                 avantTaxes={bon.facture.totalFacture} style={{ marginTop: 4, marginBottom: 12 }}
               />
+            )}
+
+            {/* Paiement en ligne (module Paiement en ligne) : lien de la page de paiement */}
+            {peutModifier && paiementEnLigne && bon.facture.statut === "IMPAYEE" && bon.facture.totalAvecTaxes > (bon.facture.montantPaye || 0) + 0.005 && (
+              <LienPaiementFacture bon={bon} nomEntreprise={nomEntreprise} />
             )}
 
             {peutModifier && !payeeParCoutant && (
@@ -2461,12 +2482,14 @@ function AvisVehiculePret({ bon, boutonCourriel, nomEntreprise }) {
           {enCours === "avis" ? "Envoi…" : bon.avisPretLe ? "🚗 Aviser de nouveau" : "🚗 Aviser le client"}
         </button>
       </div>
-      {/* Texto « véhicule prêt » : ouvre Messages, sans abonnement (lib/textos.js) */}
+      {/* Texto « véhicule prêt » : ouvre Messages, sans abonnement (lib/textos.js),
+          ou part du numéro de l'atelier avec les textos automatiques (lib/textosAuto.js) */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
         <BoutonTexto
           telephone={bon.client.telephone}
           message={MESSAGES_TEXTO.vehiculePret({ nom: bon.clientNomAffiche || bon.client.nom, vehicule: bon.vehicule ? libelleVehicule(bon.vehicule) : "", nomEntreprise })}
           libelle="💬 Aviser par texto" className="bouton-3d-sombre" style={{ ...styleBouton, flex: "1 1 100%" }}
+          type="VEHICULE_PRET" bonId={bon.id} clientId={bon.clientId} onEnvoye={() => router.refresh()}
         />
       </div>
       {CLIENT.envoiPhotosCourriel && (

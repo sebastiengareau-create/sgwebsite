@@ -7,16 +7,22 @@ import { LigneInfo } from "../../../components/ui";
 import { TYPES_UNITE, STATUTS_DEMANDE, argent, pourcent, dateLisible, trouver, soldeUnite, libelle, MODES_PAIEMENT } from "@/lib/coproprieteCalculs";
 import { champsCoproprietaire, quotePartDetenue } from "../CoproprietairesClient";
 import { Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Tableau, cellule, celluleDroite, valeursDe, useApi, Erreur } from "../../ui";
+import { Occupants, PastilleMobilite } from "../../occupants";
 
 export default function CoproprietaireClient({ coproprietaire: c, lien, courrielConfigure }) {
   const actuelles = c.proprietes.filter((p) => !p.dateFin);
   const anciennes = c.proprietes.filter((p) => p.dateFin);
   const soldeTotal = actuelles.reduce((s, p) => s + soldeUnite(p.unite), 0);
+  // Ses logements et locaux, avec leurs occupants — sans lui-même s'il y est
+  // aussi inscrit comme propriétaire occupant
+  const habitables = actuelles
+    .filter((p) => p.unite.type !== "STATIONNEMENT" && p.unite.type !== "RANGEMENT")
+    .map((p) => ({ ...p.unite, occupants: p.unite.occupants.filter((o) => !(o.type === "PROPRIETAIRE" && o.nom === c.nom)) }));
   return (
     <div className="conteneur-page">
       <Retour href="/copropriete/coproprietaires">Copropriétaires</Retour>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "10px 0 14px", flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 21, margin: 0 }}>👤 {c.nom}</h1>
+        <h1 style={{ fontSize: 21, margin: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>👤 {c.nom}{c.mobiliteReduite && <PastilleMobilite />}</h1>
         {actuelles.length > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: soldeTotal > 0.005 ? "var(--danger)" : "var(--success)" }}>{soldeTotal > 0.005 ? `Solde dû : ${argent(soldeTotal)}` : "Comptes à jour"}</span>}
       </div>
       <Fiche c={c} />
@@ -42,6 +48,12 @@ export default function CoproprietaireClient({ coproprietaire: c, lien, courriel
           </>
         )}
       </Section>
+      {habitables.length > 0 && (
+        <Occupants
+          unites={habitables} titre="Autres personnes sous son toit" typeDefaut="OCCUPANT"
+          vide="Aucune autre personne inscrite (conjoint, enfants, locataire…)."
+        />
+      )}
       <Portail c={c} lien={lien} courrielConfigure={courrielConfigure} />
       <Paiements actuelles={actuelles} />
       <Section titre="Demandes faites">
@@ -74,6 +86,12 @@ function Fiche({ c }) {
           {c.telephone2 && <LigneInfo label="Autre téléphone" valeur={c.telephone2} />}
           <LigneInfo label="Courriel" valeur={c.courriel && <a href={`mailto:${c.courriel}`} style={{ color: "var(--accent)" }}>{c.courriel}</a>} />
           <LigneInfo label="Adresse postale" valeur={c.adressePostale} />
+          <LigneInfo label="Contact d'urgence" valeur={c.contactUrgenceNom && <>
+            {c.contactUrgenceNom}{c.contactUrgenceLien && ` (${c.contactUrgenceLien})`}
+            {c.contactUrgenceTel && <> · <a href={`tel:${c.contactUrgenceTel}`} style={{ color: "var(--accent)" }}>{c.contactUrgenceTel}</a></>}
+          </>} />
+          <LigneInfo label="Clé(s) magnétique(s)" valeur={c.clesMagnetiques && `🔑 ${c.clesMagnetiques}`} />
+          <LigneInfo label="Mobilité réduite" valeur={c.mobiliteReduite ? `♿ Oui — aide pour évacuer${c.besoinsParticuliers ? ` : ${c.besoinsParticuliers}` : ""}` : "Non"} />
           <LigneInfo label="Avis par courriel" valeur={c.avisCourriel ? "Oui" : "Non"} />
           {c.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{c.notes}</p>}
         </>

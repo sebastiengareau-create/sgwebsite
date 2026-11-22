@@ -211,7 +211,7 @@ export default function SoumissionsListe({ soumissions, comptesTresorerie = [], 
                     <Icone nom="imprimante" taille={17} couleur="var(--accent-ombre)" /> Imprimer
                   </Link>
                   <BoutonEnvoiCourriel url={`/api/soumissions/${s.id}/envoyer`} courrielDefaut={s.client?.courriel} libelle="📧 Envoyer" style={boutonSoumission} />
-                  <BoutonTexto telephone={s.clientTelephone || s.client?.telephone} message={() => messageTexto(s)} style={boutonSoumission} title="Texto au client avec le lien pour consulter et approuver la soumission" />
+                  <BoutonTexto telephone={s.clientTelephone || s.client?.telephone} message={() => messageTexto(s)} style={boutonSoumission} type="LIEN" clientId={s.clientId || undefined} title="Texto au client avec le lien pour consulter et approuver la soumission" />
                   <button onClick={() => copierLien(s)} title="Copier le lien où le client approuve et signe en ligne (à envoyer par texto)" style={boutonSoumission}>
                     🔗 Lien
                   </button>

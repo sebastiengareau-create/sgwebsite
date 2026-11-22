@@ -58,6 +58,12 @@ model User {
   exemptionRRQ       Boolean   @default(false) // a choisi de cesser de cotiser au RRQ (65 ans ou plus, rente de retraite, formulaire RR-50)
   exemptionCNESST    Boolean   @default(false) // dirigeant non couvert par la CNESST (pas de protection personnelle) : aucune prime sur son salaire
   montantTp10153     Float? // crédits d'impôt personnels du formulaire TP-1015.3 (Québec) — vide = montant personnel de base de l'année
+  // Noms tels qu'ils vont sur le T4, le RL-1 et le relevé d'emploi (nom de
+  // famille et prénom séparés) ; vides : tirés de « nom » (dernier mot =
+  // nom de famille), voir lib/finAnnee.js
+  prenom             String?
+  nomFamille         String?
+  codeDentaireT4     Int? // T4 case 45, accès à des soins dentaires payés par l'employeur (1 à 5) ; vide = réglage paie_code_dentaire (1 : aucun)
   creeLe             DateTime  @default(now())
   derniereActivite   DateTime? // dernière page ou action dans le logiciel (au plus 2 min de retard) — « en ligne » si récente, voir lib/presence.js ; vidée à la déconnexion
 
@@ -73,6 +79,7 @@ model User {
   abonnementsPush      AbonnementPush[] // téléphones où il reçoit les notifications
   notifications        Notification[] // avis reçus (cloche 🔔), voir lib/notifications.js
   notificationsCoupees String[]       @default([]) // types d'avis qu'il a choisi de ne plus recevoir (voir lib/typesNotifications.js)
+  relevesEmploi        ReleveEmploi[] // relevés d'emploi produits à son départ (lib/releveEmploi.js)
 }
 
 // ---------- CLIENTS ----------
@@ -92,10 +99,17 @@ model Client {
   // la section Documents) — exclu des envois groupés. Exigé par la loi
   // canadienne anti-pourriel (LCAP).
   promotionsRefuseesLe DateTime?
+  // Portail client (/portail-client/<jeton>, lib/portailClient.js) : lien
+  // secret propre au client ; null = aucun accès. Un nouveau lien rend
+  // l'ancien inutilisable.
+  jetonPortail      String?        @unique
+  portailCreeLe     DateTime?
+  portailVuLe       DateTime? // dernière visite du client sur son portail
   vehicules         Vehicule[]
   bons              BonTravail[]
   soumissions       Soumission[]
   rendezVous        RendezVous[]
+  jeuxPneus         JeuPneus[] // pneus entreposés à l'atelier (module Entreposage de pneus, lib/pneus.js)
   facturesVente     FactureVente[]
   credits           CreditClient[] // crédit client : trop-payés, remboursements… (lib/creditClient.js)
   creeLe            DateTime       @default(now())
@@ -119,6 +133,7 @@ model Vehicule {
   bons          BonTravail[]
   soumissions   Soumission[]
   vehiculeVente VehiculeVente? // si c'est un véhicule à vendre de l'entreprise
+  jeuxPneus     JeuPneus[] // ses jeux de pneus (été, hiver…) gardés à l'atelier
   creeLe        DateTime       @default(now())
 
   @@index([clientId])
@@ -153,6 +168,8 @@ model BonTravail {
   piecesACommander    PieceACommander[] // pièces trouvées chez un fournisseur, notées à commander
   envois              EnvoiBon[] // envois du bon à des employés précis (Jobs en déplacement)
   photosArrivee       PhotoArrivee[] // photos du véhicule à son arrivée (4 coins + tableau de bord), hors impression
+  inspections         Inspection[] // inspections numériques multipoints du véhicule (lib/inspections.js)
+  mouvementsPneus     MouvementPneus[] // pneus entreposés ou posés pendant ce bon (lib/pneus.js)
   // Dernier avis « véhicule prêt » envoyé au client (voir lib/avisClient.js)
   avisPretLe          DateTime?
   avisPretA           String? // courriel à qui l'avis a été envoyé
@@ -295,6 +312,9 @@ model Facture {
   // alors les paiements (modePaiement "MULTIPLE" s'ils ont été faits de plusieurs façons).
   montantPaye        Float             @default(0)
   paiements          PaiementFacture[]
+  // Lien secret de la page publique de paiement en ligne (/payer/<jeton>,
+  // lib/paiementEnLigne.js), créé au premier besoin
+  jetonPaiement      String?           @unique
   creditsTropPaye    CreditClient[] // excédents de paiement gardés en crédit client (lib/creditClient.js)
 
   @@index([statut])
@@ -434,6 +454,7 @@ model Probleme {
   photos              Photo[]
   pieces              PieceUtilisee[]
   entreesTemps        EntreeTemps[]
+  pointsInspection    PointInspection[] // points d'inspection dont le travail recommandé est devenu cette tâche
 
   @@index([bonId])
   @@index([retourDeProblemeId])
@@ -466,6 +487,192 @@ model PhotoArrivee {
   ajouteeLe DateTime   @default(now())
 
   @@unique([bonId, position])
+}
+
+// Inspection numérique multipoint d'un véhicule, faite sur un bon
+// (lib/inspections.js). Les points sont copiés de la grille choisie
+// (lib/grillesInspection.js) : changer une grille ne touche pas aux
+// inspections déjà faites. Une fois terminée, le rapport (photos, constats,
+// travaux recommandés et leur prix) part au client par un lien secret
+// (/inspection/<jeton>) : il coche les travaux qu'il accepte, signe et
+// approuve — comme une soumission (lib/approbationSoumission.js).
+model Inspection {
+  id              String            @id @default(cuid())
+  bonId           String
+  bon             BonTravail        @relation(fields: [bonId], references: [id], onDelete: Cascade)
+  grille          String // clé de la grille de départ (ex. « complete »)
+  titre           String // nom de la grille, figé (ex. « Inspection complète »)
+  statut          String            @default("EN_COURS") // "EN_COURS" | "TERMINEE"
+  kilometrage     Int?
+  noteGenerale    String? // mot du technicien au client, en tête du rapport
+  technicienId    String? // employé qui a commencé l'inspection
+  technicienNom   String? // son nom, figé pour le rapport
+  termineeLe      DateTime?
+  creeLe          DateTime          @default(now())
+  // Rapport au client : lien secret, envoi, puis sa réponse (une seule)
+  jetonClient     String?           @unique
+  envoyeeLe       DateTime? // dernier envoi par courriel
+  reponseClient   String? // "APPROUVEE" | "REFUSEE" — vide tant que le client n'a pas répondu
+  reponseLe       DateTime?
+  signataireNom   String?
+  signatureClient String? // image PNG de la signature (data URL)
+  noteClient      String?
+  points          PointInspection[]
+
+  @@index([bonId])
+}
+
+// Un point vérifié d'une inspection (ex. « Plaquettes avant »)
+model PointInspection {
+  id             String            @id @default(cuid())
+  inspectionId   String
+  inspection     Inspection        @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  section        String // ex. « Freins »
+  libelle        String
+  ordre          Int
+  unite          String? // indication pour la mesure (ex. « mm », « /32 po »)
+  ajoute         Boolean           @default(false) // ajouté pendant l'inspection, hors grille
+  etat           String? // vide = pas encore vérifié ; "OK" | "SURVEILLER" | "URGENT" | "NA"
+  mesure         String? // ex. « 3 », « 6/32 »
+  constat        String? // ce que le technicien a vu (montré au client)
+  recommandation String? // travail recommandé (montré au client, devient la tâche du bon)
+  prixEstime     Float? // estimé du travail recommandé, avant taxes
+  approbation    String? // réponse du client : "APPROUVE" | "REFUSE"
+  problemeId     String? // tâche créée sur le bon à partir de ce point
+  probleme       Probleme?         @relation(fields: [problemeId], references: [id], onDelete: SetNull)
+  // Point à revoir à la visite suivante (à surveiller, ou urgent pas fait)
+  // écarté par le comptoir (ex. fait ailleurs) : il ne revient plus
+  rappelEcarteLe DateTime?
+  photos         PhotoInspection[]
+
+  @@index([inspectionId])
+  @@index([problemeId])
+}
+
+model PhotoInspection {
+  id        String          @id @default(cuid())
+  pointId   String
+  point     PointInspection @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  url       String // image en data URL, comme Photo
+  employeId String?
+  ajouteeLe DateTime        @default(now())
+
+  @@index([pointId])
+}
+
+// Entreposage de pneus (module « Entreposage de pneus », lib/pneus.js) : un
+// jeu de pneus d'un client, gardé à l'atelier d'une saison à l'autre. Il est
+// soit à l'entrepôt (à un emplacement), soit posé sur le véhicule, soit remis
+// (repris par le client ou jeté). Ses allées et venues : MouvementPneus.
+model JeuPneus {
+  id               String           @id @default(cuid())
+  numero           String           @unique // « PN-001 », sur les étiquettes
+  clientId         String
+  client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  vehiculeId       String?
+  vehicule         Vehicule?        @relation(fields: [vehiculeId], references: [id], onDelete: SetNull)
+  saison           String // "HIVER" | "ETE" | "QUATRE_SAISONS"
+  marque           String?
+  modele           String?
+  dimension        String? // ex. « 225/65R17 »
+  quantite         Int              @default(4)
+  jantes           String           @default("SANS") // "SANS" | "ACIER" | "ALLIAGE"
+  anneeFabrication Int? // tirée du code DOT (ex. 2318 → 2018)
+  usure            String? // en /32 po, pneu par pneu, ex. « 8, 8, 7, 7 »
+  emplacement      String? // à l'entrepôt seulement, ex. « A-12 »
+  statut           String           @default("ENTREPOSE") // "ENTREPOSE" | "POSE" | "REMIS"
+  note             String?
+  rappelLe         DateTime? // dernier rappel de changement de saison au client
+  creeLe           DateTime         @default(now())
+  mouvements       MouvementPneus[]
+
+  @@index([clientId])
+  @@index([vehiculeId])
+  @@index([statut])
+}
+
+// Historique d'un jeu de pneus : entrée à l'entrepôt, sortie (posé sur le
+// véhicule), remise au client, déplacement, modification
+model MouvementPneus {
+  id          String      @id @default(cuid())
+  jeuId       String
+  jeu         JeuPneus    @relation(fields: [jeuId], references: [id], onDelete: Cascade)
+  type        String // "ENTREE" | "SORTIE" | "REMISE" | "DEPLACEMENT"
+  emplacement String? // à l'entrée ou au déplacement : le nouvel emplacement ; à la sortie : celui quitté
+  usure       String?
+  bonId       String? // bon du changement de pneus, s'il y en a un
+  bon         BonTravail? @relation(fields: [bonId], references: [id], onDelete: SetNull)
+  employeNom  String?
+  note        String?
+  date        DateTime    @default(now())
+
+  @@index([jeuId])
+  @@index([bonId])
+}
+
+// Paiement en ligne (module « Paiement en ligne », lib/paiementEnLigne.js) :
+// une page de paiement Stripe ouverte pour le solde d'une facture ou pour un
+// dépôt (soumission approuvée en ligne, travaux d'une inspection). Quand
+// Stripe confirme le paiement (/api/stripe/webhook), il est inscrit comme un
+// paiement de facture ou un dépôt — une seule fois, même si l'avis revient.
+model PaiementEnLigne {
+  id                String    @id @default(cuid())
+  sessionId         String    @unique // session Stripe Checkout (cs_…)
+  type              String // "FACTURE" | "DEPOT_SOUMISSION" | "DEPOT_BON"
+  factureId         String?
+  soumissionId      String?
+  bonId             String? // dépôt sur le bon (travaux approuvés d'une inspection)
+  inspectionId      String?
+  montant           Float
+  statut            String    @default("OUVERT") // "OUVERT" | "PAYE" | "A_TRAITER" | "EXPIRE"
+  paymentIntentId   String?
+  fraisStripe       Float?
+  payeLe            DateTime?
+  paiementFactureId String? // paiement inscrit sur la facture
+  depotId           String? // dépôt inscrit
+  erreur            String? // A_TRAITER : pourquoi le paiement n'a pas pu être inscrit tout seul
+  creeLe            DateTime  @default(now())
+
+  @@index([factureId])
+  @@index([soumissionId])
+  @@index([bonId])
+  @@index([statut])
+}
+
+// Textos automatiques (module « module_textos », lib/textosAuto.js) : chaque
+// texto envoyé au client par Twilio ou reçu de lui. Le numéro est en format
+// +1XXXXXXXXXX ; client, bon et rendez-vous sont notés sans clé étrangère
+// (un dossier supprimé laisse son historique de textos).
+model Texto {
+  id           String   @id @default(cuid())
+  direction    String // "SORTANT" | "ENTRANT"
+  telephone    String // numéro du client (+1XXXXXXXXXX)
+  corps        String
+  type         String   @default("MESSAGE") // SORTANT : "MESSAGE" (écrit à la main) | "VEHICULE_PRET" | "RAPPEL_RDV" | "LIEN" | "RAPPEL" | "ESSAI" | "AUTO_REPONSE" ; ENTRANT : "REPONSE"
+  statut       String   @default("ENVOYE") // SORTANT : "ENVOYE" | "LIVRE" | "ECHEC" ; ENTRANT : "RECU"
+  sid          String?  @unique // identifiant du message chez Twilio (SM…)
+  erreur       String? // ECHEC : raison donnée par Twilio
+  clientId     String?
+  bonId        String?
+  rendezVousId String?
+  employeId    String? // qui l'a envoyé ; vide : envoi automatique
+  employeNom   String?
+  lu           Boolean  @default(true) // ENTRANT : faux tant que personne n'a ouvert la conversation
+  creeLe       DateTime @default(now())
+
+  @@index([telephone, creeLe])
+  @@index([clientId])
+  @@index([bonId])
+  @@index([rendezVousId])
+  @@index([direction, lu])
+}
+
+// Numéros qui ont répondu ARRET (ou STOP) : plus aucun texto ne leur part,
+// jusqu'à ce qu'ils répondent RETOUR (ou START)
+model RefusTextos {
+  telephone String   @id // +1XXXXXXXXXX
+  motCle    String? // mot reçu (ARRET, STOP…)
+  creeLe    DateTime @default(now())
 }
 
 // ---------- INVENTAIRE (miroir synchronisé avec QuickBooks) ----------
@@ -1083,6 +1290,37 @@ model Paie {
 
 // Retenue propre à un employé, appliquée à chaque paie régulière en plus des
 // retenues obligatoires — voir lib/retenuesPaie.js
+// Relevé d'emploi (RE) d'un employé qui cesse de travailler, préparé à
+// partir de ses paies puis téléversé dans RE Web (fichier XML W-2.0, voir
+// lib/releveEmploi.js). Les « B… » sont les cases du relevé.
+model ReleveEmploi {
+  id                 String    @id @default(cuid())
+  employeId          String
+  employe            User      @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  raison             String // B16 : code de la raison (A00 manque de travail, E00 départ volontaire, M00 congédiement…)
+  premierJour        DateTime // B10 : premier jour de travail (journée civile, midi UTC)
+  dernierJourPaye    DateTime // B11 : dernier jour pour lequel l'employé a été payé
+  finDernierePeriode DateTime // B12 : fin de la dernière période de paie
+  typePeriode        String // B6 : W hebdomadaire, B aux deux semaines, S deux fois par mois, M mensuelle
+  rappel             String    @default("U") // B14 : U date inconnue, Y date prévue, N retour non prévu
+  dateRappel         DateTime? // B14 : date de rappel prévue (si Y)
+  profession         String? // B13
+  heuresAssurables   Int // B15A : total des heures assurables (arrondi à l'heure supérieure)
+  gainsParPeriode    Json // B15C : gains assurables par période de paie, la plus récente d'abord ([123.45, 0, …])
+  vacances           Json? // B17A : { code: "1"-"4", montant, debut?, fin? }
+  joursFeries        Json? // B17B : [{ date, montant }] (jours fériés après le dernier jour payé)
+  autresSommes       Json? // B17C : [{ code, montant, debut?, fin? }]
+  commentaires       String? // B18
+  statut             String    @default("BROUILLON") // "BROUILLON" | "TRANSMIS"
+  numeroSerie        String? // numéro donné par RE Web à la transmission (W…), pour une modification
+  transmisLe         DateTime?
+  creePar            String?
+  creeLe             DateTime  @default(now())
+  modifieLe          DateTime  @updatedAt
+
+  @@index([employeId])
+}
+
 model RetenueEmploye {
   id        String   @id @default(cuid())
   employeId String
@@ -1754,6 +1992,7 @@ model BatimentCopro {
   nom               String
   adresse           String?
   anneeConstruction Int?
+  entrepreneur      String? // qui l'a construit (entrepreneur général)
   nbEtages          Int?
   notes             String?
   unites            UniteCopro[]
@@ -1799,6 +2038,14 @@ model CoproprietaireCopro {
   telephone2          String?
   adressePostale      String? // si différente de l'unité (propriétaire non occupant)
   notes               String?
+  // Sécurité et accès à l'immeuble (visibles à l'administration seulement,
+  // jamais sur le portail)
+  mobiliteReduite     Boolean          @default(false) // a besoin d'aide pour évacuer (incendie, panne d'ascenseur)
+  besoinsParticuliers String? // fauteuil roulant, malentendant, oxygène…
+  contactUrgenceNom   String?
+  contactUrgenceLien  String? // conjoint, fille, voisin…
+  contactUrgenceTel   String?
+  clesMagnetiques     String? // numéros des clés / puces d'accès, séparés par des virgules
   avisCourriel        Boolean          @default(true) // reçoit par courriel le suivi de ses demandes
   jetonPortail        String?          @unique // lien secret de son portail (null = aucun accès)
   dernierAccesPortail DateTime?
@@ -1826,19 +2073,24 @@ model ProprieteCopro {
   @@index([coproprietaireId])
 }
 
-// Occupants et locataires d'une unité (passés et actuels)
+// Occupants et locataires d'une unité (passés et actuels) : les personnes
+// qui habitent sous son toit, autres que le copropriétaire
 model OccupantCopro {
   id        String     @id @default(cuid())
   uniteId   String
   unite     UniteCopro @relation(fields: [uniteId], references: [id], onDelete: Cascade)
-  type      String     @default("LOCATAIRE") // "PROPRIETAIRE" (occupant) | "LOCATAIRE" | "OCCUPANT"
-  nom       String
-  courriel  String?
-  telephone String?
-  dateDebut DateTime?
-  dateFin   DateTime?
-  notes     String?
-  creeLe    DateTime   @default(now())
+  type                String     @default("LOCATAIRE") // "PROPRIETAIRE" (occupant) | "LOCATAIRE" | "OCCUPANT"
+  nom                 String
+  relation            String? // lien avec le propriétaire : conjoint, enfant, parent…
+  courriel            String?
+  telephone           String?
+  mobiliteReduite     Boolean    @default(false) // a besoin d'aide pour évacuer
+  besoinsParticuliers String?
+  clesMagnetiques     String? // numéros des clés / puces d'accès, séparés par des virgules
+  dateDebut           DateTime?
+  dateFin             DateTime?
+  notes               String?
+  creeLe              DateTime   @default(now())
 
   @@index([uniteId])
 }
@@ -2085,6 +2337,7 @@ model ImmeubleImmo {
   codePostal           String?
   type                 String           @default("PLEX") // voir TYPES_IMMEUBLE dans lib/immobilierCalculs.js
   anneeConstruction    Int?
+  entrepreneur         String? // qui l'a construit (entrepreneur général)
   dateAchat            DateTime?
   prixAchat            Float?
   evaluationMunicipale Float?
@@ -2138,6 +2391,7 @@ model LocataireImmo {
   baux           BailImmo[]
   reparations    ReparationImmo[]
   documents      DocumentImmo[]
+  signatures     SignatureImmo[]
   creeLe         DateTime         @default(now())
 }
 
@@ -2160,6 +2414,32 @@ model BailImmo {
   avisEnvoyeLe  DateTime? // avis de modification envoyé au locataire
   reponseAvis   String? // "ACCEPTE" | "REFUSE" | "QUITTE" (réponse du locataire)
   terminaisonLe DateTime? // date réelle de départ (fin anticipée, résiliation)
+  // Réponse à l'avis signée en ligne (portail ou lien de signature) : qui,
+  // quand, sa signature (image PNG) et l'adresse IP — la preuve de la réponse
+  reponseAvisLe        DateTime?
+  reponseAvisPar       String?
+  reponseAvisSignature String?
+  reponseAvisIp        String?
+  // Mentions du bail (sections du formulaire du TAL), pour le bail complet
+  // généré (lib/pdfImmobilier.js) — toutes facultatives
+  accessoires             String? // B : stationnement, casier, remise, usage du terrain…
+  usageMixte              Boolean   @default(false) // B : logement aussi utilisé pour un usage professionnel ou commercial
+  modePaiement            String? // D : MODES_PAIEMENT
+  lieuPaiement            String? // D : où payer, si autre que virement
+  chequesPostdates        Boolean   @default(false) // D : le locataire accepte de remettre des chèques postdatés
+  premierPaiementLe       DateTime? // D : date du premier paiement (loyer au prorata, s'il y a lieu)
+  chauffage               String? // E : CHAUFFAGES (mode de chauffage du logement)
+  animaux                 String? // E : ANIMAUX
+  fumeur                  String? // E : FUMEUR
+  assuranceResponsabilite Boolean   @default(false) // E : assurance responsabilité civile exigée du locataire
+  reglementRemisLe        DateTime? // E : règlement de l'immeuble remis au locataire avant la conclusion du bail
+  travauxPromis           String? // E : travaux et réparations que le locateur s'engage à faire (et quand)
+  conditions              String? // E : autres services, conditions et restrictions (texte remis au locataire)
+  immeubleNeuf            Boolean   @default(false) // F : immeuble prêt pour l'habitation depuis 5 ans ou moins
+  hausseMaximaleF         String? // F : hausse maximale annuelle de loyer pendant ces 5 ans
+  loyerAncien             Float? // G : loyer le plus bas payé au cours des 12 mois précédant le début du bail
+  loyerAncienNote         String? // G : précision (logement non loué dans les 12 mois, services différents…)
+  caution                 String? // caution (garant) : nom et coordonnées
   notes         String?
   charges       ChargeImmo[]
   paiements     PaiementImmo[]
@@ -2283,6 +2563,16 @@ model DocumentImmo {
   donnees     Bytes
   creePar     String?
   creeLe      DateTime       @default(now())
+  // Document généré par l'appli : son type (TYPES_DOCUMENTS_GENERES) et un
+  // instantané des données qui l'ont produit — pour le reproduire à
+  // l'identique avec les signatures dans leurs cases (lib/signatureImmo.js)
+  genre          String?
+  instantane     Json?
+  // Signature électronique : une fois toutes les signatures reçues, la
+  // version signée (document + certificat de signature) et sa date
+  signatures     SignatureImmo[]
+  donneesSignees Bytes?
+  signeLe        DateTime?
 
   @@index([categorie])
   @@index([immeubleId])
@@ -2310,10 +2600,46 @@ model Releve31Immo {
 
 // Journal des courriels envoyés aux locataires (avis, rappels, relevés de
 // compte, reçus) : preuve d'envoi, montrée sur la fiche du bail
+// Demande de signature électronique d'un document (lib/signatureImmo.js) :
+// une par signataire — chaque locataire visé et, au besoin, le locateur.
+// Le signataire reçoit par courriel un lien secret (/signature/<jeton>) où
+// il lit le document, puis signe (ou refuse). L'empreinte SHA-256 du
+// document au moment de la demande prouve ce qui a été signé.
+model SignatureImmo {
+  id            String         @id @default(cuid())
+  documentId    String
+  document      DocumentImmo   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  role          String         @default("LOCATAIRE") // "LOCATAIRE" | "LOCATEUR"
+  locataireId   String?
+  locataire     LocataireImmo? @relation(fields: [locataireId], references: [id], onDelete: SetNull)
+  nom           String // nom du signataire attendu
+  courriel      String?
+  jeton         String         @unique
+  ordre         Int            @default(0)
+  statut        String         @default("EN_ATTENTE") // "EN_ATTENTE" | "SIGNE" | "REFUSE" | "ANNULE"
+  empreinte     String // SHA-256 du document présenté
+  message       String? // mot du locateur joint à la demande
+  demandeLe     DateTime       @default(now())
+  envoyeLe      DateTime? // dernier envoi du lien par courriel
+  relances      Int            @default(0)
+  vuLe          DateTime? // première ouverture du lien
+  reponduLe     DateTime?
+  signataireNom String? // nom entré en signant
+  signature     String? // image PNG de la signature (data URL)
+  reponseAvis   String? // avis de modification : ACCEPTE | REFUSE | QUITTE
+  note          String? // message laissé avec la réponse
+  ip            String?
+  navigateur    String?
+  creePar       String?
+
+  @@index([documentId])
+  @@index([locataireId, statut])
+}
+
 model EnvoiImmo {
   id            String    @id @default(cuid())
   date          DateTime  @default(now())
-  type          String // "DOCUMENT" | "RELEVE" | "RECU"
+  type          String // "DOCUMENT" | "RELEVE" | "RECU" | "SIGNATURE"
   sujet         String
   destinataires String // adresses, séparées par des virgules
   bailId        String?

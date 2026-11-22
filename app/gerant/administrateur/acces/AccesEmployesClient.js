@@ -12,6 +12,7 @@ const SECTIONS = [
   { cle: "clients", label: "🧑‍🤝‍🧑 Clients" },
   { cle: "fournisseurs", label: "🏢 Fournisseurs" },
   { cle: "inventaire", label: "📦 Inventaire" },
+  { cle: "pneus", label: "🛞 Entreposage de pneus — jeux, emplacements, rappels de saison" },
   { cle: "elevage", label: "🐂 Élevage — troupeau, découpe, vente de viande" },
   { cle: "copropriete", label: "🏢 Copropriété — unités, charges, entretien, documents" },
   { cle: "immobilier", label: "🏘️ Immobilier — immeubles, locataires, baux, loyers, réparations" },

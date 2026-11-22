@@ -41,7 +41,9 @@ const GROUPES = [
     titre: "Fin d’année", teinte: TEINTES.vert,
     liens: [
       { href: "/gerant/paie/cumulatifs", icone: "imprimante", label: "Cumulatifs", detail: "Totaux de l’année par employé" },
-      { href: "/gerant/paie/feuillets", icone: "document", label: "Sommaires T4 / RL-1", detail: "Feuillets à produire" },
+      { href: "/gerant/paie/fin-annee", icone: "document", label: "T4 et RL-1", detail: "Fichier pour l’ARC, copies des employés" },
+      { href: "/gerant/paie/feuillets", icone: "liste", label: "Sommaires T4 / RL-1", detail: "Montants par case, à imprimer" },
+      { href: "/gerant/paie/releves-emploi", icone: "utilisateurs", label: "Relevés d’emploi", detail: "Au départ d’un employé, pour RE Web" },
     ],
   },
 ];

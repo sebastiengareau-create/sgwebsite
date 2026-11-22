@@ -154,6 +154,7 @@ function Ligne({ v, coche, onBasculer, nomEntreprise }) {
             <BoutonTexto
               telephone={v.client.telephone}
               message={MESSAGES_TEXTO.rappelEntretien({ nom: v.client.nom, vehicule: v.vehicule, nomEntreprise })}
+              type="RAPPEL" clientId={v.client.id}
               style={{ ...lienBouton, fontSize: 12 }} title="Texto de rappel d'entretien — ouvre Messages avec le message déjà écrit"
             />
           )}

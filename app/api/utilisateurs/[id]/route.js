@@ -93,6 +93,15 @@ export async function PATCH(request, props) {
     data[champ] = montant;
   }
   if (body.telephone !== undefined) data.telephone = body.telephone || null;
+  // Noms séparés et assurance dentaire, pour les feuillets et le relevé d'emploi (lib/finAnnee.js)
+  for (const champ of ["prenom", "nomFamille"]) {
+    if (body[champ] !== undefined) data[champ] = String(body[champ] || "").trim().slice(0, 60) || null;
+  }
+  if (body.codeDentaireT4 !== undefined) {
+    const code = body.codeDentaireT4 === "" || body.codeDentaireT4 === null ? null : Number(body.codeDentaireT4);
+    if (code !== null && !(Number.isInteger(code) && code >= 1 && code <= 5)) return NextResponse.json({ erreur: "Code d'assurance dentaire invalide (1 à 5)." }, { status: 400 });
+    data.codeDentaireT4 = code;
+  }
   // NAS (feuillets T4 / RL-1) : réservé à qui a la section Paie
   if (body.nas !== undefined) {
     if (!(await aAccesSection(session, "paie"))) return NextResponse.json({ erreur: "Le NAS se modifie seulement avec l'accès à la Paie." }, { status: 403 });

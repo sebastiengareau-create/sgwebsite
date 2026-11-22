@@ -9,8 +9,8 @@ export default async function UnitesCopro() {
     prisma.uniteCopro.findMany({
       include: {
         batiment: { select: { nom: true } },
-        proprietes: { where: { dateFin: null }, include: { coproprietaire: { select: { id: true, nom: true } } } },
-        occupants: { where: { dateFin: null }, select: { type: true, nom: true } },
+        proprietes: { where: { dateFin: null }, include: { coproprietaire: { select: { id: true, nom: true, clesMagnetiques: true, mobiliteReduite: true } } } },
+        occupants: { where: { dateFin: null }, select: { type: true, nom: true, clesMagnetiques: true, mobiliteReduite: true } },
         _count: { select: { espaces: true } },
       },
     }),

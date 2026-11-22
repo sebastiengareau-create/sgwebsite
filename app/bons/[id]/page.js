@@ -10,6 +10,11 @@ import { assurerComptesTresorerie, obtenirComptesTresoreriePourSelection } from 
 import { CLIENT } from "@/lib/client";
 import { kitsDisponibles } from "@/lib/kits";
 import { soldeCredit } from "@/lib/creditClient";
+import { inspectionActive, lireGrilles } from "@/lib/inspections";
+import { pointsARevoir } from "@/lib/rappelsInspection";
+import { pneusActif, lirePrixSaison } from "@/lib/pneus";
+import { paiementEnLigneActif } from "@/lib/paiementEnLigne";
+import { resumeGrilles } from "@/lib/grillesInspection";
 import EnTete from "../../components/EnTete";
 import BonDetailClient from "../BonDetailClient";
 
@@ -22,7 +27,7 @@ export default async function DetailBonPage(props) {
   // qu'une lecture après l'autre
   const [
     bon, inventaireBrut, employes, postesRevenu, comptesTresorerie, dict,
-    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise },
+    peutModifier, peutEnvoyer, peutCommander, { nomEntreprise }, moduleInspection, modulePneus, paiementEnLigne,
   ] = await Promise.all([
     prisma.bonTravail.findUnique({
       where: { id: params.id },
@@ -64,6 +69,14 @@ export default async function DetailBonPage(props) {
         },
         // Fichiers joints au rendez-vous d'où vient le bon : noms seulement
         rendezVous: { select: { fichiers: { select: { id: true, nom: true }, orderBy: { creeLe: "asc" } } } },
+        // Inspections numériques : de quoi résumer chacune sur la carte du bon
+        inspections: {
+          orderBy: { creeLe: "asc" },
+          select: {
+            id: true, titre: true, statut: true, creeLe: true, envoyeeLe: true, reponseClient: true,
+            points: { select: { etat: true, approbation: true, problemeId: true } },
+          },
+        },
       },
     }),
     // Seulement ce qu'utilisent le choix de pièce, le scan et les pièces à
@@ -99,6 +112,9 @@ export default async function DetailBonPage(props) {
     // « 🛒 Commander » une pièce à commander : circuit des commandes fournisseurs
     aAccesSection(session, "inventaire"),
     obtenirInfosEntreprise(), // signe les textos au client
+    inspectionActive(),
+    pneusActif(),
+    paiementEnLigneActif(),
   ]);
   if (!bon) notFound();
 
@@ -115,7 +131,7 @@ export default async function DetailBonPage(props) {
   const tvqTaux = bon.vehiculeVente ? 0 : Number(dict.tvq_taux || 9.975);
   const sitesPieces = lireSites(dict[CLE_SITES_PIECES]);
   const peutPoinconner = estGerantOuDev(session) || session.role === "MECANICIEN";
-  const [creditClient, fournisseurs, clientsChoix] = await Promise.all([
+  const [creditClient, fournisseurs, clientsChoix, grillesInspection, aRevoirInspection, jeuxPneus, prixPneus] = await Promise.all([
     // Crédit du client disponible pour la facture (lib/creditClient.js)
     bon.vehiculeVenteId ? 0 : soldeCredit(bon.clientId),
     peutCommander
@@ -125,6 +141,21 @@ export default async function DetailBonPage(props) {
     peutModifier && !bon.facture && !bon.vehiculeVenteId
       ? prisma.client.findMany({ select: { id: true, nom: true, numero: true, telephone: true }, orderBy: { nom: "asc" } })
       : [],
+    // Grilles offertes pour commencer une inspection (Paramètres → Grilles d'inspection)
+    moduleInspection ? lireGrilles().then(resumeGrilles) : [],
+    // Points notés à surveiller aux visites précédentes de ce véhicule
+    moduleInspection && bon.vehiculeId && !bon.comptoir
+      ? pointsARevoir([bon.vehiculeId], { saufBonId: bon.id }).then((parVehicule) => parVehicule.get(bon.vehiculeId) || [])
+      : [],
+    // Pneus entreposés de ce véhicule (ou du client, sans véhicule précisé)
+    modulePneus && !bon.comptoir
+      ? prisma.jeuPneus.findMany({
+          where: { clientId: bon.clientId, statut: { not: "REMIS" }, ...(bon.vehiculeId && { OR: [{ vehiculeId: bon.vehiculeId }, { vehiculeId: null }] }) },
+          select: { id: true, numero: true, saison: true, dimension: true, marque: true, statut: true, emplacement: true },
+          orderBy: { numero: "asc" },
+        })
+      : [],
+    modulePneus ? lirePrixSaison() : null,
   ]);
 
   return (
@@ -153,6 +184,11 @@ export default async function DetailBonPage(props) {
         moi={session.id}
         clientsChoix={clientsChoix}
         creditClient={creditClient}
+        moduleInspection={moduleInspection}
+        grillesInspection={grillesInspection}
+        aRevoirInspection={aRevoirInspection}
+        pneus={modulePneus && !bon.comptoir ? { jeux: jeuxPneus, prixSaison: prixPneus } : null}
+        paiementEnLigne={paiementEnLigne}
       />
     </div>
   );

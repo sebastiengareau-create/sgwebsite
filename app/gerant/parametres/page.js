@@ -11,6 +11,14 @@ import TachesInternesSection from "./TachesInternesSection";
 import SitesPiecesSection from "./SitesPiecesSection";
 import PartsTechSection from "./PartsTechSection";
 import AProposSection from "./AProposSection";
+import GrillesInspectionSection from "./GrillesInspectionSection";
+import PaiementEnLigneSection from "./PaiementEnLigneSection";
+import { paiementEnLigneActif, lirePourcentDepot, modeTestStripe } from "@/lib/paiementEnLigne";
+import TextosSection from "./TextosSection";
+import { textosActifs, lireReglagesTextos, numeroEnvoi } from "@/lib/textosAuto";
+import { segmentsTexto } from "@/lib/textos";
+import { inspectionActive, lireGrilles, CLE_GRILLES } from "@/lib/inspections";
+import { nbPointsGrille } from "@/lib/grillesInspection";
 import { lireConfig as lireConfigPartsTech } from "@/lib/partstech";
 import { CLE as CLE_SITES_PIECES, lireSites } from "@/lib/recherchePieces";
 import { CLIENT } from "@/lib/client";
@@ -66,6 +74,61 @@ export default async function Parametres() {
   const libelleMoisPrecedent = new Date(Date.UTC(anPrecedent, moisPrecedent - 1, 15))
     .toLocaleDateString("fr-CA", { month: "long", year: "numeric", timeZone: "UTC" });
 
+  // Grilles d'inspection (module Inspection numérique) : résumé et lien vers l'éditeur
+  const grillesInspection = (await inspectionActive())
+    ? (await lireGrilles()).map((g) => ({ cle: g.cle, titre: g.titre, active: g.active, nbPoints: nbPointsGrille(g) }))
+    : null;
+
+  // Paiement en ligne (module) : réglages et derniers paiements, avec ce qu'ils paient
+  let paiementEnLigne = null;
+  if (await paiementEnLigneActif()) {
+    const recents = await prisma.paiementEnLigne.findMany({ orderBy: { creeLe: "desc" }, take: 15 });
+    const [factures, soumissions, bons] = await Promise.all([
+      prisma.facture.findMany({ where: { id: { in: recents.map((p) => p.factureId).filter(Boolean) } }, select: { id: true, numero: true } }),
+      prisma.soumission.findMany({ where: { id: { in: recents.map((p) => p.soumissionId).filter(Boolean) } }, select: { id: true, numero: true } }),
+      prisma.bonTravail.findMany({ where: { id: { in: recents.map((p) => p.bonId).filter(Boolean) } }, select: { id: true, numero: true } }),
+    ]);
+    const numero = (liste, id) => liste.find((x) => x.id === id)?.numero || "?";
+    paiementEnLigne = {
+      modeTest: modeTestStripe(),
+      adresseAvis: `${(process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, "")}/api/stripe/webhook`,
+      pourcentInitial: await lirePourcentDepot(),
+      paiements: recents.map((p) => ({
+        ...p,
+        libelle: p.type === "FACTURE" ? `Facture ${numero(factures, p.factureId)}`
+          : p.type === "DEPOT_SOUMISSION" ? `Dépôt — soumission ${numero(soumissions, p.soumissionId)}`
+          : `Dépôt — bon ${numero(bons, p.bonId)}`,
+      })),
+    };
+  }
+
+  // Textos automatiques (module) : réglages, compte du mois et derniers textos
+  let textos = null;
+  if (await textosActifs()) {
+    const { debut, fin } = limitesMoisQuebec(anCourant, moisCourant);
+    const [recents, duMois, nbRefus, reglages] = await Promise.all([
+      prisma.texto.findMany({ orderBy: { creeLe: "desc" }, take: 15 }),
+      prisma.texto.findMany({ where: { creeLe: { gte: debut, lte: fin } }, select: { direction: true, statut: true, corps: true } }),
+      prisma.refusTextos.count(),
+      lireReglagesTextos(),
+    ]);
+    const clients = await prisma.client.findMany({ where: { id: { in: [...new Set(recents.map((t) => t.clientId).filter(Boolean))] } }, select: { id: true, nom: true } });
+    const factures = duMois.filter((t) => t.statut !== "ECHEC");
+    textos = {
+      numeroEnvoi: numeroEnvoi(),
+      adresseEntrant: `${(process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, "")}/api/twilio/entrant`,
+      reglagesInit: reglages,
+      journal: recents.map((t) => ({ ...t, clientNom: clients.find((c) => c.id === t.clientId)?.nom || null })),
+      mois: {
+        envoyes: factures.filter((t) => t.direction === "SORTANT").length,
+        recus: duMois.filter((t) => t.direction === "ENTRANT").length,
+        echecs: duMois.filter((t) => t.statut === "ECHEC").length,
+        segments: factures.reduce((n, t) => n + segmentsTexto(t.corps), 0),
+      },
+      nbRefus,
+    };
+  }
+
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
@@ -96,6 +159,9 @@ export default async function Parametres() {
         urlFluxCalendrier={urlFlux}
       />
       <TachesInternesSection tachesInitiales={tachesInternes} />
+      {grillesInspection && <GrillesInspectionSection grilles={grillesInspection} personnalisees={!!dict[CLE_GRILLES]} />}
+      {paiementEnLigne && <PaiementEnLigneSection {...paiementEnLigne} />}
+      {textos && <TextosSection {...textos} />}
       <SitesPiecesSection sitesInitiaux={lireSites(dict[CLE_SITES_PIECES])} />
       {CLIENT.partstech && <PartsTechSection configInitiale={await lireConfigPartsTech()} />}
       <AProposSection />

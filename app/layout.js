@@ -2,6 +2,8 @@ import { obtenirInfosEntreprise } from "@/lib/config";
 import { lireParametre, lireParametres } from "@/lib/parametres";
 import { obtenirSession, obtenirFicheSession, aAccesSection } from "@/lib/auth";
 import BoutonFlottantNouveau from "./components/BoutonFlottantNouveau";
+import { FournisseurTextos } from "./components/ContexteTextos";
+import { envoiDirectActif } from "@/lib/textosAuto";
 import "./globals.css";
 import { image } from "@/lib/client";
 
@@ -71,11 +73,13 @@ export default async function RootLayout({ children }) {
   // DEVELOPPEUR n'est jamais bloqué (sinon personne ne pourrait débloquer).
   const session = await obtenirSession();
   // En parallèle : verrou, affichage et sections du bouton « + »
-  const [verrou, { theme, tailleTexte }, acces] = await Promise.all([
+  const [verrou, { theme, tailleTexte }, acces, textosDirects] = await Promise.all([
     session && session.role !== "DEVELOPPEUR" ? lireParametre("compte_verrouille") : undefined,
     obtenirPreferencesAffichage(session),
     // Sections permises pour le bouton « + » (soumission, bon, pièce, client)
     session ? Promise.all(SECTIONS_BOUTON.map((section) => aAccesSection(session, section))) : [],
+    // Textos automatiques : les boutons « Texto » envoient depuis l'appli
+    session ? envoiDirectActif().catch(() => false) : false,
   ]);
   const verrouille = verrou === "actif";
   const sectionsBouton = verrouille ? [] : SECTIONS_BOUTON.filter((_, i) => acces[i]);
@@ -83,7 +87,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="fr" data-theme={theme === "clair" ? "light" : "dark"} data-taille={tailleTexte === "grand" ? "grand" : "normal"}>
       <body>
-        {verrouille ? <EcranVerrouille /> : children}
+        {verrouille ? <EcranVerrouille /> : <FournisseurTextos direct={textosDirects}>{children}</FournisseurTextos>}
         {!verrouille && session && <BoutonFlottantNouveau sections={sectionsBouton} />}
       </body>
     </html>

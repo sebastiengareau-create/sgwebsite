@@ -468,3 +468,15 @@ html[data-theme="light"] .logo-sombre { display: none; }
 .ligne-pastilles { flex-wrap: wrap; row-gap: 4px; }
 .ligne-pastilles > :first-child { flex: 1 1 220px; }
 .ligne-pastilles > :last-child { flex-shrink: 0; margin-left: auto; }
+
+/* Page Textos : la liste des conversations et la conversation ouverte,
+   côte à côte sur un grand écran, l'une ou l'autre sur un téléphone */
+.textos-grille { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) {
+  .textos-grille { grid-template-columns: 320px minmax(0, 1fr); }
+  .textos-retour { display: none !important; }
+}
+@media (max-width: 999px) {
+  .textos-grille[data-ouverte="1"] .textos-liste { display: none; }
+  .textos-grille[data-ouverte="0"] .textos-fil { display: none; }
+}

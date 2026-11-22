@@ -82,6 +82,35 @@ Chaque client a son **propre projet Railway complet** :
    variable `GOOGLE_PLACES_API_KEY`. Sans clé, les champs Ville et Code
    postal font quand même leurs suggestions (données locales). Voir
    `lib/googlePlaces.js`.
+10. Paiement en ligne (facultatif — module « Paiement en ligne (Stripe) ») :
+   le garage ouvre son propre compte Stripe (stripe.com). Dans Stripe →
+   Développeurs → Clés API, copie la clé secrète dans `STRIPE_SECRET_KEY`
+   (`sk_test_…` pour essayer, `sk_live_…` en vrai). Dans Développeurs →
+   Webhooks, ajoute un point de terminaison `<APP_URL>/api/stripe/webhook`
+   avec les événements `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded` et `checkout.session.expired`,
+   et copie son secret de signature (`whsec_…`) dans `STRIPE_WEBHOOK_SECRET`.
+   `APP_URL` doit être l'adresse publique : Stripe y renvoie le client. Puis
+   active le module dans Administrateur → Modules (refusé sans les deux clés)
+   et règle le dépôt demandé dans Paramètres → Paiement en ligne. Voir
+   `lib/paiementEnLigne.js`.
+11. Textos automatiques (facultatif, option payante — module « Textos
+   automatiques (Twilio) ») : dans Twilio (twilio.com), crée un sous-compte
+   pour ce client (Account → Subaccounts) : ses textos y sont comptés à part,
+   ce qui permet de les refacturer. Dans ce sous-compte, achète un numéro
+   canadien avec les textos (Phone Numbers → Buy a number, « SMS » coché ; la
+   vérification de l'entreprise demandée par Twilio peut prendre quelques
+   jours). Copie le « Account SID » dans `TWILIO_ACCOUNT_SID`, le « Auth
+   Token » dans `TWILIO_AUTH_TOKEN` et le numéro (format `+15145551234`)
+   dans `TWILIO_NUMERO` (ou un service de messagerie dans
+   `TWILIO_MESSAGING_SERVICE_SID`). Sur la page du numéro (Messaging →
+   « A message comes in »), mets `<APP_URL>/api/twilio/entrant` en HTTP POST :
+   c'est là qu'arrivent les réponses et les ARRET. `APP_URL` doit être
+   l'adresse publique (les états de livraison reviennent à
+   `<APP_URL>/api/twilio/statut`). Puis active le module dans Administrateur →
+   Modules (refusé sans les clés), choisis ce qui part tout seul dans
+   Paramètres → Textos automatiques et envoie-toi un texto d'essai. Voir
+   `lib/textosAuto.js`.
 
 ### 3. Initialiser la base de données de ce client
 Rien à lancer à la main : au démarrage, l'app exécute `prisma migrate deploy`
