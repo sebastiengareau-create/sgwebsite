@@ -242,6 +242,13 @@ export default function FormulaireReleve({ initial, erreursInitiales, employe, e
             >
               ⬇ Fichier pour RE Web (.BLK)
             </a>
+            <a
+              href={modifie ? undefined : `/api/paie/releves-emploi/${r.id}/pdf`} target="_blank" rel="noopener noreferrer"
+              aria-disabled={modifie} title={modifie ? "Enregistre d'abord" : "Copie de travail en PDF, pour vos dossiers"}
+              style={{ padding: "10px 16px", borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: "none", border: "1px solid var(--border)", color: "var(--text)", opacity: modifie ? 0.45 : 1, pointerEvents: modifie ? "none" : "auto" }}
+            >
+              📄 PDF
+            </a>
             <label style={{ fontSize: 12.5, color: "var(--text-muted)", display: "flex", gap: 6, alignItems: "center" }}>
               <input type="checkbox" checked={soumettre} onChange={(e) => setSoumettre(e.target.checked)} />
               Soumettre directement (sinon : brouillon à réviser dans RE Web)
@@ -259,6 +266,7 @@ export default function FormulaireReleve({ initial, erreursInitiales, employe, e
         ) : (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
             Transmis à RE Web{r.numeroSerie ? ` (no ${r.numeroSerie})` : ""}. Une correction se fait dans RE Web, avec ce numéro.
+            <a href={`/api/paie/releves-emploi/${r.id}/pdf`} target="_blank" rel="noopener noreferrer" style={{ ...petitBouton, textDecoration: "none" }}>📄 PDF</a>
             <button type="button" onClick={() => marquerTransmis(false)} disabled={!!enCours} style={{ ...petitBouton, marginLeft: "auto" }}>Remettre en brouillon</button>
           </div>
         )}

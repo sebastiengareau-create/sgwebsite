@@ -50,7 +50,8 @@ on décide quand et à qui une modification s'applique.
   (`lib/pdfT4.js`) ; le RL-1 XML attend la certification de kontrolshop par
   Revenu Québec (`lib/rl1.js`) — d'ici là, sommaire à recopier dans Mon
   dossier ; relevés d'emploi préparés à partir des paies, fichier .BLK pour
-  RE Web (`lib/releveEmploi.js`, `/gerant/paie/releves-emploi`)),
+  RE Web (`lib/releveEmploi.js`, `/gerant/paie/releves-emploi`) et copie de
+  travail en PDF pour les dossiers (`lib/pdfReleveEmploi.js`)),
   Jobs en déplacement, **Productivité par employés** (rapport de
   productivité et rentabilité par employé, actif par défaut,
   `lib/productivite.js`), **Élevage** (troupeau de bœuf wagyu, découpe et vente
