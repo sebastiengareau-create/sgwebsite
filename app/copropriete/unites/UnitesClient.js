@@ -38,6 +38,7 @@ const champsBatiment = [
   { nom: "nom", label: "Nom", placeholder: "Bâtiment A, Phase 1…" },
   { nom: "adresse", label: "Adresse", pleineLargeur: true },
   { nom: "anneeConstruction", label: "Année de construction", type: "nombre" },
+  { nom: "entrepreneur", label: "Entrepreneur (construit par)", placeholder: "Construction ABC inc." },
   { nom: "nbEtages", label: "Nombre d'étages", type: "nombre" },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
@@ -67,7 +68,7 @@ function ListeUnites({ unites, batiments, soldes }) {
   const [formulaire, setFormulaire] = useState(false);
   const [recherche, setRecherche] = useState("");
   const q = recherche.trim().toLowerCase();
-  const affichees = unites.filter((u) => !q || correspondRecherche(q, u.numero, nomsProprietaires(u), u.batiment?.nom, ...u.occupants.map((o) => o.nom)));
+  const affichees = unites.filter((u) => !q || correspondRecherche(q, u.numero, nomsProprietaires(u), u.batiment?.nom, ...u.occupants.flatMap((o) => [o.nom, o.clesMagnetiques]), ...u.proprietes.map((p) => p.coproprietaire.clesMagnetiques)));
   const totalQp = unites.reduce((s, u) => s + (u.quotePart || 0), 0);
   const ecart = unites.length > 0 && Math.abs(totalQp - 100) > 0.001;
 
@@ -80,7 +81,7 @@ function ListeUnites({ unites, batiments, soldes }) {
         </span>
       </div>
       {formulaire && <Formulaire champs={champsUnite(batiments)} url="/api/copropriete/unites" bouton="Ajouter l'unité" onFini={(d) => router.push(`/copropriete/unites/${d.id}`)} />}
-      <Recherche valeur={recherche} onChange={setRecherche} placeholder="Numéro, propriétaire, locataire…" />
+      <Recherche valeur={recherche} onChange={setRecherche} placeholder="Numéro, propriétaire, locataire, clé magnétique…" />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {affichees.map((u) => {
           const type = trouver(TYPES_UNITE, u.type);
@@ -90,7 +91,7 @@ function ListeUnites({ unites, batiments, soldes }) {
             <CarteListe
               key={u.id} href={`/copropriete/unites/${u.id}`}
               couleur={solde > 0.005 ? "var(--danger)" : u.proprietes.length === 0 ? "var(--accent)" : "var(--success)"}
-              titre={<>{type?.icone} Unité {u.numero}</>}
+              titre={<>{type?.icone} Unité {u.numero}{[...u.proprietes.map((p) => p.coproprietaire), ...u.occupants].some((x) => x.mobiliteReduite) && <span title="Mobilité réduite : aide pour évacuer"> ♿</span>}</>}
               sousTitre={[
                 nomsProprietaires(u) || "Aucun propriétaire inscrit",
                 locataires.length > 0 && `louée à ${locataires.map((o) => o.nom).join(", ")}`,
@@ -169,6 +170,7 @@ function ListeBatiments({ batiments }) {
               <div className="ligne-info"><span>Adresse</span><span>{b.adresse || "—"}</span></div>
               <div className="ligne-info"><span>Unités</span><span>{b._count.unites}</span></div>
               {b.anneeConstruction && <div className="ligne-info"><span>Construit en</span><span>{b.anneeConstruction}</span></div>}
+              {b.entrepreneur && <div className="ligne-info"><span>Construit par</span><span>{b.entrepreneur}</span></div>}
               {b.nbEtages != null && <div className="ligne-info"><span>Étages</span><span>{b.nbEtages}</span></div>}
               {b.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{b.notes}</p>}
               <div style={{ marginTop: 8 }}><BoutonSupprimer url={`/api/copropriete/batiments/${b.id}`} confirmation={`Supprimer ${b.nom} ? Ses unités resteront, sans bâtiment.`} /></div>

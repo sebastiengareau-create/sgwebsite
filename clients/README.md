@@ -73,8 +73,11 @@ on décide quand et à qui une modification s'applique.
   présence au lieu de l'horaire d'ouverture. Pointage de démonstration à
   charger ou retirer dans Administrateur (employés fictifs, période
   verrouillée, anomalies à régler, `lib/quartsDemo.js`).
-  **Copropriété** (syndicat de copropriété : unités et quotes-parts,
-  copropriétaires et historique des propriétaires, charges communes,
+  **Copropriété** (syndicat de copropriété : bâtiments (année et
+  entrepreneur), unités et quotes-parts, copropriétaires et historique des
+  propriétaires, contact d'urgence, clés magnétiques, mobilité réduite
+  (aide pour évacuer, ♿ sur l'unité) et autres personnes sous leur toit —
+  jamais sur le portail, charges communes,
   demandes de réparation et bons de travail, entretien préventif, documents
   et portail sécurisé des copropriétaires, `lib/copropriete.js` ; copropriété
   de démonstration à charger ou retirer dans Administrateur,

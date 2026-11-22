@@ -1992,6 +1992,7 @@ model BatimentCopro {
   nom               String
   adresse           String?
   anneeConstruction Int?
+  entrepreneur      String? // qui l'a construit (entrepreneur général)
   nbEtages          Int?
   notes             String?
   unites            UniteCopro[]
@@ -2037,6 +2038,14 @@ model CoproprietaireCopro {
   telephone2          String?
   adressePostale      String? // si différente de l'unité (propriétaire non occupant)
   notes               String?
+  // Sécurité et accès à l'immeuble (visibles à l'administration seulement,
+  // jamais sur le portail)
+  mobiliteReduite     Boolean          @default(false) // a besoin d'aide pour évacuer (incendie, panne d'ascenseur)
+  besoinsParticuliers String? // fauteuil roulant, malentendant, oxygène…
+  contactUrgenceNom   String?
+  contactUrgenceLien  String? // conjoint, fille, voisin…
+  contactUrgenceTel   String?
+  clesMagnetiques     String? // numéros des clés / puces d'accès, séparés par des virgules
   avisCourriel        Boolean          @default(true) // reçoit par courriel le suivi de ses demandes
   jetonPortail        String?          @unique // lien secret de son portail (null = aucun accès)
   dernierAccesPortail DateTime?
@@ -2064,19 +2073,24 @@ model ProprieteCopro {
   @@index([coproprietaireId])
 }
 
-// Occupants et locataires d'une unité (passés et actuels)
+// Occupants et locataires d'une unité (passés et actuels) : les personnes
+// qui habitent sous son toit, autres que le copropriétaire
 model OccupantCopro {
   id        String     @id @default(cuid())
   uniteId   String
   unite     UniteCopro @relation(fields: [uniteId], references: [id], onDelete: Cascade)
-  type      String     @default("LOCATAIRE") // "PROPRIETAIRE" (occupant) | "LOCATAIRE" | "OCCUPANT"
-  nom       String
-  courriel  String?
-  telephone String?
-  dateDebut DateTime?
-  dateFin   DateTime?
-  notes     String?
-  creeLe    DateTime   @default(now())
+  type                String     @default("LOCATAIRE") // "PROPRIETAIRE" (occupant) | "LOCATAIRE" | "OCCUPANT"
+  nom                 String
+  relation            String? // lien avec le propriétaire : conjoint, enfant, parent…
+  courriel            String?
+  telephone           String?
+  mobiliteReduite     Boolean    @default(false) // a besoin d'aide pour évacuer
+  besoinsParticuliers String?
+  clesMagnetiques     String? // numéros des clés / puces d'accès, séparés par des virgules
+  dateDebut           DateTime?
+  dateFin             DateTime?
+  notes               String?
+  creeLe              DateTime   @default(now())
 
   @@index([uniteId])
 }
