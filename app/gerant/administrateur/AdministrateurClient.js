@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BoutonEnLigne from "../../components/BoutonEnLigne";
 import BandeauSection from "../../components/BandeauSection";
+import { COURRIEL_SOUTIEN } from "@/lib/marque";
 import { Icone, TEINTES, GroupeLiens, CarteLien, Panneau, Pastille, TitreGroupe } from "../../components/StyleSection";
 
 export default function AdministrateurClient({ modules, atelierDemo, troupeauDemo, coproDemo, immoDemo, paieDemo, quartsDemo, verrouilleInit, estDeveloppeur, themeInit, tailleTexteInit }) {
@@ -158,7 +159,7 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
               <div style={{ fontWeight: 700, fontSize: 14.5 }}>Verrouiller l'accès complet</div>
               <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>
                 Ex. en cas de défaut de paiement — bloque toute l'installation pour tout le monde (sauf toi) et affiche
-                un message pour contacter info@sgwebsite.online.
+                un message pour contacter {COURRIEL_SOUTIEN}.
               </div>
             </div>
             <Interrupteur actif={verrouille} couleur="var(--danger)" libelle={verrouille ? "Déverrouiller l'accès" : "Verrouiller l'accès"} onClick={basculerVerrouillage} disabled={verrouillageEnCours} />
