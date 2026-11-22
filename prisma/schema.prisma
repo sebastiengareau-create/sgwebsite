@@ -2337,6 +2337,7 @@ model ImmeubleImmo {
   codePostal           String?
   type                 String           @default("PLEX") // voir TYPES_IMMEUBLE dans lib/immobilierCalculs.js
   anneeConstruction    Int?
+  entrepreneur         String? // qui l'a construit (entrepreneur général)
   dateAchat            DateTime?
   prixAchat            Float?
   evaluationMunicipale Float?

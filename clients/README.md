@@ -83,7 +83,7 @@ on décide quand et à qui une modification s'applique.
   de démonstration à charger ou retirer dans Administrateur,
   `lib/coproprieteDemo.js`).
   **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
-  immeubles locatifs — immeubles et logements, locataires et baux avec les
+  immeubles locatifs — immeubles (année, entrepreneur) et logements, locataires et baux avec les
   délais d'avis de modification du TAL et le renouvellement, loyers du mois,
   paiements et retards, dépenses et rendement par immeuble, réparations avec
   photos, documents avec date d'expiration, bail de logement complet (sections
