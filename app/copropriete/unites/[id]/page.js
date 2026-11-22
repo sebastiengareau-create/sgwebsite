@@ -12,7 +12,7 @@ export default async function FicheUnite(props) {
       where: { id },
       include: {
         batiment: { select: { id: true, nom: true } },
-        proprietes: { include: { coproprietaire: { select: { id: true, nom: true, courriel: true, telephone: true } } }, orderBy: [{ dateFin: { sort: "desc", nulls: "first" } }, { dateDebut: "desc" }] },
+        proprietes: { include: { coproprietaire: { select: { id: true, nom: true, courriel: true, telephone: true, mobiliteReduite: true, besoinsParticuliers: true, clesMagnetiques: true } } }, orderBy: [{ dateFin: { sort: "desc", nulls: "first" } }, { dateDebut: "desc" }] },
         occupants: { orderBy: [{ dateFin: { sort: "desc", nulls: "first" } }, { dateDebut: "desc" }] },
         espaces: { orderBy: [{ type: "asc" }, { numero: "asc" }] },
         charges: { orderBy: { date: "asc" } },

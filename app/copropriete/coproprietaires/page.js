@@ -7,7 +7,7 @@ export default async function CoproprietairesCopro() {
   const session = await exigerAccesCopro();
   const coproprietaires = await prisma.coproprietaireCopro.findMany({
     select: {
-      id: true, nom: true, courriel: true, telephone: true, jetonPortail: true,
+      id: true, nom: true, courriel: true, telephone: true, jetonPortail: true, mobiliteReduite: true, clesMagnetiques: true,
       proprietes: { where: { dateFin: null }, select: { partDetenue: true, unite: { select: { id: true, numero: true, quotePart: true } } } },
     },
     orderBy: { nom: "asc" },

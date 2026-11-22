@@ -56,6 +56,7 @@ function Fiche({ immeuble }) {
           <LigneInfo label="Adresse" valeur={[immeuble.adresse, immeuble.ville, immeuble.codePostal].filter(Boolean).join(", ")} />
           <LigneInfo label="Type" valeur={libelle(TYPES_IMMEUBLE, immeuble.type)} />
           <LigneInfo label="Construit en" valeur={immeuble.anneeConstruction} />
+          {immeuble.entrepreneur && <LigneInfo label="Construit par" valeur={immeuble.entrepreneur} />}
           <LigneInfo label="Acheté le" valeur={immeuble.dateAchat && dateLisible(immeuble.dateAchat)} />
           <LigneInfo label="Prix d'achat" valeur={immeuble.prixAchat != null && argent(immeuble.prixAchat)} />
           <LigneInfo label="Évaluation municipale" valeur={immeuble.evaluationMunicipale != null && argent(immeuble.evaluationMunicipale)} />

@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
 import {
-  TYPES_UNITE, TYPES_OCCUPANT, TYPES_ESPACE, MODES_ESPACE, TYPES_CHARGE, MODES_PAIEMENT, STATUTS_DEMANDE, STATUTS_TRAVAIL, CATEGORIES_DOCUMENTS, VISIBILITES,
+  TYPES_UNITE, TYPES_ESPACE, MODES_ESPACE, TYPES_CHARGE, MODES_PAIEMENT, STATUTS_DEMANDE, STATUTS_TRAVAIL, CATEGORIES_DOCUMENTS, VISIBILITES,
   argent, pourcent, libelle, trouver, dateLisible, soldeUnite, releveUnite, taille,
 } from "@/lib/coproprieteCalculs";
 import { champsUnite } from "../UnitesClient";
 import FormulaireDocument from "../../documents/FormulaireDocument";
+import { Occupants, PastilleMobilite } from "../../occupants";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Tableau, cellule, celluleDroite, valeursDe, aujourdhui, useApi,
 } from "../../ui";
@@ -17,18 +18,20 @@ import {
 export default function UniteClient({ unite, batiments, coproprietaires }) {
   const type = trouver(TYPES_UNITE, unite.type);
   const solde = soldeUnite(unite);
+  // Quelqu'un dans l'unité a besoin d'aide pour évacuer
+  const mobilite = [...unite.proprietes.filter((p) => !p.dateFin).map((p) => p.coproprietaire), ...unite.occupants.filter((o) => !o.dateFin)].some((x) => x.mobiliteReduite);
   return (
     <div className="conteneur-page">
       <Retour href="/copropriete/unites">Unités</Retour>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "10px 0 14px", flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 21, margin: 0 }}>{type?.icone} Unité {unite.numero}</h1>
+        <h1 style={{ fontSize: 21, margin: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>{type?.icone} Unité {unite.numero}{mobilite && <PastilleMobilite />}</h1>
         <span style={{ fontSize: 13, fontWeight: 700, color: solde > 0.005 ? "var(--danger)" : "var(--success)" }}>
           {solde > 0.005 ? `Solde dû : ${argent(solde)}` : solde < -0.005 ? `Crédit : ${argent(-solde)}` : "Compte à jour"}
         </span>
       </div>
       <Fiche unite={unite} batiments={batiments} />
       <Proprietaires unite={unite} coproprietaires={coproprietaires} />
-      <Occupants unite={unite} />
+      <Occupants unites={[unite]} />
       <Espaces unite={unite} />
       <Compte unite={unite} />
       <Historique unite={unite} />
@@ -101,6 +104,12 @@ function LignePropriete({ p, ancien }) {
           {" "}· {p.dateDebut ? `depuis le ${dateLisible(p.dateDebut)}` : "date d'acquisition inconnue"}{p.dateFin && ` → vendu le ${dateLisible(p.dateFin)}`}
           {!ancien && p.coproprietaire.telephone && ` · ${p.coproprietaire.telephone}`}
         </span>
+        {!ancien && (p.coproprietaire.mobiliteReduite || p.coproprietaire.clesMagnetiques) && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 3, fontSize: 12 }}>
+            {p.coproprietaire.mobiliteReduite && <PastilleMobilite besoins={p.coproprietaire.besoinsParticuliers} />}
+            {p.coproprietaire.clesMagnetiques && <span>🔑 {p.coproprietaire.clesMagnetiques}</span>}
+          </div>
+        )}
       </span>
       <span style={{ whiteSpace: "nowrap" }}>
         {!ancien && <><BoutonTexte onClick={terminer} disabled={enCours}>Fin</BoutonTexte>{" · "}</>}
@@ -140,46 +149,6 @@ function AjoutProprietaire({ unite, coproprietaires, aDesActuels, onFini }) {
         </div>
       )}
     </Formulaire>
-  );
-}
-
-// ---------- Occupants et locataires ----------
-
-const champsOccupant = [
-  { nom: "type", label: "Type", type: "choix", options: TYPES_OCCUPANT, defaut: "LOCATAIRE" },
-  { nom: "nom", label: "Nom" },
-  { nom: "telephone", label: "Téléphone" },
-  { nom: "courriel", label: "Courriel" },
-  { nom: "dateDebut", label: "Arrivée", type: "date" },
-  { nom: "dateFin", label: "Départ", type: "date" },
-  { nom: "notes", label: "Notes (bail, véhicule, animal…)", type: "long", lignes: 2 },
-];
-
-function Occupants({ unite }) {
-  const [ajout, setAjout] = useState(false);
-  const [edition, setEdition] = useState(null);
-  const actuels = unite.occupants.filter((o) => !o.dateFin);
-  const anciens = unite.occupants.filter((o) => o.dateFin);
-  const ligne = (o) => (
-    <div key={o.id} className="ligne-info" style={{ gap: 8, opacity: o.dateFin ? 0.75 : 1 }}>
-      <span style={{ minWidth: 0 }}>
-        <strong>{o.nom}</strong> <span style={{ color: "var(--text-muted)", fontSize: 12 }}>· {libelle(TYPES_OCCUPANT, o.type)}{o.telephone && ` · ${o.telephone}`}{o.courriel && ` · ${o.courriel}`}
-          {o.dateDebut && ` · depuis le ${dateLisible(o.dateDebut)}`}{o.dateFin && ` → ${dateLisible(o.dateFin)}`}</span>
-        {o.notes && <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{o.notes}</div>}
-      </span>
-      <span style={{ whiteSpace: "nowrap" }}>
-        <BoutonTexte onClick={() => setEdition(edition?.id === o.id ? null : o)}>Modifier</BoutonTexte>{" · "}
-        <BoutonSupprimer url={`/api/copropriete/occupants/${o.id}`} confirmation={`Supprimer ${o.nom} ?`}>✕</BoutonSupprimer>
-      </span>
-    </div>
-  );
-  return (
-    <Section titre="Occupants et locataires" droite={<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Occupant"}</BoutonTexte>}>
-      {ajout && <Formulaire champs={champsOccupant} initial={{ dateDebut: aujourdhui() }} url="/api/copropriete/occupants" extra={{ uniteId: unite.id }} bouton="Ajouter" onFini={() => setAjout(false)} />}
-      {edition && <Formulaire key={edition.id} champs={champsOccupant} initial={valeursDe(edition, champsOccupant)} url={`/api/copropriete/occupants/${edition.id}`} methode="PATCH" bouton={`Enregistrer ${edition.nom}`} onFini={() => setEdition(null)} />}
-      {actuels.length === 0 ? <Vide>Aucun occupant inscrit.</Vide> : actuels.map(ligne)}
-      {anciens.length > 0 && <><div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", margin: "12px 0 4px" }}>Anciens occupants</div>{anciens.map(ligne)}</>}
-    </Section>
   );
 }
 

@@ -15,6 +15,7 @@ export const champsImmeuble = [
   { nom: "ville", label: "Ville" },
   { nom: "codePostal", label: "Code postal" },
   { nom: "anneeConstruction", label: "Année de construction", type: "nombre" },
+  { nom: "entrepreneur", label: "Entrepreneur (construit par)", placeholder: "Construction ABC inc." },
   { nom: "dateAchat", label: "Date d'achat", type: "date" },
   { nom: "prixAchat", label: "Prix d'achat ($)", type: "nombre" },
   { nom: "evaluationMunicipale", label: "Évaluation municipale ($)", type: "nombre" },
