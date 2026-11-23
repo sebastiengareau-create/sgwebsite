@@ -65,6 +65,12 @@ export async function POST(request, props) {
       }
     }
 
+    // Photo de référence (lib/photoPiece.js) : celle du doublon passe à la
+    // cible si elle n'en a pas ; sinon elle part avec le doublon.
+    if (!(await tx.photoPiece.count({ where: { pieceId: cible.id } }))) {
+      await tx.photoPiece.updateMany({ where: { pieceId: source.id }, data: { pieceId: cible.id } });
+    }
+
     // Le code-barres du doublon est libéré avant d'être repris par la cible
     // (contrainte d'unicité).
     if (source.codeBarre) await tx.piece.update({ where: { id: source.id }, data: { codeBarre: null } });

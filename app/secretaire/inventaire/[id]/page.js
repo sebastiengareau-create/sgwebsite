@@ -24,6 +24,7 @@ export default async function DetailPiece(props) {
         fournisseurs: { include: { fournisseur: true }, orderBy: { creeLe: "asc" } },
         composantsKit: { include: { piece: true }, orderBy: { ordre: "asc" } },
         dansKits: { select: { qte: true, kit: { select: { id: true, nom: true } } } },
+        photo: { select: { ajouteeLe: true } }, // la date seulement : l'image est servie à part (lib/photoPiece.js)
         lignesCommande: {
           where: { commande: { statut: { in: ["BROUILLON", "ENVOYEE", "RECUE_PARTIELLE"] } } },
           include: { commande: { include: { fournisseur: true } } },

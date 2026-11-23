@@ -8,6 +8,9 @@ import ImpressionEtiquettes from "../../../components/ImpressionEtiquettes";
 import ChampsPiece from "../ChampsPiece";
 import { pieceCorrespond } from "@/lib/codesBarres";
 import { argent, nombre } from "@/lib/format";
+import { CLIENT } from "@/lib/client";
+import { urlPhotoPiece } from "@/lib/photoPiece";
+import { PanneauPhotoPiece, VisionneusePhotoPiece } from "./PhotoPiece";
 
 const ONGLETS = [
   { code: "resume", label: "Résumé" },
@@ -34,6 +37,9 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
   const [onglet, setOnglet] = useState("resume");
   const [afficherEtiquettes, setAfficherEtiquettes] = useState(false);
   const [afficherFusion, setAfficherFusion] = useState(false);
+  // Photo de référence (lib/photoPiece.js) : sa date, null sans photo
+  const [photoLe, setPhotoLe] = useState(piece.photo?.ajouteeLe || null);
+  const [photoAgrandie, setPhotoAgrandie] = useState(false);
 
   const [nom, setNom] = useState(piece.nom);
   const [numero, setNumero] = useState(piece.numero);
@@ -129,9 +135,15 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
         <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, background: couleurProfil }} />
         <span style={{ position: "absolute", right: -40, top: -40, width: 150, height: 150, borderRadius: "50%", background: couleurProfil, opacity: 0.08 }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: stockBas && piece.actif ? "var(--danger-fond)" : TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Icone nom="boite" taille={28} couleur={stockBas && piece.actif ? "var(--danger)" : TEINTES.ambre.couleur} />
-          </div>
+          {photoLe ? (
+            <button type="button" onClick={() => setPhotoAgrandie(true)} title="Voir la photo en grand" style={{ width: 56, height: 56, borderRadius: 16, overflow: "hidden", padding: 0, border: "1px solid var(--border)", background: "var(--surface-alt)", cursor: "zoom-in", flexShrink: 0 }}>
+              <img src={urlPhotoPiece(piece.id, photoLe)} alt="" style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
+            </button>
+          ) : (
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: stockBas && piece.actif ? "var(--danger-fond)" : TEINTES.ambre.fond, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icone nom="boite" taille={28} couleur={stockBas && piece.actif ? "var(--danger)" : TEINTES.ambre.couleur} />
+            </div>
+          )}
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-0.01em" }}>{piece.nom}</div>
             <div style={{ fontSize: 13, color: "var(--text-muted)", fontFamily: "monospace", marginTop: 2, overflowWrap: "anywhere" }}>
@@ -194,6 +206,13 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
             ))}
           </div>
 
+          {onglet === "resume" && (CLIENT.photoPiece || photoLe) && (
+            <PanneauPhotoPiece
+              pieceId={piece.id} photoLe={photoLe} modifiable={CLIENT.photoPiece}
+              onChange={(le) => { setPhotoLe(le); router.refresh(); }}
+              onAgrandir={() => setPhotoAgrandie(true)}
+            />
+          )}
           {onglet === "resume" && (
             <OngletResume piece={piece} marge={marge} margePct={margePct} />
           )}
@@ -222,6 +241,8 @@ export default function PieceDetailClient({ piece, categories, fournisseurs, aut
           </div>
         </>
       )}
+
+      {photoAgrandie && photoLe && <VisionneusePhotoPiece src={urlPhotoPiece(piece.id, photoLe)} onFermer={() => setPhotoAgrandie(false)} />}
     </div>
   );
 }
