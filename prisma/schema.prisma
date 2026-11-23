@@ -710,8 +710,22 @@ model Piece {
   estKit        Boolean               @default(false)
   composantsKit ComposantKit[]        @relation("ComposantsDuKit")
   dansKits      ComposantKit[]        @relation("PieceDansKit") // kits qui contiennent cette pièce
+  photo         PhotoPiece? // photo de référence de la pièce, sur sa fiche (lib/photoPiece.js)
 
   @@index([fournisseurId])
+}
+
+// Photo de référence d'une pièce d'inventaire (une au plus), prise depuis sa
+// fiche et consultée au besoin (lib/photoPiece.js, réglage photoPiece du
+// profil). Dans une table à part pour ne jamais charger l'image avec les
+// listes de pièces. url : image compressée (dataUrl), comme Photo.
+model PhotoPiece {
+  id        String   @id @default(cuid())
+  pieceId   String   @unique
+  piece     Piece    @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  url       String
+  employeId String?
+  ajouteeLe DateTime @default(now())
 }
 
 // Ligne d'un kit : une pièce d'inventaire (pieceId, quantité entière par

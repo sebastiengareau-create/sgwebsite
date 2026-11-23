@@ -64,6 +64,17 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
   prendre le moins d'espace possible. Gardées en haut du bon, repliées et
   cliquables sur demande ; jamais imprimées. Facultatives. Chaque photo se
   prend avec la caméra ou se choisit dans la photothèque ou les fichiers.
+- `photoPiece: true` — sur la **fiche d'une pièce d'inventaire** (onglet
+  Résumé), une **photo de référence** facultative, une seule par pièce, pour
+  les pièces où c'est utile : « 📷 Prendre une photo » (caméra, photothèque
+  ou fichiers), puis « Reprendre » ou « Retirer ». La photo remplace l'icône
+  en haut de la fiche ; un clic l'ouvre en grand. Compressée (1024 px, JPEG
+  0,6) et gardée dans la base (table `PhotoPiece`, à part pour ne pas
+  alourdir les listes de pièces) ; jamais imprimée. Ajout, remplacement et
+  retrait notés dans l'onglet Historique ; à la fusion d'un doublon, sa photo
+  passe à la fiche gardée si celle-ci n'en a pas. Comme les autres photos,
+  hors de la sauvegarde quotidienne par courriel (`lib/photoPiece.js`,
+  `/api/inventaire/[id]/photo`).
 - `piecesEnHautDuBon: true` — sur le bon, une seule section **« Pièces du
   bon »** en haut des tâches (plusieurs pièces possibles) au lieu d'une
   section par tâche. Les pièces ajoutées sont rattachées à la première tâche
