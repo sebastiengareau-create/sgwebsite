@@ -20,6 +20,7 @@ const {
   periodeTal, pourcentageBase, excedentHausse, calculHausseTal, loyersImmeuble, haussesImmeuble, debutHausse,
   etatRevenusLocation, ligneT776,
 } = await import("../lib/immobilierCalculs.js");
+const { piecesParDefaut, piecesPourSortie, comparerAEntree, dommagesDepuisEntree, avancement, normaliserPieces } = await import("../lib/etatsLieuxCalculs.js");
 
 let reussis = 0;
 function test(nom, fn) {
@@ -272,6 +273,52 @@ test("État annuel d'un immeuble : revenus, dépenses par ligne, immobilisations
   egal(total.totalDepenses, 4900, "total des dépenses");
   egal(total.net, 14625, "total net");
   assert.equal(total.immeuble.unites, 5);
+});
+
+// ---------- État des lieux numérique ----------
+
+test("Grille de départ selon le nombre de pièces", () => {
+  const noms = (l) => piecesParDefaut(l).map((p) => p.nom);
+  assert.deepEqual(noms({ type: "LOGEMENT", pieces: "4 ½" }).filter((n) => /Chambre/.test(n)), ["Chambre 1", "Chambre 2"]);
+  assert.deepEqual(noms({ type: "LOGEMENT", pieces: "3½" }).filter((n) => /Chambre/.test(n)), ["Chambre"]);
+  assert.deepEqual(noms({ type: "LOGEMENT", pieces: "5 1/2" }).filter((n) => /Chambre/.test(n)), ["Chambre 1", "Chambre 2", "Chambre 3"]);
+  assert.deepEqual(noms({ type: "LOGEMENT", pieces: "1 ½" }), ["Pièce principale", "Cuisinette", "Salle de bain"]);
+  assert.deepEqual(noms({ type: "COMMERCIAL" }), ["Espace principal", "Rangement"]);
+  const cles = piecesParDefaut({ type: "LOGEMENT", pieces: "4 ½" }).flatMap((p) => [p.cle, ...p.elements.map((e) => e.cle)]);
+  assert.equal(new Set(cles).size, cles.length, "clés uniques");
+});
+
+test("Sortie : mêmes pièces que l'entrée, comparées point par point", () => {
+  const entree = piecesParDefaut({ type: "LOGEMENT", pieces: "3 ½" });
+  const cuisine = entree.find((p) => p.nom === "Cuisine");
+  cuisine.elements.find((e) => e.nom === "Plancher").etat = "BON";
+  cuisine.elements.find((e) => e.nom === "Murs").etat = "USURE";
+  cuisine.elements.find((e) => e.nom === "Cuisinière").etat = "DOMMAGE";
+  const sortie = piecesPourSortie(entree);
+  assert.deepEqual(sortie.map((p) => p.nom), entree.map((p) => p.nom));
+  assert.equal(avancement(sortie).notes, 0);
+  const s = sortie.find((p) => p.nom === "Cuisine");
+  const el = (n) => s.elements.find((e) => e.nom === n);
+  el("Plancher").etat = "DOMMAGE"; el("Plancher").note = "Brûlure devant la cuisinière";
+  el("Murs").etat = "USURE";
+  el("Cuisinière").etat = "DOMMAGE"; // déjà endommagée à l'entrée
+  const comp = comparerAEntree(entree, sortie);
+  assert.equal(comp[el("Plancher").cle].etat, "BON");
+  assert.equal(comp[el("Plancher").cle].pire, true);
+  assert.equal(comp[el("Murs").cle].pire, false);
+  assert.equal(comp[el("Cuisinière").cle].pire, false);
+  assert.deepEqual(dommagesDepuisEntree(entree, sortie), [{ piece: "Cuisine", element: "Plancher", avant: "BON", apres: "DOMMAGE", note: "Brûlure devant la cuisinière" }]);
+});
+
+test("Pièces reçues du navigateur : nettoyées", () => {
+  assert.ok(normaliserPieces("x").erreur);
+  assert.ok(normaliserPieces([{ nom: " " }]).erreur);
+  const { pieces } = normaliserPieces([{ cle: "abcd1234", nom: "Salon", elements: [{ cle: "<script>", nom: "Murs", etat: "PIRE", note: "x".repeat(2000) }, { nom: "" }] }]);
+  assert.equal(pieces[0].cle, "abcd1234");
+  assert.equal(pieces[0].elements.length, 1);
+  assert.notEqual(pieces[0].elements[0].cle, "<script>");
+  assert.equal(pieces[0].elements[0].etat, null);
+  assert.equal(pieces[0].elements[0].note.length, 1000);
 });
 
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);

@@ -103,7 +103,14 @@ on décide quand et à qui une modification s'applique.
   PDF pour le comptable et détail en CSV ; les travaux majeurs, cochés
   « dépense d'immobilisation » sur la réparation ou en catégorie de dépense
   « Travaux majeurs », sont listés à part pour l'amortissement et préchoisis
-  dans le calcul des hausses), réparations avec
+  dans le calcul des hausses), **état des lieux numérique** d'entrée et de
+  sortie depuis la fiche du bail (`/immobilier/etats-lieux/<id>`,
+  `lib/etatsLieux.js`, `lib/etatsLieuxCalculs.js` : rempli au téléphone pièce
+  par pièce — grille selon le nombre de pièces —, état de chaque élément,
+  remarque et photos, compteurs et clés ; la sortie reprend la grille de
+  l'entrée du même bail et signale ce qui s'est dégradé ; terminé, un PDF
+  avec photos en annexe, à faire signer en ligne par le locateur et les
+  locataires, verrouillé dès qu'une signature est demandée), réparations avec
   photos, documents avec date d'expiration, bail de logement complet (sections
   A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
