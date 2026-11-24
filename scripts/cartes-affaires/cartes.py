@@ -5,7 +5,8 @@
     python3 scripts/cartes-affaires/cartes.py --secteurs garage,ferme
 
 Résultat dans scripts/cartes-affaires/sortie/ (non versionné) :
-kontrolshop-carte-<secteur>.pdf (page 1 recto, page 2 verso), aperçus PNG et
+kontrolshop-carte-<secteur>.pdf (page 1 recto, page 2 verso), le recto et le
+verso en fichiers séparés (-recto.pdf, -verso.pdf), aperçus PNG et
 kontrolshop-cartes-apercu.png (planche de toutes les cartes).
 
 Format 3,5 x 2 po avec 1/8 po de fond perdu (fichier 3,75 x 2,25 po), en RVB.
