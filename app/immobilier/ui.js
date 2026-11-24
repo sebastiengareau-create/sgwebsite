@@ -4,9 +4,10 @@
 // (formulaires décrits par une liste de champs, fichiers, cartes de liste…)
 // sont celles de la copropriété ; seules les données diffèrent.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { TEINTES, TitrePanneau, stylePanneau } from "../components/StyleSection";
 import {
   Section, Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
   Retour, valeursDe, champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, useApi, Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui,
@@ -24,22 +25,27 @@ export {
   Retour, valeursDe, champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, useApi, Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui,
 };
 
+// Menu de l'immobilier : une rangée qui défile au doigt sur un téléphone (le
+// contenu reste en haut de l'écran), 4 × 2 dès la tablette (.nav-section,
+// app/globals.css). Sur téléphone, l'écran ouvert est ramené en vue.
 export function NavImmo({ actif }) {
+  const nav = useRef(null);
+  useEffect(() => {
+    const el = nav.current?.querySelector("[aria-current=page]");
+    if (el && nav.current.scrollWidth > nav.current.clientWidth) nav.current.scrollLeft = el.offsetLeft - (nav.current.clientWidth - el.offsetWidth) / 2;
+  }, [actif]);
   const liens = [
     { href: "/immobilier", label: "📊 Tableau de bord" },
     { href: "/immobilier/immeubles", label: "🏘️ Immeubles" },
     { href: "/immobilier/locataires", label: "👥 Locataires" },
     { href: "/immobilier/loyers", label: "💵 Loyers" },
     { href: "/immobilier/reparations", label: "🛠️ Réparations" },
-    { href: "/immobilier/depenses", label: "📈 Dépenses et rendement" },
+    { href: "/immobilier/depenses", label: "📈 Dépenses" },
     { href: "/immobilier/releve-31", label: "🧾 Relevé 31" },
     { href: "/immobilier/documents", label: "📁 Documents" },
   ];
   return (
-    <nav style={{
-      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))", gap: 4, marginBottom: 16,
-      padding: 4, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)",
-    }}>
+    <nav ref={nav} className="nav-section" aria-label="Immobilier">
       {liens.map((l) => {
         const estActif = l.href === actif;
         return (
@@ -47,7 +53,7 @@ export function NavImmo({ actif }) {
             key={l.href} href={l.href} aria-current={estActif ? "page" : undefined}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",
-              fontSize: 13.5, fontWeight: 700, padding: "10px 6px", borderRadius: 10, textDecoration: "none",
+              fontSize: 13.5, fontWeight: 700, padding: "10px 12px", borderRadius: 10, textDecoration: "none",
               background: estActif ? "var(--accent)" : "transparent", color: estActif ? "#221f18" : "var(--text-muted)",
             }}
           >
@@ -60,6 +66,28 @@ export function NavImmo({ actif }) {
 }
 
 export const lien = { color: "var(--accent)" };
+
+// Interrupteur marche/arrêt (comme Administrateur → Modules)
+export function Interrupteur({ actif, libelle, onClick, disabled, couleur = "var(--success)" }) {
+  return (
+    <button
+      type="button" role="switch" aria-checked={actif} aria-label={libelle} onClick={onClick} disabled={disabled}
+      style={{ width: 50, height: 30, borderRadius: 999, border: "none", position: "relative", flexShrink: 0, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.55 : 1, background: actif ? couleur : "var(--border)", transition: "background 0.15s" }}
+    >
+      <span style={{ position: "absolute", top: 3, left: actif ? 23 : 3, width: 24, height: 24, borderRadius: "50%", background: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "left 0.15s" }} />
+    </button>
+  );
+}
+
+// Panneau avec sa tuile d'icône (style des autres sections : Élevage, Paramètres…)
+export function Panneau({ titre, icone = "liste", teinte = TEINTES.ambre, sousTitre, droite, children, id, style }) {
+  return (
+    <div id={id} style={{ ...stylePanneau, ...style }}>
+      <TitrePanneau icone={icone} teinte={teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
+      {children}
+    </div>
+  );
+}
 
 export function Alerte({ children, couleur = "var(--danger)", fond = "var(--danger-fond)" }) {
   return (
@@ -91,9 +119,23 @@ export function LieuLogement({ logement, immeuble }) {
 }
 
 
-// Solde d'un compte : rouge s'il est dû, vert à jour ou en crédit
-export function Solde({ solde, court }) {
-  const s = Math.round((solde || 0) * 100) / 100;
+// Solde d'un compte : rouge s'il est en retard, ambre s'il est seulement à
+// recevoir (loyer pas encore échu), vert à jour ou en crédit.
+// compte : etatCompte() — sans lui, tout solde dû est en rouge
+export function Solde({ solde, court, compte }) {
+  const s = Math.round((solde ?? compte?.solde ?? 0) * 100) / 100;
+  if (compte && s > 0.005) {
+    if (compte.enRetard > 0.005) {
+      const titre = `${argent(compte.enRetard)} en retard depuis ${compte.joursRetard} j${compte.aRecevoir > 0.005 ? ` · ${argent(compte.aRecevoir)} à recevoir` : ""}`;
+      return (
+        <span title={titre} style={{ color: "var(--danger)", fontWeight: 700 }}>
+          {court ? argent(compte.enRetard) : `En retard ${argent(compte.enRetard)}`}
+          {!court && compte.aRecevoir > 0.005 && <span style={{ display: "block", fontSize: "0.85em", fontWeight: 600, color: "var(--text-muted)" }}>+ {argent(compte.aRecevoir)} à recevoir</span>}
+        </span>
+      );
+    }
+    return <span title="Loyer inscrit, pas encore échu" style={{ color: "var(--avertissement)", fontWeight: 700 }}>{court ? argent(s) : `À recevoir ${argent(s)}`}</span>;
+  }
   if (s > 0.005) return <span style={{ color: "var(--danger)", fontWeight: 700 }}>{court ? argent(s) : `Doit ${argent(s)}`}</span>;
   if (s < -0.005) return <span style={{ color: "var(--success)", fontWeight: 700 }}>Crédit {argent(-s)}</span>;
   return <span style={{ color: "var(--success)", fontWeight: 700 }}>{court ? "0 $" : "À jour"}</span>;

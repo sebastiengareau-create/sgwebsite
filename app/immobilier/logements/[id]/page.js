@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
-import { soldesDesBaux } from "@/lib/immobilier";
+import { comptesDesBaux, soldesDe } from "@/lib/immobilier";
 import { exigerAccesImmo, simple, DOC_SANS_DONNEES } from "../../acces";
 import LogementClient from "./LogementClient";
 
 export default async function FicheLogement(props) {
   const { id } = await props.params;
   const session = await exigerAccesImmo();
-  const [logement, locataires, soldes] = await Promise.all([
+  const [logement, locataires, comptes] = await Promise.all([
     prisma.logementImmo.findUnique({
       where: { id },
       include: {
@@ -19,13 +19,13 @@ export default async function FicheLogement(props) {
       },
     }),
     prisma.locataireImmo.findMany({ select: { id: true, nom: true }, orderBy: { nom: "asc" } }),
-    soldesDesBaux({ bail: { logementId: id } }),
+    comptesDesBaux({ bail: { logementId: id } }),
   ]);
   if (!logement) notFound();
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <LogementClient {...simple({ logement, locataires, soldes })} />
+      <LogementClient {...simple({ logement, locataires, soldes: soldesDe(comptes), comptes })} />
     </div>
   );
 }

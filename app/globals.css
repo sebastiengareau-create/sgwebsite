@@ -197,6 +197,67 @@ a { color: inherit; }
 }
 
 /* Ligne « libellé ……… valeur » des fiches détail */
+/* Menu d'une section à plusieurs écrans (Immobilier) : une seule rangée qui
+   défile au doigt sur un téléphone — le contenu reste en haut de l'écran —,
+   puis une grille de 4 colonnes dès la tablette */
+.nav-section {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.nav-section::-webkit-scrollbar { display: none; }
+.nav-section > a { flex: 0 0 auto; white-space: nowrap; }
+@media (min-width: 700px) {
+  .nav-section { display: grid; grid-template-columns: repeat(4, 1fr); overflow-x: visible; }
+  .nav-section > a { white-space: normal; }
+}
+
+/* Ligne d'un bail dans Immobilier → Loyers du mois : sur un téléphone, deux
+   rangées (qui · loyer, puis compte · bouton « Payé »), sans défilement de
+   côté ; dès la tablette, une seule rangée en colonnes, sous un en-tête */
+.ligne-loyer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "qui loyer" "solde action";
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-loyer > .qui { grid-area: qui; min-width: 0; overflow-wrap: anywhere; }
+.ligne-loyer > .loyer { grid-area: loyer; text-align: right; white-space: nowrap; }
+.ligne-loyer > .solde { grid-area: solde; min-width: 0; font-size: 13px; }
+.ligne-loyer > .action { grid-area: action; text-align: right; }
+.ligne-loyer-entete { display: none; }
+@media (min-width: 700px) {
+  .ligne-loyer {
+    grid-template-columns: minmax(0, 1fr) 110px 170px 190px;
+    grid-template-areas: "qui loyer solde action";
+  }
+  .ligne-loyer > .solde { text-align: right; }
+  .ligne-loyer-entete {
+    display: grid;
+    border-top: none;
+    border-bottom: 2px solid var(--accent);
+    padding-top: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+}
+
+/* Tuile chiffrée cliquable du tableau de bord de l'immobilier */
+.tuile-immo { transition: border-color 0.15s; }
+.tuile-immo:hover, .tuile-immo:focus-visible { border-color: var(--accent) !important; }
+
 .ligne-info {
   display: flex;
   justify-content: space-between;

@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
-import { argent } from "@/lib/immobilierCalculs";
+import { argent, additionnerComptes } from "@/lib/immobilierCalculs";
 import { NavImmo, Formulaire, Recherche, CarteListe, Vide, Onglets, champsLocataire, nomLogement, Solde } from "../ui";
 
 const ONGLETS = [{ code: "ACTUELS", label: "Locataires actuels" }, { code: "ANCIENS", label: "Anciens" }, { code: "TOUS", label: "Tous" }];
 
-export default function LocatairesClient({ locataires, soldes }) {
+export default function LocatairesClient({ locataires, comptes }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState(false);
   const [recherche, setRecherche] = useState("");
@@ -18,7 +18,8 @@ export default function LocatairesClient({ locataires, soldes }) {
   const q = recherche.trim().toLowerCase();
   const avecEtat = locataires.map((l) => {
     const actifs = l.baux.filter((b) => b.statut === "ACTIF");
-    return { ...l, actifs, solde: l.baux.reduce((s, b) => s + (soldes[b.id] || 0), 0) };
+    const compte = additionnerComptes(l.baux.map((b) => comptes[b.id]));
+    return { ...l, actifs, compte, solde: compte.solde };
   });
   const affiches = avecEtat
     .filter((l) => onglet === "TOUS" || (onglet === "ACTUELS" ? l.actifs.length > 0 || l.baux.length === 0 : l.actifs.length === 0 && l.baux.length > 0))
@@ -37,7 +38,7 @@ export default function LocatairesClient({ locataires, soldes }) {
         {affiches.map((l) => (
           <CarteListe
             key={l.id} href={`/immobilier/locataires/${l.id}`}
-            couleur={l.solde > 0.005 ? "var(--danger)" : l.actifs.length > 0 ? "var(--success)" : "var(--border)"}
+            couleur={l.compte.enRetard > 0.005 ? "var(--danger)" : l.actifs.length > 0 ? "var(--success)" : "var(--border)"}
             titre={l.nom}
             sousTitre={[
               l.actifs.map((b) => `${b.logement.immeuble.nom} · ${nomLogement(b.logement)}`).join(" ; ") || (l.baux.length ? "Ancien locataire" : "Aucun bail"),
@@ -45,7 +46,7 @@ export default function LocatairesClient({ locataires, soldes }) {
             ].filter(Boolean).join(" · ")}
             droite={<>
               {l.actifs.length > 0 && <div style={{ fontSize: 15, fontWeight: 800 }}>{argent(l.actifs.reduce((s, b) => s + b.loyer, 0))}</div>}
-              {Math.abs(l.solde) > 0.005 && <div><Solde solde={l.solde} /></div>}
+              {Math.abs(l.solde) > 0.005 && <div><Solde solde={l.solde} compte={l.compte} /></div>}
             </>}
           />
         ))}

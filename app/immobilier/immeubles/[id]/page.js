@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
-import { soldesDesBaux, donneesRendement } from "@/lib/immobilier";
+import { comptesDesBaux, soldesDe, donneesRendement } from "@/lib/immobilier";
 import { periodeCourante } from "@/lib/immobilierCalculs";
 import { exigerAccesImmo, simple, DOC_SANS_DONNEES } from "../../acces";
 import ImmeubleClient from "./ImmeubleClient";
@@ -10,7 +10,7 @@ export default async function FicheImmeuble(props) {
   const { id } = await props.params;
   const session = await exigerAccesImmo();
   const annee = Number(periodeCourante().slice(0, 4));
-  const [immeuble, soldes, donnees, locataires] = await Promise.all([
+  const [immeuble, comptes, donnees, locataires] = await Promise.all([
     prisma.immeubleImmo.findUnique({
       where: { id },
       include: {
@@ -22,7 +22,7 @@ export default async function FicheImmeuble(props) {
         documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
       },
     }),
-    soldesDesBaux({ bail: { logement: { immeubleId: id } } }),
+    comptesDesBaux({ bail: { logement: { immeubleId: id } } }),
     donneesRendement(annee),
     prisma.locataireImmo.findMany({ select: { id: true, nom: true }, orderBy: { nom: "asc" } }),
   ]);
@@ -31,7 +31,7 @@ export default async function FicheImmeuble(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <ImmeubleClient {...simple({ immeuble, soldes, donnees, annee, locataires })} />
+      <ImmeubleClient {...simple({ immeuble, soldes: soldesDe(comptes), comptes, donnees, annee, locataires })} />
     </div>
   );
 }

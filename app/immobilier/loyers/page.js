@@ -1,12 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../components/EnTete";
-import { soldesDesBaux } from "@/lib/immobilier";
+import { comptesDesBaux, soldesDe } from "@/lib/immobilier";
 import { periodeCourante } from "@/lib/immobilierCalculs";
 import { exigerAccesImmo, simple } from "../acces";
 import LoyersClient from "./LoyersClient";
 
 const LOGEMENT = { select: { id: true, numero: true, type: true, immeuble: { select: { id: true, nom: true } } } };
 const LOCATAIRES = { select: { id: true, nom: true, telephone: true } };
+
+// 1er jour du mois, 11 mois avant le mois courant « 2026-11 » → 1er décembre 2025
+function debutHistorique(courante) {
+  const [a, m] = courante.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 12, 1));
+}
 
 export default async function LoyersImmo(props) {
   const session = await exigerAccesImmo();
@@ -16,26 +22,28 @@ export default async function LoyersImmo(props) {
   const [a, m] = periode.split("-").map(Number);
   const debutMois = new Date(Date.UTC(a, m - 1, 1, 12));
   const finMois = new Date(Date.UTC(a, m, 0, 12));
-  const [baux, charges, soldes, paiements] = await Promise.all([
+  const [baux, charges, comptes, paiements] = await Promise.all([
     // Baux qui couvrent ce mois (en cours, ou terminés en cours de mois)
     prisma.bailImmo.findMany({
       where: { dateDebut: { lte: finMois }, OR: [{ dateFin: null }, { dateFin: { gte: debutMois } }] },
       select: { id: true, loyer: true, statut: true, dateDebut: true, dateFin: true, jourPaiement: true, logement: LOGEMENT, locataires: LOCATAIRES },
     }),
     prisma.chargeImmo.findMany({ where: { periode, type: "LOYER" }, select: { id: true, bailId: true, montant: true } }),
-    soldesDesBaux(),
+    comptesDesBaux(),
+    // Paiements reçus des 12 derniers mois, mois courant compris (mois complets)
     prisma.paiementImmo.findMany({
-      orderBy: { date: "desc" }, take: 150,
+      where: { date: { gte: debutHistorique(courante) } },
+      orderBy: { date: "desc" }, take: 3000,
       select: { id: true, date: true, montant: true, mode: true, reference: true, note: true, bail: { select: { id: true, logement: LOGEMENT, locataires: LOCATAIRES } } },
     }),
   ]);
-  // Baux avec un solde dû (même terminés)
-  const idsDus = Object.entries(soldes).filter(([, s]) => s > 0.005).map(([id]) => id);
+  // Baux avec un montant en retard — échéance passée (même terminés)
+  const idsDus = Object.entries(comptes).filter(([, c]) => c.enRetard > 0.005).map(([id]) => id);
   const dus = await prisma.bailImmo.findMany({ where: { id: { in: idsDus } }, select: { id: true, loyer: true, statut: true, logement: LOGEMENT, locataires: LOCATAIRES } });
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <LoyersClient courriel={Boolean(process.env.RESEND_API_KEY)} {...simple({ periode, courante, baux, charges, soldes, paiements, dus, onglet: params?.onglet || "MOIS" })} />
+      <LoyersClient courriel={Boolean(process.env.RESEND_API_KEY)} {...simple({ periode, courante, baux, charges, soldes: soldesDe(comptes), comptes, paiements, dus, onglet: params?.onglet || "MOIS" })} />
     </div>
   );
 }

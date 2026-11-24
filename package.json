@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "migration": "node prisma/creer-migration.js",
     "test:paie": "node scripts/tester-paie.js",
-    "test:quarts": "node scripts/tester-quarts.js"
+    "test:quarts": "node scripts/tester-quarts.js",
+    "test:immobilier": "node --no-warnings scripts/tester-immobilier.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
