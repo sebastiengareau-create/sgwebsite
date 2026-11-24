@@ -127,7 +127,12 @@ export function Solde({ solde, court, compte }) {
   if (compte && s > 0.005) {
     if (compte.enRetard > 0.005) {
       const titre = `${argent(compte.enRetard)} en retard depuis ${compte.joursRetard} j${compte.aRecevoir > 0.005 ? ` · ${argent(compte.aRecevoir)} à recevoir` : ""}`;
-      return <span title={titre} style={{ color: "var(--danger)", fontWeight: 700 }}>{court ? argent(compte.enRetard) : `En retard ${argent(compte.enRetard)}`}</span>;
+      return (
+        <span title={titre} style={{ color: "var(--danger)", fontWeight: 700 }}>
+          {court ? argent(compte.enRetard) : `En retard ${argent(compte.enRetard)}`}
+          {!court && compte.aRecevoir > 0.005 && <span style={{ display: "block", fontSize: "0.85em", fontWeight: 600, color: "var(--text-muted)" }}>+ {argent(compte.aRecevoir)} à recevoir</span>}
+        </span>
+      );
     }
     return <span title="Loyer inscrit, pas encore échu" style={{ color: "var(--avertissement)", fontWeight: 700 }}>{court ? argent(s) : `À recevoir ${argent(s)}`}</span>;
   }

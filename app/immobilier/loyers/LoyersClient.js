@@ -73,21 +73,48 @@ function Mois({ periode, courante, baux, charges, soldes, comptes }) {
       </p>
       <div className="carte">
         {lignes.length === 0 ? <Vide>Aucun bail ne couvre ce mois.</Vide> : (
-          <Tableau entetes={["Logement", "Locataires", "Loyer", "Solde du compte", ""]} alignDroite={[2, 3]}>
-            {lignes.map((l) => (
-              <tr key={l.id}>
-                <td style={cellule}><Link href={`/immobilier/logements/${l.logement.id}`} style={lien}>{nomLogement(l.logement)}</Link><div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{l.logement.immeuble.nom}</div></td>
-                <td style={cellule}><Link href={`/immobilier/baux/${l.id}`} style={{ color: "inherit" }}>{nomsLocataires(l)}</Link></td>
-                <td style={celluleDroite}>{argent(l.charge?.montant ?? l.du)}{!l.charge && <div style={{ fontSize: 11, color: "var(--accent)" }}>pas inscrit</div>}</td>
-                <td style={celluleDroite}><Solde solde={l.solde} compte={l.compte} /></td>
-                <td style={{ ...cellule, textAlign: "right", whiteSpace: "nowrap" }}>{l.solde > 0.005 && <Encaisser bail={l} montant={l.solde} />}</td>
-              </tr>
+          <>
+            <div className="ligne-loyer ligne-loyer-entete" aria-hidden="true">
+              <span className="qui">Locataires et logement</span>
+              <span className="loyer">Loyer du mois</span>
+              <span className="solde">Compte</span>
+              <span className="action" />
+            </div>
+            {parImmeuble(lignes).map(([immeuble, liste]) => (
+              <section key={immeuble} aria-label={immeuble}>
+                <div style={{ fontSize: 11.5, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700, padding: "12px 2px 2px" }}>{immeuble}</div>
+                {liste.map((l) => (
+                  <div key={l.id} className="ligne-loyer">
+                    <span className="qui">
+                      <Link href={`/immobilier/baux/${l.id}`} style={{ ...lien, fontWeight: 700 }}>{nomsLocataires(l)}</Link>
+                      <Link href={`/immobilier/logements/${l.logement.id}`} style={{ display: "block", fontSize: 12, color: "var(--text-muted)", textDecoration: "none" }}>{nomLogement(l.logement)}</Link>
+                    </span>
+                    <span className="loyer">
+                      <span style={{ fontWeight: 700 }}>{argent(l.charge?.montant ?? l.du)}</span>
+                      {!l.charge && <span style={{ display: "block", fontSize: 11, color: "var(--avertissement)", fontWeight: 700 }}>pas inscrit</span>}
+                    </span>
+                    <span className="solde"><Solde solde={l.solde} compte={l.compte} /></span>
+                    <span className="action">{l.solde > 0.005 && <Encaisser bail={l} montant={l.solde} />}</span>
+                  </div>
+                ))}
+              </section>
             ))}
-          </Tableau>
+          </>
         )}
       </div>
     </>
   );
+}
+
+// Lignes regroupées par immeuble, dans l'ordre du tri : [[nom, lignes], …]
+function parImmeuble(lignes) {
+  const groupes = new Map();
+  for (const l of lignes) {
+    const nom = l.logement.immeuble.nom;
+    if (!groupes.has(nom)) groupes.set(nom, []);
+    groupes.get(nom).push(l);
+  }
+  return [...groupes];
 }
 
 // Paiement du solde en un clic
@@ -99,12 +126,12 @@ function Encaisser({ bail, montant }) {
     await appeler("/api/immobilier/paiements", "POST", { bailId: bail.id, date: aujourdhui(), montant: String(montant), mode });
   }
   return (
-    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-      <select value={mode} onChange={(e) => setMode(e.target.value)} aria-label="Mode de paiement" style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "5px 6px", fontSize: 12 }}>
+    <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <select value={mode} onChange={(e) => setMode(e.target.value)} aria-label={`Mode de paiement — ${nomsLocataires(bail)}`} style={{ ...champStyle, width: "auto", marginBottom: 0, padding: "6px 6px", fontSize: 12.5 }}>
         {MODES_PAIEMENT.map((m) => <option key={m.code} value={m.code}>{m.label.split(" ")[0]}</option>)}
       </select>
-      <button type="button" onClick={payer} disabled={enCours} className="bouton-3d" style={{ padding: "6px 10px", borderRadius: 9, fontSize: 12.5, fontWeight: 700 }}>{enCours ? "…" : "💵 Payé"}</button>
-      {erreur && <span style={{ color: "var(--danger)", fontSize: 12 }}>{erreur}</span>}
+      <button type="button" onClick={payer} disabled={enCours} aria-label={`Payé : ${argent(montant)} de ${nomsLocataires(bail)}`} className="bouton-3d" style={{ padding: "7px 11px", borderRadius: 9, fontSize: 13, fontWeight: 700 }}>{enCours ? "…" : "💵 Payé"}</button>
+      {erreur && <span style={{ color: "var(--danger)", fontSize: 12, flexBasis: "100%", textAlign: "right" }}>{erreur}</span>}
     </span>
   );
 }
@@ -153,17 +180,16 @@ function Paiements({ paiements }) {
   return (
     <Section titre="Derniers paiements reçus" droite={<span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Ce mois-ci : <strong style={{ color: "var(--text)" }}>{argent(duMois)}</strong></span>}>
       {paiements.length === 0 ? <Vide>Aucun paiement inscrit.</Vide> : (
-        <Tableau entetes={["Date", "Locataires", "Logement", "Mode", "Montant"]} alignDroite={[4]}>
-          {paiements.map((p) => (
-            <tr key={p.id}>
-              <td style={{ ...cellule, whiteSpace: "nowrap" }}>{dateLisible(p.date)}</td>
-              <td style={cellule}><Link href={`/immobilier/baux/${p.bail.id}`} style={lien}>{nomsLocataires(p.bail)}</Link></td>
-              <td style={cellule}>{nomLogement(p.bail.logement)} · {p.bail.logement.immeuble.nom}</td>
-              <td style={cellule}>{libelle(MODES_PAIEMENT, p.mode)}{p.reference && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{p.reference}</div>}{p.note && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{p.note}</div>}</td>
-              <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(p.montant)}</td>
-            </tr>
-          ))}
-        </Tableau>
+        paiements.map((p) => (
+          <div key={p.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 2px", borderTop: "1px solid var(--border)", fontSize: 13.5 }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <Link href={`/immobilier/baux/${p.bail.id}`} style={{ ...lien, fontWeight: 700 }}>{nomsLocataires(p.bail)}</Link>
+              <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{nomLogement(p.bail.logement)} · {p.bail.logement.immeuble.nom}</span>
+              <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{[dateLisible(p.date), libelle(MODES_PAIEMENT, p.mode), p.reference, p.note].filter((x) => x && x !== "—").join(" · ")}</span>
+            </span>
+            <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{argent(p.montant)}</span>
+          </div>
+        ))
       )}
     </Section>
   );

@@ -219,6 +219,41 @@ a { color: inherit; }
   .nav-section > a { white-space: normal; }
 }
 
+/* Ligne d'un bail dans Immobilier → Loyers du mois : sur un téléphone, deux
+   rangées (qui · loyer, puis compte · bouton « Payé »), sans défilement de
+   côté ; dès la tablette, une seule rangée en colonnes, sous un en-tête */
+.ligne-loyer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "qui loyer" "solde action";
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-loyer > .qui { grid-area: qui; min-width: 0; overflow-wrap: anywhere; }
+.ligne-loyer > .loyer { grid-area: loyer; text-align: right; white-space: nowrap; }
+.ligne-loyer > .solde { grid-area: solde; min-width: 0; font-size: 13px; }
+.ligne-loyer > .action { grid-area: action; text-align: right; }
+.ligne-loyer-entete { display: none; }
+@media (min-width: 700px) {
+  .ligne-loyer {
+    grid-template-columns: minmax(0, 1fr) 110px 170px 190px;
+    grid-template-areas: "qui loyer solde action";
+  }
+  .ligne-loyer > .solde { text-align: right; }
+  .ligne-loyer-entete {
+    display: grid;
+    border-top: none;
+    border-bottom: 2px solid var(--accent);
+    padding-top: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+}
+
 /* Tuile chiffrée cliquable du tableau de bord de l'immobilier */
 .tuile-immo { transition: border-color 0.15s; }
 .tuile-immo:hover, .tuile-immo:focus-visible { border-color: var(--accent) !important; }
