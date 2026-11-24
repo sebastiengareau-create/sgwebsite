@@ -2543,6 +2543,10 @@ model ReparationImmo {
   coutEstime            Float?
   coutReel              Float?
   numeroFacture         String?
+  // Dépense d'immobilisation (travaux majeurs : toiture, fenêtres…) : amortie
+  // à l'impôt plutôt que déduite (état des revenus de location), et comptée
+  // dans le calcul des hausses de loyer (lib/immobilierHausses.js)
+  immobilisation        Boolean        @default(false)
   notes                 String?
   fichiers              FichierImmo[]
   creePar               String?

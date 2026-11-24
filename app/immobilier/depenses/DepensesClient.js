@@ -43,6 +43,7 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
       <NavImmo actif="/immobilier/depenses" />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouvelle dépense"}</BoutonPlein>
+        <Link href={`/immobilier/depenses/impot?annee=${annee}`} style={{ fontSize: 13.5, fontWeight: 700, ...lien }}>🧾 Revenus de location pour l'impôt (T776, TP-128)</Link>
         <select value={annee} onChange={(e) => router.push(`/immobilier/depenses?annee=${e.target.value}${immeuble ? `&immeuble=${immeuble}` : ""}`)} style={{ ...champStyle, width: "auto", marginBottom: 0 }}>
           {Array.from({ length: 6 }, (_, i) => courante - i).map((a) => <option key={a} value={a}>{a}</option>)}
         </select>

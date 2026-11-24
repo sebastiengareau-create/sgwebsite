@@ -51,6 +51,7 @@ export default function ReparationClient({ reparation: r, locataires }) {
             <LigneInfo label="Coût estimé" valeur={r.coutEstime != null && argent(r.coutEstime)} />
             <LigneInfo label="Coût réel" valeur={r.coutReel != null && <strong>{argent(r.coutReel)}</strong>} />
             <LigneInfo label="Facture" valeur={r.numeroFacture} />
+            {r.immobilisation && <LigneInfo label="Immobilisation" valeur="Oui — travaux majeurs, amortis à l'impôt" />}
             {r.description && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{r.description}</p>}
             {r.reponse && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "8px 10px", borderRadius: 10, background: "rgba(232,163,61,0.12)" }}><strong>Réponse au locataire :</strong> {r.reponse}</p>}
             {r.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0", color: "var(--text-muted)" }}>📝 {r.notes}</p>}

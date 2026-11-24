@@ -17,7 +17,7 @@ const nombre = (v) => {
 const texte = (n) => (n == null ? "" : String(Math.round(n * 100) / 100).replace(".", ","));
 const pc = (n, d = 2) => `${(Math.round(n * 10 ** d) / 10 ** d).toString().replace(".", ",")} %`;
 
-export default function HaussesClient({ immeuble, parAnnee, reparations, inscrits, annee: anneeDefaut, bailVise }) {
+export default function HaussesClient({ immeuble, parAnnee, travaux: travauxProposes, inscrits, annee: anneeDefaut, bailVise }) {
   const [annee, setAnnee] = useState(anneeDefaut);
   const prerempli = (a) => ({
     taxes: { avant: texte(parAnnee.taxes[a - 1]), apres: texte(parAnnee.taxes[a]) },
@@ -25,10 +25,7 @@ export default function HaussesClient({ immeuble, parAnnee, reparations, inscrit
   });
   const [charges, setCharges] = useState(() => prerempli(anneeDefaut));
   const [taux, setTaux] = useState(() => Object.fromEntries(Object.entries(inscrits).map(([p, t]) => [p, texte(t)])));
-  const [travaux, setTravaux] = useState(() => reparations.map((r) => ({
-    cle: r.id, description: `${r.numero} — ${r.titre}`, montant: texte(r.coutReel), aide: "", logementId: r.logementId || "", choisi: false,
-    quand: r.dateFin || r.creeLe,
-  })));
+  const [travaux, setTravaux] = useState(() => travauxProposes.map((t) => ({ ...t, montant: texte(t.montant), aide: "", logementId: t.logementId || "" })));
   const [pdf, setPdf] = useState(true);
   const [resultat, setResultat] = useState(null);
   const { appeler, enCours, erreur } = useApi();
@@ -92,8 +89,8 @@ export default function HaussesClient({ immeuble, parAnnee, reparations, inscrit
       </Panneau>
 
       <Panneau icone="outils" teinte={TEINTES.vert} titre="Travaux majeurs" sousTitre={`Dépenses d'immobilisation, aides et subventions déduites : ${POURCENTAGE_IMMOBILISATIONS_TAL} % par année`}>
-        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 8px" }}>Toiture, fenêtres, balcons, chauffage, remplacement d'équipements… — pas l'entretien courant (peinture, débouchage, petites réparations). Coche les travaux qui en sont ; ceux d'un seul logement ne comptent que pour lui.</p>
-        {travaux.length === 0 && <Vide>Aucune réparation terminée avec un coût ces deux dernières années.</Vide>}
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 8px" }}>Toiture, fenêtres, balcons, chauffage, remplacement d'équipements… — pas l'entretien courant (peinture, débouchage, petites réparations). Ceux marqués « immobilisation » sont déjà cochés ; ceux d'un seul logement ne comptent que pour lui.</p>
+        {travaux.length === 0 && <Vide>Aucune réparation terminée avec un coût ni aucun achat « Travaux majeurs » ces deux dernières années.</Vide>}
         {travaux.map((t) => (
           <div key={t.cle} style={{ borderTop: "1px solid var(--border)", padding: "8px 0" }}>
             <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13.5, cursor: "pointer" }}>
