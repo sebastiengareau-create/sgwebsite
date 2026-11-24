@@ -6,12 +6,12 @@ import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
 import {
   TYPES_IMMEUBLE, CATEGORIES_DEPENSE, argent, libelle, trouver, dateLisible, bailActuel, nomsLocataires, etatFinBail, rendement, tauxOccupation, STATUTS_REPARATION_OUVERTS,
-  etatEcheance, frequenceLisible, TYPES_ENTRETIEN,
+  etatEcheance, frequenceLisible, TYPES_ENTRETIEN, TYPES_LOGEMENT,
 } from "@/lib/immobilierCalculs";
 import { champsImmeuble } from "../ImmeublesClient";
 import {
-  Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, Vide, Tableau, cellule, celluleDroite, valeursDe, aujourdhui, Statistique,
-  champsLogement, champsDepense, FormulaireReparation, FormulaireDocument, ListeDocuments, ListeReparations, PastilleEtat, Solde, nomLogement, lien,
+  Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, Vide, valeursDe, aujourdhui, Statistique,
+  champsLogement, champsDepense, FormulaireReparation, FormulaireDocument, ListeDocuments, ListeReparations, PastilleEtat, Solde, lien, LigneMouvement,
 } from "../../ui";
 
 export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, annee, locataires }) {
@@ -71,27 +71,121 @@ function Fiche({ immeuble }) {
   );
 }
 
+// Étage lisible et rang pour le plan : le haut de l'immeuble d'abord, le
+// rez-de-chaussée puis le sous-sol en bas. Texte libre dans la fiche du
+// logement (« RC », « 2 », « Sous-sol »…).
+function etageDe(etage) {
+  const t = (etage || "").trim();
+  if (!t) return null;
+  const bas = t.toLowerCase();
+  if (/^(sous|ss\b|s-s|-)/.test(bas)) return { rang: -1, label: "Sous-sol" };
+  if (/^(rc|rdc|rez|0$)/.test(bas)) return { rang: 0, label: "Rez-de-chaussée" };
+  const n = parseInt(bas, 10);
+  if (Number.isFinite(n)) return { rang: n, label: `Étage ${n}` };
+  return { rang: 0.5, label: t };
+}
+
+const comparerNumeros = (a, b) => a.numero.localeCompare(b.numero, "fr", { numeric: true });
+
+// Logements regroupés par étage, du haut vers le bas ; sans étage noté
+// nulle part, un seul groupe sans titre
+function etagesDe(logements) {
+  if (!logements.some((l) => etageDe(l.etage))) return [{ cle: "tous", label: null, logements: [...logements].sort(comparerNumeros) }];
+  const groupes = new Map();
+  for (const l of logements) {
+    const e = etageDe(l.etage) || (l.type === "LOGEMENT" || l.type === "COMMERCIAL" ? { rang: -2, label: "Étage non indiqué" } : { rang: -3, label: "Autres espaces" });
+    if (!groupes.has(e.label)) groupes.set(e.label, { cle: e.label, label: e.label, rang: e.rang, logements: [] });
+    groupes.get(e.label).logements.push(l);
+  }
+  return [...groupes.values()].sort((a, b) => b.rang - a.rang).map((g) => ({ ...g, logements: g.logements.sort(comparerNumeros) }));
+}
+
+// État d'un logement sur le plan, du plus pressant au plus calme
+const ETATS_PLAN = {
+  RETARD: { label: "Loyer en retard", couleur: "var(--danger)" },
+  VACANT: { label: "Vacant", couleur: "var(--avertissement)" },
+  SURVEILLER: { label: "Bail à surveiller", couleur: "var(--bleu)" },
+  OK: { label: "En règle", couleur: "var(--success)" },
+};
+const BAUX_A_SURVEILLER = ["ECHU", "AVIS_A_ENVOYER"];
+
+function etatPlan(bail, compte) {
+  if (!bail) return "VACANT";
+  if ((compte?.enRetard || 0) > 0.005) return "RETARD";
+  const fin = etatFinBail(bail);
+  if (BAUX_A_SURVEILLER.includes(fin.code) || (fin.code === "AVIS_ENVOYE" && ["REFUSE", "QUITTE"].includes(bail.reponseAvis))) return "SURVEILLER";
+  return "OK";
+}
+
+function CaseLogement({ logement: l, bail: b, compte, solde, etat }) {
+  const e = ETATS_PLAN[etat];
+  const fin = b && etatFinBail(b);
+  const type = trouver(TYPES_LOGEMENT, l.type);
+  const muet = { fontSize: 12, color: "var(--text-muted)" };
+  return (
+    <div className="case-logement" style={{ position: "relative", border: "1px solid var(--border)", borderLeft: `4px solid ${e.couleur}`, borderRadius: 10, padding: "9px 10px 10px", background: "var(--surface-alt)", minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
+        <Link href={`/immobilier/logements/${l.id}`} className="lien-etire" style={{ fontWeight: 800, fontSize: 14.5, color: "var(--text)", textDecoration: "none", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {l.type !== "LOGEMENT" && `${type?.icone || ""} `}{l.numero}
+        </Link>
+        {l.pieces && <span style={{ ...muet, flexShrink: 0 }}>{l.pieces}</span>}
+      </div>
+      {b ? (
+        <Link href={`/immobilier/baux/${b.id}`} style={{ position: "relative", zIndex: 1, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title="Ouvrir le bail">
+          {nomsLocataires(b) || "Locataire à inscrire"}
+        </Link>
+      ) : (
+        <span style={{ fontSize: 13, fontWeight: 700, color: e.couleur }}>Vacant</span>
+      )}
+      <span style={{ fontSize: 13, fontWeight: 700 }}>
+        {b ? `${argent(b.loyer)} / mois` : l.loyerVise ? <span style={{ fontWeight: 400, ...muet }}>Demandé {argent(l.loyerVise)}</span> : <span style={{ fontWeight: 400, ...muet }}>Loyer à fixer</span>}
+      </span>
+      {b && <span style={muet}>{b.dateFin ? `Fin ${dateLisible(b.dateFin)}` : "Durée indéterminée"}</span>}
+      {(etat === "RETARD" || (b && Math.abs(solde || 0) > 0.005)) && <span style={{ fontSize: 12.5 }}><Solde solde={solde} compte={compte} /></span>}
+      {fin && etat === "SURVEILLER" && <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.35, color: fin.couleur }}>{fin.label}</span>}
+    </div>
+  );
+}
+
 function Logements({ immeuble, soldes, comptes }) {
   const [ajout, setAjout] = useState(false);
+  const etats = Object.fromEntries(immeuble.logements.map((l) => {
+    const b = bailActuel(l);
+    return [l.id, etatPlan(b, b && comptes[b.id])];
+  }));
+  const presents = Object.keys(ETATS_PLAN).filter((k) => Object.values(etats).includes(k));
+  const groupes = etagesDe(immeuble.logements);
   return (
-    <Section titre="Logements" droite={<span style={{ display: "flex", gap: 12 }}>{immeuble.logements.some((l) => l.type === "LOGEMENT" && bailActuel(l)) && <Link href={`/immobilier/immeubles/${immeuble.id}/hausses`} style={{ fontSize: 12, fontWeight: 700, ...lien }}>🧮 Hausses de loyer</Link>}<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Logement"}</BoutonTexte></span>}>
+    <Section
+      titre="Plan de l'immeuble"
+      icone="immeuble"
+      droite={<span style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>{immeuble.logements.some((l) => l.type === "LOGEMENT" && bailActuel(l)) && <Link href={`/immobilier/immeubles/${immeuble.id}/hausses`} style={{ fontSize: 12, fontWeight: 700, ...lien }}>🧮 Hausses</Link>}<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Logement"}</BoutonTexte></span>}
+    >
       {ajout && <Formulaire champs={champsLogement()} extra={{ immeubleId: immeuble.id }} url="/api/immobilier/logements" bouton="Ajouter le logement" onFini={() => setAjout(false)} />}
       {immeuble.logements.length === 0 ? <Vide>Aucun logement : ajoute les logements et locaux de l'immeuble.</Vide> : (
-        <Tableau entetes={["Logement", "Locataires", "Loyer", "Fin du bail", "Solde"]} alignDroite={[2, 4]}>
-          {immeuble.logements.map((l) => {
-            const b = bailActuel(l);
-            const etat = b && etatFinBail(b);
-            return (
-              <tr key={l.id}>
-                <td style={cellule}><Link href={`/immobilier/logements/${l.id}`} style={{ ...lien, fontWeight: 700 }}>{nomLogement(l)}</Link>{l.pieces && <span style={{ color: "var(--text-muted)" }}> · {l.pieces}</span>}</td>
-                <td style={cellule}>{b ? <Link href={`/immobilier/baux/${b.id}`} style={{ color: "inherit" }}>{nomsLocataires(b)}</Link> : <span style={{ color: "var(--accent)", fontWeight: 700 }}>Vacant{l.loyerVise ? ` · ${argent(l.loyerVise)}` : ""}</span>}</td>
-                <td style={celluleDroite}>{b ? argent(b.loyer) : "—"}</td>
-                <td style={cellule}>{b ? <>{b.dateFin ? dateLisible(b.dateFin) : "Indéterminée"}{etat && !["PLUS_TARD", "INDETERMINEE"].includes(etat.code) && <div><PastilleEtat etat={etat} /></div>}</> : "—"}</td>
-                <td style={celluleDroite}>{b ? <Solde solde={soldes[b.id]} compte={comptes[b.id]} court /> : "—"}</td>
-              </tr>
-            );
-          })}
-        </Tableau>
+        <>
+          {presents.length > 1 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+              {presents.map((k) => (
+                <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: ETATS_PLAN[k].couleur, display: "inline-block" }} />
+                  {ETATS_PLAN[k].label} ({Object.values(etats).filter((x) => x === k).length})
+                </span>
+              ))}
+            </div>
+          )}
+          {groupes.map((g) => (
+            <div key={g.cle} style={{ marginBottom: 12 }}>
+              {g.label && <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-muted)", margin: "4px 0 6px" }}>{g.label}</div>}
+              <div className="plan-immeuble">
+                {g.logements.map((l) => {
+                  const b = bailActuel(l);
+                  return <CaseLogement key={l.id} logement={l} bail={b} compte={b && comptes[b.id]} solde={b && soldes[b.id]} etat={etats[l.id]} />;
+                })}
+              </div>
+            </div>
+          ))}
+        </>
       )}
     </Section>
   );
@@ -104,7 +198,7 @@ function Rendement({ r, annee }) {
       <LigneInfo label="Loyers perçus" valeur={argent(r.percu)} />
       <LigneInfo label="Dépenses" valeur={`− ${argent(r.depenses)}`} />
       <LigneInfo label="Réparations terminées" valeur={`− ${argent(r.reparations)}`} />
-      <div className="ligne-info ligne-pastilles" style={{ fontWeight: 800 }}><span>Revenu net</span><span style={{ color: r.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(r.net)}</span></div>
+      <div className="ligne-info" style={{ fontWeight: 800 }}><span>Revenu net</span><span style={{ color: r.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(r.net)}</span></div>
     </Section>
   );
 }
@@ -116,10 +210,12 @@ function Depenses({ immeuble }) {
     <Section titre="Dernières dépenses" droite={<span style={{ display: "flex", gap: 12 }}><Link href={`/immobilier/depenses?immeuble=${immeuble.id}`} style={{ fontSize: 12, ...lien }}>Tout voir</Link><BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Dépense"}</BoutonTexte></span>}>
       {ajout && <Formulaire champs={champs} initial={{ date: aujourdhui() }} extra={{ immeubleId: immeuble.id }} url="/api/immobilier/depenses" bouton="Ajouter la dépense" onFini={() => setAjout(false)} />}
       {immeuble.depenses.length === 0 ? <Vide>Aucune dépense inscrite.</Vide> : immeuble.depenses.slice(0, 10).map((d) => (
-        <div key={d.id} className="ligne-info ligne-pastilles" style={{ gap: 8 }}>
-          <span style={{ minWidth: 0 }}>{trouver(CATEGORIES_DEPENSE, d.categorie)?.icone} {d.description || libelle(CATEGORIES_DEPENSE, d.categorie)} <span style={{ color: "var(--text-muted)", fontSize: 12 }}>· {dateLisible(d.date)}{d.payeA && ` · ${d.payeA}`}</span></span>
-          <span style={{ fontWeight: 700, flexShrink: 0 }}>{argent(d.montant)}</span>
-        </div>
+        <LigneMouvement
+          key={d.id}
+          titre={<>{trouver(CATEGORIES_DEPENSE, d.categorie)?.icone} {d.description || libelle(CATEGORIES_DEPENSE, d.categorie)}</>}
+          detail={[dateLisible(d.date), d.payeA].filter(Boolean).join(" · ")}
+          montant={argent(d.montant)}
+        />
       ))}
     </Section>
   );

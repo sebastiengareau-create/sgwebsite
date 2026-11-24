@@ -254,6 +254,71 @@ a { color: inherit; }
   }
 }
 
+/* Rendement par immeuble (Immobilier) : sur un téléphone, nom et net, puis
+   les chiffres en dessous ; dès la tablette, des colonnes sous un en-tête */
+.ligne-rendement {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "nom net" "chiffres chiffres";
+  gap: 2px 12px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-rendement > .nom { grid-area: nom; min-width: 0; }
+.ligne-rendement > .net { grid-area: net; text-align: right; font-weight: 700; white-space: nowrap; }
+.ligne-rendement > .chiffres { grid-area: chiffres; display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--text-muted); }
+.ligne-rendement em { font-style: normal; }
+.ligne-rendement-entete { display: none; }
+@media (min-width: 700px) {
+  .ligne-rendement {
+    grid-template-columns: minmax(0, 1fr) repeat(3, 118px) 118px;
+    grid-template-areas: "nom percu depenses reparations net";
+    align-items: baseline;
+  }
+  .ligne-rendement > .chiffres { display: contents; }
+  .ligne-rendement .percu { grid-area: percu; }
+  .ligne-rendement .depenses { grid-area: depenses; }
+  .ligne-rendement .reparations { grid-area: reparations; }
+  .ligne-rendement .chiffres > span { text-align: right; white-space: nowrap; font-size: 13.5px; color: var(--text); }
+  .ligne-rendement em { display: none; }
+  .ligne-rendement-entete { display: grid; border-top: none; border-bottom: 2px solid var(--accent); font-size: 12px; font-weight: 700; padding-top: 0; }
+  .ligne-rendement-entete .chiffres > span, .ligne-rendement-entete > .net { font-size: 12px; color: var(--text-muted); font-weight: 700; }
+}
+
+/* Ligne de liste de l'immobilier (compte du bail, dépenses) : libellé à
+   gauche, montant à droite, actions dessous sur un téléphone */
+.ligne-mouvement {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "quoi montant" "actions actions";
+  gap: 3px 12px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-mouvement:first-child { border-top: none; }
+.ligne-mouvement > .quoi { grid-area: quoi; min-width: 0; }
+.ligne-mouvement > .quoi .titre { overflow-wrap: anywhere; }
+.ligne-mouvement .detail { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.ligne-mouvement > .montant { grid-area: montant; text-align: right; font-weight: 700; white-space: nowrap; }
+.ligne-mouvement > .montant .detail { font-weight: 500; }
+.ligne-mouvement > .actions { grid-area: actions; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 12.5px; }
+@media (min-width: 700px) {
+  .ligne-mouvement { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "quoi montant actions"; align-items: center; }
+  .ligne-mouvement > .actions { justify-content: flex-end; min-width: 150px; }
+}
+
+/* Plan d'un immeuble (Immobilier) : une case par logement, par étage */
+.plan-immeuble { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.case-logement { transition: border-color 0.15s, transform 0.15s; }
+.case-logement:hover, .case-logement:focus-within { border-top-color: var(--accent) !important; border-right-color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
+/* Le lien du numéro couvre toute la case ; le nom des locataires reste un
+   lien à part (vers le bail), posé au-dessus */
+.lien-etire::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.lien-etire:focus-visible { outline: none; }
+.case-logement:has(.lien-etire:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 /* Tuile chiffrée cliquable du tableau de bord de l'immobilier */
 .tuile-immo { transition: border-color 0.15s; }
 .tuile-immo:hover, .tuile-immo:focus-visible { border-color: var(--accent) !important; }

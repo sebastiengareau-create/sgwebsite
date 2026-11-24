@@ -6,7 +6,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import { BoutonPlein } from "../../components/StyleSection";
 import { CATEGORIES_DEPENSE, argent, libelle, trouver, dateLisible, dateCourte, rendement } from "@/lib/immobilierCalculs";
-import { NavImmo, Section, Formulaire, Vide, Tableau, cellule, celluleDroite, BoutonTexte, BoutonSupprimer, valeursDe, champsDepense, aujourdhui, champStyle, lien } from "../ui";
+import { NavImmo, Section, Formulaire, Vide, BoutonTexte, BoutonSupprimer, valeursDe, champsDepense, aujourdhui, champStyle, lien, TableauRendement, LigneMouvement } from "../ui";
 
 export default function DepensesClient({ immeubles, depenses, donnees, annee, courante, immeubleInit }) {
   const router = useRouter();
@@ -60,24 +60,14 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
       {edition && <Formulaire key={edition.id} champs={champs} initial={valeursDe(edition, champs)} url={`/api/immobilier/depenses/${edition.id}`} methode="PATCH" bouton="Enregistrer la dépense" onFini={() => setEdition(null)} />}
 
       <Section titre={`Rendement ${annee}`}>
-        <div className="ligne-info ligne-pastilles"><span>Loyers facturés</span><span>{argent(t.facture)}</span></div>
-        <div className="ligne-info ligne-pastilles"><span>Loyers perçus</span><span>{argent(t.percu)}</span></div>
-        <div className="ligne-info ligne-pastilles"><span>Dépenses</span><span>− {argent(t.depenses)}</span></div>
-        <div className="ligne-info ligne-pastilles"><span>Réparations terminées</span><span>− {argent(t.reparations)}</span></div>
-        <div className="ligne-info ligne-pastilles" style={{ fontWeight: 800 }}><span>Revenu net</span><span style={{ color: t.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(t.net)}</span></div>
+        <div className="ligne-info"><span>Loyers facturés</span><span>{argent(t.facture)}</span></div>
+        <div className="ligne-info"><span>Loyers perçus</span><span>{argent(t.percu)}</span></div>
+        <div className="ligne-info"><span>Dépenses</span><span>− {argent(t.depenses)}</span></div>
+        <div className="ligne-info"><span>Réparations terminées</span><span>− {argent(t.reparations)}</span></div>
+        <div className="ligne-info" style={{ fontWeight: 800 }}><span>Revenu net</span><span style={{ color: t.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(t.net)}</span></div>
         {!immeuble && lignes.length > 1 && (
           <div style={{ marginTop: 12 }}>
-            <Tableau entetes={["Immeuble", "Perçu", "Dépenses", "Réparations", "Net"]} alignDroite={[1, 2, 3, 4]}>
-              {lignes.map((l) => (
-                <tr key={l.id}>
-                  <td style={cellule}><Link href={`/immobilier/immeubles/${l.id}`} style={lien}>{l.nom}</Link></td>
-                  <td style={celluleDroite}>{argent(l.percu)}</td>
-                  <td style={celluleDroite}>{argent(l.depenses)}</td>
-                  <td style={celluleDroite}>{argent(l.reparations)}</td>
-                  <td style={{ ...celluleDroite, fontWeight: 700, color: l.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(l.net)}</td>
-                </tr>
-              ))}
-            </Tableau>
+            <TableauRendement lignes={lignes} />
           </div>
         )}
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>Aperçu de gestion, sans lien avec la comptabilité : le remboursement du capital de l'hypothèque n'est pas une dépense ; seuls les intérêts le sont.</p>
@@ -86,9 +76,9 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
       <Section titre="Par catégorie">
         {categories.length === 0 ? <Vide>Aucune dépense en {annee}.</Vide> : categories.map(([c, m]) => (
           <div key={c} style={{ marginBottom: 8 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-              <span>{trouver(CATEGORIES_DEPENSE, c)?.icone} {libelle(CATEGORIES_DEPENSE, c)}</span>
-              <span style={{ fontWeight: 700 }}>{argent(m)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>· {Math.round((m / totalDepenses) * 100)} %</span></span>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13 }}>
+              <span style={{ minWidth: 0 }}>{trouver(CATEGORIES_DEPENSE, c)?.icone} {libelle(CATEGORIES_DEPENSE, c)}</span>
+              <span style={{ fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>{argent(m)} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>· {Math.round((m / totalDepenses) * 100)} %</span></span>
             </div>
             <div style={{ height: 6, borderRadius: 3, background: "var(--surface-alt)", marginTop: 4 }}>
               <div style={{ height: 6, borderRadius: 3, width: `${(m / categories[0][1]) * 100}%`, background: "var(--accent)" }} />
@@ -99,20 +89,20 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
 
       <Section titre={`Dépenses ${annee} — ${argent(totalDepenses)}`} droite={filtrees.length > 0 && <BoutonTexte onClick={exporter}>⬇️ Exporter (CSV)</BoutonTexte>}>
         {filtrees.length === 0 ? <Vide>Aucune dépense.</Vide> : (
-          <Tableau entetes={["Date", "Dépense", "Immeuble", "Montant", ""]} alignDroite={[3]}>
+          <div>
             {filtrees.map((d) => (
-              <tr key={d.id}>
-                <td style={{ ...cellule, whiteSpace: "nowrap" }}>{dateLisible(d.date)}</td>
-                <td style={cellule}>{trouver(CATEGORIES_DEPENSE, d.categorie)?.icone} {d.description || libelle(CATEGORIES_DEPENSE, d.categorie)}{d.payeA && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{d.payeA}{d.reference && ` · ${d.reference}`}</div>}</td>
-                <td style={cellule}>{nomImmeuble[d.immeubleId]}</td>
-                <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(d.montant)}</td>
-                <td style={{ ...cellule, whiteSpace: "nowrap", textAlign: "right" }}>
-                  <BoutonTexte onClick={() => setEdition(d)}>Modifier</BoutonTexte>{" · "}
-                  <BoutonSupprimer url={`/api/immobilier/depenses/${d.id}`} confirmation={`Supprimer la dépense de ${argent(d.montant)} ?`}>✕</BoutonSupprimer>
-                </td>
-              </tr>
+              <LigneMouvement
+                key={d.id}
+                titre={<span title={libelle(CATEGORIES_DEPENSE, d.categorie)}>{trouver(CATEGORIES_DEPENSE, d.categorie)?.icone} {d.description || libelle(CATEGORIES_DEPENSE, d.categorie)}</span>}
+                detail={[dateLisible(d.date), nomImmeuble[d.immeubleId], d.payeA && `${d.payeA}${d.reference ? ` · ${d.reference}` : ""}`].filter(Boolean).join(" · ")}
+                montant={argent(d.montant)}
+                actions={<>
+                  <BoutonTexte onClick={() => setEdition(d)}>Modifier</BoutonTexte>
+                  <BoutonSupprimer url={`/api/immobilier/depenses/${d.id}`} confirmation={`Supprimer la dépense de ${argent(d.montant)} ?`}>✕ Retirer</BoutonSupprimer>
+                </>}
+              />
             ))}
-          </Tableau>
+          </div>
         )}
       </Section>
     </div>

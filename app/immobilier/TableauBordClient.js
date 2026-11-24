@@ -8,7 +8,7 @@ import {
   argent, dateLisible, trouver, periodeLisible, bailActuel, nomsLocataires, etatExpiration, rendement, tauxOccupation, loyerDuMois, echeanceReleve31,
   aSurveillerBail, aSurveillerEntretien, etatRetard, libelle, CATEGORIES_DOCUMENTS, TYPES_IMMEUBLE, STATUTS_REPARATION,
 } from "@/lib/immobilierCalculs";
-import { NavImmo, Panneau, Vide, PastilleEtat, Tableau, cellule, celluleDroite, nomLogement, lien } from "./ui";
+import { NavImmo, Panneau, Vide, PastilleEtat, nomLogement, lien, TableauRendement } from "./ui";
 import LoyersParMois from "./LoyersParMois";
 
 // Niveaux de la liste « À faire » (aSurveillerBail, lib/immobilierCalculs.js)
@@ -134,26 +134,7 @@ export default function TableauBordClient({ releve31, courriel, immeubles, compt
 
       <Panneau icone="tendance" teinte={TEINTES.vert} titre={`Rendement ${annee}`} sousTitre="Loyers perçus moins dépenses et réparations" droite={<Link href="/immobilier/depenses" style={{ fontSize: 12.5, fontWeight: 700, ...lien }}>Dépenses</Link>}>
         {lignes.length === 0 ? <Vide>Aucun immeuble.</Vide> : (
-          <Tableau entetes={["Immeuble", "Loyers perçus", "Dépenses", "Réparations", "Net"]} alignDroite={[1, 2, 3, 4]}>
-            {lignes.map((l) => (
-              <tr key={l.id}>
-                <td style={cellule}><Link href={`/immobilier/immeubles/${l.id}`} style={lien}>{trouver(TYPES_IMMEUBLE, immeubles.find((i) => i.id === l.id)?.type)?.icone} {l.nom}</Link></td>
-                <td style={celluleDroite}>{argent(l.percu)}</td>
-                <td style={celluleDroite}>{argent(l.depenses)}</td>
-                <td style={celluleDroite}>{argent(l.reparations)}</td>
-                <td style={{ ...celluleDroite, fontWeight: 700, color: l.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(l.net)}</td>
-              </tr>
-            ))}
-            {lignes.length > 1 && (
-              <tr>
-                <td style={{ ...cellule, fontWeight: 700 }}>Total</td>
-                <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(total.percu)}</td>
-                <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(total.depenses)}</td>
-                <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(total.reparations)}</td>
-                <td style={{ ...celluleDroite, fontWeight: 800, color: total.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(total.net)}</td>
-              </tr>
-            )}
-          </Tableau>
+          <TableauRendement lignes={lignes} total={total} icones={Object.fromEntries(immeubles.map((i) => [i.id, trouver(TYPES_IMMEUBLE, i.type)?.icone]))} />
         )}
         {valeur > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 18px", fontSize: 12.5, color: "var(--text-muted)", marginTop: 10 }}>

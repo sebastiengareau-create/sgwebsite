@@ -83,7 +83,9 @@ on décide quand et à qui une modification s'applique.
   de démonstration à charger ou retirer dans Administrateur,
   `lib/coproprieteDemo.js`).
   **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
-  immeubles locatifs — immeubles (année, entrepreneur) et logements, locataires et baux avec les
+  immeubles locatifs — immeubles (année, entrepreneur ; plan par étage, une
+  case par logement colorée selon son état : loyer en retard, vacant, bail à
+  surveiller, en règle) et logements, locataires et baux avec les
   délais d'avis de modification du TAL et le renouvellement, loyers du mois,
   paiements et retards (un loyer inscrit est « à recevoir » jusqu'à son
   échéance, en retard dès le lendemain, signalé passé trois semaines — seuil
