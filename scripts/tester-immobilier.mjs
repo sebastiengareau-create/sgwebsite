@@ -18,6 +18,7 @@ register("data:text/javascript," + encodeURIComponent(`
 const {
   etatCompte, etatRetard, additionnerComptes, aSurveillerBail, finReponseAvis, JOURS_RETARD_TAL,
   periodeTal, pourcentageBase, excedentHausse, calculHausseTal, loyersImmeuble, haussesImmeuble, debutHausse,
+  etatRevenusLocation, ligneT776,
 } = await import("../lib/immobilierCalculs.js");
 
 let reussis = 0;
@@ -220,6 +221,57 @@ test("Part de chaque logement : loyer en cours, sinon loyer demandé du vacant",
 
 test("Bail à durée indéterminée : hausse le 1er du mois dans deux mois", () => {
   assert.equal(debutHausse({ dateFin: null }, midiQc("2026-11-24")).toISOString().slice(0, 10), "2027-01-01");
+});
+
+// ---------- Revenus de location pour l'impôt ----------
+
+test("Catégories de dépenses → lignes du T776", () => {
+  assert.equal(ligneT776("TAXES_MUNICIPALES"), "9180");
+  assert.equal(ligneT776("TAXES_SCOLAIRES"), "9180");
+  assert.equal(ligneT776("ASSURANCE"), "8690");
+  assert.equal(ligneT776("INTERETS"), "8710");
+  assert.equal(ligneT776("DENEIGEMENT"), "8960");
+  assert.equal(ligneT776("CHAUFFAGE"), "9220");
+  assert.equal(ligneT776("IMMOBILISATION"), null, "immobilisation : pas déductible");
+  assert.equal(ligneT776("INCONNUE"), "9270");
+});
+
+test("État annuel d'un immeuble : revenus, dépenses par ligne, immobilisations à part", () => {
+  const { immeubles, total } = etatRevenusLocation({
+    immeubles: [{ id: "I1", nom: "Triplex", unites: 3 }, { id: "I2", nom: "Duplex", unites: 2 }],
+    charges: [
+      { immeubleId: "I1", type: "LOYER", montant: 12000 },
+      { immeubleId: "I1", type: "LOYER", montant: -500 }, // loyer remis
+      { immeubleId: "I1", type: "FRAIS", montant: 25 }, // chèque sans provision
+      { immeubleId: "I2", type: "LOYER", montant: 8000 },
+    ],
+    paiements: [{ immeubleId: "I1", montant: 11000 }],
+    depenses: [
+      { immeubleId: "I1", categorie: "TAXES_MUNICIPALES", montant: 3000 },
+      { immeubleId: "I1", categorie: "TAXES_SCOLAIRES", montant: 300 },
+      { immeubleId: "I1", categorie: "IMMOBILISATION", montant: 9000, description: "Fenêtres", date: jour("2026-05-01") },
+      { immeubleId: "I2", categorie: "ASSURANCE", montant: 1200 },
+    ],
+    reparations: [
+      { immeubleId: "I1", coutReel: 400, immobilisation: false, numero: "RP-1", titre: "Robinet", date: jour("2026-03-01") },
+      { immeubleId: "I1", coutReel: 1700, immobilisation: true, numero: "RP-2", titre: "Chauffe-eau", date: jour("2026-02-01") },
+      { immeubleId: "I1", coutReel: null, immobilisation: false, numero: "RP-3", titre: "Sans coût" },
+    ],
+  });
+  const t = immeubles[0];
+  egal(t.revenus[8141], 11500, "loyers bruts");
+  egal(t.revenus[8230], 25, "autres revenus");
+  egal(t.percu, 11000, "perçu");
+  egal(t.depenses.find((d) => d.ligne === "9180").montant, 3300, "impôts fonciers");
+  egal(t.depenses.find((d) => d.ligne === "8960").montant, 400, "réparations courantes");
+  egal(t.totalDepenses, 3700, "total des dépenses");
+  egal(t.net, 7825, "revenu net"); // 11 525 − 3 700
+  assert.deepEqual(t.immobilisations.map((x) => x.description), ["RP-2 — Chauffe-eau", "Fenêtres"], "immobilisations par date");
+  egal(t.totalImmobilisations, 10700, "immobilisations");
+  egal(total.revenus.total, 19525, "total des revenus");
+  egal(total.totalDepenses, 4900, "total des dépenses");
+  egal(total.net, 14625, "total net");
+  assert.equal(total.immeuble.unites, 5);
 });
 
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);

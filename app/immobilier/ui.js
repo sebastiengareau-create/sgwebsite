@@ -210,6 +210,7 @@ export function champsReparation({ immeubles, locataires, immeubleId, fixe = {} 
     { nom: "coutEstime", label: "Coût estimé ($)", type: "nombre" },
     { nom: "coutReel", label: "Coût réel ($)", type: "nombre" },
     { nom: "numeroFacture", label: "N° de facture" },
+    { nom: "immobilisation", label: "Dépense d'immobilisation : travaux majeurs ou remplacement durable (toiture, fenêtres, chauffe-eau…) — amortie à l'impôt, compte pour les hausses de loyer", type: "case" },
     { nom: "signalePar", label: "Signalée par (autre)" },
     { nom: "description", label: "Description", type: "long", lignes: 3 },
     { nom: "reponse", label: "Réponse au locataire (visible dans son portail ; il en est avisé par courriel)", type: "long", lignes: 2 },

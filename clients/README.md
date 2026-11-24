@@ -97,7 +97,13 @@ on décide quand et à qui une modification s'applique.
   choisis et détail du calcul en PDF dans leurs documents — le pourcentage
   publié chaque janvier par le TAL s'ajoute à `POURCENTAGES_BASE_TAL`,
   `lib/immobilierCalculs.js`, ou s'inscrit dans l'appli en attendant),
-  dépenses et rendement par immeuble, réparations avec
+  dépenses et rendement par immeuble, **revenus de location pour l'impôt**
+  (`/immobilier/depenses/impot`, `lib/immobilierImpot.js` : état annuel de
+  chaque immeuble sur les lignes du T776 — mêmes renseignements au TP-128 —,
+  PDF pour le comptable et détail en CSV ; les travaux majeurs, cochés
+  « dépense d'immobilisation » sur la réparation ou en catégorie de dépense
+  « Travaux majeurs », sont listés à part pour l'amortissement et préchoisis
+  dans le calcul des hausses), réparations avec
   photos, documents avec date d'expiration, bail de logement complet (sections
   A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
