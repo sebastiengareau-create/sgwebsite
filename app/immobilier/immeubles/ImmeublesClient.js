@@ -24,7 +24,7 @@ export const champsImmeuble = [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
-export default function ImmeublesClient({ immeubles, soldes, reparations }) {
+export default function ImmeublesClient({ immeubles, comptes, reparations }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState(false);
   const [recherche, setRecherche] = useState("");
@@ -43,7 +43,7 @@ export default function ImmeublesClient({ immeubles, soldes, reparations }) {
         {affiches.map((i) => {
           const baux = i.logements.map(bailActuel).filter(Boolean);
           const loyers = baux.reduce((s, b) => s + b.loyer, 0);
-          const retard = baux.reduce((s, b) => s + Math.max(0, soldes[b.id] || 0), 0);
+          const retard = baux.reduce((s, b) => s + (comptes[b.id]?.enRetard || 0), 0);
           const vacants = i.logements.length - baux.length;
           return (
             <CarteListe

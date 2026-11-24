@@ -85,7 +85,11 @@ on décide quand et à qui une modification s'applique.
   **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
   immeubles locatifs — immeubles (année, entrepreneur) et logements, locataires et baux avec les
   délais d'avis de modification du TAL et le renouvellement, loyers du mois,
-  paiements et retards, dépenses et rendement par immeuble, réparations avec
+  paiements et retards (un loyer inscrit est « à recevoir » jusqu'à son
+  échéance, en retard dès le lendemain, signalé passé trois semaines — seuil
+  de résiliation au TAL ; `etatCompte`, `lib/immobilierCalculs.js`, vérifié
+  par `npm run test:immobilier`), tableau de bord avec la liste « À faire »
+  et les loyers facturés et reçus des 12 derniers mois, dépenses et rendement par immeuble, réparations avec
   photos, documents avec date d'expiration, bail de logement complet (sections
   A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
@@ -100,7 +104,14 @@ on décide quand et à qui une modification s'applique.
   à signer), envoi par
   courriel des avis, relevés de compte et reçus avec journal des envois
   (`lib/immobilierCourriel.js`, exige l'envoi de courriel configuré),
-  `lib/immobilier.js` ;
+  **automatisations** (`/immobilier/automatisations`, `lib/immobilierAuto.js`,
+  une vérification par jour de 8 h à 18 h, chacune à activer) : loyers
+  inscrits tout seuls le 1er du mois, rappel par courriel aux locataires en
+  retard N jours après l'échéance (un par loyer impayé, consigné au bail), et
+  avis au propriétaire dans la cloche (avis de modification à envoyer, avis
+  sans réponse ou refusé, bail à renouveler ou échu, retard de plus de trois
+  semaines, assurance qui expire — type `IMMO_A_SURVEILLER`, actif par
+  défaut), `lib/immobilier.js` ;
   volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
   modules — à brancher client par client ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js`).

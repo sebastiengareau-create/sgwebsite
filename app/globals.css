@@ -197,6 +197,32 @@ a { color: inherit; }
 }
 
 /* Ligne « libellé ……… valeur » des fiches détail */
+/* Menu d'une section à plusieurs écrans (Immobilier) : une seule rangée qui
+   défile au doigt sur un téléphone — le contenu reste en haut de l'écran —,
+   puis une grille de 4 colonnes dès la tablette */
+.nav-section {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.nav-section::-webkit-scrollbar { display: none; }
+.nav-section > a { flex: 0 0 auto; white-space: nowrap; }
+@media (min-width: 700px) {
+  .nav-section { display: grid; grid-template-columns: repeat(4, 1fr); overflow-x: visible; }
+  .nav-section > a { white-space: normal; }
+}
+
+/* Tuile chiffrée cliquable du tableau de bord de l'immobilier */
+.tuile-immo { transition: border-color 0.15s; }
+.tuile-immo:hover, .tuile-immo:focus-visible { border-color: var(--accent) !important; }
+
 .ligne-info {
   display: flex;
   justify-content: space-between;

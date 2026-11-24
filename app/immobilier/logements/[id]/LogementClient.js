@@ -10,7 +10,7 @@ import {
   FormulaireDocument, ListeDocuments, ListeReparations, Solde, nomLogement, lien,
 } from "../../ui";
 
-export default function LogementClient({ logement, locataires, soldes }) {
+export default function LogementClient({ logement, locataires, soldes, comptes }) {
   const bail = bailActuel(logement);
   const type = trouver(TYPES_LOGEMENT, logement.type);
   return (
@@ -20,16 +20,16 @@ export default function LogementClient({ logement, locataires, soldes }) {
         <h1 style={{ fontSize: 21, margin: 0 }}>{type?.icone} {nomLogement(logement)}{logement.pieces && <span style={{ fontWeight: 400, color: "var(--text-muted)" }}> · {logement.pieces}</span>}</h1>
         <span style={{ fontSize: 13, fontWeight: 700, color: bail ? "var(--success)" : "var(--accent)" }}>{bail ? `Loué · ${argent(bail.loyer)} / mois` : "Vacant"}</span>
       </div>
-      <BailActuel logement={logement} bail={bail} locataires={locataires} soldes={soldes} />
+      <BailActuel logement={logement} bail={bail} locataires={locataires} soldes={soldes} comptes={comptes} />
       <Fiche logement={logement} />
-      <Historique logement={logement} bail={bail} soldes={soldes} />
+      <Historique logement={logement} bail={bail} soldes={soldes} comptes={comptes} />
       <Reparations logement={logement} locataires={locataires} bail={bail} />
       <Documents logement={logement} bail={bail} />
     </div>
   );
 }
 
-function BailActuel({ logement, bail, locataires, soldes }) {
+function BailActuel({ logement, bail, locataires, soldes, comptes }) {
   const router = useRouter();
   const [nouveau, setNouveau] = useState(false);
   if (!bail) {
@@ -48,7 +48,7 @@ function BailActuel({ logement, bail, locataires, soldes }) {
       <LigneInfo label="Durée" valeur={`${dateLisible(bail.dateDebut)} → ${bail.dateFin ? dateLisible(bail.dateFin) : "indéterminée"}`} />
       <LigneInfo label="Loyer" valeur={`${argent(bail.loyer)} / mois, le ${bail.jourPaiement}`} />
       <LigneInfo label="Comprend" valeur={servicesLisibles(bail.services) || "—"} />
-      <LigneInfo label="Compte" valeur={<Solde solde={soldes[bail.id]} />} />
+      <LigneInfo label="Compte" valeur={<Solde solde={soldes[bail.id]} compte={comptes[bail.id]} />} />
       <div style={{ marginTop: 8 }}><PastilleEtat etat={etat} /></div>
     </Section>
   );
@@ -83,7 +83,7 @@ function Fiche({ logement }) {
   );
 }
 
-function Historique({ logement, bail, soldes }) {
+function Historique({ logement, bail, soldes, comptes }) {
   const anciens = logement.baux.filter((b) => b.id !== bail?.id);
   if (anciens.length === 0) return null;
   return (
@@ -92,7 +92,7 @@ function Historique({ logement, bail, soldes }) {
         <Link key={b.id} href={`/immobilier/baux/${b.id}`} className="ligne-info ligne-pastilles" style={{ textDecoration: "none", color: "inherit", gap: 8 }}>
           <span style={{ minWidth: 0 }}>{nomsLocataires(b)} <span style={{ color: "var(--text-muted)", fontSize: 12 }}>· {dateLisible(b.dateDebut)} → {b.dateFin ? dateLisible(b.dateFin) : "—"} · {argent(b.loyer)}</span></span>
           <span style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-            {Math.abs(soldes[b.id] || 0) > 0.005 && <Solde solde={soldes[b.id]} />}
+            {Math.abs(soldes[b.id] || 0) > 0.005 && <Solde solde={soldes[b.id]} compte={comptes[b.id]} />}
             <PastilleCode liste={STATUTS_BAIL} code={b.statut} />
           </span>
         </Link>

@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
-import { soldesDesBaux, lienPortailLocataire } from "@/lib/immobilier";
+import { comptesDesBaux, lienPortailLocataire } from "@/lib/immobilier";
 import { exigerAccesImmo, simple, DOC_SANS_DONNEES } from "../../acces";
 import LocataireClient from "./LocataireClient";
 
 export default async function FicheLocataire(props) {
   const { id } = await props.params;
   const session = await exigerAccesImmo();
-  const [locataire, soldes] = await Promise.all([
+  const [locataire, comptes] = await Promise.all([
     prisma.locataireImmo.findUnique({
       where: { id },
       include: {
@@ -20,13 +20,13 @@ export default async function FicheLocataire(props) {
         documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
       },
     }),
-    soldesDesBaux({ bail: { locataires: { some: { id } } } }),
+    comptesDesBaux({ bail: { locataires: { some: { id } } } }),
   ]);
   if (!locataire) notFound();
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <LocataireClient {...simple({ locataire, soldes })} lien={locataire.jetonPortail ? lienPortailLocataire(locataire.jetonPortail) : null} courrielConfigure={Boolean(process.env.RESEND_API_KEY)} />
+      <LocataireClient {...simple({ locataire, comptes })} lien={locataire.jetonPortail ? lienPortailLocataire(locataire.jetonPortail) : null} courrielConfigure={Boolean(process.env.RESEND_API_KEY)} />
     </div>
   );
 }

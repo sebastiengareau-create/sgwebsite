@@ -13,7 +13,7 @@ import {
   champsLogement, champsDepense, FormulaireReparation, FormulaireDocument, ListeDocuments, ListeReparations, PastilleEtat, Solde, nomLogement, lien,
 } from "../../ui";
 
-export default function ImmeubleClient({ immeuble, soldes, donnees, annee, locataires }) {
+export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, annee, locataires }) {
   const type = trouver(TYPES_IMMEUBLE, immeuble.type);
   const { lignes } = rendement({ immeubles: [immeuble], ...donnees });
   const r = lignes[0];
@@ -30,7 +30,7 @@ export default function ImmeubleClient({ immeuble, soldes, donnees, annee, locat
         {immeuble.valeurEstimee > 0 && <Statistique valeur={argent(immeuble.valeurEstimee - (immeuble.soldeHypotheque || 0))} label="Avoir net (valeur − hypothèque)" teinte="var(--accent)" />}
       </div>
       <Fiche immeuble={immeuble} />
-      <Logements immeuble={immeuble} soldes={soldes} />
+      <Logements immeuble={immeuble} soldes={soldes} comptes={comptes} />
       <Rendement r={r} annee={annee} />
       <Depenses immeuble={immeuble} />
       <Reparations immeuble={immeuble} locataires={locataires} />
@@ -69,7 +69,7 @@ function Fiche({ immeuble }) {
   );
 }
 
-function Logements({ immeuble, soldes }) {
+function Logements({ immeuble, soldes, comptes }) {
   const [ajout, setAjout] = useState(false);
   return (
     <Section titre="Logements" droite={<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Logement"}</BoutonTexte>}>
@@ -85,7 +85,7 @@ function Logements({ immeuble, soldes }) {
                 <td style={cellule}>{b ? <Link href={`/immobilier/baux/${b.id}`} style={{ color: "inherit" }}>{nomsLocataires(b)}</Link> : <span style={{ color: "var(--accent)", fontWeight: 700 }}>Vacant{l.loyerVise ? ` · ${argent(l.loyerVise)}` : ""}</span>}</td>
                 <td style={celluleDroite}>{b ? argent(b.loyer) : "—"}</td>
                 <td style={cellule}>{b ? <>{b.dateFin ? dateLisible(b.dateFin) : "Indéterminée"}{etat && !["PLUS_TARD", "INDETERMINEE"].includes(etat.code) && <div><PastilleEtat etat={etat} /></div>}</> : "—"}</td>
-                <td style={celluleDroite}>{b ? <Solde solde={soldes[b.id]} court /> : "—"}</td>
+                <td style={celluleDroite}>{b ? <Solde solde={soldes[b.id]} compte={comptes[b.id]} court /> : "—"}</td>
               </tr>
             );
           })}

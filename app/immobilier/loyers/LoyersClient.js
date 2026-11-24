@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
-import { argent, dateLisible, libelle, periodeLisible, nomsLocataires, loyerDuMois, MODES_PAIEMENT } from "@/lib/immobilierCalculs";
+import { argent, dateLisible, libelle, periodeLisible, nomsLocataires, loyerDuMois, MODES_PAIEMENT, JOURS_RETARD_TAL } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Onglets, Vide, Tableau, cellule, celluleDroite, useApi, Erreur, Statistique, Solde, nomLogement, lien, aujourdhui, champStyle } from "../ui";
 
 const ONGLETS = [{ code: "MOIS", label: "Loyers du mois" }, { code: "RETARDS", label: "Retards" }, { code: "PAIEMENTS", label: "Paiements reçus" }];
@@ -15,32 +15,33 @@ function moisProposes(courante) {
   return Array.from({ length: 14 }, (_, i) => new Date(Date.UTC(a, m - 1 + 1 - i, 15)).toISOString().slice(0, 7));
 }
 
-export default function LoyersClient({ courriel, periode, courante, baux, charges, soldes, paiements, dus, onglet: ongletInit }) {
+export default function LoyersClient({ courriel, periode, courante, baux, charges, soldes, comptes, paiements, dus, onglet: ongletInit }) {
   const [onglet, setOnglet] = useState(ongletInit);
   return (
     <div className="conteneur-page">
       <BandeauSection icone="💵" titre="Loyers" sousTitre="Loyers du mois, paiements reçus et retards." />
       <NavImmo actif="/immobilier/loyers" />
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
-      {onglet === "MOIS" && <Mois periode={periode} courante={courante} baux={baux} charges={charges} soldes={soldes} />}
-      {onglet === "RETARDS" && <Retards dus={dus} soldes={soldes} courriel={courriel} />}
+      {onglet === "MOIS" && <Mois periode={periode} courante={courante} baux={baux} charges={charges} soldes={soldes} comptes={comptes} />}
+      {onglet === "RETARDS" && <Retards dus={dus} comptes={comptes} courriel={courriel} />}
       {onglet === "PAIEMENTS" && <Paiements paiements={paiements} />}
     </div>
   );
 }
 
-function Mois({ periode, courante, baux, charges, soldes }) {
+function Mois({ periode, courante, baux, charges, soldes, comptes }) {
   const router = useRouter();
   const { appeler, enCours, erreur } = useApi();
   const [message, setMessage] = useState("");
   const chargeDe = Object.fromEntries(charges.map((c) => [c.bailId, c]));
   const lignes = baux
-    .map((b) => ({ ...b, du: loyerDuMois(b, periode), charge: chargeDe[b.id], solde: soldes[b.id] || 0 }))
+    .map((b) => ({ ...b, du: loyerDuMois(b, periode), charge: chargeDe[b.id], solde: soldes[b.id] || 0, compte: comptes[b.id] }))
     .filter((b) => b.charge || (b.statut === "ACTIF" && b.du > 0))
     .sort((a, b) => a.logement.immeuble.nom.localeCompare(b.logement.immeuble.nom) || a.logement.numero.localeCompare(b.logement.numero, "fr", { numeric: true }));
   const aGenerer = lignes.filter((l) => !l.charge && l.statut === "ACTIF");
   const totalDu = lignes.reduce((s, l) => s + (l.charge?.montant ?? l.du), 0);
-  const enRetard = lignes.filter((l) => l.solde > 0.005);
+  const enRetard = lignes.filter((l) => l.compte?.enRetard > 0.005);
+  const aRecevoir = lignes.filter((l) => l.solde > 0.005 && !(l.compte?.enRetard > 0.005));
 
   async function generer() {
     const data = await appeler("/api/immobilier/charges", "POST", { generer: periode });
@@ -63,11 +64,12 @@ function Mois({ periode, courante, baux, charges, soldes }) {
       <Erreur texte={erreur} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Statistique valeur={argent(totalDu)} label={`Loyers de ${periodeLisible(periode)}`} teinte="var(--bleu)" />
-        <Statistique valeur={lignes.length - enRetard.length} label="Comptes à jour" teinte="var(--success)" />
+        <Statistique valeur={lignes.length - enRetard.length - aRecevoir.length} label="Comptes à jour" teinte="var(--success)" />
+        <Statistique valeur={aRecevoir.length} label="À recevoir" note="loyer pas encore échu" teinte="var(--avertissement)" />
         <Statistique valeur={enRetard.length} label="Comptes en retard" teinte={enRetard.length ? "var(--danger)" : "var(--success)"} />
       </div>
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Inscrire les loyers ajoute au compte de chaque bail en cours le loyer du mois (au prorata si le bail commence ou finit en cours de mois). « Payé » inscrit un paiement aujourd'hui pour le solde dû ; un autre montant s'inscrit depuis la fiche du bail.
+        Inscrire les loyers ajoute au compte de chaque bail en cours le loyer du mois (au prorata si le bail commence ou finit en cours de mois), payable au jour prévu au bail : il est « à recevoir » jusque-là, puis en retard dès le lendemain. « Payé » inscrit un paiement aujourd'hui pour le solde dû ; un autre montant s'inscrit depuis la fiche du bail. Les loyers peuvent aussi s'inscrire tout seuls le 1er du mois : <Link href="/immobilier/automatisations" style={lien}>Automatisations</Link>.
       </p>
       <div className="carte">
         {lignes.length === 0 ? <Vide>Aucun bail ne couvre ce mois.</Vide> : (
@@ -77,7 +79,7 @@ function Mois({ periode, courante, baux, charges, soldes }) {
                 <td style={cellule}><Link href={`/immobilier/logements/${l.logement.id}`} style={lien}>{nomLogement(l.logement)}</Link><div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{l.logement.immeuble.nom}</div></td>
                 <td style={cellule}><Link href={`/immobilier/baux/${l.id}`} style={{ color: "inherit" }}>{nomsLocataires(l)}</Link></td>
                 <td style={celluleDroite}>{argent(l.charge?.montant ?? l.du)}{!l.charge && <div style={{ fontSize: 11, color: "var(--accent)" }}>pas inscrit</div>}</td>
-                <td style={celluleDroite}><Solde solde={l.solde} /></td>
+                <td style={celluleDroite}><Solde solde={l.solde} compte={l.compte} /></td>
                 <td style={{ ...cellule, textAlign: "right", whiteSpace: "nowrap" }}>{l.solde > 0.005 && <Encaisser bail={l} montant={l.solde} />}</td>
               </tr>
             ))}
@@ -107,28 +109,36 @@ function Encaisser({ bail, montant }) {
   );
 }
 
-function Retards({ dus, soldes, courriel }) {
-  const lignes = dus.map((b) => ({ ...b, solde: soldes[b.id] || 0 })).sort((a, b) => b.solde - a.solde);
-  const total = lignes.reduce((s, l) => s + l.solde, 0);
+function Retards({ dus, comptes, courriel }) {
+  const lignes = dus.map((b) => ({ ...b, compte: comptes[b.id] })).filter((l) => l.compte).sort((a, b) => b.compte.joursRetard - a.compte.joursRetard || b.compte.enRetard - a.compte.enRetard);
+  const total = lignes.reduce((s, l) => s + l.compte.enRetard, 0);
+  const tal = lignes.filter((l) => l.compte.tal).length;
   return (
     <Section titre={`Comptes en retard — ${argent(total)}`}>
       <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-        Un retard de plus de trois semaines permet de demander au Tribunal administratif du logement la résiliation du bail ; un retard fréquent cause un préjudice au propriétaire. Garde une trace de chaque rappel dans les documents du bail.
+        Un loyer est en retard dès le lendemain de son échéance ; un loyer inscrit d'avance n'est pas compté. Un retard de plus de trois semaines ({JOURS_RETARD_TAL} jours) permet de demander au Tribunal administratif du logement la résiliation du bail ; un retard fréquent cause un préjudice au propriétaire. Garde une trace de chaque rappel dans les documents du bail
+        {courriel ? <> — ou laisse partir le rappel tout seul : <Link href="/immobilier/automatisations" style={lien}>Automatisations</Link>.</> : "."}
       </p>
+      {tal > 0 && <p style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)", margin: "0 0 10px" }}>{tal} compte{tal > 1 ? "s" : ""} en retard de plus de trois semaines.</p>}
       {courriel && lignes.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <EnvoiGroupe nombre={lignes.length} />
         </div>
       )}
       {lignes.length === 0 ? <Vide>Aucun retard. 🎉</Vide> : (
-        <Tableau entetes={["Locataires", "Logement", "Dû", "Mois de loyer", "Téléphone"]} alignDroite={[2, 3]}>
+        <Tableau entetes={["Locataires et logement", "En retard"]} alignDroite={[1]}>
           {lignes.map((l) => (
             <tr key={l.id}>
-              <td style={cellule}><Link href={`/immobilier/baux/${l.id}`} style={{ ...lien, fontWeight: 700 }}>{nomsLocataires(l)}</Link>{l.statut !== "ACTIF" && <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>bail terminé</div>}</td>
-              <td style={cellule}>{nomLogement(l.logement)} · {l.logement.immeuble.nom}</td>
-              <td style={{ ...celluleDroite, color: "var(--danger)", fontWeight: 700 }}>{argent(l.solde)}</td>
-              <td style={celluleDroite}>{(l.solde / l.loyer).toFixed(1).replace(".", ",")}</td>
-              <td style={cellule}>{l.locataires.map((x) => x.telephone).filter(Boolean).map((t) => <div key={t}><a href={`tel:${t}`} style={lien}>{t}</a></div>)}</td>
+              <td style={cellule}>
+                <Link href={`/immobilier/baux/${l.id}`} style={{ ...lien, fontWeight: 700 }}>{nomsLocataires(l)}</Link>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{nomLogement(l.logement)} · {l.logement.immeuble.nom}{l.statut !== "ACTIF" && " · bail terminé"}</div>
+                {l.locataires.map((x) => x.telephone).filter(Boolean).map((t) => <div key={t} style={{ fontSize: 12.5, whiteSpace: "nowrap" }}><a href={`tel:${t}`} style={lien}>{t}</a></div>)}
+              </td>
+              <td style={celluleDroite}>
+                <div style={{ color: "var(--danger)", fontWeight: 700 }}>{argent(l.compte.enRetard)}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>depuis le {dateLisible(l.compte.depuis)}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: l.compte.tal ? "var(--danger)" : "var(--avertissement)" }}>{l.compte.joursRetard} j{l.compte.tal ? " · plus de 3 sem." : ""}</div>
+              </td>
             </tr>
           ))}
         </Tableau>

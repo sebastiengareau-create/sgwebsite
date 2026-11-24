@@ -2653,7 +2653,7 @@ model SignatureImmo {
 model EnvoiImmo {
   id            String    @id @default(cuid())
   date          DateTime  @default(now())
-  type          String // "DOCUMENT" | "RELEVE" | "RECU" | "SIGNATURE"
+  type          String // "DOCUMENT" | "RELEVE" | "RECU" | "SIGNATURE" | "RAPPEL" (rappel de retard automatique, lib/immobilierAuto.js)
   sujet         String
   destinataires String // adresses, séparées par des virgules
   bailId        String?

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
 import {
   STATUTS_BAIL, REPONSES_AVIS, MODES_PAIEMENT, CHAUFFAGES, ANIMAUX, FUMEUR, argent, libelle, dateLisible, dureeMois, etatFinBail, fenetreAvis, hausseLisible,
-  datesRenouvellement, servicesLisibles, soldeBail, releveBail, dateCourte,
+  datesRenouvellement, servicesLisibles, soldeBail, releveBail, dateCourte, etatCompte, etatRetard,
 } from "@/lib/immobilierCalculs";
 import { champStyle, BoutonEnvoyer } from "../../ui";
 import {
@@ -17,18 +17,19 @@ import {
 export default function BailClient({ bail, locataires, suivant, precedent, courriel }) {
   // Envoi par courriel possible : configuré, et au moins un locataire a un courriel
   const envoi = courriel && bail.locataires.some((l) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(l.courriel || ""));
-  const solde = soldeBail(bail);
+  const compte = etatCompte(bail);
   const etat = etatFinBail(bail);
   return (
     <div className="conteneur-page">
       <Retour href={`/immobilier/logements/${bail.logement.id}`}>{bail.logement.immeuble.nom} · {nomLogement(bail.logement)}</Retour>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "10px 0 6px", flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 21, margin: 0 }}>✍️ Bail — {bail.locataires.map((l) => l.nom).join(", ")}</h1>
-        <span style={{ fontSize: 13 }}><Solde solde={solde} /></span>
+        <span style={{ fontSize: 13 }}><Solde compte={compte} /></span>
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
         <PastilleCode liste={STATUTS_BAIL} code={bail.statut} />
         {bail.statut === "ACTIF" && <PastilleEtat etat={etat} />}
+        <PastilleEtat etat={etatRetard(compte)} />
         {precedent && <Link href={`/immobilier/baux/${precedent.id}`} style={{ fontSize: 12, ...lien }}>← bail précédent ({argent(precedent.loyer)})</Link>}
         {suivant && <Link href={`/immobilier/baux/${suivant.id}`} style={{ fontSize: 12, ...lien }}>bail suivant ({argent(suivant.loyer)}) →</Link>}
       </div>
@@ -290,8 +291,9 @@ function GenerateurDocuments({ bail, envoi }) {
   const [type, setType] = useState("");
   const [v, setV] = useState({});
   const { appeler, enCours, erreur, setErreur } = useApi();
-  const solde = soldeBail(bail);
-  const offerts = TYPES_GENERES.filter((t) => (!t.actif || bail.statut === "ACTIF") && (!t.retard || solde > 0.005) && (t.code !== "AVIS_MODIFICATION" || bail.dateFin));
+  // Rappel et mise en demeure : seulement s'il y a un montant en retard (pas un loyer pas encore échu)
+  const enRetard = etatCompte(bail).enRetard;
+  const offerts = TYPES_GENERES.filter((t) => (!t.actif || bail.statut === "ACTIF") && (!t.retard || enRetard > 0.005) && (t.code !== "AVIS_MODIFICATION" || bail.dateFin));
   const maj = (k, x) => setV((o) => ({ ...o, [k]: x }));
   const fin = bail.dateFin ? dateCourte(bail.dateFin) : "";
   const choisir = (code) => {
@@ -387,7 +389,7 @@ function GenerateurDocuments({ bail, envoi }) {
   );
 }
 
-const TYPES_ENVOI = { DOCUMENT: "📄", RELEVE: "📊", RECU: "🧾", SIGNATURE: "✍️" };
+const TYPES_ENVOI = { DOCUMENT: "📄", RELEVE: "📊", RECU: "🧾", SIGNATURE: "✍️", RAPPEL: "⏰" };
 
 // Journal des courriels envoyés : la preuve d'envoi
 function Envois({ bail, courriel, envoi }) {

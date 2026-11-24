@@ -4,23 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
-import { STATUTS_BAIL, argent, dateLisible, etatFinBail } from "@/lib/immobilierCalculs";
+import { STATUTS_BAIL, argent, dateLisible, etatFinBail, additionnerComptes } from "@/lib/immobilierCalculs";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, valeursDe, champsLocataire, FormulaireDocument, ListeDocuments, ListeReparations,
   Solde, nomLogement, lien as styleLien, useApi, Erreur,
 } from "../../ui";
 
-export default function LocataireClient({ locataire, soldes, lien, courrielConfigure }) {
+export default function LocataireClient({ locataire, comptes, lien, courrielConfigure }) {
   const router = useRouter();
   const [edition, setEdition] = useState(false);
   const [ajoutDoc, setAjoutDoc] = useState(false);
-  const solde = locataire.baux.reduce((s, b) => s + (soldes[b.id] || 0), 0);
+  const compte = additionnerComptes(locataire.baux.map((b) => comptes[b.id]));
   return (
     <div className="conteneur-page">
       <Retour href="/immobilier/locataires">Locataires</Retour>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "10px 0 14px", flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 21, margin: 0 }}>🧑 {locataire.nom}</h1>
-        <span style={{ fontSize: 13 }}><Solde solde={solde} /></span>
+        <span style={{ fontSize: 13 }}><Solde compte={compte} /></span>
       </div>
 
       <Section titre="Coordonnées" droite={<BoutonTexte onClick={() => setEdition((v) => !v)}>{edition ? "Annuler" : "Modifier"}</BoutonTexte>}>
@@ -54,7 +54,7 @@ export default function LocataireClient({ locataire, soldes, lien, courrielConfi
                 <span style={{ color: "var(--text-muted)", fontSize: 12 }}> · {dateLisible(b.dateDebut)} → {b.dateFin ? dateLisible(b.dateFin) : "indéterminée"} · {argent(b.loyer)}{autres.length > 0 && ` · avec ${autres.map((l) => l.nom).join(", ")}`}</span>
               </span>
               <span style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-                {Math.abs(soldes[b.id] || 0) > 0.005 && <Solde solde={soldes[b.id]} />}
+                {Math.abs(comptes[b.id]?.solde || 0) > 0.005 && <Solde compte={comptes[b.id]} />}
                 {b.statut === "ACTIF" ? <PastilleEtat etat={etatFinBail(b)} /> : <PastilleCode liste={STATUTS_BAIL} code={b.statut} />}
               </span>
             </Link>
