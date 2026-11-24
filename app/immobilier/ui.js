@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TEINTES, TitrePanneau, stylePanneau } from "../components/StyleSection";
 import {
-  Section, Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
+  Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
   Retour, valeursDe, champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, useApi, Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui,
 } from "../copropriete/ui";
 import {
@@ -21,9 +21,96 @@ import {
 export { nomLogement };
 
 export {
-  Section, Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
+  Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
   Retour, valeursDe, champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, useApi, Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui,
 };
+
+// Icône et teinte d'une section d'après son titre, pour que tous les écrans
+// de l'immobilier aient les panneaux à tuile d'icône du tableau de bord
+const ICONES_SECTIONS = [
+  [/suggestion|comment faire/i, "livre", TEINTES.neutre],
+  [/retard/i, "alerte", TEINTES.rouge],
+  [/rendement|revenu/i, "tendance", TEINTES.vert],
+  [/loyer|compte|paiement|dépense/i, "banque", TEINTES.vert],
+  [/renouvel|fin du bail/i, "echange", TEINTES.bleu],
+  [/document|générer/i, "document", TEINTES.bleu],
+  [/bail|baux/i, "presse", TEINTES.ambre],
+  [/états? des lieux/i, "camera", TEINTES.ambre],
+  [/réparation|entretien/i, "outils", TEINTES.ambre],
+  [/photo/i, "camera", TEINTES.neutre],
+  [/courriel/i, "courriel", TEINTES.bleu],
+  [/portail/i, "globe", TEINTES.bleu],
+  [/coordonnées|locataire/i, "personne", TEINTES.ambre],
+  [/logement|immeuble|fiche/i, "immeuble", TEINTES.ambre],
+  [/catégorie/i, "graphique", TEINTES.vert],
+  [/modifier/i, "crayon", TEINTES.neutre],
+];
+function iconeDeTitre(titre) {
+  const t = typeof titre === "string" ? titre : "";
+  const trouve = ICONES_SECTIONS.find(([re]) => re.test(t));
+  return trouve ? { icone: trouve[1], teinte: trouve[2] } : { icone: "liste", teinte: TEINTES.ambre };
+}
+
+// Section d'un écran de l'immobilier : panneau blanc, tuile d'icône (choisie
+// d'après le titre, ou donnée), titre, sous-titre et actions à droite
+export function Section({ titre, children, droite, id, icone, teinte, sousTitre }) {
+  const defaut = iconeDeTitre(titre);
+  return (
+    <div id={id} style={stylePanneau}>
+      <TitrePanneau icone={icone || defaut.icone} teinte={teinte || defaut.teinte} titre={titre} sousTitre={sousTitre} droite={droite} />
+      {children}
+    </div>
+  );
+}
+
+// Rendement par immeuble (rendement(), lib/immobilierCalculs.js) : sur un
+// téléphone, le nom et le net, puis les chiffres en dessous ; dès la
+// tablette, des colonnes sous un en-tête (.ligne-rendement, app/globals.css).
+// icones : { [immeubleId]: émoji } ; liens : nom vers la fiche de l'immeuble
+export function TableauRendement({ lignes, total, icones = {}, liens = true }) {
+  const rangee = (l, { gras = false, cle } = {}) => (
+    <div key={cle || l.id} className="ligne-rendement" style={gras ? { fontWeight: 800 } : undefined}>
+      <span className="nom">{liens && l.id ? <Link href={`/immobilier/immeubles/${l.id}`} style={lien}>{icones[l.id] ? `${icones[l.id]} ` : ""}{l.nom}</Link> : l.nom}</span>
+      <span className="chiffres">
+        <span className="percu"><em>Perçu </em>{argent(l.percu)}</span>
+        <span className="depenses"><em>Dépenses </em>{argent(l.depenses)}</span>
+        <span className="reparations"><em>Réparations </em>{argent(l.reparations)}</span>
+      </span>
+      <span className="net" style={{ color: l.net < 0 ? "var(--danger)" : "var(--success)" }}>{argent(l.net)}</span>
+    </div>
+  );
+  return (
+    <div>
+      <div className="ligne-rendement ligne-rendement-entete" aria-hidden="true">
+        <span className="nom">Immeuble</span>
+        <span className="chiffres"><span className="percu">Loyers perçus</span><span className="depenses">Dépenses</span><span className="reparations">Réparations</span></span>
+        <span className="net">Net</span>
+      </div>
+      {lignes.map((l) => rangee(l))}
+      {total && lignes.length > 1 && rangee({ ...total, nom: "Total" }, { gras: true, cle: "total" })}
+    </div>
+  );
+}
+
+// Une ligne de liste qui tient sur un téléphone (.ligne-mouvement,
+// app/globals.css) : à gauche le libellé et une ligne pâle, à droite le
+// montant (et une 2e valeur pâle) ; les actions passent dessous sur un
+// téléphone, en bout de ligne dès la tablette.
+export function LigneMouvement({ titre, detail, montant, sousMontant, actions, couleurMontant }) {
+  return (
+    <div className="ligne-mouvement">
+      <div className="quoi">
+        <div className="titre">{titre}</div>
+        {detail && <div className="detail">{detail}</div>}
+      </div>
+      <div className="montant">
+        <div style={couleurMontant ? { color: couleurMontant } : undefined}>{montant}</div>
+        {sousMontant && <div className="detail">{sousMontant}</div>}
+      </div>
+      {actions && <div className="actions">{actions}</div>}
+    </div>
+  );
+}
 
 // Menu de l'immobilier : une rangée qui défile au doigt sur un téléphone (le
 // contenu reste en haut de l'écran), 4 × 2 dès la tablette (.nav-section,
@@ -101,7 +188,7 @@ export function Alerte({ children, couleur = "var(--danger)", fond = "var(--dang
 export function PastilleEtat({ etat }) {
   if (!etat) return null;
   return (
-    <span style={{ display: "inline-block", fontSize: 11.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, color: etat.couleur, background: `${etat.couleur}22`, whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-block", fontSize: 11.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999, color: etat.couleur, background: `${etat.couleur}22`, whiteSpace: "nowrap", alignSelf: "center", flexShrink: 0 }}>
       {etat.label}
     </span>
   );

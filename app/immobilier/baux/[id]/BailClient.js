@@ -10,7 +10,7 @@ import {
 } from "@/lib/immobilierCalculs";
 import { champStyle, BoutonEnvoyer } from "../../ui";
 import {
-  Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, Tableau, cellule, celluleDroite, aujourdhui, useApi, Erreur,
+  Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, aujourdhui, useApi, Erreur, LigneMouvement,
   ChampsFormulaire, boutonPrincipal, FormulaireBail, FormulaireDocument, ListeDocuments, champsPaiement, champsCharge, Solde, nomLogement, lien,
 } from "../../ui";
 
@@ -187,20 +187,23 @@ function Compte({ bail, envoi }) {
       {ajout === "PAIEMENT" && <Formulaire champs={champsPaiement} initial={{ date: aujourdhui(), montant: solde > 0 ? String(Math.min(solde, bail.loyer)).replace(".", ",") : String(bail.loyer).replace(".", ",") }} extra={{ bailId: bail.id }} url="/api/immobilier/paiements" bouton="Inscrire le paiement" onFini={() => setAjout(null)} />}
       {ajout === "CHARGE" && <Formulaire champs={champsCharge} initial={{ date: aujourdhui() }} extra={{ bailId: bail.id }} url="/api/immobilier/charges" bouton="Ajouter au compte" onFini={() => setAjout(null)} />}
       {lignes.length === 0 ? <Vide>Aucun loyer inscrit. Les loyers se génèrent chaque mois dans Loyers.</Vide> : (
-        <Tableau entetes={["Date", "Détail", "Montant", "Solde", ""]} alignDroite={[2, 3]}>
+        <div>
           {[...lignes].reverse().map((l) => (
-            <tr key={l.id}>
-              <td style={{ ...cellule, whiteSpace: "nowrap" }}>{dateLisible(l.date)}</td>
-              <td style={cellule}>{l.genre === "paiement" ? "💵 " : ""}{l.libelle}</td>
-              <td style={{ ...celluleDroite, color: l.montant < 0 ? "var(--success)" : undefined }}>{l.montant < 0 ? `− ${argent(-l.montant)}` : argent(l.montant)}</td>
-              <td style={{ ...celluleDroite, fontWeight: 700 }}>{argent(l.solde)}</td>
-              <td style={{ ...cellule, textAlign: "right", whiteSpace: "nowrap" }}>
-                {l.genre === "paiement" && <><a href={`/api/immobilier/paiements/${l.id}/recu`} target="_blank" rel="noreferrer" style={{ ...lien, fontSize: 12, fontWeight: 700 }} title="Reçu de loyer (PDF)">🧾 Reçu</a>{envoi && <>{" "}<BoutonEnvoyer url={`/api/immobilier/paiements/${l.id}/recu`} confirmation="Envoyer ce reçu par courriel aux locataires ?">✉️</BoutonEnvoyer></>}{" · "}</>}
-                <BoutonSupprimer url={`/api/immobilier/${l.genre === "paiement" ? "paiements" : "charges"}/${l.id}`} confirmation={`Supprimer « ${l.libelle} » (${argent(Math.abs(l.montant))}) ?`}>✕</BoutonSupprimer>
-              </td>
-            </tr>
+            <LigneMouvement
+              key={l.id}
+              titre={<>{l.genre === "paiement" ? "💵 " : ""}{l.libelle}</>}
+              detail={dateLisible(l.date)}
+              montant={l.montant < 0 ? `− ${argent(-l.montant)}` : argent(l.montant)}
+              couleurMontant={l.montant < 0 ? "var(--success)" : undefined}
+              sousMontant={`Solde ${argent(l.solde)}`}
+              actions={<>
+                {l.genre === "paiement" && <a href={`/api/immobilier/paiements/${l.id}/recu`} target="_blank" rel="noreferrer" style={{ ...lien, fontWeight: 700 }} title="Reçu de loyer (PDF)">🧾 Reçu</a>}
+                {l.genre === "paiement" && envoi && <BoutonEnvoyer url={`/api/immobilier/paiements/${l.id}/recu`} confirmation="Envoyer ce reçu par courriel aux locataires ?">✉️ Envoyer</BoutonEnvoyer>}
+                <BoutonSupprimer url={`/api/immobilier/${l.genre === "paiement" ? "paiements" : "charges"}/${l.id}`} confirmation={`Supprimer « ${l.libelle} » (${argent(Math.abs(l.montant))}) ?`}>✕ Retirer</BoutonSupprimer>
+              </>}
+            />
           ))}
-        </Tableau>
+        </div>
       )}
     </Section>
   );
