@@ -76,6 +76,7 @@ export default function AutomatisationsClient({ reglages, dernier, courriel, not
           <li>un avis est sans réponse depuis plus d'un mois (le locataire est réputé accepter) ou il est refusé (un mois pour s'adresser au TAL) ;</li>
           <li>un bail arrive à sa fin et doit être renouvelé dans l'appli, ou sa fin est dépassée ;</li>
           <li>un loyer est en retard de plus de trois semaines ({JOURS_RETARD_TAL} jours) ;</li>
+          <li>un entretien préventif est en retard ou arrive dans 14 jours (ramonage, avertisseurs…) ;</li>
           <li>une assurance ou un contrat expire dans 60 jours ou est expiré ;</li>
           <li>et ce que les automatisations ont fait : loyers inscrits, rappels envoyés.</li>
         </ul>

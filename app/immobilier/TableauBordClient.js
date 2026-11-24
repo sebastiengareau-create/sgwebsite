@@ -6,7 +6,7 @@ import BandeauSection from "../components/BandeauSection";
 import { Icone, TEINTES } from "../components/StyleSection";
 import {
   argent, dateLisible, trouver, periodeLisible, bailActuel, nomsLocataires, etatExpiration, rendement, tauxOccupation, loyerDuMois, echeanceReleve31,
-  aSurveillerBail, etatRetard, libelle, CATEGORIES_DOCUMENTS, TYPES_IMMEUBLE, STATUTS_REPARATION,
+  aSurveillerBail, aSurveillerEntretien, etatRetard, libelle, CATEGORIES_DOCUMENTS, TYPES_IMMEUBLE, STATUTS_REPARATION,
 } from "@/lib/immobilierCalculs";
 import { NavImmo, Panneau, Vide, PastilleEtat, Tableau, cellule, celluleDroite, nomLogement, lien } from "./ui";
 import LoyersParMois from "./LoyersParMois";
@@ -19,7 +19,7 @@ const NIVEAUX = [
 ];
 const A_FAIRE_VISIBLES = 8;
 
-export default function TableauBordClient({ releve31, courriel, immeubles, comptes, reparations, documents, bauxFactures, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto }) {
+export default function TableauBordClient({ releve31, courriel, immeubles, comptes, reparations, documents, bauxFactures, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens = [] }) {
   const logements = immeubles.flatMap((i) => i.logements.map((l) => ({ ...l, immeuble: i })));
   const vacants = logements.filter((l) => !bailActuel(l));
   const baux = logements.filter((l) => bailActuel(l)).map((l) => ({ ...bailActuel(l), logement: l, compte: comptes[bailActuel(l).id] }));
@@ -40,7 +40,7 @@ export default function TableauBordClient({ releve31, courriel, immeubles, compt
   const aFacturer = baux.filter((b) => loyerDuMois(b, periode) > 0 && !bauxFactures.includes(b.id));
   const urgentes = reparations.filter((r) => r.priorite === "URGENTE");
 
-  const aFaire = listeAFaire({ baux, aFacturer, periode, releve31, urgentes, documents, loyersAuto: reglagesAuto.loyersAuto });
+  const aFaire = listeAFaire({ baux, aFacturer, periode, releve31, urgentes, documents, entretiens, loyersAuto: reglagesAuto.loyersAuto });
 
   const { lignes, total } = rendement({ immeubles, ...donnees });
   const annee = periode.slice(0, 4);
@@ -195,7 +195,7 @@ function Tuile({ href, icone, teinte, label, valeur, note, couleur, jauge }) {
 }
 
 // Tout ce qui demande une action, du plus urgent au moins pressé
-function listeAFaire({ baux, aFacturer, periode, releve31, urgentes, documents, loyersAuto }) {
+function listeAFaire({ baux, aFacturer, periode, releve31, urgentes, documents, entretiens, loyersAuto }) {
   const items = [];
   if (aFacturer.length > 0) {
     items.push({
@@ -218,6 +218,10 @@ function listeAFaire({ baux, aFacturer, periode, releve31, urgentes, documents, 
       lieu: `${r.immeuble?.nom || ""}${r.logement ? ` · ${nomLogement(r.logement)}` : " · parties communes"}`, detail: `${r.numero} · ${libelle(STATUTS_REPARATION, r.statut).toLowerCase()}${r.entrepreneur ? ` · ${r.entrepreneur}` : ""}`,
     });
   }
+  for (const en of entretiens) {
+    const s = aSurveillerEntretien(en);
+    if (s) items.push({ ...s, lieu: en.immeuble?.nom });
+  }
   for (const d of documents) {
     const e = etatExpiration(d.expireLe);
     if (!e || e.code === "OK") continue;
@@ -236,7 +240,7 @@ function AFaire({ items }) {
   return (
     <Panneau
       icone={items.length ? "liste" : "crochet"} teinte={urgents ? TEINTES.rouge : items.length ? TEINTES.ambre : TEINTES.vert} titre="À faire"
-      sousTitre={items.length === 0 ? "Rien ne demande d'action pour le moment" : `${items.length} élément${items.length > 1 ? "s" : ""}${urgents ? ` · ${urgents} urgent${urgents > 1 ? "s" : ""}` : ""} — baux, loyers, réparations, assurances`}
+      sousTitre={items.length === 0 ? "Rien ne demande d'action pour le moment" : `${items.length} élément${items.length > 1 ? "s" : ""}${urgents ? ` · ${urgents} urgent${urgents > 1 ? "s" : ""}` : ""} — baux, loyers, réparations, entretien, assurances`}
     >
       {affiches.map((i) => {
         const n = NIVEAUX[i.niveau];

@@ -2362,6 +2362,7 @@ model ImmeubleImmo {
   depenses             DepenseImmo[]
   reparations          ReparationImmo[]
   documents            DocumentImmo[]
+  entretiens           EntretienImmo[]
   creeLe               DateTime         @default(now())
 }
 
@@ -2548,6 +2549,9 @@ model ReparationImmo {
   // à l'impôt plutôt que déduite (état des revenus de location), et comptée
   // dans le calcul des hausses de loyer (lib/immobilierHausses.js)
   immobilisation        Boolean        @default(false)
+  // Intervention d'un entretien préventif (« Fait », lib/entretienImmo.js)
+  entretienId           String?
+  entretien             EntretienImmo? @relation(fields: [entretienId], references: [id], onDelete: SetNull)
   notes                 String?
   fichiers              FichierImmo[]
   creePar               String?
@@ -2708,6 +2712,34 @@ model PhotoEtatLieuxImmo {
   creeLe  DateTime      @default(now())
 
   @@index([etatId])
+}
+
+// Entretien préventif ou inspection qui revient dans un immeuble
+// (lib/entretienImmo.js) : ramonage, avertisseurs de fumée, gouttières…
+// « Fait » inscrit l'intervention comme réparation terminée (historique et
+// coûts) et avance la prochaine date d'une fréquence.
+model EntretienImmo {
+  id                    String           @id @default(cuid())
+  immeubleId            String
+  immeuble              ImmeubleImmo     @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  titre                 String
+  type                  String           @default("ENTRETIEN") // "ENTRETIEN" | "INSPECTION"
+  categorie             String? // CATEGORIES_REPARATION
+  frequenceMois         Int              @default(12)
+  prochaineDate         DateTime
+  derniereDate          DateTime?
+  entrepreneur          String? // texte libre, comme les réparations
+  telephoneEntrepreneur String?
+  coutEstime            Float?
+  obligatoire           Boolean          @default(false) // exigé par la loi, un règlement municipal ou l'assureur
+  dansLogements         Boolean          @default(false) // se fait dans les logements : avis d'accès aux locataires
+  actif                 Boolean          @default(true)
+  description           String?
+  reparations           ReparationImmo[]
+  creeLe                DateTime         @default(now())
+
+  @@index([prochaineDate])
+  @@index([immeubleId])
 }
 
 // Photos et pièces jointes d'une réparation
