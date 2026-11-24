@@ -4,19 +4,25 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { libelleVehicule } from "@/lib/vehicules";
-import { STATUTS_JEU, JANTES, TYPES_MOUVEMENT, FORMATS_ETIQUETTES_PNEUS, libelleJeu, libelleJeuMinuscule, normaliserJeu } from "@/lib/pneusCalculs";
+import { compresserImage } from "@/lib/images";
+import {
+  STATUTS_JEU, JANTES, TYPES_MOUVEMENT, FORMATS_ETIQUETTES_PNEUS, PHOTOS_MAX_JEU, LARGEUR_PHOTO_PNEUS, QUALITE_PHOTO_PNEUS,
+  libelleJeu, libelleJeuMinuscule, normaliserJeu, evaluerJeu, resumeEquipement, placesLibres, pneusDuJeu,
+} from "@/lib/pneusCalculs";
 import { Pastille } from "../../components/StyleSection";
-import ChampsJeu, { champsDuJeu } from "../ChampsJeu";
+import ChampsJeu, { champsDuJeu, SaisieUsures } from "../ChampsJeu";
+import ChoixEmplacement from "../ChoixEmplacement";
+import { PastilleEtat, EncadreEtat, VueDetailPneus } from "../EtatJeu";
 
 const DATE_HEURE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Toronto" });
 const CLE_FORMAT = "pneus_format_etiquettes";
 
-export default function JeuClient({ jeuInitial, autres }) {
+export default function JeuClient({ jeuInitial, autres, plan, seuils, occupes, courrielPret }) {
   const router = useRouter();
   const [jeu, setJeu] = useState(jeuInitial);
   const [geste, setGeste] = useState(null); // "entreposer" | "deplacer" | "remettre" | null
   const [emplacement, setEmplacement] = useState("");
-  const [usure, setUsure] = useState("");
+  const [usures, setUsures] = useState([]);
   const [note, setNote] = useState("");
   const [edition, setEdition] = useState(false);
   const [champs, setChamps] = useState(() => champsDuJeu(jeuInitial));
@@ -31,6 +37,10 @@ export default function JeuClient({ jeuInitial, autres }) {
     setJeu(jeuInitial);
   }
   const statut = STATUTS_JEU[jeu.statut];
+  const etat = evaluerJeu(jeu, seuils);
+  const equipement = resumeEquipement(jeu);
+  const libres = placesLibres(plan, occupes, 6);
+  const detailRempli = pneusDuJeu(jeu).some((p) => p.usure != null || p.dot || p.remplacer || p.note);
 
   async function appel(url, options) {
     setEnCours(true);
@@ -46,11 +56,11 @@ export default function JeuClient({ jeuInitial, autres }) {
   }
 
   async function faire(action) {
-    const data = await appel(`/api/pneus/${jeu.id}/geste`, { method: "POST", body: JSON.stringify({ action, emplacement, usure, note }) });
+    const data = await appel(`/api/pneus/${jeu.id}/geste`, { method: "POST", body: JSON.stringify({ action, emplacement, usures, note }) });
     if (!data) return;
     setGeste(null);
     setEmplacement("");
-    setUsure("");
+    setUsures([]);
     setNote("");
     setMessage({ texte: { sortir: "Sorti de l'entrepôt : posé sur le véhicule.", entreposer: `Entreposé à ${data.emplacement}.`, deplacer: `Déplacé à ${data.emplacement}.`, remettre: "Remis au client." }[action] });
     router.refresh(); // historique
@@ -85,12 +95,13 @@ export default function JeuClient({ jeuInitial, autres }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{jeu.numero}</h1>
           <Pastille couleur={statut.couleur} fond={statut.fond}>{statut.libelle}</Pastille>
+          <PastilleEtat etat={etat} />
         </div>
         <div style={{ fontSize: 15, fontWeight: 700, marginTop: 6 }}>{libelleJeu(jeu)}</div>
         <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
           {[jeu.quantite + " pneu" + (jeu.quantite > 1 ? "s" : ""), JANTES[jeu.jantes], [jeu.marque, jeu.modele].filter(Boolean).join(" "), jeu.anneeFabrication && `fabriqués en ${jeu.anneeFabrication}`].filter(Boolean).join(" · ")}
         </div>
-        {jeu.usure && <div style={{ fontSize: 13, marginTop: 2 }}>Usure : {jeu.usure} (/32 po)</div>}
+        {equipement.length > 0 && <div style={{ fontSize: 13, marginTop: 4 }}>🔧 {equipement.join(" · ")}</div>}
         {jeu.note && <div style={{ fontSize: 13, marginTop: 2 }}>Note : {jeu.note}</div>}
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", fontSize: 13.5 }}>
           <div><b>{jeu.client.nom}</b>{jeu.client.telephone ? <span style={{ color: "var(--text-muted)" }}> · {jeu.client.telephone}</span> : null}</div>
@@ -112,6 +123,19 @@ export default function JeuClient({ jeuInitial, autres }) {
         )}
       </div>
 
+      {/* État pneu par pneu */}
+      <section style={panneau}>
+        <h2 style={{ ...titre, marginBottom: 8 }}>Pneu par pneu</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <EncadreEtat jeu={jeu} seuils={seuils} />
+          {detailRempli ? <VueDetailPneus jeu={jeu} seuils={seuils} /> : (
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+              {jeu.usure ? `Usure : ${jeu.usure} (/32 po). ` : "Aucune mesure. "}« Modifier » la fiche pour inscrire l&apos;usure et le code DOT de chaque pneu.
+            </p>
+          )}
+        </div>
+      </section>
+
       {/* Gestes */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         {jeu.statut === "ENTREPOSE" && <button type="button" disabled={enCours} onClick={() => faire("sortir")} className="bouton-3d" style={boutonPlein}>Sortir et poser sur le véhicule</button>}
@@ -123,19 +147,12 @@ export default function JeuClient({ jeuInitial, autres }) {
       {geste && (
         <div style={{ background: "var(--surface)", border: "1px solid var(--accent)", borderRadius: 14, padding: 14, marginBottom: 12, display: "flex", flexDirection: "column", gap: 10 }}>
           {(geste === "entreposer" || geste === "deplacer") && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <label style={{ flex: "0 1 140px" }}>
-                <span style={etiquette}>{geste === "deplacer" ? "Nouvel emplacement" : "Emplacement"}</span>
-                <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="A-12" className="champ" autoFocus style={{ fontSize: 15, textTransform: "uppercase" }} />
-              </label>
-              {geste === "entreposer" && (
-                <label style={{ flex: "1 1 160px", minWidth: 0 }}>
-                  <span style={etiquette}>Usure par pneu (/32 po)</span>
-                  <input value={usure} onChange={(e) => setUsure(e.target.value)} placeholder={jeu.usure || "8, 8, 7, 7"} className="champ" style={{ fontSize: 15 }} />
-                </label>
-              )}
-            </div>
+            <ChoixEmplacement
+              valeur={emplacement} onChange={setEmplacement} libres={libres} occupes={occupes} autoFocus
+              libelle={geste === "deplacer" ? "Nouvel emplacement" : "Emplacement à l'entrepôt"}
+            />
           )}
+          {geste === "entreposer" && <SaisieUsures jeu={jeu} valeurs={usures} onChange={setUsures} seuils={seuils} />}
           <label>
             <span style={etiquette}>Note (facultative)</span>
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={geste === "remettre" ? "ex. Repris par le client, ou jeté (usés)" : ""} className="champ" style={{ fontSize: 15 }} />
@@ -150,6 +167,10 @@ export default function JeuClient({ jeuInitial, autres }) {
       )}
 
       {message && <p role={message.erreur ? "alert" : "status"} style={{ fontSize: 13.5, color: message.erreur ? "var(--danger)" : "var(--success)", margin: "0 0 12px" }}>{message.texte}</p>}
+
+      <Photos jeuId={jeu.id} initiales={jeu.photos} />
+
+      <Recu jeu={jeu} courrielPret={courrielPret} />
 
       <Etiquettes jeu={jeu} />
 
@@ -168,7 +189,7 @@ export default function JeuClient({ jeuInitial, autres }) {
                 <option value="">Non précisé</option>
               </select>
             </label>
-            <ChampsJeu champs={champs} onChange={setChamps} emplacement={false} />
+            <ChampsJeu champs={champs} onChange={setChamps} seuils={seuils} />
             <div style={{ display: "flex", gap: 8 }}>
               <button type="submit" disabled={enCours} className="bouton-3d" style={boutonPlein}>Enregistrer</button>
               <button type="button" onClick={() => { setEdition(false); setChamps(champsDuJeu(jeu)); }} style={boutonContour}>Annuler</button>
@@ -210,6 +231,103 @@ export default function JeuClient({ jeuInitial, autres }) {
         </button>
       )}
     </div>
+  );
+}
+
+// Photos du jeu (état à l'entrée, dommages) : prises au téléphone, réduites
+// avant l'envoi, ouvertes en grand dans un nouvel onglet
+function Photos({ jeuId, initiales }) {
+  const [photos, setPhotos] = useState(initiales || []);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const url = (p) => `/api/pneus/${jeuId}/photos/${p.id}`;
+
+  async function ajouter(e) {
+    const fichiers = [...(e.target.files || [])];
+    e.target.value = "";
+    if (!fichiers.length) return;
+    setEnCours(true);
+    setErreur("");
+    let restantes = PHOTOS_MAX_JEU - photos.length;
+    for (const fichier of fichiers) {
+      if (restantes <= 0) { setErreur(`${PHOTOS_MAX_JEU} photos au plus par jeu.`); break; }
+      try {
+        const dataUrl = await compresserImage(fichier, LARGEUR_PHOTO_PNEUS, QUALITE_PHOTO_PNEUS);
+        const res = await fetch(`/api/pneus/${jeuId}/photos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl }) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { setErreur(data.erreur || "La photo n'a pas été enregistrée."); break; }
+        setPhotos((ps) => [...ps, data]);
+        restantes--;
+      } catch (err) {
+        setErreur(err.message || "La photo n'a pas été enregistrée.");
+        break;
+      }
+    }
+    setEnCours(false);
+  }
+
+  async function retirer(p) {
+    const res = await fetch(url(p), { method: "DELETE" }).catch(() => null);
+    if (res?.ok) setPhotos((ps) => ps.filter((x) => x.id !== p.id));
+    else setErreur("La photo n'a pas été retirée.");
+  }
+
+  return (
+    <section style={panneau}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+        <h2 style={titre}>Photos{photos.length ? ` (${photos.length})` : ""}</h2>
+        {photos.length < PHOTOS_MAX_JEU && (
+          <label style={{ ...boutonContour, display: "inline-flex", alignItems: "center", gap: 6, opacity: enCours ? 0.6 : 1 }}>
+            📷 {enCours ? "Envoi…" : "Ajouter"}
+            <input type="file" accept="image/*" multiple onChange={ajouter} disabled={enCours} style={{ display: "none" }} />
+          </label>
+        )}
+      </div>
+      {photos.length === 0 ? (
+        <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>L&apos;état des pneus et des jantes au dépôt (bandes de roulement, flancs, égratignures) : une preuve en cas de question du client.</p>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 8, marginTop: 6 }}>
+          {photos.map((p) => (
+            <div key={p.id} style={{ position: "relative" }}>
+              <a href={url(p)} target="_blank" rel="noopener noreferrer" title={`Ajoutée le ${DATE_HEURE.format(new Date(p.ajouteeLe))}${p.employeNom ? ` par ${p.employeNom}` : ""}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- image servie par l'API, déjà réduite */}
+                <img src={url(p)} alt={`Photo du jeu, ${DATE_HEURE.format(new Date(p.ajouteeLe))}`} loading="lazy" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)", display: "block" }} />
+              </a>
+              <button type="button" onClick={() => retirer(p)} aria-label="Retirer cette photo" style={{ position: "absolute", top: 4, right: 4, width: 24, height: 24, borderRadius: 999, border: "none", background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 13, cursor: "pointer", lineHeight: 1 }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {erreur && <p role="alert" style={{ fontSize: 12.5, color: "var(--danger)", margin: "6px 0 0" }}>{erreur}</p>}
+    </section>
+  );
+}
+
+// Reçu d'entreposage (PDF) : à imprimer et faire signer au dépôt, ou envoyé
+// au client par courriel
+function Recu({ jeu, courrielPret }) {
+  const [message, setMessage] = useState(null);
+  const [enCours, setEnCours] = useState(false);
+  const courriel = (jeu.client.courriel || "").trim();
+  async function envoyer() {
+    setEnCours(true);
+    setMessage(null);
+    const res = await fetch(`/api/pneus/${jeu.id}/recu`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => null);
+    const data = await res?.json().catch(() => ({}));
+    setEnCours(false);
+    setMessage(res?.ok ? { texte: `Reçu envoyé à ${data.destinataire}.` } : { texte: data?.erreur || "Envoi impossible : vérifie la connexion et réessaie.", erreur: true });
+  }
+  return (
+    <section style={panneau}>
+      <h2 style={{ ...titre, marginBottom: 4 }}>Reçu d&apos;entreposage</h2>
+      <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>Pour le client : ses pneus, leur état pneu par pneu, l&apos;équipement gardé et les conditions d&apos;entreposage, avec les signatures.</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <a href={`/api/pneus/${jeu.id}/recu`} target="_blank" rel="noopener noreferrer" style={{ ...boutonContour, textDecoration: "none" }}>📄 Ouvrir le reçu (PDF)</a>
+        {courrielPret && courriel && <button type="button" disabled={enCours} onClick={envoyer} style={boutonContour}>{enCours ? "Envoi…" : `📧 Envoyer à ${courriel}`}</button>}
+      </div>
+      {courrielPret && !courriel && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "6px 0 0" }}>Pas de courriel au dossier du client : imprimez le reçu.</p>}
+      {message && <p role={message.erreur ? "alert" : "status"} style={{ fontSize: 12.5, color: message.erreur ? "var(--danger)" : "var(--success)", margin: "6px 0 0" }}>{message.texte}</p>}
+    </section>
   );
 }
 

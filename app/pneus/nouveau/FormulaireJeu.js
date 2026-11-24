@@ -4,17 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { libelleVehicule } from "@/lib/vehicules";
-import { normaliserJeu } from "@/lib/pneusCalculs";
-import ChampsJeu from "../ChampsJeu";
+import { normaliserJeu, placesLibres } from "@/lib/pneusCalculs";
+import ChampsJeu, { champsDuJeu } from "../ChampsJeu";
+import ChoixEmplacement from "../ChoixEmplacement";
 
-export default function FormulaireJeu({ clients, clientInitial, vehiculeInitial, bonRetour }) {
+export default function FormulaireJeu({ clients, clientInitial, vehiculeInitial, bonRetour, emplacementInitial = "", plan, seuils, occupes }) {
   const router = useRouter();
   const [clientId, setClientId] = useState(clientInitial);
   const [recherche, setRecherche] = useState("");
   const client = clients.find((c) => c.id === clientId) || null;
   const [vehiculeId, setVehiculeId] = useState(() => (client?.vehicules.some((v) => v.id === vehiculeInitial) ? vehiculeInitial : client?.vehicules[0]?.id || ""));
   const [statut, setStatut] = useState("ENTREPOSE");
-  const [champs, setChamps] = useState({ saison: "", dimension: "", marque: "", modele: "", quantite: "4", jantes: "SANS", anneeFabrication: "", usure: "", emplacement: "", note: "" });
+  const [champs, setChamps] = useState(() => ({ ...champsDuJeu(null), emplacement: emplacementInitial }));
+  const libres = placesLibres(plan, occupes, 6);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
 
@@ -111,7 +113,12 @@ export default function FormulaireJeu({ clients, clientInitial, vehiculeInitial,
 
       <section style={panneau}>
         <h2 style={titre}>Les pneus</h2>
-        <ChampsJeu champs={champs} onChange={setChamps} emplacement={statut === "ENTREPOSE"} />
+        <ChampsJeu
+          champs={champs} onChange={setChamps} seuils={seuils}
+          emplacement={statut === "ENTREPOSE" && (
+            <ChoixEmplacement valeur={champs.emplacement} onChange={(emplacement) => setChamps((c) => ({ ...c, emplacement }))} libres={libres} occupes={occupes} />
+          )}
+        />
       </section>
 
       {erreur && <p role="alert" style={{ color: "var(--danger)", fontSize: 13.5 }}>{erreur}</p>}

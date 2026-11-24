@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
-import { refusPneus } from "@/lib/pneus";
+import { refusPneus, pourPrisma } from "@/lib/pneus";
 import { normaliserJeu } from "@/lib/pneusCalculs";
 
-// Corrige la fiche d'un jeu (marque, dimension, usure…). L'emplacement et
-// l'état changent par un geste (…/geste), qui laisse une trace.
+// Corrige la fiche d'un jeu (marque, dimension, détail pneu par pneu,
+// équipement…). L'emplacement et l'état changent par un geste (…/geste), qui
+// laisse une trace.
 export async function PATCH(request, props) {
   const { id } = await props.params;
   const session = await obtenirSession();
@@ -25,7 +26,7 @@ export async function PATCH(request, props) {
     }
     data.vehiculeId = corps.vehiculeId || null;
   }
-  const maj = await prisma.jeuPneus.update({ where: { id }, data });
+  const maj = await prisma.jeuPneus.update({ where: { id }, data: pourPrisma(data) });
   return NextResponse.json(maj);
 }
 

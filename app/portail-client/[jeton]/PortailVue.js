@@ -121,10 +121,11 @@ export default function PortailVue({ jeton, donnees: d, telephone, lienRendezVou
                   🛞 {v.pneus.map((j) => `${j.libelle} (${j.statut === "ENTREPOSE" ? "entreposés chez nous" : "sur le véhicule"})`).join(" · ")}
                 </div>
               )}
+              <PneusARemplacer jeux={v.pneus} />
             </div>
           ))}
           {d.pneusSansVehicule.length > 0 && (
-            <div style={{ ...discret, ...ligne }}>🛞 Pneus entreposés chez nous : {d.pneusSansVehicule.map((j) => j.libelle).join(" · ")}</div>
+            <div style={{ ...discret, ...ligne }}>🛞 Pneus entreposés chez nous : {d.pneusSansVehicule.map((j) => j.libelle).join(" · ")}<PneusARemplacer jeux={d.pneusSansVehicule} /></div>
           )}
         </section>
       )}
@@ -197,5 +198,16 @@ function Coordonnees({ jeton, client, telephone }) {
       </label>
       {message && <p role={message.erreur ? "alert" : "status"} style={{ fontSize: 12.5, margin: "6px 0 0", color: message.erreur ? "var(--danger)" : "var(--success)" }}>{message.texte}</p>}
     </section>
+  );
+}
+
+// Pneus notés à remplacer à l'entreposage (usure, âge, pneu endommagé)
+function PneusARemplacer({ jeux }) {
+  const aRemplacer = jeux.filter((j) => j.aRemplacer);
+  if (!aRemplacer.length) return null;
+  return (
+    <div style={{ marginTop: 6, padding: "8px 10px", borderRadius: 10, background: "var(--avertissement-fond)", fontSize: 13 }}>
+      {aRemplacer.map((j) => <div key={j.numero}><b style={{ color: "var(--avertissement)" }}>{j.libelle} à remplacer</b> — {j.aRemplacer}. Demandez-nous une soumission pour des pneus neufs.</div>)}
+    </div>
   );
 }

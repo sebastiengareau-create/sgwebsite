@@ -577,14 +577,24 @@ model JeuPneus {
   dimension        String? // ex. « 225/65R17 »
   quantite         Int              @default(4)
   jantes           String           @default("SANS") // "SANS" | "ACIER" | "ALLIAGE"
-  anneeFabrication Int? // tirée du code DOT (ex. 2318 → 2018)
-  usure            String? // en /32 po, pneu par pneu, ex. « 8, 8, 7, 7 »
-  emplacement      String? // à l'entrepôt seulement, ex. « A-12 »
+  anneeFabrication Int? // tirée du code DOT (ex. 2318 → 2018) ; avec le détail, celle du plus vieux pneu
+  usure            String? // en /32 po, pneu par pneu, ex. « 8, 8, 7, 7 » (repris du détail s'il y en a un)
+  // Détail pneu par pneu (lib/pneusCalculs.js, normaliserPneus) :
+  // [{ position: "AVG", usure: 8, dot: "2321", remplacer: false, note }]
+  pneus            Json?
+  // Roues et équipement, rappelés à la pose
+  antivol          String? // clé des boulons antivol : "AVEC_JEU" | "VEHICULE" ; null : pas de boulons antivol
+  capteurs         Boolean          @default(false) // capteurs de pression (TPMS) sur les jantes
+  enjoliveurs      Boolean          @default(false) // enjoliveurs ou chapeaux de roue gardés avec le jeu
+  couple           Int? // couple de serrage des écrous, en lb-pi
+  pression         Int? // pression de gonflage, en lb/po²
+  emplacement      String? // à l'entrepôt seulement, ex. « A-12 » (plan de l'entrepôt : réglage pneus_entrepot)
   statut           String           @default("ENTREPOSE") // "ENTREPOSE" | "POSE" | "REMIS"
   note             String?
   rappelLe         DateTime? // dernier rappel de changement de saison au client
   creeLe           DateTime         @default(now())
   mouvements       MouvementPneus[]
+  photos           PhotoPneus[]
 
   @@index([clientId])
   @@index([vehiculeId])
@@ -608,6 +618,20 @@ model MouvementPneus {
 
   @@index([jeuId])
   @@index([bonId])
+}
+
+// Photo d'un jeu de pneus, prise à l'entrée (état des pneus et des jantes,
+// dommages) : en data URL comme les photos des inspections, servie par
+// /api/pneus/<id>/photos/<photoId>
+model PhotoPneus {
+  id         String   @id @default(cuid())
+  jeuId      String
+  jeu        JeuPneus @relation(fields: [jeuId], references: [id], onDelete: Cascade)
+  url        String
+  employeNom String?
+  ajouteeLe  DateTime @default(now())
+
+  @@index([jeuId])
 }
 
 // Paiement en ligne (module « Paiement en ligne », lib/paiementEnLigne.js) :

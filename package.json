@@ -11,7 +11,8 @@
     "migration": "node prisma/creer-migration.js",
     "test:paie": "node scripts/tester-paie.js",
     "test:quarts": "node scripts/tester-quarts.js",
-    "test:immobilier": "node --no-warnings scripts/tester-immobilier.mjs"
+    "test:immobilier": "node --no-warnings scripts/tester-immobilier.mjs",
+    "test:pneus": "node --no-warnings scripts/tester-pneus.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
