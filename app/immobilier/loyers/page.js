@@ -8,6 +8,12 @@ import LoyersClient from "./LoyersClient";
 const LOGEMENT = { select: { id: true, numero: true, type: true, immeuble: { select: { id: true, nom: true } } } };
 const LOCATAIRES = { select: { id: true, nom: true, telephone: true } };
 
+// 1er jour du mois, 11 mois avant le mois courant « 2026-11 » → 1er décembre 2025
+function debutHistorique(courante) {
+  const [a, m] = courante.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 12, 1));
+}
+
 export default async function LoyersImmo(props) {
   const session = await exigerAccesImmo();
   const params = await props.searchParams;
@@ -24,8 +30,10 @@ export default async function LoyersImmo(props) {
     }),
     prisma.chargeImmo.findMany({ where: { periode, type: "LOYER" }, select: { id: true, bailId: true, montant: true } }),
     comptesDesBaux(),
+    // Paiements reçus des 12 derniers mois, mois courant compris (mois complets)
     prisma.paiementImmo.findMany({
-      orderBy: { date: "desc" }, take: 150,
+      where: { date: { gte: debutHistorique(courante) } },
+      orderBy: { date: "desc" }, take: 3000,
       select: { id: true, date: true, montant: true, mode: true, reference: true, note: true, bail: { select: { id: true, logement: LOGEMENT, locataires: LOCATAIRES } } },
     }),
   ]);

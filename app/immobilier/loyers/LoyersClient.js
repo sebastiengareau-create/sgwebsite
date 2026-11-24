@@ -174,25 +174,64 @@ function Retards({ dus, comptes, courriel }) {
   );
 }
 
+// Paiements reçus des 12 derniers mois, groupés par mois : le plus récent
+// ouvert, les autres repliés avec leur total
 function Paiements({ paiements }) {
-  const mois = aujourdhui().slice(0, 7);
-  const duMois = paiements.filter((p) => String(p.date).slice(0, 7) === mois).reduce((s, p) => s + p.montant, 0);
+  const mois = groupesParMois(paiements);
+  const courant = aujourdhui().slice(0, 7);
+  const duMois = mois.find((m) => m.cle === courant)?.total || 0;
+  const [ouverts, setOuverts] = useState(() => new Set(mois.slice(0, 1).map((m) => m.cle)));
+  const basculer = (cle) => setOuverts((o) => { const n = new Set(o); if (n.has(cle)) n.delete(cle); else n.add(cle); return n; });
   return (
-    <Section titre="Derniers paiements reçus" droite={<span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Ce mois-ci : <strong style={{ color: "var(--text)" }}>{argent(duMois)}</strong></span>}>
-      {paiements.length === 0 ? <Vide>Aucun paiement inscrit.</Vide> : (
-        paiements.map((p) => (
-          <div key={p.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 2px", borderTop: "1px solid var(--border)", fontSize: 13.5 }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <Link href={`/immobilier/baux/${p.bail.id}`} style={{ ...lien, fontWeight: 700 }}>{nomsLocataires(p.bail)}</Link>
-              <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{nomLogement(p.bail.logement)} · {p.bail.logement.immeuble.nom}</span>
-              <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{[dateLisible(p.date), libelle(MODES_PAIEMENT, p.mode), p.reference, p.note].filter((x) => x && x !== "—").join(" · ")}</span>
-            </span>
-            <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{argent(p.montant)}</span>
+    <Section titre="Paiements reçus — 12 derniers mois" droite={<span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Ce mois-ci : <strong style={{ color: "var(--text)" }}>{argent(duMois)}</strong></span>}>
+      {mois.length === 0 ? <Vide>Aucun paiement reçu ces 12 derniers mois.</Vide> : mois.map((m) => {
+        const ouvert = ouverts.has(m.cle);
+        return (
+          <div key={m.cle} style={{ borderTop: "1px solid var(--border)" }}>
+            <button
+              type="button" onClick={() => basculer(m.cle)} aria-expanded={ouvert} aria-controls={`paiements-${m.cle}`}
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 2px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", color: "var(--text)", textAlign: "left" }}
+            >
+              <span style={{ display: "inline-block", width: 12, color: "var(--text-muted)", transition: "transform 0.15s", transform: ouvert ? "rotate(90deg)" : "none" }} aria-hidden="true">›</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, textTransform: "capitalize" }}>{periodeLisible(m.cle)}</span>
+              <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 800 }}>{argent(m.total)}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--text-muted)" }}>{m.paiements.length} paiement{m.paiements.length > 1 ? "s" : ""}</span>
+              </span>
+            </button>
+            {ouvert && (
+              <div id={`paiements-${m.cle}`} style={{ paddingLeft: 22, paddingBottom: 6 }}>
+                {m.paiements.map((p) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "9px 2px", borderTop: "1px solid var(--border)", fontSize: 13.5 }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <Link href={`/immobilier/baux/${p.bail.id}`} style={{ ...lien, fontWeight: 700 }}>{nomsLocataires(p.bail)}</Link>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{nomLogement(p.bail.logement)} · {p.bail.logement.immeuble.nom}</span>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{[dateLisible(p.date), libelle(MODES_PAIEMENT, p.mode), p.reference, p.note].filter((x) => x && x !== "—").join(" · ")}</span>
+                    </span>
+                    <span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{argent(p.montant)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))
-      )}
+        );
+      })}
     </Section>
   );
+}
+
+// [{ cle: "2026-11", total, paiements }] du mois le plus récent au plus ancien
+// (dates enregistrées à midi UTC : le jour UTC est le bon)
+function groupesParMois(paiements) {
+  const groupes = new Map();
+  for (const p of paiements) {
+    const cle = String(p.date).slice(0, 7);
+    if (!groupes.has(cle)) groupes.set(cle, { cle, total: 0, paiements: [] });
+    const g = groupes.get(cle);
+    g.total = Math.round((g.total + p.montant) * 100) / 100;
+    g.paiements.push(p);
+  }
+  return [...groupes.values()].sort((a, b) => b.cle.localeCompare(a.cle));
 }
 
 // Relevé de compte par courriel à tous les locataires en retard
