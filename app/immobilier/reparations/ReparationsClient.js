@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
@@ -35,8 +36,9 @@ export default function ReparationsClient({ reparations, immeubles, locataires }
         <Statistique valeur={argent(aVenir)} label="Coûts estimés à venir" teinte="#8C6BC4" />
         <Statistique valeur={argent(coutAnnee)} label={`Coût réel ${annee}`} teinte="var(--bleu)" />
       </div>
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouvelle réparation"}</BoutonPlein>
+        <Link href="/immobilier/entretien" style={{ fontSize: 13.5, fontWeight: 700, color: "var(--accent)" }}>🗓️ Entretien préventif</Link>
       </div>
       {formulaire && (immeubles.length === 0 ? <Vide>Ajoute d'abord un immeuble.</Vide> : <FormulaireReparation immeubles={immeubles} locataires={locataires} />)}
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />

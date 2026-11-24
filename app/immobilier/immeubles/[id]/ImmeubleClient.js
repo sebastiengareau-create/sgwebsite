@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
 import {
   TYPES_IMMEUBLE, CATEGORIES_DEPENSE, argent, libelle, trouver, dateLisible, bailActuel, nomsLocataires, etatFinBail, rendement, tauxOccupation, STATUTS_REPARATION_OUVERTS,
+  etatEcheance, frequenceLisible, TYPES_ENTRETIEN,
 } from "@/lib/immobilierCalculs";
 import { champsImmeuble } from "../ImmeublesClient";
 import {
@@ -34,6 +35,7 @@ export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, ann
       <Rendement r={r} annee={annee} />
       <Depenses immeuble={immeuble} />
       <Reparations immeuble={immeuble} locataires={locataires} />
+      <Entretien immeuble={immeuble} />
       <Documents immeuble={immeuble} />
     </div>
   );
@@ -119,6 +121,24 @@ function Depenses({ immeuble }) {
           <span style={{ fontWeight: 700, flexShrink: 0 }}>{argent(d.montant)}</span>
         </div>
       ))}
+    </Section>
+  );
+}
+
+// Prochains entretiens préventifs de l'immeuble (page Entretien préventif)
+function Entretien({ immeuble }) {
+  const liste = immeuble.entretiens || [];
+  return (
+    <Section titre="Entretien préventif" droite={<Link href={`/immobilier/entretien?immeuble=${immeuble.id}`} style={{ fontSize: 12, ...lien }}>{liste.length ? "Tout voir" : "Planifier"}</Link>}>
+      {liste.length === 0 ? <Vide>Aucun entretien planifié : avertisseurs de fumée, ramonage, gouttières, chauffe-eau… se planifient dans Entretien préventif.</Vide> : liste.slice(0, 5).map((e) => {
+        const etat = etatEcheance(e.prochaineDate);
+        return (
+          <Link key={e.id} href={`/immobilier/entretien?immeuble=${immeuble.id}`} className="ligne-info ligne-pastilles" style={{ textDecoration: "none", color: "inherit", gap: 8 }}>
+            <span style={{ minWidth: 0 }}>{trouver(TYPES_ENTRETIEN, e.type)?.icone} {e.titre}{e.obligatoire && " ⚖️"} <span style={{ color: "var(--text-muted)", fontSize: 12 }}>· {dateLisible(e.prochaineDate)} · {frequenceLisible(e.frequenceMois).toLowerCase()}</span></span>
+            <PastilleEtat etat={etat} />
+          </Link>
+        );
+      })}
     </Section>
   );
 }

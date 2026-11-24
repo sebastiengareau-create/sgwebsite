@@ -18,7 +18,7 @@ export default async function TableauBordImmo() {
   const annee = Number(periode.slice(0, 4));
   const mois = douzeMois(periode);
   const [a0, m0] = mois[0].split("-").map(Number);
-  const [immeubles, comptes, reparations, documents, loyersDuMois, nbLocataires, donnees, loyersParMois, paiementsRecents, reglagesAuto, dernierAuto] = await Promise.all([
+  const [immeubles, comptes, reparations, documents, loyersDuMois, nbLocataires, donnees, loyersParMois, paiementsRecents, reglagesAuto, dernierAuto, entretiens] = await Promise.all([
     prisma.immeubleImmo.findMany({
       select: {
         id: true, nom: true, type: true, valeurEstimee: true, soldeHypotheque: true,
@@ -52,6 +52,12 @@ export default async function TableauBordImmo() {
     prisma.paiementImmo.findMany({ where: { date: { gte: new Date(Date.UTC(a0, m0 - 1, 1)) } }, select: { date: true, montant: true } }),
     lireReglagesImmoAuto(),
     dernierResultatImmoAuto(),
+    // Entretiens préventifs en retard ou dans les 14 prochains jours
+    prisma.entretienImmo.findMany({
+      where: { actif: true, prochaineDate: { lte: new Date(Date.now() + 15 * 86400000) } },
+      select: { id: true, titre: true, prochaineDate: true, frequenceMois: true, obligatoire: true, dansLogements: true, actif: true, immeuble: { select: { nom: true } } },
+      orderBy: { prochaineDate: "asc" },
+    }),
   ]);
 
   const facture = Object.fromEntries(loyersParMois.map((l) => [l.periode, l._sum.montant || 0]));
@@ -82,7 +88,7 @@ export default async function TableauBordImmo() {
         releve31={releve31}
         courriel={Boolean(process.env.RESEND_API_KEY)}
         {...simple({
-          immeubles, comptes, reparations, documents, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto,
+          immeubles, comptes, reparations, documents, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens,
           bauxFactures: loyersDuMois.map((c) => c.bailId),
         })}
       />

@@ -19,6 +19,7 @@ export default async function FicheImmeuble(props) {
         },
         depenses: { orderBy: { date: "desc" }, take: 40 },
         reparations: { select: { id: true, numero: true, source: true, titre: true, statut: true, priorite: true, entrepreneur: true, coutEstime: true, coutReel: true, creeLe: true, logement: { select: { id: true, numero: true, type: true } } }, orderBy: { creeLe: "desc" } },
+        entretiens: { where: { actif: true }, select: { id: true, titre: true, type: true, prochaineDate: true, frequenceMois: true, obligatoire: true, dansLogements: true }, orderBy: { prochaineDate: "asc" } },
         documents: { select: DOC_SANS_DONNEES, orderBy: [{ date: "desc" }, { creeLe: "desc" }] },
       },
     }),

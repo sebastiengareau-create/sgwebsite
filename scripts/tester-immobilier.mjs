@@ -18,7 +18,7 @@ register("data:text/javascript," + encodeURIComponent(`
 const {
   etatCompte, etatRetard, additionnerComptes, aSurveillerBail, finReponseAvis, JOURS_RETARD_TAL,
   periodeTal, pourcentageBase, excedentHausse, calculHausseTal, loyersImmeuble, haussesImmeuble, debutHausse,
-  etatRevenusLocation, ligneT776,
+  etatRevenusLocation, ligneT776, aSurveillerEntretien, prochaineApres, ENTRETIENS_SUGGERES_IMMO, CATEGORIES_REPARATION,
 } = await import("../lib/immobilierCalculs.js");
 const { piecesParDefaut, piecesPourSortie, comparerAEntree, dommagesDepuisEntree, avancement, normaliserPieces } = await import("../lib/etatsLieuxCalculs.js");
 
@@ -319,6 +319,30 @@ test("Pièces reçues du navigateur : nettoyées", () => {
   assert.notEqual(pieces[0].elements[0].cle, "<script>");
   assert.equal(pieces[0].elements[0].etat, null);
   assert.equal(pieces[0].elements[0].note.length, 1000);
+});
+
+// ---------- Entretien préventif ----------
+
+test("Entretien : prochaine date après une intervention", () => {
+  assert.equal(prochaineApres(jour("2026-11-24"), 12).toISOString().slice(0, 10), "2027-11-24");
+  assert.equal(prochaineApres(jour("2026-08-31"), 6).toISOString().slice(0, 10), "2027-02-28", "fin de mois ramenée");
+  assert.equal(prochaineApres(jour("2026-01-15"), 0).toISOString().slice(0, 10), "2027-01-15", "fréquence invalide : 12 mois");
+});
+
+test("Entretien dans « À faire » : en retard (urgent si exigé), ou dans 14 jours", () => {
+  const e = (date, plus = {}) => ({ id: "E1", titre: "Ramonage", actif: true, frequenceMois: 12, obligatoire: false, dansLogements: false, prochaineDate: jour(date), ...plus });
+  const maintenant = midiQc("2026-11-24");
+  assert.equal(aSurveillerEntretien(e("2027-01-15"), maintenant), null, "plus tard");
+  assert.equal(aSurveillerEntretien(e("2026-12-03"), maintenant).niveau, 2, "bientôt");
+  assert.equal(aSurveillerEntretien(e("2026-11-01"), maintenant).niveau, 1, "en retard");
+  assert.equal(aSurveillerEntretien(e("2026-11-01", { obligatoire: true }), maintenant).niveau, 0, "exigé et en retard");
+  assert.equal(aSurveillerEntretien(e("2026-11-01", { actif: false }), maintenant), null, "inactif");
+  assert.match(aSurveillerEntretien(e("2026-11-01"), maintenant).cle, /^ent:E1:2026-11-01$/);
+});
+
+test("Suggestions d'entretien : catégories connues", () => {
+  const codes = new Set(CATEGORIES_REPARATION.map((c) => c.code));
+  for (const s of ENTRETIENS_SUGGERES_IMMO) assert.ok(codes.has(s.categorie), s.titre);
 });
 
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);

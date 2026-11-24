@@ -110,7 +110,14 @@ on décide quand et à qui une modification s'applique.
   remarque et photos, compteurs et clés ; la sortie reprend la grille de
   l'entrée du même bail et signale ce qui s'est dégradé ; terminé, un PDF
   avec photos en annexe, à faire signer en ligne par le locateur et les
-  locataires, verrouillé dès qu'une signature est demandée), réparations avec
+  locataires, verrouillé dès qu'une signature est demandée), **entretien
+  préventif** des immeubles (`/immobilier/entretien`, `lib/entretienImmo.js` :
+  calendrier par immeuble — ramonage, avertisseurs de fumée, chauffe-eau,
+  gouttières… proposés, les essentiels ajoutés d'un coup —, « Fait » inscrit
+  l'intervention comme réparation terminée avec son coût et avance la
+  prochaine date ; avis d'accès de 24 h préparés pour tous les baux de
+  l'immeuble quand l'entretien se fait dans les logements ; en retard ou dans
+  14 jours : dans « À faire » et les avis au propriétaire), réparations avec
   photos, documents avec date d'expiration, bail de logement complet (sections
   A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
