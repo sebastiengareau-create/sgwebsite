@@ -133,6 +133,12 @@ function Renouvellement({ bail, etat }) {
       ) : (
         <p style={{ fontSize: 13, margin: "0 0 10px" }}>Bail à durée indéterminée : l'avis de modification s'envoie de un à deux mois avant la date de la modification.</p>
       )}
+      {bail.logement.type === "LOGEMENT" && !bail.avisEnvoyeLe && (
+        <p style={{ fontSize: 13, margin: "0 0 10px" }}>
+          <Link href={`/immobilier/immeubles/${bail.logement.immeuble.id}/hausses?bail=${bail.id}`} style={{ ...lien, fontWeight: 700 }}>🧮 Calculer la hausse selon la méthode du TAL</Link>
+          <span style={{ color: "var(--text-muted)" }}> — pourcentage de base, taxes, assurances et travaux de l'immeuble ; le nouveau loyer s'inscrit ici.</span>
+        </p>
+      )}
       <Formulaire cadre={false} champs={champs} initial={initial} url={`/api/immobilier/baux/${bail.id}`} methode="PATCH" bouton="Enregistrer l'avis" />
       {bail.nouveauLoyer != null && <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "8px 0 0" }}>Hausse proposée : {hausseLisible(bail.loyer, bail.nouveauLoyer)}</p>}
       {bail.reponseAvisLe && (

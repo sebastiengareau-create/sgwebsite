@@ -72,7 +72,7 @@ function Fiche({ immeuble }) {
 function Logements({ immeuble, soldes, comptes }) {
   const [ajout, setAjout] = useState(false);
   return (
-    <Section titre="Logements" droite={<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Logement"}</BoutonTexte>}>
+    <Section titre="Logements" droite={<span style={{ display: "flex", gap: 12 }}>{immeuble.logements.some((l) => l.type === "LOGEMENT" && bailActuel(l)) && <Link href={`/immobilier/immeubles/${immeuble.id}/hausses`} style={{ fontSize: 12, fontWeight: 700, ...lien }}>🧮 Hausses de loyer</Link>}<BoutonTexte onClick={() => setAjout((v) => !v)}>{ajout ? "Annuler" : "+ Logement"}</BoutonTexte></span>}>
       {ajout && <Formulaire champs={champsLogement()} extra={{ immeubleId: immeuble.id }} url="/api/immobilier/logements" bouton="Ajouter le logement" onFini={() => setAjout(false)} />}
       {immeuble.logements.length === 0 ? <Vide>Aucun logement : ajoute les logements et locaux de l'immeuble.</Vide> : (
         <Tableau entetes={["Logement", "Locataires", "Loyer", "Fin du bail", "Solde"]} alignDroite={[2, 4]}>

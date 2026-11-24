@@ -15,7 +15,10 @@ register("data:text/javascript," + encodeURIComponent(`
     catch (e) { if (/^\\.\\.?\\//.test(specifier) && !/\\.[cm]?js$/.test(specifier)) return next(specifier + ".js", context); throw e; }
   }
 `));
-const { etatCompte, etatRetard, additionnerComptes, aSurveillerBail, finReponseAvis, JOURS_RETARD_TAL } = await import("../lib/immobilierCalculs.js");
+const {
+  etatCompte, etatRetard, additionnerComptes, aSurveillerBail, finReponseAvis, JOURS_RETARD_TAL,
+  periodeTal, pourcentageBase, excedentHausse, calculHausseTal, loyersImmeuble, haussesImmeuble, debutHausse,
+} = await import("../lib/immobilierCalculs.js");
 
 let reussis = 0;
 function test(nom, fn) {
@@ -150,6 +153,73 @@ test("Retard de plus de trois semaines : dans « À faire », urgent", () => {
 
 test("Bail terminé : rien à surveiller", () => {
   assert.deepEqual(aSurveillerBail(bail({ statut: "TERMINE" }), null, midiQc("2027-07-03")), []);
+});
+
+// ---------- Hausse de loyer (méthode du TAL depuis 2026) ----------
+
+test("Période du TAL : du 2 avril au 1er avril suivant", () => {
+  assert.equal(periodeTal(jour("2026-04-01")), 2025);
+  assert.equal(periodeTal(jour("2026-04-02")), 2026);
+  assert.equal(periodeTal(jour("2027-04-01")), 2026);
+  assert.equal(periodeTal(jour("2027-07-01")), 2027);
+});
+
+test("Pourcentage de base : publié par le TAL, sinon celui inscrit dans l'appli", () => {
+  assert.deepEqual(pourcentageBase(2026), { taux: 3.1, officiel: true });
+  assert.deepEqual(pourcentageBase(2026, { 2026: 9 }), { taux: 3.1, officiel: true }, "le taux publié a priorité");
+  assert.equal(pourcentageBase(2027), null);
+  assert.deepEqual(pourcentageBase(2027, { 2027: "2.8" }), { taux: 2.8, officiel: false });
+});
+
+test("Taxes et assurances : seule la part de la hausse au-delà du pourcentage de base", () => {
+  egal(excedentHausse(10000, 10800, 3.1), 490, "10 000 → 10 800 $ à 3,1 %"); // 800 − 310
+  egal(excedentHausse(10000, 10200, 3.1), 0, "hausse sous le taux de base");
+  egal(excedentHausse(10000, 9000, 3.1), 0, "baisse");
+  egal(excedentHausse("", 9000, 3.1), 0, "année précédente inconnue");
+});
+
+test("Calcul complet d'un logement", () => {
+  const c = calculHausseTal({
+    loyer: 1000, taux: 3.1, part: 0.25, logementId: "L1",
+    taxes: { avant: 10000, apres: 10800 }, // excédent 490 $ → 490 × 0,25 / 12 = 10,21
+    assurances: { avant: 4000, apres: 4400 }, // excédent 400 − 124 = 276 $ → 5,75
+    travaux: [
+      { montant: 24000, aide: 4000, logementId: null }, // immeuble : 20 000 × 0,25 = 5 000
+      { montant: 6000, aide: 0, logementId: "L1" }, // ce logement : 6 000
+      { montant: 9000, aide: 0, logementId: "L2" }, // un autre logement : ne compte pas
+    ], // 11 000 × 5 % / 12 = 45,83
+  });
+  egal(c.base, 31, "base");
+  egal(c.taxes, 10.21, "taxes");
+  egal(c.assurances, 5.75, "assurances");
+  egal(c.travaux, 45.83, "travaux");
+  egal(c.hausse, 92.79, "hausse");
+  egal(c.nouveauLoyer, 1092.79, "nouveau loyer");
+  egal(c.pourcentage, 9.28, "pourcentage");
+});
+
+test("Part de chaque logement : loyer en cours, sinon loyer demandé du vacant", () => {
+  const bail = (id, loyer) => ({ id, statut: "ACTIF", dateDebut: jour("2026-07-01"), dateFin: jour("2027-06-30"), loyer });
+  const logements = [
+    { id: "A", type: "LOGEMENT", baux: [bail("bA", 1000)] },
+    { id: "B", type: "LOGEMENT", baux: [], loyerVise: 1000 },
+    { id: "C", type: "COMMERCIAL", baux: [bail("bC", 2000)] },
+    { id: "D", type: "LOGEMENT", baux: [] },
+  ];
+  const r = loyersImmeuble(logements);
+  egal(r.total, 4000, "total");
+  assert.deepEqual(r.sansLoyer.map((l) => l.id), ["D"]);
+  const h = haussesImmeuble({ logements }, { taux: {}, taxes: {}, assurances: {}, travaux: [] }, midiQc("2026-11-24"));
+  assert.equal(h.length, 1, "seuls les baux résidentiels en cours");
+  egal(h[0].part, 0.25, "part du logement A");
+  assert.equal(h[0].periode, 2027, "bail qui recommence le 1er juillet 2027");
+  assert.equal(h[0].calcul, null, "taux 2027 pas encore publié");
+  const h2 = haussesImmeuble({ logements }, { taux: { 2027: 3 }, taxes: {}, assurances: {}, travaux: [] }, midiQc("2026-11-24"));
+  egal(h2[0].calcul.nouveauLoyer, 1030, "avec un taux inscrit");
+});
+
+test("Bail à durée indéterminée : hausse le 1er du mois dans deux mois", () => {
+  assert.equal(debutHausse({ dateFin: null }, midiQc("2026-11-24")).toISOString().slice(0, 10), "2027-01-01");
 });
 
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);

@@ -89,7 +89,15 @@ on décide quand et à qui une modification s'applique.
   échéance, en retard dès le lendemain, signalé passé trois semaines — seuil
   de résiliation au TAL ; `etatCompte`, `lib/immobilierCalculs.js`, vérifié
   par `npm run test:immobilier`), tableau de bord avec la liste « À faire »
-  et les loyers facturés et reçus des 12 derniers mois, dépenses et rendement par immeuble, réparations avec
+  et les loyers facturés et reçus des 12 derniers mois, **calcul des hausses
+  de loyer** selon la méthode du TAL en vigueur depuis 2026 (par immeuble,
+  `/immobilier/immeubles/<id>/hausses`, `lib/immobilierHausses.js` :
+  pourcentage de base, part de la hausse des taxes et des assurances au-delà
+  de ce pourcentage, 5 % des travaux majeurs ; nouveau loyer inscrit aux baux
+  choisis et détail du calcul en PDF dans leurs documents — le pourcentage
+  publié chaque janvier par le TAL s'ajoute à `POURCENTAGES_BASE_TAL`,
+  `lib/immobilierCalculs.js`, ou s'inscrit dans l'appli en attendant),
+  dépenses et rendement par immeuble, réparations avec
   photos, documents avec date d'expiration, bail de logement complet (sections
   A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
