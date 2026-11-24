@@ -11,7 +11,7 @@ kontrolshop-cartes-apercu.png (planche de toutes les cartes).
 Format 3,5 x 2 po avec 1/8 po de fond perdu (fichier 3,75 x 2,25 po), en RVB.
 Recto : logo métal public/marque/kontrolshop-metal-<secteur>.png. Couleurs des
 secteurs : les mêmes que SECTEURS dans lib/marque.js — garder pareilles.
-Le code QR mène à www.kontrolshop.com/?d=<secteur>.
+Le code QR mène à la page du secteur : www.kontrolshop.com/<page>/ (PAGES).
 
 Exige : pip install qrcode pillow ; Playwright (Chromium) pour le rendu ;
 police Inter installée.
@@ -42,6 +42,9 @@ SECTEURS = {
     "immobilier": ("Immobilier", "#7c4dbd", ["Baux du TAL et calcul des hausses 2026", "Signature électronique et état des lieux", "Loyers, retards et revenus pour l'impôt"]),
     "premium": ("Premium", "#b8902f", ["Tous les modules réunis", "Une installation à votre image", "Un accompagnement personnalisé"]),
 }
+
+# Page du secteur sur le site de vente (dépôt kontrolshop.com), où mène le code QR
+PAGES = {"garage": "garage", "ferme": "ferme", "copropriete": "copropriete", "immobilier": "immobilier", "premium": "vr"}
 
 
 def b64(p):
@@ -98,7 +101,7 @@ if inconnus:
 for cle in choisis:
     lib, c, av = SECTEURS[cle]
     logo = b64(MARQUE / f"kontrolshop-metal-{cle}.png")
-    qr = qr_svg(f"https://www.kontrolshop.com/?d={cle}")
+    qr = qr_svg(f"https://www.kontrolshop.com/{PAGES[cle]}/")
     lis = "".join(f"<li>{a}</li>" for a in av)
     recto = (f'<div class="carte recto" style="--c:{c}"><img class="logo" src="data:image/png;base64,{logo}">'
              f'<div class="slogan">TOUT EST SOUS KONTROL.</div><div class="filet"></div></div>')
