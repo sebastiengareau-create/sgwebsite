@@ -36,6 +36,7 @@ export default function BailClient({ bail, locataires, suivant, precedent, courr
       <Details bail={bail} locataires={locataires} />
       {bail.statut === "ACTIF" && <Renouvellement bail={bail} etat={etat} />}
       <Compte bail={bail} envoi={envoi} />
+      <EtatsLieux bail={bail} />
       <GenerateurDocuments bail={bail} envoi={envoi} />
       <Documents bail={bail} envoi={envoi} />
       <Envois bail={bail} courriel={courriel} envoi={envoi} />
@@ -215,6 +216,38 @@ function Documents({ bail, envoi }) {
   );
 }
 
+// États des lieux numériques du bail (lib/etatsLieux.js) : à l'entrée et à
+// la sortie, remplis sur place au téléphone, avec photos
+function EtatsLieux({ bail }) {
+  const router = useRouter();
+  const { appeler, enCours, erreur } = useApi();
+  const liste = bail.etatsLieux || [];
+  const commencer = async (moment) => {
+    const data = await appeler(`/api/immobilier/baux/${bail.id}/etats-lieux`, "POST", { moment });
+    if (data) router.push(`/immobilier/etats-lieux/${data.id}`);
+  };
+  const aEntree = liste.some((e) => e.moment === "ENTREE");
+  return (
+    <Section titre="États des lieux" droite={
+      <span style={{ display: "flex", gap: 12 }}>
+        <BoutonTexte disabled={enCours} onClick={() => commencer("ENTREE")}>+ Entrée</BoutonTexte>
+        <BoutonTexte disabled={enCours} onClick={() => commencer("SORTIE")}>+ Sortie</BoutonTexte>
+      </span>
+    }>
+      <Erreur texte={erreur} />
+      {liste.length === 0 ? (
+        <Vide>Fais l'état des lieux sur place, au téléphone : pièce par pièce, l'état de chaque élément et des photos. Il devient un PDF à faire signer en ligne. À la sortie, l'appli reprend la grille de l'entrée et montre ce qui s'est dégradé.</Vide>
+      ) : liste.map((e) => (
+        <Link key={e.id} href={`/immobilier/etats-lieux/${e.id}`} className="ligne-info ligne-pastilles" style={{ textDecoration: "none", color: "inherit", gap: 8 }}>
+          <span>📋 <strong>{e.moment === "SORTIE" ? "Sortie" : "Entrée"}</strong> <span style={{ color: "var(--text-muted)", fontSize: 12 }}>· {dateLisible(e.date)}{e._count?.photos ? ` · ${e._count.photos} photo${e._count.photos > 1 ? "s" : ""}` : ""}</span></span>
+          <PastilleEtat etat={e.statut === "TERMINE" ? { label: "Terminé", couleur: "#6FA96B" } : { label: "En cours", couleur: "#D98A2B" }} />
+        </Link>
+      ))}
+      {liste.length > 0 && !aEntree && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "6px 0 0" }}>Sans état des lieux d'entrée dans l'appli, la sortie ne peut pas être comparée.</p>}
+    </Section>
+  );
+}
+
 // Fin du bail : départ du locataire (fin normale ou anticipée)
 function Fin({ bail }) {
   const [ouvert, setOuvert] = useState(false);
@@ -270,7 +303,7 @@ const TYPES_GENERES = [
   { code: "AVIS_ACCES", label: "Avis d'accès au logement (24 h)" },
   { code: "RAPPEL_RETARD", label: "Rappel de loyer en retard", retard: true },
   { code: "MISE_EN_DEMEURE", label: "Mise en demeure de payer", retard: true },
-  { code: "ETAT_LIEUX", label: "État des lieux (grille à remplir)" },
+  { code: "ETAT_LIEUX", label: "État des lieux papier (grille vierge à imprimer)" },
   { code: "AVIS_REPRISE", label: "Avis de reprise du logement", actif: true },
   { code: "FICHE_BAIL", label: "Fiche de bail (pour remplir le formulaire officiel du TAL)" },
 ];

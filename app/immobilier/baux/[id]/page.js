@@ -23,6 +23,7 @@ export default async function FicheBail(props) {
           orderBy: [{ date: "desc" }, { creeLe: "desc" }],
         },
         envois: { orderBy: { date: "desc" }, take: 30 },
+        etatsLieux: { select: { id: true, moment: true, date: true, statut: true, documentId: true, _count: { select: { photos: true } } }, orderBy: { date: "desc" } },
       },
     }),
     prisma.locataireImmo.findMany({ select: { id: true, nom: true }, orderBy: { nom: "asc" } }),

@@ -2460,6 +2460,7 @@ model BailImmo {
   documents     DocumentImmo[]
   releves31     Releve31Immo[]
   envois        EnvoiImmo[]
+  etatsLieux    EtatLieuxImmo[]
   creeLe        DateTime        @default(now())
 
   @@index([logementId])
@@ -2668,6 +2669,45 @@ model EnvoiImmo {
   envoyePar     String?
 
   @@index([bailId, date])
+}
+
+// État des lieux numérique d'un logement, à l'entrée ou à la sortie d'un
+// locataire (lib/etatsLieux.js) : pièce par pièce, l'état de chaque élément,
+// une remarque et des photos. Terminé, il devient un PDF rangé dans les
+// documents du bail, à faire signer en ligne par le locateur et les
+// locataires ; il ne se modifie plus tant qu'une signature est demandée.
+model EtatLieuxImmo {
+  id         String               @id @default(cuid())
+  bailId     String
+  bail       BailImmo             @relation(fields: [bailId], references: [id], onDelete: Cascade)
+  moment     String // "ENTREE" | "SORTIE"
+  date       DateTime
+  statut     String               @default("EN_COURS") // "EN_COURS" | "TERMINE"
+  // [{ cle, nom, elements: [{ cle, nom, etat, note }] }] — etat : ETATS_ELEMENT (lib/etatsLieuxCalculs.js)
+  pieces     Json
+  // { electricite, clesPorte, clesBoite, autresCles, avertisseurTeste, adresseSuivante }
+  compteurs  Json?
+  notes      String?
+  documentId String? // PDF généré à la fin (DocumentImmo)
+  creePar    String?
+  creeLe     DateTime             @default(now())
+  termineLe  DateTime?
+  photos     PhotoEtatLieuxImmo[]
+
+  @@index([bailId])
+}
+
+// Photo d'un élément d'un état des lieux (image JPEG réduite dans le
+// navigateur, en data URL, comme PhotoInspection)
+model PhotoEtatLieuxImmo {
+  id      String        @id @default(cuid())
+  etatId  String
+  etat    EtatLieuxImmo @relation(fields: [etatId], references: [id], onDelete: Cascade)
+  element String // cle de l'élément dans pieces
+  url     String
+  creeLe  DateTime      @default(now())
+
+  @@index([etatId])
 }
 
 // Photos et pièces jointes d'une réparation
