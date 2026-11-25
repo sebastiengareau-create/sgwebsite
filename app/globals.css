@@ -309,6 +309,32 @@ a { color: inherit; }
   .ligne-mouvement > .actions { justify-content: flex-end; min-width: 150px; }
 }
 
+/* Fiche à recopier sur la plateforme du TAL (bail officiel) : libellé,
+   valeur et bouton « Copier » ; libellé au-dessus de la valeur sur un téléphone */
+.ligne-fiche {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "libelle copier" "valeur copier";
+  gap: 1px 10px;
+  align-items: center;
+  padding: 7px 2px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.ligne-fiche > .libelle { grid-area: libelle; font-size: 12px; color: var(--text-muted); }
+.ligne-fiche > .valeur { grid-area: valeur; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+.ligne-fiche > .valeur .note { display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); margin-top: 1px; white-space: normal; }
+.ligne-fiche > .bouton-copier { grid-area: copier; }
+@media (min-width: 700px) {
+  .ligne-fiche { grid-template-columns: 240px minmax(0, 1fr) auto; grid-template-areas: "libelle valeur copier"; }
+  .ligne-fiche > .libelle { font-size: 13px; }
+}
+.bouton-copier {
+  font: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--accent); background: var(--surface); color: var(--accent-ombre);
+}
+.bouton-copier:disabled { cursor: default; }
+
 /* Plan d'un immeuble (Immobilier) : une case par logement, par étage */
 .plan-immeuble { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 8px; }
 .case-logement { transition: border-color 0.15s, transform 0.15s; }

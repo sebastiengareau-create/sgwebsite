@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
+import { obtenirInfosEntreprise } from "@/lib/config";
+import { bailOfficielDe } from "@/lib/immobilier";
 import { exigerAccesImmo, simple, DOC_SANS_DONNEES } from "../../acces";
 import BailClient from "./BailClient";
 
@@ -11,8 +13,8 @@ export default async function FicheBail(props) {
     prisma.bailImmo.findUnique({
       where: { id },
       include: {
-        logement: { select: { id: true, numero: true, type: true, pieces: true, immeuble: { select: { id: true, nom: true, adresse: true, ville: true, anneeConstruction: true } } } },
-        locataires: { select: { id: true, nom: true, telephone: true, courriel: true } },
+        logement: { select: { id: true, numero: true, type: true, pieces: true, etage: true, adresseCivique: true, immeuble: { select: { id: true, nom: true, adresse: true, ville: true, codePostal: true, anneeConstruction: true } } } },
+        locataires: { select: { id: true, nom: true, telephone: true, telephone2: true, courriel: true } },
         charges: { orderBy: { date: "asc" } },
         paiements: { orderBy: { date: "asc" } },
         documents: {
@@ -29,15 +31,19 @@ export default async function FicheBail(props) {
     prisma.locataireImmo.findMany({ select: { id: true, nom: true }, orderBy: { nom: "asc" } }),
   ]);
   if (!bail) notFound();
-  // Bail qui suit ou précède celui-ci dans le même logement
-  const [suivant, precedent] = await Promise.all([
+  // Bail qui suit ou précède celui-ci dans le même logement ; bail officiel
+  // du TAL (lib/bailTal.js) et infos du locateur pour la fiche à recopier
+  const [suivant, precedent, officiel, entreprise] = await Promise.all([
     prisma.bailImmo.findFirst({ where: { logementId: bail.logementId, dateDebut: { gt: bail.dateDebut } }, orderBy: { dateDebut: "asc" }, select: { id: true, dateDebut: true, loyer: true } }),
     prisma.bailImmo.findFirst({ where: { logementId: bail.logementId, dateDebut: { lt: bail.dateDebut } }, orderBy: { dateDebut: "desc" }, select: { id: true, dateDebut: true, loyer: true } }),
+    bailOfficielDe(bail),
+    obtenirInfosEntreprise(),
   ]);
+  const locateur = (({ nomEntreprise, adresseLigne1, adresseLigne2, ville, codePostal, telephone, courriel, personneResponsable }) => ({ nomEntreprise, adresseLigne1, adresseLigne2, ville, codePostal, telephone, courriel, personneResponsable }))(entreprise);
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <BailClient {...simple({ bail, locataires, suivant, precedent })} courriel={Boolean(process.env.RESEND_API_KEY)} />
+      <BailClient {...simple({ bail, locataires, suivant, precedent, officiel, locateur })} courriel={Boolean(process.env.RESEND_API_KEY)} />
     </div>
   );
 }

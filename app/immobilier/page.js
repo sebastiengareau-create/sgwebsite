@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import EnTete from "../components/EnTete";
-import { comptesDesBaux, donneesRendement } from "@/lib/immobilier";
+import { comptesDesBaux, donneesRendement, etatsBailOfficiel } from "@/lib/immobilier";
 import { lireReglagesImmoAuto, dernierResultatImmoAuto } from "@/lib/immobilierAuto";
 import { periodeCourante, STATUTS_REPARATION_OUVERTS, bailAu31Decembre, ajouterMois } from "@/lib/immobilierCalculs";
 import { exigerAccesImmo, simple } from "./acces";
@@ -60,6 +60,9 @@ export default async function TableauBordImmo() {
     }),
   ]);
 
+  // Bail officiel du TAL déposé ou non, pour la liste « À faire » (lib/bailTal.js)
+  const bauxOfficiels = await etatsBailOfficiel(immeubles.flatMap((i) => i.logements.flatMap((l) => l.baux.map((b) => ({ ...b, logement: { type: l.type } })))));
+
   const facture = Object.fromEntries(loyersParMois.map((l) => [l.periode, l._sum.montant || 0]));
   const percu = {};
   for (const p of paiementsRecents) {
@@ -88,7 +91,7 @@ export default async function TableauBordImmo() {
         releve31={releve31}
         courriel={Boolean(process.env.RESEND_API_KEY)}
         {...simple({
-          immeubles, comptes, reparations, documents, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens,
+          immeubles, comptes, reparations, documents, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens, bauxOfficiels,
           bauxFactures: loyersDuMois.map((c) => c.bailId),
         })}
       />
