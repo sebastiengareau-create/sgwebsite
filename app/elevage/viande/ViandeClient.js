@@ -11,6 +11,7 @@ import VentesParMois from "./VentesParMois";
 import {
   champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, Tableau, cellule, celluleDroite, useApi, aujourdhui, DeuxColonnes,
 } from "../ui";
+import ChampArgent from "@/app/components/ChampArgent";
 
 // Une coupe « dort » si elle a des paquets au congélateur depuis au moins ce
 // nombre de jours et qu'aucun ne s'est vendu depuis autant de jours
@@ -166,7 +167,7 @@ function FormulaireVente({ coupe, onFin }) {
       <div style={grille2}>
         <Champ label="Paquets"><input inputMode="numeric" value={champs.nbPaquets} onChange={maj("nbPaquets")} style={champStyle} /></Champ>
         <Champ label="Poids réel (kg)"><input inputMode="decimal" value={champs.poids} onChange={maj("poids")} placeholder={kg(poidsMoyen * nb, 2)} style={champStyle} /></Champ>
-        <Champ label="Montant avant taxes ($)"><input inputMode="decimal" value={champs.montant} onChange={maj("montant")} placeholder={prix > 0 ? argent(poids * prix) : "à entrer"} style={champStyle} /></Champ>
+        <Champ label="Montant avant taxes ($)"><ChampArgent negatif={false} value={champs.montant} onChange={maj("montant")} placeholder={prix > 0 ? argent(poids * prix) : "à entrer"} style={champStyle} /></Champ>
         <Champ label="Date"><input type="date" max="9999-12-31" value={champs.date} onChange={maj("date")} style={champStyle} /></Champ>
       </div>
       <Champ label={champs.canal === "EN_LIGNE" ? "Commande en ligne (numéro, client…)" : "Note (client…)"}>

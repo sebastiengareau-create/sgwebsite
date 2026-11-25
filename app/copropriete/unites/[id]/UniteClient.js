@@ -169,14 +169,14 @@ function Espaces({ unite }) {
 
 const champsPaiement = [
   { nom: "date", label: "Date", type: "date" },
-  { nom: "montant", label: "Montant ($)", type: "nombre" },
+  { nom: "montant", label: "Montant ($)", type: "argent" },
   { nom: "mode", label: "Mode", type: "choix", vide: "—", options: MODES_PAIEMENT },
   { nom: "reference", label: "Référence (no de chèque…)" },
 ];
 const champsCharge = [
   { nom: "date", label: "Date", type: "date" },
   { nom: "type", label: "Type", type: "choix", options: TYPES_CHARGE, defaut: "SPECIALE" },
-  { nom: "montant", label: "Montant ($, négatif = crédit)", type: "nombre" },
+  { nom: "montant", label: "Montant ($, négatif = crédit)", type: "argent" },
   { nom: "description", label: "Description", pleineLargeur: true },
 ];
 

@@ -11,6 +11,7 @@ import {
 import { Icone, TEINTES, Pastille } from "../components/StyleSection";
 import BoutonTexto from "../components/BoutonTexto";
 import { PastilleEtat } from "./EtatJeu";
+import ChampArgent from "@/app/components/ChampArgent";
 
 const DATE = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Toronto" });
 
@@ -484,8 +485,7 @@ function Reglages({ reglages, onEnregistre }) {
         <h2 style={titrePanneau}>Prix de l&apos;entreposage</h2>
         <label style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 13.5 }}>
           Un jeu, par saison
-          <input value={prix} onChange={(e) => setPrix(e.target.value)} inputMode="decimal" placeholder="ex. 80" className="champ" style={{ width: 100, fontSize: 14, textAlign: "right" }} />
-          $
+          <ChampArgent negatif={false} value={prix} onChange={(e) => setPrix(e.target.value)} placeholder="ex. 80,00 $" className="champ" style={{ width: 110, fontSize: 14, textAlign: "right" }} />
         </label>
         <p style={aide}>Ajouté au bon lors d&apos;un changement de saison (poste « Entreposage de pneus »), avant taxes, et inscrit sur le reçu. Vide : aucune ligne ajoutée.</p>
       </section>

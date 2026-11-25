@@ -17,10 +17,10 @@ export const champsImmeuble = [
   { nom: "anneeConstruction", label: "Année de construction", type: "nombre" },
   { nom: "entrepreneur", label: "Entrepreneur (construit par)", placeholder: "Construction ABC inc." },
   { nom: "dateAchat", label: "Date d'achat", type: "date" },
-  { nom: "prixAchat", label: "Prix d'achat ($)", type: "nombre" },
-  { nom: "evaluationMunicipale", label: "Évaluation municipale ($)", type: "nombre" },
-  { nom: "valeurEstimee", label: "Valeur marchande estimée ($)", type: "nombre" },
-  { nom: "soldeHypotheque", label: "Solde de l'hypothèque ($)", type: "nombre" },
+  { nom: "prixAchat", label: "Prix d'achat ($)", type: "argent" },
+  { nom: "evaluationMunicipale", label: "Évaluation municipale ($)", type: "argent" },
+  { nom: "valeurEstimee", label: "Valeur marchande estimée ($)", type: "argent" },
+  { nom: "soldeHypotheque", label: "Solde de l'hypothèque ($)", type: "argent" },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
