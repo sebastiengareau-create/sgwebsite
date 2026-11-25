@@ -303,7 +303,9 @@ function BoutonAvis({ bail }) {
 
 // signature : se fait signer en ligne (lib/signatureImmo.js)
 const TYPES_GENERES = [
-  { code: "BAIL_LOGEMENT", label: "Bail de logement — aide-mémoire (pas le formulaire officiel)", signature: true },
+  // Le formulaire obligatoire rempli (lib/pdfBailFormulaire.js) ; l'ancien
+  // bail « aide-mémoire » (BAIL_LOGEMENT) n'est plus proposé
+  { code: "BAIL_FORMULAIRE", label: "Bail de logement — formulaire officiel rempli (à faire signer)", signature: true, logement: true },
   { code: "AVIS_MODIFICATION", label: "Avis de modification du bail (hausse de loyer)", actif: true, signature: true },
   { code: "AVIS_ACCES", label: "Avis d'accès au logement (24 h)" },
   { code: "RAPPEL_RETARD", label: "Rappel de loyer en retard", retard: true },
@@ -337,7 +339,7 @@ function GenerateurDocuments({ bail, envoi }) {
   const { appeler, enCours, erreur, setErreur } = useApi();
   // Rappel et mise en demeure : seulement s'il y a un montant en retard (pas un loyer pas encore échu)
   const enRetard = etatCompte(bail).enRetard;
-  const offerts = TYPES_GENERES.filter((t) => (!t.actif || bail.statut === "ACTIF") && (!t.retard || enRetard > 0.005) && (t.code !== "AVIS_MODIFICATION" || bail.dateFin));
+  const offerts = TYPES_GENERES.filter((t) => (!t.actif || bail.statut === "ACTIF") && (!t.retard || enRetard > 0.005) && (t.code !== "AVIS_MODIFICATION" || bail.dateFin) && (!t.logement || bail.logement.type === "LOGEMENT"));
   const maj = (k, x) => setV((o) => ({ ...o, [k]: x }));
   const fin = bail.dateFin ? dateCourte(bail.dateFin) : "";
   const choisir = (code) => {
@@ -378,11 +380,12 @@ function GenerateurDocuments({ bail, envoi }) {
     ],
     FICHE_BAIL: [{ nom: "dateAvis", label: "Date", type: "date" }],
     BAIL_LOGEMENT: [{ nom: "dateAvis", label: "Date du bail", type: "date" }, { nom: "lieu", label: "Signé à (ville)", placeholder: "Saint-Jean-sur-Richelieu" }],
+    BAIL_FORMULAIRE: [{ nom: "dateAvis", label: "Date du bail", type: "date" }],
   }[type] || [];
   const def = TYPES_GENERES.find((t) => t.code === type);
   const signer = Boolean(def?.signature && faireSigner);
   // Bail de logement : mentions importantes encore vides
-  const manquantes = type === "BAIL_LOGEMENT" ? [
+  const manquantes = type === "BAIL_LOGEMENT" || type === "BAIL_FORMULAIRE" ? [
     !bail.immeubleNeuf && bail.loyerAncien == null && !bail.loyerAncienNote && "le loyer le plus bas des 12 derniers mois (section G)",
     bail.immeubleNeuf && !bail.hausseMaximaleF && "la hausse maximale de loyer de l'immeuble neuf (section F)",
     !bail.modePaiement && "le mode de paiement",
@@ -404,6 +407,12 @@ function GenerateurDocuments({ bail, envoi }) {
           {fenetre && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer entre le <strong>{dateLisible(fenetre.debut)}</strong> et le <strong>{dateLisible(fenetre.fin)}</strong>. Le bail sera noté « avis envoyé » à la date de l'avis.</p>}
           {lim && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>À envoyer au moins {lim.mois} mois avant la fin du bail, au plus tard le <strong>{dateLisible(lim.date)}</strong>. La reprise ne peut prendre effet qu'à la fin du bail.</p>}
           {type === "MISE_EN_DEMEURE" && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>Envoie-la par courrier recommandé et garde la preuve de réception : elle servira au TAL.</p>}
+          {type === "BAIL_FORMULAIRE" && (
+            <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>
+              Le formulaire de bail de la Régie du logement, rempli avec les données du bail (sections A à H) ; les signatures en ligne se placent dans la section H. Valide pour les baux conclus jusqu'au 31 décembre 2026.
+              {manquantes.length > 0 && <strong style={{ color: "var(--danger)" }}> À compléter avant : {manquantes.join(", ")}.</strong>}
+            </p>
+          )}
           {type === "BAIL_LOGEMENT" && (
             <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>
               Ce document reprend les sections A à H du formulaire du TAL, remplies avec la fiche du bail, mais <strong>ce n'est pas le formulaire obligatoire</strong> : le bail officiel se fait dans la section « Bail officiel » plus haut (formulaire obligatoire rempli et signé en ligne). Garde celui-ci comme aide-mémoire.

@@ -88,13 +88,7 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
           </span>
         </div>
         {attente && <p style={{ ...texte, margin: "8px 0 0" }}>Le suivi des signatures (liens, relances) se fait dans <strong>Documents du bail</strong>, plus bas. Signé sur papier ? Dépose le bail numérisé avec « Refaire ».</p>}
-        {depot && (
-          <div style={{ marginTop: 12 }}>
-            <FormulaireRempli bail={bail} officiel={officiel} locateur={locateur} onFini={() => setDepot(false)} />
-            <p style={{ ...titreEtape, marginTop: 16 }}>Ou déposer un bail signé</p>
-            <Depot bail={bail} onFini={() => setDepot(false)} />
-          </div>
-        )}
+        {depot && <PreparerOuDeposer bail={bail} officiel={officiel} locateur={locateur} onFini={() => setDepot(false)} />}
       </Section>
     );
   }
@@ -104,7 +98,7 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
       <Section
         titre={TITRE} icone="presse" teinte={TEINTES.neutre}
         sousTitre="Reconduction : pas de nouveau formulaire"
-        droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Déposer"}</BoutonTexte>}
+        droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Préparer ou déposer"}</BoutonTexte>}
       >
         <p style={{ ...texte, margin: 0 }}>
           Ce bail continue celui du {dateLisible(origine.dateDebut)} avec le même locataire : il se reconduit de plein droit, sans nouveau formulaire. Le bail officiel reste celui signé au début.{" "}
@@ -112,7 +106,7 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
             ? <a href={`/api/immobilier/documents/${origine.document.id}`} target="_blank" rel="noreferrer" style={{ ...lien, fontWeight: 700 }}>🏛️ Ouvrir le bail officiel</a>
             : <>Il n'est pas encore déposé : <Link href={`/immobilier/baux/${origine.id}`} style={{ ...lien, fontWeight: 700 }}>dépose-le dans le bail du {dateLisible(origine.dateDebut)}</Link>.</>}
         </p>
-        {depot && <Depot bail={bail} onFini={() => setDepot(false)} />}
+        {depot && <PreparerOuDeposer bail={bail} officiel={officiel} locateur={locateur} onFini={() => setDepot(false)} />}
       </Section>
     );
   }
@@ -122,11 +116,11 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
     return (
       <Section
         titre={TITRE} icone="presse" teinte={TEINTES.neutre}
-        sousTitre="Aucun bail signé déposé"
-        droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Déposer"}</BoutonTexte>}
+        sousTitre="Aucun bail signé ici"
+        droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Préparer ou déposer"}</BoutonTexte>}
       >
-        <p style={{ ...texte, margin: 0 }}>Dépose le bail signé (PDF, ou bail papier numérisé) pour le garder ici et le montrer au locataire dans son espace.</p>
-        {depot && <Depot bail={bail} onFini={() => setDepot(false)} />}
+        <p style={{ ...texte, margin: 0 }}>Prépare le bail sur le formulaire officiel et fais-le signer en ligne, ou dépose le bail déjà signé (PDF, ou papier numérisé) pour le garder ici et le montrer au locataire.</p>
+        {depot && <PreparerOuDeposer bail={bail} officiel={officiel} locateur={locateur} onFini={() => setDepot(false)} />}
       </Section>
     );
   }
@@ -152,6 +146,18 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
         </div>
       </details>
     </Section>
+  );
+}
+
+function PreparerOuDeposer({ bail, officiel, locateur, onFini }) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={etape}><FormulaireRempli bail={bail} officiel={officiel} locateur={locateur} onFini={onFini} /></div>
+      <div style={{ ...etape, marginBottom: 0 }}>
+        <p style={titreEtape}>Ou déposer un bail déjà signé</p>
+        <Depot bail={bail} onFini={onFini} />
+      </div>
+    </div>
   );
 }
 
@@ -301,7 +307,7 @@ function Depot({ bail, onFini }) {
   }
 
   return (
-    <div style={{ marginTop: onFini ? 12 : 0 }}>
+    <div style={{ marginTop: 0 }}>
       <p style={texte}>Le PDF va dans les documents du bail et, au choix, dans l'espace du locataire. Il reste ici pour de bon.</p>
       <label style={labelStyle}>Bail signé : PDF de la plateforme du TAL, ou bail papier numérisé</label>
       <input type="file" accept="application/pdf,.pdf,image/*" onChange={(e) => setFichier(e.target.files?.[0] || null)} style={{ fontSize: 13, marginBottom: 10, maxWidth: "100%" }} />
