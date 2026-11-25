@@ -28,7 +28,7 @@ export function champsTravail({ unites, batiments, fournisseurs }) {
     { nom: "priorite", label: "Priorité", type: "choix", options: PRIORITES, defaut: "NORMALE" },
     { nom: "categorie", label: "Catégorie", type: "choix", vide: "—", options: CATEGORIES_TRAVAUX },
     { nom: "datePrevue", label: "Date prévue", type: "date" },
-    { nom: "coutEstime", label: "Coût estimé ($)", type: "nombre" },
+    { nom: "coutEstime", label: "Coût estimé ($)", type: "argent" },
     { nom: "uniteId", label: "Unité", type: "choix", vide: "— parties communes —", options: options(unites, (u) => u.numero) },
     ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: options(batiments) }] : []),
     { nom: "emplacement", label: "Endroit précis" },
@@ -39,7 +39,7 @@ export function champsTravail({ unites, batiments, fournisseurs }) {
 // Champs de clôture d'un bon : coût réel, facture, garantie
 export const champsCloture = [
   { nom: "dateFin", label: "Terminé le", type: "date" },
-  { nom: "coutReel", label: "Coût réel ($)", type: "nombre" },
+  { nom: "coutReel", label: "Coût réel ($)", type: "argent" },
   { nom: "numeroFacture", label: "No de facture du fournisseur" },
   { nom: "garantieFin", label: "Garantie jusqu'au", type: "date" },
 ];
@@ -53,7 +53,7 @@ export function champsEntretien({ batiments, fournisseurs }) {
     { nom: "prochaineDate", label: "Prochaine date", type: "date" },
     { nom: "derniereDate", label: "Dernière fois", type: "date" },
     { nom: "fournisseurId", label: "Fournisseur habituel", type: "choix", vide: "—", options: options(fournisseurs) },
-    { nom: "coutEstime", label: "Coût estimé ($)", type: "nombre" },
+    { nom: "coutEstime", label: "Coût estimé ($)", type: "argent" },
     ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: options(batiments) }] : []),
     { nom: "emplacement", label: "Endroit" },
     { nom: "obligatoire", label: "Exigé par la loi, un règlement ou l'assureur", type: "case" },

@@ -28,7 +28,7 @@ export const champsEspace = (batiments, unites) => [
   { nom: "numero", label: "Numéro" },
   { nom: "uniteId", label: "Attribué à l'unité", type: "choix", vide: "— libre —", options: unites.map((u) => ({ code: u.id, label: u.numero })) },
   { nom: "mode", label: "Statut", type: "choix", options: MODES_ESPACE, defaut: "USAGE_RESTREINT" },
-  { nom: "fraisMensuel", label: "Frais mensuels ($)", type: "nombre", placeholder: "0,00" },
+  { nom: "fraisMensuel", label: "Frais mensuels ($)", type: "argent" },
   { nom: "emplacement", label: "Emplacement", placeholder: "Garage P1, casier B…" },
   ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: batiments.map((b) => ({ code: b.id, label: b.nom })) }] : []),
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },

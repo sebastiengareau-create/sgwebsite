@@ -581,6 +581,7 @@ export default function BonDetailClient({ nomEntreprise = "", bon, inventaire, e
       {pneus && (
         <CartePneus
           bonId={bon.id} clientId={bon.clientId} vehiculeId={bon.vehiculeId} jeux={pneus.jeux} prixSaison={pneus.prixSaison}
+          plan={pneus.plan} seuils={pneus.seuils} occupes={pneus.occupes}
           modifiable={!factureExiste} comptoir={peutModifier}
         />
       )}

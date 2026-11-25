@@ -3,7 +3,7 @@ import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { changementDeSaison, refusPneus } from "@/lib/pneus";
 
 // Changement de saison sur un bon (carte « Pneus entreposés ») :
-// { bonId, sortirId?, entrerId?, nouveau?, emplacement?, usure?, tache, facturer }
+// { bonId, sortirId?, entrerId?, nouveau?, emplacement?, usures?, tache, facturer }
 // Ajoute des tâches au bon : il faut aussi l'accès « Opérations ».
 export async function POST(request) {
   const session = await obtenirSession();

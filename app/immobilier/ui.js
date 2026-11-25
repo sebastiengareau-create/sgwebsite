@@ -17,6 +17,7 @@ import {
   CHAUFFAGES, ANIMAUX, FUMEUR,
   servicesListe, trouver, dateLisible, argent, taille, etatExpiration, nomLogement, etatSignatures, STATUTS_SIGNATURE, REPONSES_AVIS, libelle,
 } from "@/lib/immobilierCalculs";
+import { formaterTelephone } from "@/lib/telephone";
 
 export { nomLogement };
 
@@ -237,7 +238,7 @@ export const champsLogement = (immeubles) => [
   { nom: "pieces", label: "Pièces", placeholder: "4 ½" },
   { nom: "etage", label: "Étage" },
   { nom: "superficie", label: "Superficie (pi²)", type: "nombre" },
-  { nom: "loyerVise", label: "Loyer demandé ($ / mois)", type: "nombre", placeholder: "pour la prochaine location" },
+  { nom: "loyerVise", label: "Loyer demandé ($ / mois)", type: "argent", placeholder: "pour la prochaine location" },
   { nom: "adresseCivique", label: "Adresse du logement, si différente", placeholder: "plex : 314 rue Champlain" },
   { nom: "numeroLogementRq", label: "N° de logement Revenu Québec (relevé 31, case A)" },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
@@ -255,7 +256,7 @@ export const champsLocataire = [
 
 export const champsPaiement = [
   { nom: "date", label: "Date", type: "date" },
-  { nom: "montant", label: "Montant ($)", type: "nombre" },
+  { nom: "montant", label: "Montant ($)", type: "argent" },
   { nom: "mode", label: "Mode", type: "choix", vide: "—", options: MODES_PAIEMENT, defaut: "VIREMENT" },
   { nom: "reference", label: "Référence", placeholder: "n° de chèque, de virement…" },
   { nom: "note", label: "Note", pleineLargeur: true },
@@ -263,7 +264,7 @@ export const champsPaiement = [
 
 export const champsCharge = [
   { nom: "date", label: "Date", type: "date" },
-  { nom: "montant", label: "Montant ($, négatif = crédit)", type: "nombre" },
+  { nom: "montant", label: "Montant ($, négatif = crédit)", type: "argent" },
   { nom: "type", label: "Type", type: "choix", options: TYPES_CHARGE.filter((t) => t.code !== "LOYER"), defaut: "FRAIS" },
   { nom: "description", label: "Description", pleineLargeur: true },
 ];
@@ -272,7 +273,7 @@ export const champsDepense = (immeubles) => [
   ...(immeubles ? [{ nom: "immeubleId", label: "Immeuble", type: "choix", options: immeubles.map((i) => ({ code: i.id, label: i.nom })) }] : []),
   { nom: "date", label: "Date", type: "date" },
   { nom: "categorie", label: "Catégorie", type: "choix", options: CATEGORIES_DEPENSE, defaut: "ENTRETIEN" },
-  { nom: "montant", label: "Montant ($)", type: "nombre" },
+  { nom: "montant", label: "Montant ($)", type: "argent" },
   { nom: "payeA", label: "Payé à" },
   { nom: "reference", label: "Référence (facture, chèque…)" },
   { nom: "description", label: "Description", pleineLargeur: true },
@@ -294,8 +295,8 @@ export function champsReparation({ immeubles, locataires, immeubleId, fixe = {} 
     { nom: "telephoneEntrepreneur", label: "Téléphone de l'entrepreneur", typeHtml: "tel" },
     { nom: "datePrevue", label: "Date prévue", type: "date" },
     { nom: "dateFin", label: "Terminée le", type: "date" },
-    { nom: "coutEstime", label: "Coût estimé ($)", type: "nombre" },
-    { nom: "coutReel", label: "Coût réel ($)", type: "nombre" },
+    { nom: "coutEstime", label: "Coût estimé ($)", type: "argent" },
+    { nom: "coutReel", label: "Coût réel ($)", type: "argent" },
     { nom: "numeroFacture", label: "N° de facture" },
     { nom: "immobilisation", label: "Dépense d'immobilisation : travaux majeurs ou remplacement durable (toiture, fenêtres, chauffe-eau…) — amortie à l'impôt, compte pour les hausses de loyer", type: "case" },
     { nom: "signalePar", label: "Signalée par (autre)" },
@@ -340,7 +341,7 @@ export const champsMentionsBail = (v) => [
   { nom: "animaux", label: "Animaux", type: "choix", vide: "—", options: ANIMAUX },
   { nom: "fumeur", label: "Tabac et cannabis", type: "choix", vide: "—", options: FUMEUR },
   { nom: "reglementRemisLe", label: "Règlement de l'immeuble remis le (vide : aucun)", type: "date" },
-  { nom: "loyerAncien", label: "Loyer le plus bas des 12 mois avant le bail ($, section G)", type: "nombre" },
+  { nom: "loyerAncien", label: "Loyer le plus bas des 12 mois avant le bail ($, section G)", type: "argent" },
   { nom: "loyerAncienNote", label: "Précision sur ce loyer (logement non loué, services différents…)", pleineLargeur: true },
   { nom: "caution", label: "Caution (garant) : nom et coordonnées", pleineLargeur: true },
   { nom: "chequesPostdates", label: "Le locataire accepte de remettre des chèques postdatés", type: "case" },
@@ -377,7 +378,7 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
   const champs = [
     { nom: "dateDebut", label: "Début du bail", type: "date" },
     ...(indetermine ? [] : [{ nom: "dateFin", label: "Fin du bail", type: "date" }]),
-    { nom: "loyer", label: "Loyer mensuel ($)", type: "nombre" },
+    { nom: "loyer", label: "Loyer mensuel ($)", type: "argent" },
     { nom: "jourPaiement", label: "Payable le (jour du mois)", type: "nombre" },
     { nom: "notes", label: "Notes internes (jamais imprimées au bail)", type: "long", lignes: 2 },
   ];
@@ -432,7 +433,7 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
       <div style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>{locataires.length > 0 ? "…ou un nouveau locataire :" : "Nouveau locataire :"}</div>
       <div style={grille2}>
         <Champ label="Nom"><input value={nouveau.nom} onChange={(e) => setNouveau((n) => ({ ...n, nom: e.target.value }))} style={champStyle} /></Champ>
-        <Champ label="Téléphone"><input type="tel" value={nouveau.telephone} onChange={(e) => setNouveau((n) => ({ ...n, telephone: e.target.value }))} style={champStyle} /></Champ>
+        <Champ label="Téléphone"><input type="tel" value={nouveau.telephone} onChange={(e) => setNouveau((n) => ({ ...n, telephone: e.target.value }))} onBlur={(e) => setNouveau((n) => ({ ...n, telephone: formaterTelephone(e.target.value) }))} style={champStyle} /></Champ>
         <Champ label="Courriel"><input type="email" value={nouveau.courriel} onChange={(e) => setNouveau((n) => ({ ...n, courriel: e.target.value }))} style={champStyle} /></Champ>
       </div>
       <Erreur texte={erreur} />

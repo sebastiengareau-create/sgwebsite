@@ -20,9 +20,9 @@ const ONGLETS = [
 const champsBudget = [
   { nom: "annee", label: "Exercice (année de début)", type: "nombre" },
   { nom: "moisDebut", label: "Premier mois de l'exercice", type: "choix", defaut: "1", options: Array.from({ length: 12 }, (_, i) => ({ code: String(i + 1), label: new Intl.DateTimeFormat("fr-CA", { month: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, i, 15))) })) },
-  { nom: "chargesCourantes", label: "Charges courantes ($ / an)", type: "nombre" },
-  { nom: "fondsPrevoyance", label: "Fonds de prévoyance ($ / an)", type: "nombre" },
-  { nom: "fondsAutoAssurance", label: "Fonds d'autoassurance ($ / an)", type: "nombre" },
+  { nom: "chargesCourantes", label: "Charges courantes ($ / an)", type: "argent" },
+  { nom: "fondsPrevoyance", label: "Fonds de prévoyance ($ / an)", type: "argent" },
+  { nom: "fondsAutoAssurance", label: "Fonds d'autoassurance ($ / an)", type: "argent" },
   { nom: "adopteLe", label: "Adopté le", type: "date" },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
@@ -184,7 +184,7 @@ function Cotisations({ budgets, cotisations }) {
 const champsPaiement = (unites) => [
   { nom: "uniteId", label: "Unité", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: `${u.numero}${nomsProprietaires(u) ? ` — ${nomsProprietaires(u)}` : ""}` })) },
   { nom: "date", label: "Date", type: "date" },
-  { nom: "montant", label: "Montant ($)", type: "nombre" },
+  { nom: "montant", label: "Montant ($)", type: "argent" },
   { nom: "mode", label: "Mode", type: "choix", vide: "—", options: MODES_PAIEMENT },
   { nom: "reference", label: "Référence (no de chèque…)" },
 ];

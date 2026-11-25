@@ -176,14 +176,30 @@ on décide quand et à qui une modification s'applique.
   **Entreposage de pneus** (inactif par défaut, `lib/pneus.js`) : les jeux de
   pneus des clients gardés à l'atelier (`/pneus`, accès « Entreposage de
   pneus », offert par défaut à la secrétaire et au mécanicien) — numéro
-  PN-001, saison, dimension, jantes, année DOT, usure, emplacement ;
+  PN-001, saison, dimension, jantes, emplacement ; **pneu par pneu** (avant
+  gauche, avant droit… : usure en /32 po, code DOT et âge, pneu endommagé
+  avec remarque) d'où l'**état du jeu** — bon, à surveiller, à remplacer selon
+  le pneu le plus usé et le plus vieux (seuils réglables, `pneus_seuils`) — et
+  les conseils de pose (permutation, alignement à vérifier) ; **roues et
+  équipement** (clé antivol, capteurs de pression, enjoliveurs, couple de
+  serrage, pression) rappelés à la pose ; photos à l'entrée ; **reçu
+  d'entreposage** en PDF à faire signer ou envoyé par courriel
+  (`lib/pdfRecuPneus.js`, conditions réglables `pneus_conditions`) ;
   historique des entrées, sorties, déplacements et remises ; étiquettes à code
-  QR qui ouvrent la fiche du jeu. Sur le bon, « Changement de saison » pose le
-  jeu entreposé et entrepose celui qui sort du véhicule à l'emplacement libéré,
-  avec la tâche et le prix de l'entreposage (réglage `pneus_prix_saison`, poste
-  4040) ajoutés au bon. Rappels de changement de saison (pneus d'hiver avant le
-  1er décembre, d'été au printemps) par courriel ou texto. Jeux de
-  démonstration avec l'atelier de démonstration.
+  QR qui ouvrent la fiche du jeu. **Plan de l'entrepôt** (rangées et nombre de
+  places, `pneus_entrepot` : places A-01, A-02…) : grille colorée par saison,
+  places libres proposées dans les formulaires, place déjà prise refusée.
+  Tableau de bord : avancement du changement de saison, jeux à remplacer
+  (pneus neufs à proposer, texto prérempli), jeux oubliés (plus d'un an à
+  l'entrepôt), liste en CSV. Sur le bon, « Changement de saison » pose le jeu
+  entreposé et entrepose celui qui sort du véhicule à l'emplacement libéré,
+  avec la tâche (clé antivol et serrage à revérifier) et le prix de
+  l'entreposage (réglage `pneus_prix_saison`, poste 4040) ajoutés au bon.
+  Rappels de changement de saison (pneus d'hiver avant le 1er décembre, d'été
+  au printemps) par courriel ou texto, qui signalent un jeu à remplacer ; le
+  portail client le signale aussi. Calculs vérifiés par `npm run test:pneus`.
+  Jeux de démonstration (et un plan, s'il n'y en a pas) avec l'atelier de
+  démonstration.
   **Paiement en ligne (Stripe)** (inactif par défaut, `lib/paiementEnLigne.js`,
   exige `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` — voir
   GUIDE-NOUVEAU-CLIENT.md) : le client paie le solde de sa facture par carte

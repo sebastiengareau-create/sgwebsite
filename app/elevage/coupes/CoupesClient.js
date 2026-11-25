@@ -7,6 +7,7 @@ import { estimerDecoupe, totauxDecoupe, carcasseDepuisVif, argent, kg } from "@/
 import {
   champStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, Onglets, NavElevage, TableEstimation, useApi, Statistique, DeuxColonnes,
 } from "../ui";
+import ChampArgent from "@/app/components/ChampArgent";
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const texte = (n) => String(n ?? "").replace(".", ",");
@@ -83,12 +84,12 @@ function LigneCoupe({ coupe }) {
       </label>
       <label style={{ gridArea: "boutique" }}>
         <span className="etiquette">Boutique $/kg</span>
-        <input inputMode="decimal" value={champs.prixBoutique} onChange={maj("prixBoutique")} aria-label="Prix en boutique au kg" style={champ} />
+        <ChampArgent negatif={false} value={champs.prixBoutique} onChange={maj("prixBoutique")} aria-label="Prix en boutique au kg" style={champ} />
         {prixPaquet(champs.prixBoutique) && <div style={note}>{prixPaquet(champs.prixBoutique)}</div>}
       </label>
       <label style={{ gridArea: "enligne" }}>
         <span className="etiquette">En ligne $/kg</span>
-        <input inputMode="decimal" value={champs.prixEnLigne} onChange={maj("prixEnLigne")} aria-label="Prix en ligne au kg" style={champ} disabled={!coupe.enLigne} />
+        <ChampArgent negatif={false} value={champs.prixEnLigne} onChange={maj("prixEnLigne")} aria-label="Prix en ligne au kg" style={champ} disabled={!coupe.enLigne} />
         {coupe.enLigne && prixPaquet(champs.prixEnLigne) && <div style={note}>{prixPaquet(champs.prixEnLigne)}</div>}
       </label>
       <label className="case" style={{ gridArea: "offerte" }}>
@@ -126,8 +127,8 @@ function NouvelleCoupe() {
         <Champ label="Nom"><input value={champs.nom} onChange={maj("nom")} style={champStyle} /></Champ>
         <Champ label="Rendement (% de la carcasse)"><input inputMode="decimal" value={champs.rendement} onChange={maj("rendement")} style={champStyle} /></Champ>
         <Champ label="Poids d'un paquet (kg)"><input inputMode="decimal" value={champs.poidsPaquet} onChange={maj("poidsPaquet")} style={champStyle} /></Champ>
-        <Champ label="Prix boutique ($/kg)"><input inputMode="decimal" value={champs.prixBoutique} onChange={maj("prixBoutique")} style={champStyle} /></Champ>
-        <Champ label="Prix en ligne ($/kg)"><input inputMode="decimal" value={champs.prixEnLigne} onChange={maj("prixEnLigne")} style={champStyle} /></Champ>
+        <Champ label="Prix boutique ($/kg)"><ChampArgent negatif={false} value={champs.prixBoutique} onChange={maj("prixBoutique")} style={champStyle} /></Champ>
+        <Champ label="Prix en ligne ($/kg)"><ChampArgent negatif={false} value={champs.prixEnLigne} onChange={maj("prixEnLigne")} style={champStyle} /></Champ>
       </div>
       <Erreur texte={erreur} />
       <div style={{ display: "flex", gap: 8 }}>

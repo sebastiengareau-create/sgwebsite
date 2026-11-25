@@ -4,16 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { argent } from "@/lib/format";
-import { STATUTS_JEU, libelleJeu, saisonAVenir, normaliserJeu } from "@/lib/pneusCalculs";
+import { STATUTS_JEU, SEUILS_PNEUS_DEFAUT, libelleJeu, saisonAVenir, normaliserJeu, evaluerJeu, resumeEquipement, placesLibres, cleEmplacement } from "@/lib/pneusCalculs";
 import { Icone, TEINTES, Pastille } from "../components/StyleSection";
-import ChampsJeu, { champsDuJeu } from "../pneus/ChampsJeu";
+import ChampsJeu, { champsDuJeu, SaisieUsures } from "../pneus/ChampsJeu";
+import ChoixEmplacement from "../pneus/ChoixEmplacement";
+import { PastilleEtat, EncadreEtat } from "../pneus/EtatJeu";
 
 // Carte « Pneus entreposés » du bon (module Entreposage de pneus,
 // lib/pneus.js) : les jeux du véhicule, et le changement de saison — le jeu
 // entreposé est posé, celui qui sort du véhicule entre à l'entrepôt (à
 // l'emplacement libéré), avec la tâche et le prix de l'entreposage ajoutés
-// au bon. modifiable : bon pas encore facturé ; comptoir : accès « Opérations ».
-export default function CartePneus({ bonId, clientId, vehiculeId, jeux, prixSaison, modifiable, comptoir }) {
+// au bon. L'état de chaque jeu, et pour celui à poser, son équipement (clé
+// antivol, serrage) et les conseils de pose. modifiable : bon pas encore
+// facturé ; comptoir : accès « Opérations ».
+export default function CartePneus({ bonId, clientId, vehiculeId, jeux, prixSaison, plan, seuils = SEUILS_PNEUS_DEFAUT, occupes = [], modifiable, comptoir }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const [message, setMessage] = useState(null);
@@ -38,11 +42,14 @@ export default function CartePneus({ bonId, clientId, vehiculeId, jeux, prixSais
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {jeux.map((j) => {
             const s = STATUTS_JEU[j.statut];
+            const equipement = j.statut === "ENTREPOSE" ? resumeEquipement(j) : [];
             return (
-              <Link key={j.id} href={`/pneus/${j.id}`} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit", border: "1px solid var(--border)", borderRadius: 12, padding: "8px 12px", background: "var(--bg)" }}>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5 }}>
+              <Link key={j.id} href={`/pneus/${j.id}`} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", textDecoration: "none", color: "inherit", border: "1px solid var(--border)", borderRadius: 12, padding: "8px 12px", background: "var(--bg)" }}>
+                <span style={{ flex: "1 1 200px", minWidth: 0, fontSize: 13.5 }}>
                   <b>{j.numero}</b> · {libelleJeu(j)}{j.marque ? ` · ${j.marque}` : ""}
+                  {equipement.length > 0 && <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>🔧 {equipement.join(" · ")}</span>}
                 </span>
+                <PastilleEtat etat={evaluerJeu(j, seuils)} bonAussi={false} />
                 <Pastille couleur={s.couleur} fond={s.fond}>{j.statut === "ENTREPOSE" ? `Entrepôt ${j.emplacement}` : s.libelle}</Pastille>
               </Link>
             );
@@ -57,7 +64,7 @@ export default function CartePneus({ bonId, clientId, vehiculeId, jeux, prixSais
       )}
       {ouvert && (
         <ChangementSaison
-          bonId={bonId} entrepose={entrepose} poses={poses} prixSaison={prixSaison}
+          bonId={bonId} entrepose={entrepose} poses={poses} prixSaison={prixSaison} plan={plan} seuils={seuils} occupes={occupes}
           onFermer={() => setOuvert(false)}
           onFait={(texte) => { setOuvert(false); setMessage(texte); router.refresh(); }}
         />
@@ -70,7 +77,7 @@ export default function CartePneus({ bonId, clientId, vehiculeId, jeux, prixSais
 // Saison opposée, pour proposer celle du jeu qui sort du véhicule
 const OPPOSEE = { HIVER: "ETE", ETE: "HIVER" };
 
-function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFait }) {
+function ChangementSaison({ bonId, entrepose, poses, prixSaison, plan, seuils, occupes, onFermer, onFait }) {
   const aVenir = saisonAVenir();
   const sortantDefaut = entrepose.find((j) => j.saison === aVenir.saison) || entrepose[0] || null;
   const [sortirId, setSortirId] = useState(sortantDefaut?.id || "");
@@ -79,12 +86,18 @@ function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFai
   const [entrer, setEntrer] = useState(poses[0]?.id || "nouveau");
   const [nouveau, setNouveau] = useState(() => ({ ...champsDuJeu(null), saison: OPPOSEE[sortantDefaut?.saison] || "", dimension: sortantDefaut?.dimension || "" }));
   const [emplacement, setEmplacement] = useState(sortantDefaut?.emplacement || "");
-  const [usure, setUsure] = useState("");
+  const [usures, setUsures] = useState([]);
   const [tache, setTache] = useState(true);
   const [facturer, setFacturer] = useState(!!prixSaison);
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
   const entre = entrer !== "";
+  const entrant = poses.find((j) => j.id === entrer) || null;
+  // Places : celle qui se libère, puis les libres du plan ; la place du jeu
+  // posé n'est plus prise
+  const autresOccupees = sortant ? occupes.filter((o) => cleEmplacement(o) !== cleEmplacement(sortant.emplacement)) : occupes;
+  const libres = placesLibres(plan, occupes, 6);
+  const equipement = sortant ? resumeEquipement(sortant) : [];
 
   function choisirSortant(id) {
     setSortirId(id);
@@ -110,7 +123,7 @@ function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFai
         bonId, sortirId: sortirId || null,
         entrerId: entre && entrer !== "nouveau" ? entrer : null,
         nouveau: entrer === "nouveau" ? nouveau : null,
-        emplacement, usure: entrer === "nouveau" ? nouveau.usure : usure, tache, facturer: facturer && entre,
+        emplacement, usures: entrer !== "nouveau" ? usures : undefined, tache, facturer: facturer && entre,
       }),
     }).catch(() => null);
     const data = await res?.json().catch(() => ({}));
@@ -132,6 +145,12 @@ function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFai
             </label>
           ))}
           <label style={choix}><input type="radio" name="sortir" checked={!sortirId} onChange={() => setSortirId("")} /> <span>Rien à poser</span></label>
+          {sortant && (equipement.length > 0 || evaluerJeu(sortant, seuils).conseils.length > 0 || ["REMPLACER", "SURVEILLER"].includes(evaluerJeu(sortant, seuils).code)) && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+              {equipement.length > 0 && <div style={{ fontSize: 13, padding: "8px 10px", borderRadius: 10, background: "var(--surface-alt)" }}>🔧 À la pose : {equipement.join(" · ")}</div>}
+              <EncadreEtat jeu={sortant} seuils={seuils} />
+            </div>
+          )}
         </fieldset>
       )}
 
@@ -139,7 +158,7 @@ function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFai
         <legend style={legende}>Entreposer ce qui sort du véhicule</legend>
         {poses.map((j) => (
           <label key={j.id} style={choix}>
-            <input type="radio" name="entrer" checked={entrer === j.id} onChange={() => setEntrer(j.id)} />
+            <input type="radio" name="entrer" checked={entrer === j.id} onChange={() => { setEntrer(j.id); setUsures([]); }} />
             <span><b>{j.numero}</b> · {libelleJeu(j)}</span>
           </label>
         ))}
@@ -147,20 +166,12 @@ function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFai
         {sortirId && <label style={choix}><input type="radio" name="entrer" checked={entrer === ""} onChange={() => setEntrer("")} /> <span>Rien (le client repart avec)</span></label>}
       </fieldset>
 
-      {entrer === "nouveau" && <ChampsJeu champs={nouveau} onChange={setNouveau} emplacement={false} compact />}
+      {entrer === "nouveau" && <ChampsJeu champs={nouveau} onChange={setNouveau} seuils={seuils} compact />}
 
       {entre && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <label style={{ flex: "0 1 140px" }}>
-            <span style={etiquette}>Emplacement{sortant && emplacement === sortant.emplacement ? " (libéré)" : ""}</span>
-            <input value={emplacement} onChange={(e) => setEmplacement(e.target.value)} placeholder="A-12" className="champ" style={{ fontSize: 15, textTransform: "uppercase" }} />
-          </label>
-          {entrer !== "nouveau" && (
-            <label style={{ flex: "1 1 160px", minWidth: 0 }}>
-              <span style={etiquette}>Usure par pneu (/32 po)</span>
-              <input value={usure} onChange={(e) => setUsure(e.target.value)} placeholder="8, 8, 7, 7" className="champ" style={{ fontSize: 15 }} />
-            </label>
-          )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <ChoixEmplacement valeur={emplacement} onChange={setEmplacement} libres={libres} occupes={autresOccupees} libere={sortant?.emplacement || null} />
+          {entrant && <SaisieUsures jeu={entrant} valeurs={usures} onChange={setUsures} seuils={seuils} />}
         </div>
       )}
 
@@ -188,4 +199,3 @@ function ChangementSaison({ bonId, entrepose, poses, prixSaison, onFermer, onFai
 const groupe = { border: "1px solid var(--border)", borderRadius: 12, padding: "8px 12px 10px", margin: 0, display: "flex", flexDirection: "column", gap: 6 };
 const legende = { fontSize: 12.5, fontWeight: 800, padding: "0 4px" };
 const choix = { display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13.5, cursor: "pointer" };
-const etiquette = { display: "block", fontSize: 12, color: "var(--text-muted)", marginBottom: 4 };

@@ -10,6 +10,8 @@ import { TitreSection } from "../components/ui";
 import { Pastille } from "../components/StyleSection";
 import { champStyle, labelStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi } from "../elevage/ui";
 import { trouver, taille } from "@/lib/coproprieteCalculs";
+import ChampArgent from "../components/ChampArgent";
+import { formaterTelephone } from "@/lib/telephone";
 
 export { champStyle, labelStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi };
 export { Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui } from "../elevage/ui";
@@ -81,7 +83,7 @@ export function Vide({ children }) {
 
 // ---------- Formulaires décrits par une liste de champs ----------
 // champs : [{ nom, label, type: "texte" | "long" | "date" | "nombre" |
-// "choix" | "case", options: [{ code, label }], vide: "— libellé —",
+// "argent" (affiché « 350,00 $ », transmis « 350.00 ») | "choix" | "case", options: [{ code, label }], vide: "— libellé —",
 // placeholder, pleineLargeur }]
 
 export function ChampsFormulaire({ champs, valeurs, maj }) {
@@ -118,8 +120,12 @@ function UnChamp({ c, valeurs, maj }) {
     entree = <textarea value={v} onChange={changer} rows={c.lignes || 3} placeholder={c.placeholder} style={{ ...champStyle, resize: "vertical" }} />;
   } else if (c.type === "date") {
     entree = <input type="date" max="9999-12-31" value={v} onChange={changer} style={champStyle} />;
+  } else if (c.type === "argent") {
+    entree = <ChampArgent value={v} onChange={changer} placeholder={c.placeholder || "0,00 $"} negatif={c.negatif !== false} style={champStyle} />;
   } else {
-    entree = <input value={v} onChange={changer} inputMode={c.type === "nombre" ? "decimal" : undefined} placeholder={c.placeholder} type={c.typeHtml || "text"} style={champStyle} />;
+    // Téléphone : mis sous la forme (450) 555-1234 en sortant de la case
+    const tel = c.typeHtml === "tel";
+    entree = <input value={v} onChange={changer} onBlur={tel ? (e) => maj(c.nom, formaterTelephone(e.target.value)) : undefined} inputMode={c.type === "nombre" ? "decimal" : undefined} placeholder={c.placeholder} type={c.typeHtml || "text"} style={champStyle} />;
   }
   return <Champ label={c.label}>{entree}</Champ>;
 }
@@ -133,6 +139,7 @@ export function valeursDe(element, champs) {
     if (v == null) return [c.nom, c.defaut ?? ""];
     if (c.type === "date") return [c.nom, String(v).slice(0, 10)];
     if (c.type === "nombre") return [c.nom, String(v).replace(".", ",")];
+    if (c.type === "argent") return [c.nom, Number.isFinite(Number(v)) ? Number(v).toFixed(2) : String(v)];
     return [c.nom, String(v)];
   }));
 }

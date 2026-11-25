@@ -110,7 +110,7 @@ function Renouvellement({ bail, etat }) {
   const { appeler, enCours, erreur } = useApi();
   const f = fenetreAvis(bail);
   const champs = [
-    { nom: "nouveauLoyer", label: "Nouveau loyer proposé ($)", type: "nombre" },
+    { nom: "nouveauLoyer", label: "Nouveau loyer proposé ($)", type: "argent" },
     { nom: "avisEnvoyeLe", label: "Avis envoyé le", type: "date" },
     { nom: "reponseAvis", label: "Réponse du locataire", type: "choix", vide: "— en attente —", options: REPONSES_AVIS },
   ];
@@ -355,7 +355,7 @@ function GenerateurDocuments({ bail, envoi }) {
   };
   const champs = {
     AVIS_MODIFICATION: [
-      { nom: "nouveauLoyer", label: "Nouveau loyer ($ / mois)", type: "nombre" },
+      { nom: "nouveauLoyer", label: "Nouveau loyer ($ / mois)", type: "argent" },
       { nom: "duree", label: "Durée du bail reconduit (mois)", type: "nombre" },
       { nom: "dateAvis", label: "Date de l'avis", type: "date" },
       { nom: "autresModifications", label: "Autre modification (facultatif)", type: "long", lignes: 2 },
