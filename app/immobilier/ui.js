@@ -541,7 +541,7 @@ function SignaturesDocument({ d, signataires, envoi }) {
   const avis = d.genre === "AVIS_MODIFICATION";
   const peutDemander = !d.signeLe && !enAttente;
   const [choisis, setChoisis] = useState(() => new Set(signataires.map((l) => l.id)));
-  const [locateur, setLocateur] = useState(d.genre === "BAIL_LOGEMENT" || d.genre === "ETAT_LIEUX_NUMERIQUE");
+  const [locateur, setLocateur] = useState(d.genre === "BAIL_LOGEMENT" || d.genre === "BAIL_FORMULAIRE" || d.genre === "ETAT_LIEUX_NUMERIQUE");
   const [parCourriel, setParCourriel] = useState(envoi);
   const [message, setMessage] = useState("");
   const [resultat, setResultat] = useState("");

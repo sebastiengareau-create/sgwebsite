@@ -18,7 +18,7 @@ export async function POST(request, props) {
   if (r.erreur) return erreur(r.erreur);
   if (body.faireSigner) {
     const locataires = await prisma.locataireImmo.findMany({ where: { baux: { some: { id } } }, select: { id: true } });
-    const s = await demanderSignatures(r.id, { locataireIds: locataires.map((l) => l.id), locateur: body.type === "BAIL_LOGEMENT", envoyer: true, creePar: session.nom });
+    const s = await demanderSignatures(r.id, { locataireIds: locataires.map((l) => l.id), locateur: body.type === "BAIL_LOGEMENT" || body.type === "BAIL_FORMULAIRE", envoyer: true, creePar: session.nom });
     return NextResponse.json({ ok: true, id: r.id, signature: s });
   }
   const envoi = body.envoyer ? await envoyerDocument(r.id, session.nom) : null;

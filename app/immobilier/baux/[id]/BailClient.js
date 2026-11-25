@@ -406,7 +406,7 @@ function GenerateurDocuments({ bail, envoi }) {
           {type === "MISE_EN_DEMEURE" && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>Envoie-la par courrier recommandé et garde la preuve de réception : elle servira au TAL.</p>}
           {type === "BAIL_LOGEMENT" && (
             <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>
-              Ce document reprend les sections A à H du formulaire du TAL, remplies avec la fiche du bail, mais <strong>ce n'est pas le formulaire obligatoire</strong> : le bail officiel se remplit et se signe sur la plateforme du TAL (section « Bail officiel du TAL » plus haut). Garde-le comme aide-mémoire.
+              Ce document reprend les sections A à H du formulaire du TAL, remplies avec la fiche du bail, mais <strong>ce n'est pas le formulaire obligatoire</strong> : le bail officiel se fait dans la section « Bail officiel » plus haut (formulaire obligatoire rempli et signé en ligne). Garde celui-ci comme aide-mémoire.
               {manquantes.length > 0 && <strong style={{ color: "var(--danger)" }}> À compléter avant : {manquantes.join(", ")}.</strong>}
             </p>
           )}

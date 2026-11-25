@@ -124,7 +124,15 @@ on décide quand et à qui une modification s'applique.
   (sections A à H du formulaire du TAL, mentions saisies dans la fiche du
   bail — pas le formulaire obligatoire), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
-  **bail officiel du TAL** dans la fiche du bail (`lib/bailTal.js` : le bail
+  **bail officiel** dans la fiche du bail : le formulaire obligatoire
+  (formulaire de la Régie du logement, valide pour les baux conclus jusqu'au
+  31 décembre 2026, gabarit vierge `lib/modeles/bail-logement.pdf`) rempli
+  par l'appli aux endroits prévus des sections A à H
+  (`lib/pdfBailFormulaire.js`, pdf-lib ; texte trop long en annexe) et signé
+  en ligne par le locateur et les locataires — signatures dans la section H,
+  certificat joint (document `BAIL_FORMULAIRE`) ; une autre version du
+  formulaire demandera son gabarit et ses positions. En option, la
+  plateforme du TAL (`lib/bailTal.js` : le bail
   se remplit et se signe sur la plateforme du TAL — formulaire obligatoire,
   toujours à jour, acheté par le propriétaire — ; fiche des données du bail
   dans l'ordre des sections A à H, un bouton « Copier » par case, loyer le
@@ -132,8 +140,8 @@ on décide quand et à qui une modification s'applique.
   se dépose ensuite dans les documents du bail, catégorie `BAIL_TAL`,
   visible au locataire, ou se fait signer en ligne ici s'il ne l'est pas ;
   une reconduction ne demande pas de nouveau formulaire ; nouveau bail sans
-  bail officiel déposé : dans « À faire » jusqu'à 90 jours après son début,
-  la plateforme ne le gardant que 90 jours ; le bail généré par l'appli
+  bail officiel signé : dans « À faire » jusqu'à 90 jours après son début,
+  la plateforme ne le gardant que 90 jours ; l'ancien bail généré par l'appli
   devient un aide-mémoire),
   **signature électronique** du bail, de la réponse à l'avis de modification
   et de tout PDF déposé : lien personnel par courriel (`/signature/<jeton>`),

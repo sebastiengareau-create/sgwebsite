@@ -1,6 +1,8 @@
 "use client";
 
-// Bail officiel du TAL (lib/bailTal.js) : le bail se remplit et se signe sur
+// Bail officiel : le formulaire obligatoire rempli par l'appli et signé en ligne
+// (lib/pdfBailFormulaire.js) ; en option, la plateforme du TAL (lib/bailTal.js) :
+// le bail se remplit et se signe sur
 // la plateforme du TAL ; la fiche reprend les données du bail dans l'ordre
 // du formulaire, avec un bouton « Copier » par case ; le PDF signé se dépose
 // ensuite ici (documents du bail, catégorie BAIL_TAL, visible au locataire).
@@ -54,24 +56,45 @@ const titreEtape = { fontSize: 14, fontWeight: 800, margin: "0 0 4px", display: 
 const numero = { width: 22, height: 22, borderRadius: 999, background: "var(--accent)", color: "#221f18", fontSize: 12.5, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 };
 const texte = { fontSize: 13, margin: "0 0 10px", lineHeight: 1.5 };
 
+// Formulaire de la Régie du logement : valide pour les baux conclus jusqu'au
+// 31 décembre 2026 (FORMULAIRE_BAIL, lib/pdfBailFormulaire.js)
+const VALIDE_JUSQUAU = "2026-12-31";
+const formulaireEchu = () => new Date().toISOString().slice(0, 10) > VALIDE_JUSQUAU;
+
 export default function BailOfficiel({ bail, officiel, locateur }) {
   const { document: doc, reconduction, origine } = officiel;
   const [depot, setDepot] = useState(false);
+  const TITRE = "Bail officiel";
 
   if (doc) {
+    const genere = doc.genre === "BAIL_FORMULAIRE";
+    const demandes = (doc.signatures || []).filter((x) => x.statut !== "ANNULE");
+    const signees = demandes.filter((x) => x.statut === "SIGNE").length;
+    const attente = genere && !doc.signeLe;
     return (
       <Section
-        titre="Bail officiel du TAL" icone="presse" teinte={TEINTES.vert}
-        sousTitre={doc.date ? `Signé le ${dateLisible(doc.date)}, déposé ici` : "Signé et déposé ici"}
-        droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Remplacer"}</BoutonTexte>}
+        titre={TITRE} icone="presse" teinte={attente ? TEINTES.ambre : TEINTES.vert}
+        sousTitre={
+          doc.signeLe ? `Signé électroniquement le ${dateLisible(doc.signeLe)}`
+            : attente ? (demandes.length ? `Formulaire rempli — signatures : ${signees} sur ${demandes.length}` : "Formulaire rempli — à faire signer")
+              : doc.date ? `Signé le ${dateLisible(doc.date)}, déposé ici` : "Signé et déposé ici"
+        }
+        droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Refaire"}</BoutonTexte>}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 13.5 }}>
-          <a href={`/api/immobilier/documents/${doc.id}`} target="_blank" rel="noreferrer" style={{ ...lien, fontWeight: 700 }}>🏛️ {doc.titre}</a>
+          <a href={`/api/immobilier/documents/${doc.id}${doc.signeLe && genere ? "?version=signee" : ""}`} target="_blank" rel="noreferrer" style={{ ...lien, fontWeight: 700 }}>🏛️ {doc.titre}{doc.signeLe && genere ? " (version signée)" : ""}</a>
           <span style={{ color: "var(--text-muted)", fontSize: 12.5 }}>
-            déposé le {dateLisible(doc.creeLe)}{doc.visibleLocataire ? " · visible dans l'espace du locataire" : " · pas montré au locataire"}{doc.signeLe ? " · signatures reçues dans kontrolshop" : ""}
+            {genere ? "rempli par l'appli" : "déposé"} le {dateLisible(doc.creeLe)}{doc.visibleLocataire ? " · visible dans l'espace du locataire" : " · pas montré au locataire"}
           </span>
         </div>
-        {depot && <Depot bail={bail} onFini={() => setDepot(false)} />}
+        {attente && <p style={{ ...texte, margin: "8px 0 0" }}>Le suivi des signatures (liens, relances) se fait dans <strong>Documents du bail</strong>, plus bas. Signé sur papier ? Dépose le bail numérisé avec « Refaire ».</p>}
+        {depot && (
+          <div style={{ marginTop: 12 }}>
+            <FormulaireRempli bail={bail} officiel={officiel} locateur={locateur} onFini={() => setDepot(false)} />
+            <p style={{ ...titreEtape, marginTop: 16 }}>Ou déposer un bail signé</p>
+            <Depot bail={bail} onFini={() => setDepot(false)} />
+          </div>
+        )}
       </Section>
     );
   }
@@ -79,7 +102,7 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
   if (reconduction) {
     return (
       <Section
-        titre="Bail officiel du TAL" icone="presse" teinte={TEINTES.neutre}
+        titre={TITRE} icone="presse" teinte={TEINTES.neutre}
         sousTitre="Reconduction : pas de nouveau formulaire"
         droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Déposer"}</BoutonTexte>}
       >
@@ -98,35 +121,87 @@ export default function BailOfficiel({ bail, officiel, locateur }) {
   if (!officiel.nouveau) {
     return (
       <Section
-        titre="Bail officiel du TAL" icone="presse" teinte={TEINTES.neutre}
+        titre={TITRE} icone="presse" teinte={TEINTES.neutre}
         sousTitre="Aucun bail signé déposé"
         droite={<BoutonTexte onClick={() => setDepot((v) => !v)}>{depot ? "Annuler" : "Déposer"}</BoutonTexte>}
       >
-        <p style={{ ...texte, margin: 0 }}>Dépose le bail signé (PDF de la plateforme du TAL, ou bail papier numérisé) pour le garder ici et le montrer au locataire dans son espace.</p>
+        <p style={{ ...texte, margin: 0 }}>Dépose le bail signé (PDF, ou bail papier numérisé) pour le garder ici et le montrer au locataire dans son espace.</p>
         {depot && <Depot bail={bail} onFini={() => setDepot(false)} />}
       </Section>
     );
   }
 
   return (
-    <Section titre="Bail officiel du TAL" icone="presse" teinte={TEINTES.ambre} sousTitre="À remplir et signer sur la plateforme du TAL, puis à déposer ici">
+    <Section titre={TITRE} icone="presse" teinte={TEINTES.ambre} sousTitre="Le formulaire obligatoire, rempli par l'appli et signé en ligne">
       <div style={etape}>
-        <p style={titreEtape}><span style={numero}>1</span> Remplir et signer sur la plateforme du TAL</p>
-        <p style={texte}>
-          Le formulaire obligatoire, toujours à jour, s'achète et se remplit en ligne. Chaque partie signe à partir de son courriel.
-          Le TAL ne garde le bail que {JOURS_CONSERVATION_TAL} jours : télécharge-le et dépose-le ici dès qu'il est signé.
-        </p>
-        <BoutonContour href={URL_BAIL_TAL} target="_blank" icone="globe">Ouvrir la plateforme du TAL ↗</BoutonContour>
+        <FormulaireRempli bail={bail} officiel={officiel} locateur={locateur} />
       </div>
-      <div style={etape}>
-        <p style={titreEtape}><span style={numero}>2</span> Recopier les renseignements du bail</p>
-        <Fiche bail={bail} officiel={officiel} locateur={locateur} />
-      </div>
-      <div style={{ ...etape, marginBottom: 0 }}>
-        <p style={titreEtape}><span style={numero}>3</span> Déposer le bail signé</p>
-        <Depot bail={bail} />
-      </div>
+      <details style={{ ...etape, marginBottom: 0 }}>
+        <summary style={{ ...titreEtape, cursor: "pointer", margin: 0 }}>Option : remplir et signer sur la plateforme du TAL</summary>
+        <div style={{ marginTop: 12 }}>
+          <p style={titreEtape}><span style={numero}>1</span> Remplir et signer sur la plateforme du TAL</p>
+          <p style={texte}>
+            Le formulaire du TAL, toujours à jour, s'achète et se remplit en ligne. Chaque partie signe à partir de son courriel.
+            Le TAL ne garde le bail que {JOURS_CONSERVATION_TAL} jours : télécharge-le et dépose-le ici dès qu'il est signé.
+          </p>
+          <BoutonContour href={URL_BAIL_TAL} target="_blank" icone="globe">Ouvrir la plateforme du TAL ↗</BoutonContour>
+          <p style={{ ...titreEtape, marginTop: 16 }}><span style={numero}>2</span> Recopier les renseignements du bail</p>
+          <Fiche bail={bail} officiel={officiel} locateur={locateur} />
+          <p style={{ ...titreEtape, marginTop: 16 }}><span style={numero}>3</span> Déposer le bail signé</p>
+          <Depot bail={bail} />
+        </div>
+      </details>
     </Section>
+  );
+}
+
+// Le formulaire obligatoire rempli par l'appli (BAIL_FORMULAIRE), à faire
+// signer en ligne par le locateur et les locataires
+function FormulaireRempli({ bail, officiel, locateur, onFini }) {
+  const router = useRouter();
+  const [signer, setSigner] = useState(true);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const { alertes } = manquesFiche(ficheBailTal({ bail, entreprise: locateur, loyerAncien: officiel.loyerAncien }));
+  const sansCourriel = bail.locataires.filter((l) => !l.courriel);
+  async function generer() {
+    setErreur("");
+    setEnCours(true);
+    const res = await fetch(`/api/immobilier/baux/${bail.id}/documents`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "BAIL_FORMULAIRE", dateAvis: aujourdhui(), faireSigner: signer }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setEnCours(false);
+    if (!res.ok) return setErreur(data.erreur || "Préparation impossible.");
+    if (data.signature?.envoi?.erreur) setErreur(`Bail prêt et signatures demandées, mais courriels non envoyés : ${data.signature.envoi.erreur} Transmets les liens depuis Documents du bail.`);
+    router.refresh();
+    onFini?.();
+  }
+  return (
+    <>
+      <p style={titreEtape}>Bail rempli par l'appli</p>
+      <p style={texte}>
+        Le formulaire obligatoire du bail de logement, rempli avec les données du bail (sections A à H), puis signé en ligne par le locateur et chaque locataire.
+        Les signatures se placent dans la section H et le certificat de signature est joint.
+      </p>
+      {formulaireEchu()
+        ? <p style={{ ...texte, color: "var(--danger)", fontWeight: 700 }}>Ce formulaire (Régie du logement) n'est plus valide pour un bail conclu après le 31 décembre 2026 : utilise la plateforme du TAL ci-dessous.</p>
+        : <p style={{ ...texte, fontSize: 12, color: "var(--text-muted)" }}>Formulaire de la Régie du logement : valide pour les baux conclus jusqu'au 31 décembre 2026.</p>}
+      {alertes.length > 0 && (
+        <ul style={{ fontSize: 12.5, color: "var(--danger)", fontWeight: 600, margin: "0 0 10px 18px", padding: 0 }}>
+          {alertes.map((a) => <li key={a}>{a.replace(/^[A-H] · /, "").replace("sur la plateforme du TAL", "en ligne")}</li>)}
+        </ul>
+      )}
+      <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, margin: "0 0 12px", cursor: "pointer" }}>
+        <input type="checkbox" checked={signer} onChange={(e) => setSigner(e.target.checked)} style={{ marginTop: 2 }} />
+        <span>Faire signer en ligne par le locateur et {bail.locataires.length > 1 ? "les locataires" : "le locataire"}
+          <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{signer ? `Chacun reçoit un lien personnel par courriel${sansCourriel.length ? ` (sans courriel : ${sansCourriel.map((l) => l.nom).join(", ")} — lien à transmettre)` : ""}.` : "Le PDF est préparé pour être imprimé et signé sur papier."}</span>
+        </span>
+      </label>
+      <Erreur texte={erreur} />
+      <button type="button" onClick={generer} disabled={enCours} className="bouton-3d" style={boutonPrincipal}>{enCours ? "Préparation…" : signer ? "📄 Préparer le bail et l'envoyer à signer" : "📄 Préparer le bail"}</button>
+    </>
   );
 }
 

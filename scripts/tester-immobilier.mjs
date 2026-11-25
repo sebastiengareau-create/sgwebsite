@@ -22,10 +22,19 @@ const {
 } = await import("../lib/immobilierCalculs.js");
 const { piecesParDefaut, piecesPourSortie, comparerAEntree, dommagesDepuisEntree, avancement, normaliserPieces } = await import("../lib/etatsLieuxCalculs.js");
 const { ficheBailTal, texteFiche, manquesFiche, dateCases, estReconduction, loyerPlusBas12Mois } = await import("../lib/bailTal.js");
+const { donneesFormulaire, separerAdresse, casesDate, bailFormulaire } = await import("../lib/pdfBailFormulaire.js");
+const { PDFDocument } = await import("pdf-lib");
 
 let reussis = 0;
+const asynchrones = [];
 function test(nom, fn) {
-  try { fn(); reussis += 1; console.log(`✓ ${nom}`); } catch (e) { console.error(`✗ ${nom}\n  ${e.message}`); process.exitCode = 1; }
+  const ok = () => { reussis += 1; console.log(`✓ ${nom}`); };
+  const echec = (e) => { console.error(`✗ ${nom}\n  ${e.message}`); process.exitCode = 1; };
+  try {
+    const r = fn();
+    if (r?.then) asynchrones.push(r.then(ok, echec));
+    else ok();
+  } catch (e) { echec(e); }
 }
 const egal = (obtenu, attendu, quoi) => assert.ok(Math.abs(obtenu - attendu) < 0.006, `${quoi} : obtenu ${obtenu}, attendu ${attendu}`);
 const jour = (iso) => new Date(`${iso}T12:00:00Z`); // dates enregistrées à midi UTC
@@ -411,4 +420,40 @@ test("Bail officiel : fiche à recopier dans l'ordre du formulaire", () => {
   assert.equal(dateCases(null), "");
 });
 
+// ---------- Formulaire de bail rempli (lib/pdfBailFormulaire.js) ----------
+
+const bailFormulaireEssai = (plus = {}) => ({
+  dateDebut: jour("2027-01-01"), dateFin: jour("2027-12-31"), loyer: 1225, jourPaiement: 1, services: "CHAUFFAGE,EAU_CHAUDE,ELECTROMENAGERS",
+  modePaiement: "VIREMENT", animaux: "INTERDITS", immeubleNeuf: false, loyerAncien: null,
+  locataires: [{ id: "L1", nom: "Émilie Fortin", courriel: "emilie@exemple.ca", telephone: "(450) 555-0144" }],
+  logement: { numero: "202", pieces: "4 ½", type: "LOGEMENT", immeuble: { adresse: "220 rue Richelieu", ville: "Saint-Jean-sur-Richelieu", codePostal: "J3B 6Y3", type: "MIXTE" } },
+  ...plus,
+});
+
+test("Formulaire de bail : adresse, dates et cases", () => {
+  assert.deepEqual(separerAdresse("220 rue Richelieu"), ["220", "rue Richelieu"]);
+  assert.deepEqual(separerAdresse("312-316, rue Champlain"), ["312-316", "rue Champlain"]);
+  assert.deepEqual(separerAdresse("Chemin du Lac"), ["", "Chemin du Lac"]);
+  assert.deepEqual(casesDate(jour("2027-07-01")), ["01", "07", "2027"]);
+  const d = donneesFormulaire(bailFormulaireEssai(), { nomEntreprise: "Gestion Exemple inc.", adresseLigne1: "150 boul. du Séminaire" }, { loyerAncienCalcule: 1150 });
+  assert.equal(d.locateur.no, "150");
+  assert.equal(d.logement.app, "202");
+  assert.equal(d.duree, "12 mois");
+  assert.equal(d.copropriete, false, "immeuble locatif : pas une copropriété divise");
+  assert.equal(d.loyerAncien, 1150, "section G calculée");
+  assert.equal(donneesFormulaire(bailFormulaireEssai({ loyerAncien: 1100 }), {}, { loyerAncienCalcule: 1150 }).loyerAncien, 1100, "inscrit au bail : prime");
+  assert.equal(donneesFormulaire(bailFormulaireEssai({ immeubleNeuf: true }), {}, { loyerAncienCalcule: 1150 }).loyerAncien, null, "immeuble neuf : pas de section G");
+  assert.equal(d.chauffageLocateur, true);
+  assert.equal(d.electriciteLocateur, false);
+});
+
+test("Formulaire de bail : PDF de 8 pages, annexe si le texte déborde", async () => {
+  const pdf = await bailFormulaire(bailFormulaireEssai(), { nomEntreprise: "Gestion Exemple inc." }, {});
+  assert.equal(pdf.subarray(0, 4).toString(), "%PDF");
+  assert.equal((await PDFDocument.load(pdf)).getPageCount(), 8);
+  const long = await bailFormulaire(bailFormulaireEssai({ conditions: "Condition très longue. ".repeat(80) }), {}, {});
+  assert.equal((await PDFDocument.load(long)).getPageCount(), 9, "annexe ajoutée");
+});
+
+await Promise.all(asynchrones);
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);
