@@ -67,7 +67,10 @@ et roulottes). Profil `vr-premium` dans `lib/client.js` ; sur Railway,
 - `photoPiece: true` — sur la **fiche d'une pièce d'inventaire** (onglet
   Résumé), une **photo de référence** facultative, une seule par pièce, pour
   les pièces où c'est utile : « 📷 Prendre une photo » (caméra, photothèque
-  ou fichiers), puis « Reprendre » ou « Retirer ». La photo remplace l'icône
+  ou fichiers), puis « Reprendre » ou « Retirer ». Le même encadré est en
+  haut du formulaire **« Nouvelle pièce »** : la photo prise avant
+  « Ajouter la pièce » est créée avec la pièce (champ `photo` de
+  `POST /api/inventaire`). La photo remplace l'icône
   en haut de la fiche ; un clic l'ouvre en grand. Compressée (1024 px, JPEG
   0,6) et gardée dans la base (table `PhotoPiece`, à part pour ne pas
   alourdir les listes de pièces) ; jamais imprimée. Ajout, remplacement et
