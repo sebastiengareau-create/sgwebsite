@@ -9,12 +9,13 @@ import {
   datesRenouvellement, servicesLisibles, soldeBail, releveBail, dateCourte, etatCompte, etatRetard,
 } from "@/lib/immobilierCalculs";
 import { champStyle, BoutonEnvoyer } from "../../ui";
+import BailOfficiel from "./BailOfficiel";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, PastilleEtat, Vide, aujourdhui, useApi, Erreur, LigneMouvement,
   ChampsFormulaire, boutonPrincipal, FormulaireBail, FormulaireDocument, ListeDocuments, champsPaiement, champsCharge, Solde, nomLogement, lien,
 } from "../../ui";
 
-export default function BailClient({ bail, locataires, suivant, precedent, courriel }) {
+export default function BailClient({ bail, locataires, suivant, precedent, courriel, officiel, locateur }) {
   // Envoi par courriel possible : configuré, et au moins un locataire a un courriel
   const envoi = courriel && bail.locataires.some((l) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(l.courriel || ""));
   const compte = etatCompte(bail);
@@ -34,6 +35,7 @@ export default function BailClient({ bail, locataires, suivant, precedent, courr
         {suivant && <Link href={`/immobilier/baux/${suivant.id}`} style={{ fontSize: 12, ...lien }}>bail suivant ({argent(suivant.loyer)}) →</Link>}
       </div>
       <Details bail={bail} locataires={locataires} />
+      {officiel?.residentiel && <BailOfficiel bail={bail} officiel={officiel} locateur={locateur} />}
       {bail.statut === "ACTIF" && <Renouvellement bail={bail} etat={etat} />}
       <Compte bail={bail} envoi={envoi} />
       <EtatsLieux bail={bail} />
@@ -301,7 +303,7 @@ function BoutonAvis({ bail }) {
 
 // signature : se fait signer en ligne (lib/signatureImmo.js)
 const TYPES_GENERES = [
-  { code: "BAIL_LOGEMENT", label: "Bail de logement complet (à faire signer)", signature: true },
+  { code: "BAIL_LOGEMENT", label: "Bail de logement — aide-mémoire (pas le formulaire officiel)", signature: true },
   { code: "AVIS_MODIFICATION", label: "Avis de modification du bail (hausse de loyer)", actif: true, signature: true },
   { code: "AVIS_ACCES", label: "Avis d'accès au logement (24 h)" },
   { code: "RAPPEL_RETARD", label: "Rappel de loyer en retard", retard: true },
@@ -404,7 +406,7 @@ function GenerateurDocuments({ bail, envoi }) {
           {type === "MISE_EN_DEMEURE" && <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>Envoie-la par courrier recommandé et garde la preuve de réception : elle servira au TAL.</p>}
           {type === "BAIL_LOGEMENT" && (
             <p style={{ fontSize: 12.5, margin: "0 0 8px" }}>
-              Le bail reprend les sections A à H du formulaire obligatoire du TAL, remplies avec la fiche du bail et ses mentions (Bail → Modifier → Mentions du bail complet).
+              Ce document reprend les sections A à H du formulaire du TAL, remplies avec la fiche du bail, mais <strong>ce n'est pas le formulaire obligatoire</strong> : le bail officiel se remplit et se signe sur la plateforme du TAL (section « Bail officiel du TAL » plus haut). Garde-le comme aide-mémoire.
               {manquantes.length > 0 && <strong style={{ color: "var(--danger)" }}> À compléter avant : {manquantes.join(", ")}.</strong>}
             </p>
           )}

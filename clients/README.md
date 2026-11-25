@@ -120,9 +120,21 @@ on décide quand et à qui une modification s'applique.
   prochaine date ; avis d'accès de 24 h préparés pour tous les baux de
   l'immeuble quand l'entretien se fait dans les logements ; en retard ou dans
   14 jours : dans « À faire » et les avis au propriétaire), réparations avec
-  photos, documents avec date d'expiration, bail de logement complet (sections
-  A à H du formulaire du TAL, mentions saisies dans la fiche du bail), avis,
+  photos, documents avec date d'expiration, bail de logement en aide-mémoire
+  (sections A à H du formulaire du TAL, mentions saisies dans la fiche du
+  bail — pas le formulaire obligatoire), avis,
   rappels, état des lieux et reçus générés en PDF (`lib/pdfImmobilier.js`),
+  **bail officiel du TAL** dans la fiche du bail (`lib/bailTal.js` : le bail
+  se remplit et se signe sur la plateforme du TAL — formulaire obligatoire,
+  toujours à jour, acheté par le propriétaire — ; fiche des données du bail
+  dans l'ordre des sections A à H, un bouton « Copier » par case, loyer le
+  plus bas des 12 mois précédents calculé pour la section G ; le PDF signé
+  se dépose ensuite dans les documents du bail, catégorie `BAIL_TAL`,
+  visible au locataire, ou se fait signer en ligne ici s'il ne l'est pas ;
+  une reconduction ne demande pas de nouveau formulaire ; nouveau bail sans
+  bail officiel déposé : dans « À faire » jusqu'à 90 jours après son début,
+  la plateforme ne le gardant que 90 jours ; le bail généré par l'appli
+  devient un aide-mémoire),
   **signature électronique** du bail, de la réponse à l'avis de modification
   et de tout PDF déposé : lien personnel par courriel (`/signature/<jeton>`),
   signature au doigt avec consentement, IP et empreinte SHA-256, version

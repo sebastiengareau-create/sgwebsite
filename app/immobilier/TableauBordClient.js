@@ -19,10 +19,10 @@ const NIVEAUX = [
 ];
 const A_FAIRE_VISIBLES = 8;
 
-export default function TableauBordClient({ releve31, courriel, immeubles, comptes, reparations, documents, bauxFactures, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens = [] }) {
+export default function TableauBordClient({ releve31, courriel, immeubles, comptes, reparations, documents, bauxFactures, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens = [], bauxOfficiels = {} }) {
   const logements = immeubles.flatMap((i) => i.logements.map((l) => ({ ...l, immeuble: i })));
   const vacants = logements.filter((l) => !bailActuel(l));
-  const baux = logements.filter((l) => bailActuel(l)).map((l) => ({ ...bailActuel(l), logement: l, compte: comptes[bailActuel(l).id] }));
+  const baux = logements.filter((l) => bailActuel(l)).map((l) => ({ ...bailActuel(l), logement: l, compte: comptes[bailActuel(l).id], bailOfficiel: bauxOfficiels[bailActuel(l).id] }));
   const revenuMensuel = baux.reduce((s, b) => s + b.loyer, 0);
   const manqueAGagner = vacants.reduce((s, l) => s + (l.loyerVise || 0), 0);
 

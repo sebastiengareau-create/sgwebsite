@@ -1,5 +1,5 @@
 // Vérifie les calculs des retards et de « À faire » de l'immobilier
-// (lib/immobilierCalculs.js) : loyer à recevoir ou en retard, imputation des
+// (lib/immobilierCalculs.js, lib/bailTal.js) : loyer à recevoir ou en retard, imputation des
 // paiements et des crédits, seuil de trois semaines du TAL, délais d'avis.
 //
 //   node scripts/tester-immobilier.mjs
@@ -21,6 +21,7 @@ const {
   etatRevenusLocation, ligneT776, aSurveillerEntretien, prochaineApres, ENTRETIENS_SUGGERES_IMMO, CATEGORIES_REPARATION,
 } = await import("../lib/immobilierCalculs.js");
 const { piecesParDefaut, piecesPourSortie, comparerAEntree, dommagesDepuisEntree, avancement, normaliserPieces } = await import("../lib/etatsLieuxCalculs.js");
+const { ficheBailTal, texteFiche, manquesFiche, dateCases, estReconduction, loyerPlusBas12Mois } = await import("../lib/bailTal.js");
 
 let reussis = 0;
 function test(nom, fn) {
@@ -343,6 +344,71 @@ test("Entretien dans « À faire » : en retard (urgent si exigé), ou dans 14 j
 test("Suggestions d'entretien : catégories connues", () => {
   const codes = new Set(CATEGORIES_REPARATION.map((c) => c.code));
   for (const s of ENTRETIENS_SUGGERES_IMMO) assert.ok(codes.has(s.categorie), s.titre);
+});
+
+// ---------- Bail officiel du TAL ----------
+
+test("Bail officiel : reconduction (même locataire, le lendemain de la fin)", () => {
+  const precedent = { dateDebut: jour("2025-07-01"), dateFin: jour("2026-06-30"), locataires: [{ id: "L1" }, { id: "L2" }] };
+  const bail = (debut, ids, plus = {}) => ({ dateDebut: jour(debut), locataires: ids.map((id) => ({ id })), ...plus });
+  assert.equal(estReconduction(bail("2026-07-01", ["L1", "L2"]), precedent), true);
+  assert.equal(estReconduction(bail("2026-07-01", ["L2"]), precedent), true, "un colocataire est parti");
+  assert.equal(estReconduction(bail("2026-07-01", ["L3"]), precedent), false, "nouveau locataire");
+  assert.equal(estReconduction(bail("2026-08-01", ["L1"]), precedent), false, "logement vacant entre les deux");
+  assert.equal(estReconduction(bail("2026-07-01", ["L1"]), { ...precedent, terminaisonLe: jour("2026-05-31") }), false, "départ anticipé");
+  assert.equal(estReconduction(bail("2026-07-01", ["L1"]), { ...precedent, dateFin: null }), false, "durée indéterminée");
+});
+
+test("Bail officiel : loyer le plus bas des 12 mois précédents (section G)", () => {
+  const nouveau = { id: "N", dateDebut: jour("2026-07-01") };
+  const autres = [
+    { id: "A", dateDebut: jour("2024-07-01"), dateFin: jour("2025-06-30"), loyer: 900 }, // fini plus de 12 mois avant
+    { id: "B", dateDebut: jour("2025-07-01"), dateFin: jour("2026-06-30"), loyer: 950 },
+    { id: "C", dateDebut: jour("2025-01-01"), dateFin: jour("2025-12-31"), terminaisonLe: jour("2025-06-30"), loyer: 925 }, // parti avant la période
+  ];
+  assert.deepEqual(loyerPlusBas12Mois(nouveau, autres), { montant: 950, baux: 1 });
+  assert.deepEqual(loyerPlusBas12Mois(nouveau, [...autres, { id: "D", dateDebut: jour("2025-09-01"), dateFin: null, loyer: 880 }]), { montant: 880, baux: 2 });
+  assert.equal(loyerPlusBas12Mois(nouveau, autres.slice(0, 1)), null, "aucun bail dans les 12 mois");
+});
+
+test("Bail officiel : rappel dans « À faire » pour un nouveau bail de logement", () => {
+  const maintenant = midiQc("2026-11-25");
+  const bail = (debut, officiel) => ({ id: "B1", statut: "ACTIF", dateDebut: jour(debut), dateFin: null, loyer: 900, locataires: [], bailOfficiel: officiel });
+  const code = (b) => aSurveillerBail(b, null, maintenant).find((x) => x.code === "BAIL_TAL");
+  const aFaire = { residentiel: true, depose: false, reconduction: false };
+  assert.equal(code(bail("2026-12-01", aFaire)).niveau, 1, "commence dans 6 jours");
+  assert.equal(code(bail("2027-07-01", aFaire)).niveau, 2, "commence plus tard");
+  assert.equal(code(bail("2026-10-01", aFaire)).niveau, 1, "commencé il y a moins de 90 jours");
+  assert.equal(code(bail("2026-07-01", aFaire)), undefined, "plus de 90 jours : la plateforme ne le garde plus");
+  assert.equal(code(bail("2026-12-01", { ...aFaire, depose: true })), undefined, "déposé");
+  assert.equal(code(bail("2026-12-01", { ...aFaire, reconduction: true })), undefined, "reconduction");
+  assert.equal(code(bail("2026-12-01", { ...aFaire, residentiel: false })), undefined, "local commercial");
+  assert.equal(code(bail("2026-12-01", undefined)), undefined, "état inconnu (avis au propriétaire)");
+  assert.equal(code(bail("2026-12-01", aFaire)).aviser, false);
+});
+
+test("Bail officiel : fiche à recopier dans l'ordre du formulaire", () => {
+  const bail = {
+    dateDebut: jour("2027-07-01"), dateFin: jour("2028-06-30"), loyer: 1025, jourPaiement: 1, services: "CHAUFFAGE,STATIONNEMENT,ELECTROMENAGERS",
+    modePaiement: "VIREMENT", chauffage: "ELECTRICITE", animaux: "INTERDITS", immeubleNeuf: false, loyerAncien: null,
+    locataires: [{ nom: "Marie Tremblay", courriel: "marie@exemple.ca", telephone: "450 555-0101" }, { nom: "Luc Gagnon" }],
+    logement: { numero: "4", pieces: "4 ½", immeuble: { adresse: "85 rue des Érables", ville: "Chambly", codePostal: "J3L 2K8", anneeConstruction: 1988 } },
+  };
+  const entreprise = { nomEntreprise: "Gestion Exemple inc.", adresseLigne1: "10 rue Principale", ville: "Chambly", codePostal: "J3L 1A1", courriel: "info@exemple.ca" };
+  const s = ficheBailTal({ bail, entreprise, loyerAncien: { montant: 995, baux: 1 }, maintenant: midiQc("2026-11-25") });
+  assert.deepEqual(s.map((x) => x.lettre), ["A", "B", "C", "D", "E", "F", "G", "H"]);
+  const valeur = (lettre, lib) => s.find((x) => x.lettre === lettre).groupes.flatMap((g) => g.champs).find((c) => c.libelle === lib);
+  assert.equal(valeur("B", "App.").valeur, "4");
+  assert.equal(valeur("C", "Bail à durée fixe de").valeur, "12 mois");
+  assert.equal(valeur("C", "Du").copie, "01/07/2027");
+  assert.match(valeur("D", "Loyer par mois").copie, /^1\s?025,00$/);
+  assert.equal(valeur("E", "Chauffage du logement").valeur, "Locateur · Électricité");
+  assert.equal(valeur("E", "Eau chaude (frais d'utilisation)").valeur, "Locataire");
+  assert.match(valeur("G", "Loyer le plus bas payé au cours des 12 mois précédant le début du bail").valeur, /995,00/);
+  const { alertes } = manquesFiche(s);
+  assert.equal(alertes.length, 1, "Luc Gagnon n'a pas de courriel");
+  assert.match(texteFiche(s), /^A — ENTRE LE LOCATEUR ET LE LOCATAIRE/);
+  assert.equal(dateCases(null), "");
 });
 
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);
