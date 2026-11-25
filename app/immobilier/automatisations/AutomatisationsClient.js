@@ -5,7 +5,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import { TEINTES, BoutonContour } from "../../components/StyleSection";
 import { JOURS_RETARD_TAL } from "@/lib/immobilierCalculs";
-import { NavImmo, Panneau, Interrupteur, useApi, Erreur, champStyle, lien } from "../ui";
+import { NavImmo, Panneau, Interrupteur, useApi, Erreur, champStyle, lien, RetourArriere } from "../ui";
 
 const dateHeure = (d) => new Intl.DateTimeFormat("fr-CA", { dateStyle: "long", timeStyle: "short", timeZone: "America/Toronto" }).format(new Date(d));
 
@@ -26,6 +26,7 @@ export default function AutomatisationsClient({ reglages, dernier, courriel, not
 
   return (
     <div className="conteneur-page">
+      <RetourArriere href="/immobilier" />
       <BandeauSection icone="⚙️" titre="Automatisations" sousTitre="Ce que l'appli fait toute seule pour ton parc, une fois par jour." />
       <NavImmo actif="/immobilier/automatisations" />
       <Erreur texte={erreur} />

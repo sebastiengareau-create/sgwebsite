@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
 import { TEINTES } from "../../components/StyleSection";
-import { NavImmo, Panneau, ChampsFormulaire, Erreur, boutonPrincipal, useApi } from "../ui";
+import { NavImmo, Panneau, ChampsFormulaire, Erreur, boutonPrincipal, useApi, RetourArriere } from "../ui";
 
 const champs = (n) => [
   { nom: "nom", label: n === 0 ? "Nom du locateur (personne ou entreprise)" : "Nom du 2e locateur" },
@@ -37,6 +37,7 @@ export default function LocateurClient({ locateur }) {
 
   return (
     <div className="conteneur-page">
+      <RetourArriere href="/immobilier" />
       <BandeauSection icone="🧑‍💼" titre="Locateur" sousTitre="Qui loue les logements : les lignes de la section A du bail." />
       <NavImmo actif="/immobilier/locateur" />
       {!locateur.enregistre && (

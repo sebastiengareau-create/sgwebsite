@@ -7,7 +7,7 @@ import { BoutonPlein } from "../../components/StyleSection";
 import {
   ENTRETIENS_SUGGERES_IMMO, TYPES_ENTRETIEN, CATEGORIES_REPARATION, argent, dateLisible, dateCourte, trouver, libelle, etatEcheance, frequenceLisible,
 } from "@/lib/immobilierCalculs";
-import { NavImmo, Section, Formulaire, Onglets, Vide, BoutonTexte, BoutonSupprimer, PastilleEtat, valeursDe, champStyle, labelStyle, useApi, Erreur, lien, aujourdhui } from "../ui";
+import { NavImmo, Section, Formulaire, Onglets, Vide, BoutonTexte, BoutonSupprimer, PastilleEtat, valeursDe, champStyle, labelStyle, useApi, Erreur, lien, aujourdhui, RetourArriere } from "../ui";
 import ChampArgent from "@/app/components/ChampArgent";
 
 // Les essentiels d'un plex, ajoutés d'un coup à un immeuble
@@ -55,6 +55,7 @@ export default function EntretienClient({ entretiens, immeubles, immeubleInitial
 
   return (
     <div className="conteneur-page">
+      <RetourArriere href="/immobilier/reparations" />
       <BandeauSection icone="🗓️" titre="Entretien préventif" sousTitre="Ramonage, avertisseurs, gouttières… ce qui revient chaque année dans tes immeubles." />
       <NavImmo actif="/immobilier/reparations" />
 
