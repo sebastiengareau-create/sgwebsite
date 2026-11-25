@@ -436,7 +436,7 @@ test("Formulaire de bail : adresse, dates et cases", () => {
   assert.deepEqual(separerAdresse("Chemin du Lac"), ["", "Chemin du Lac"]);
   assert.deepEqual(casesDate(jour("2027-07-01")), ["01", "07", "2027"]);
   const d = donneesFormulaire(bailFormulaireEssai(), { nomEntreprise: "Gestion Exemple inc.", adresseLigne1: "150 boul. du Séminaire" }, { loyerAncienCalcule: 1150 });
-  assert.equal(d.locateur.no, "150");
+  assert.equal(d.locateurs[0].no, "150");
   assert.equal(d.logement.app, "202");
   assert.equal(d.duree, "12 mois");
   assert.equal(d.copropriete, false, "immeuble locatif : pas une copropriété divise");
@@ -444,6 +444,12 @@ test("Formulaire de bail : adresse, dates et cases", () => {
   assert.equal(donneesFormulaire(bailFormulaireEssai({ loyerAncien: 1100 }), {}, { loyerAncienCalcule: 1150 }).loyerAncien, 1100, "inscrit au bail : prime");
   assert.equal(donneesFormulaire(bailFormulaireEssai({ immeubleNeuf: true }), {}, { loyerAncienCalcule: 1150 }).loyerAncien, null, "immeuble neuf : pas de section G");
   assert.equal(d.chauffageLocateur, true);
+  const avecFiche = donneesFormulaire(bailFormulaireEssai({ stationnementExterieur: 2, stationnementExterieurEmplacement: "P-7", services: "" }), {}, { locateur: { locateurs: [{ nom: "A" }, { nom: "B", rue: "rue des Pins" }], representant: "Marc" } });
+  assert.deepEqual(avecFiche.locateurs.map((l) => l.nom), ["A", "B"], "fiche du locateur : deux locateurs");
+  assert.equal(avecFiche.representant, "Marc");
+  assert.equal(avecFiche.stationnementExterieur, 2);
+  assert.equal(avecFiche.stationnementInterieur, 0, "pas de stationnement intérieur");
+  assert.equal(donneesFormulaire(bailFormulaireEssai({ services: "STATIONNEMENT" })).stationnementExterieur, null, "service seul : extérieur coché, places à préciser");
   assert.equal(d.electriciteLocateur, false);
 });
 

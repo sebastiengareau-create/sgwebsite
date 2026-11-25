@@ -168,7 +168,7 @@ function FormulaireRempli({ bail, officiel, locateur, onFini }) {
   const [signer, setSigner] = useState(true);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
-  const { alertes } = manquesFiche(ficheBailTal({ bail, entreprise: locateur, loyerAncien: officiel.loyerAncien }));
+  const { alertes } = manquesFiche(ficheBailTal({ bail, entreprise: locateur, locateur: locateur.fiche, loyerAncien: officiel.loyerAncien }));
   const sansCourriel = bail.locataires.filter((l) => !l.courriel);
   async function generer() {
     setErreur("");
@@ -190,6 +190,10 @@ function FormulaireRempli({ bail, officiel, locateur, onFini }) {
       <p style={texte}>
         Le formulaire obligatoire du bail de logement, rempli avec les données du bail (sections A à H), puis signé en ligne par le locateur et chaque locataire.
         Les signatures se placent dans la section H et le certificat de signature est joint.
+      </p>
+      <p style={{ ...texte, fontSize: 12.5 }}>
+        Locateur : <strong>{(locateur.fiche?.locateurs || []).map((l) => l.nom).filter(Boolean).join(" et ") || "à inscrire"}</strong>
+        {" · "}<Link href="/immobilier/locateur" style={{ ...lien, fontWeight: 700 }}>Fiche du locateur (adresse, téléphones…)</Link>
       </p>
       {formulaireEchu()
         ? <p style={{ ...texte, color: "var(--danger)", fontWeight: 700 }}>Ce formulaire (Régie du logement) n'est plus valide pour un bail conclu après le 31 décembre 2026 : utilise la plateforme du TAL ci-dessous.</p>
@@ -213,7 +217,7 @@ function FormulaireRempli({ bail, officiel, locateur, onFini }) {
 
 // La fiche à recopier, section par section
 function Fiche({ bail, officiel, locateur }) {
-  const sections = ficheBailTal({ bail, entreprise: locateur, loyerAncien: officiel.loyerAncien });
+  const sections = ficheBailTal({ bail, entreprise: locateur, locateur: locateur.fiche, loyerAncien: officiel.loyerAncien });
   const { vides, alertes } = manquesFiche(sections);
   const [ouvert, setOuvert] = useState(true);
   return (

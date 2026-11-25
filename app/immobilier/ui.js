@@ -332,7 +332,11 @@ export function FormulaireReparation({ immeubles, locataires, fixe = {}, onFini 
 // Mentions du bail complet (sections B à G du formulaire du TAL) : facultatives,
 // elles remplissent le bail de logement généré
 export const champsMentionsBail = (v) => [
-  { nom: "accessoires", label: "Accessoires et dépendances (stationnement n°, casier, remise, usage de la cour…)", pleineLargeur: true },
+  { nom: "stationnementExterieur", label: "Stationnement extérieur : nombre de places", type: "nombre" },
+  { nom: "stationnementExterieurEmplacement", label: "Emplacement(s) extérieur(s) (ex. P-4)" },
+  { nom: "stationnementInterieur", label: "Stationnement intérieur : nombre de places", type: "nombre" },
+  { nom: "stationnementInterieurEmplacement", label: "Emplacement(s) intérieur(s) (ex. garage, place 12)" },
+  { nom: "accessoires", label: "Autres accessoires et dépendances (casier, remise, usage de la cour…)", pleineLargeur: true },
   { nom: "usageMixte", label: "Usage aussi professionnel ou commercial (section B)", type: "case" },
   { nom: "modePaiement", label: "Mode de paiement du loyer", type: "choix", vide: "—", options: MODES_PAIEMENT },
   { nom: "lieuPaiement", label: "Lieu du paiement (si autre que virement)" },

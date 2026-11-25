@@ -2462,6 +2462,11 @@ model BailImmo {
   // Mentions du bail (sections du formulaire du TAL), pour le bail complet
   // généré (lib/pdfImmobilier.js) — toutes facultatives
   accessoires             String? // B : stationnement, casier, remise, usage du terrain…
+  // B : stationnement extérieur et intérieur — nombre de places et emplacement(s)
+  stationnementExterieur            Int?
+  stationnementExterieurEmplacement String?
+  stationnementInterieur            Int?
+  stationnementInterieurEmplacement String?
   usageMixte              Boolean   @default(false) // B : logement aussi utilisé pour un usage professionnel ou commercial
   modePaiement            String? // D : MODES_PAIEMENT
   lieuPaiement            String? // D : où payer, si autre que virement

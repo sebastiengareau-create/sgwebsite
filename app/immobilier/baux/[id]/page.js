@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
 import { obtenirInfosEntreprise } from "@/lib/config";
 import { bailOfficielDe } from "@/lib/immobilier";
+import { lireLocateur } from "@/lib/locateurImmo";
 import { exigerAccesImmo, simple, DOC_SANS_DONNEES } from "../../acces";
 import BailClient from "./BailClient";
 
@@ -39,7 +40,10 @@ export default async function FicheBail(props) {
     bailOfficielDe(bail),
     obtenirInfosEntreprise(),
   ]);
-  const locateur = (({ nomEntreprise, adresseLigne1, adresseLigne2, ville, codePostal, telephone, courriel, personneResponsable }) => ({ nomEntreprise, adresseLigne1, adresseLigne2, ville, codePostal, telephone, courriel, personneResponsable }))(entreprise);
+  const locateur = {
+    ...(({ nomEntreprise, adresseLigne1, adresseLigne2, ville, codePostal, telephone, courriel, personneResponsable }) => ({ nomEntreprise, adresseLigne1, adresseLigne2, ville, codePostal, telephone, courriel, personneResponsable }))(entreprise),
+    fiche: await lireLocateur(entreprise), // Immobilier → Locateur (lib/locateurImmo.js)
+  };
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
