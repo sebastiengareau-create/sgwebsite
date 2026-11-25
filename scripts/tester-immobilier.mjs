@@ -447,6 +447,8 @@ test("Formulaire de bail : adresse, dates et cases", () => {
   const avecFiche = donneesFormulaire(bailFormulaireEssai({ stationnementExterieur: 2, stationnementExterieurEmplacement: "P-7", services: "" }), {}, { locateur: { locateurs: [{ nom: "A" }, { nom: "B", rue: "rue des Pins" }], representant: "Marc" } });
   assert.deepEqual(avecFiche.locateurs.map((l) => l.nom), ["A", "B"], "fiche du locateur : deux locateurs");
   assert.equal(avecFiche.representant, "Marc");
+  const avecAdresse = donneesFormulaire(bailFormulaireEssai({ locataires: [{ id: "L1", nom: "É. Fortin", adresse: "45 rue Laurier", appartement: "3", ville: "Granby", codePostal: "J2G 5K1" }] }));
+  assert.deepEqual([avecAdresse.locataires[0].no, avecAdresse.locataires[0].rue, avecAdresse.locataires[0].app], ["45", "rue Laurier", "3"], "adresse du locataire");
   assert.equal(avecFiche.stationnementExterieur, 2);
   assert.equal(avecFiche.stationnementInterieur, 0, "pas de stationnement intérieur");
   assert.equal(donneesFormulaire(bailFormulaireEssai({ services: "STATIONNEMENT" })).stationnementExterieur, null, "service seul : extérieur coché, places à préciser");

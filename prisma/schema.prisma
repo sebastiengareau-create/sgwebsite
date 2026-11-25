@@ -2422,6 +2422,11 @@ model LocataireImmo {
   telephone      String?
   telephone2     String?
   contactUrgence String?
+  // Adresse actuelle (section A du bail) : n° et rue, app., municipalité, code postal
+  adresse        String?
+  appartement    String?
+  ville          String?
+  codePostal     String?
   // Portail du locataire (/portail-locataire/<jeton>) : lien secret, null = aucun accès
   jetonPortail        String?   @unique
   dernierAccesPortail DateTime?
