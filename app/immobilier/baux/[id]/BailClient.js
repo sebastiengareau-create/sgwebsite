@@ -81,6 +81,10 @@ function Details({ bail, locataires }) {
 function Mentions({ bail }) {
   const [tout, setTout] = useState(false);
   const lignes = [
+    ["Stationnement", [
+      bail.stationnementExterieur ? `extérieur : ${bail.stationnementExterieur} place${bail.stationnementExterieur > 1 ? "s" : ""}${bail.stationnementExterieurEmplacement ? ` (${bail.stationnementExterieurEmplacement})` : ""}` : null,
+      bail.stationnementInterieur ? `intérieur : ${bail.stationnementInterieur} place${bail.stationnementInterieur > 1 ? "s" : ""}${bail.stationnementInterieurEmplacement ? ` (${bail.stationnementInterieurEmplacement})` : ""}` : null,
+    ].filter(Boolean).join(" · ")],
     ["Accessoires", bail.accessoires],
     ["Usage", bail.usageMixte ? "Habitation et usage professionnel ou commercial" : null],
     ["Paiement", [bail.modePaiement && libelle(MODES_PAIEMENT, bail.modePaiement), bail.lieuPaiement, bail.chequesPostdates && "chèques postdatés acceptés", bail.premierPaiementLe && `1er paiement le ${dateLisible(bail.premierPaiementLe)}`].filter(Boolean).join(" · ")],

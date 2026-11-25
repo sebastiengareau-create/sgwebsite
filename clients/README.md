@@ -130,7 +130,13 @@ on décide quand et à qui une modification s'applique.
   par l'appli aux endroits prévus des sections A à H
   (`lib/pdfBailFormulaire.js`, pdf-lib ; texte trop long en annexe) et signé
   en ligne par le locateur et les locataires — signatures dans la section H,
-  certificat joint (document `BAIL_FORMULAIRE`, offert pour tout bail de
+  certificat joint ; section A tirée de la **fiche du locateur**
+  (`/immobilier/locateur`, `lib/locateurImmo.js`, réglage `immo_locateur` :
+  un ou deux locateurs avec n°, rue, app., municipalité, code postal,
+  téléphones, courriel, et le représentant — reprise des informations de
+  l'entreprise tant qu'elle est vide) ; stationnement extérieur et
+  intérieur du bail (places et emplacements) cochés à la section B
+  (document `BAIL_FORMULAIRE`, offert pour tout bail de
   logement : section « Bail officiel » et « Générer un document », où il
   remplace l'ancien bail aide-mémoire) ; une autre version du
   formulaire demandera son gabarit et ses positions. En option, la
