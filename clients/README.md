@@ -130,7 +130,9 @@ on décide quand et à qui une modification s'applique.
   par l'appli aux endroits prévus des sections A à H
   (`lib/pdfBailFormulaire.js`, pdf-lib ; texte trop long en annexe) et signé
   en ligne par le locateur et les locataires — signatures dans la section H,
-  certificat joint (document `BAIL_FORMULAIRE`) ; une autre version du
+  certificat joint (document `BAIL_FORMULAIRE`, offert pour tout bail de
+  logement : section « Bail officiel » et « Générer un document », où il
+  remplace l'ancien bail aide-mémoire) ; une autre version du
   formulaire demandera son gabarit et ses positions. En option, la
   plateforme du TAL (`lib/bailTal.js` : le bail
   se remplit et se signe sur la plateforme du TAL — formulaire obligatoire,
