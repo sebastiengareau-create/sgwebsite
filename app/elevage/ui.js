@@ -10,7 +10,7 @@ import { Icone, TEINTES, TitrePanneau, stylePanneau } from "../components/StyleS
 
 export const champStyle = {
   width: "100%", padding: "9px 10px", borderRadius: 10, border: "1px solid var(--border)",
-  background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box",
+  background: "var(--bg)", color: "var(--text)", fontSize: 13, marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit",
 };
 export const labelStyle = { display: "block", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 4 };
 export const boutonPrincipal = { width: "100%", padding: 11, borderRadius: 12, fontSize: 14, fontWeight: 700 };

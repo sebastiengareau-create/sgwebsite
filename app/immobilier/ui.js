@@ -260,18 +260,19 @@ export const champsLogement = (immeubles) => [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
+// Fiche du locataire, par blocs (ChampsFormulaire : groupe)
 export const champsLocataire = [
-  { nom: "nom", label: "Nom (personne ou entreprise)" },
-  { nom: "telephone", label: "Téléphone", typeHtml: "tel" },
-  { nom: "courriel", label: "Courriel", typeHtml: "email" },
+  { nom: "nom", label: "Nom (personne ou entreprise)", pleineLargeur: true, groupe: "Locataire" },
+  { nom: "telephone", label: "Téléphone", typeHtml: "tel", groupe: "Pour le joindre" },
   { nom: "telephone2", label: "Autre téléphone", typeHtml: "tel" },
-  { nom: "adresse", label: "Adresse actuelle : n° et rue (section A du bail)" },
-  { nom: "appartement", label: "App." },
-  { nom: "ville", label: "Municipalité" },
-  { nom: "codePostal", label: "Code postal" },
+  { nom: "courriel", label: "Courriel", typeHtml: "email", pleineLargeur: true },
   { nom: "contactUrgence", label: "Personne à joindre en cas d'urgence", pleineLargeur: true },
   { nom: "avisCourriel", label: "Lui envoyer par courriel le suivi de ses demandes de réparation", type: "case", defaut: true },
-  { nom: "notes", label: "Notes", type: "long", lignes: 2 },
+  { nom: "adresse", label: "N° et rue", pleineLargeur: true, groupe: "Adresse actuelle (section A du bail)" },
+  { nom: "appartement", label: "App." },
+  { nom: "codePostal", label: "Code postal" },
+  { nom: "ville", label: "Municipalité", pleineLargeur: true },
+  { nom: "notes", label: "Pour vous seulement (pas montrées au locataire)", type: "long", lignes: 3, groupe: "Notes" },
 ];
 
 export const champsPaiement = [

@@ -84,9 +84,34 @@ export function Vide({ children }) {
 // ---------- Formulaires décrits par une liste de champs ----------
 // champs : [{ nom, label, type: "texte" | "long" | "date" | "nombre" |
 // "argent" (affiché « 350,00 $ », transmis « 350.00 ») | "choix" | "case", options: [{ code, label }], vide: "— libellé —",
-// placeholder, pleineLargeur }]
+// placeholder, pleineLargeur, groupe }]
+// groupe : titre d'un bloc de champs ; dès qu'un champ en a un, la fiche se
+// présente par blocs sur deux colonnes alignées (pleineLargeur : sur les deux)
+
+const grilleGroupe = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0 10px", alignItems: "end" };
+const titreGroupe = { fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-muted)", margin: "6px 0 6px", paddingTop: 8, borderTop: "1px solid var(--border)" };
 
 export function ChampsFormulaire({ champs, valeurs, maj }) {
+  if (champs.some((c) => c.groupe)) {
+    const groupes = [];
+    for (const c of champs) {
+      const titre = c.groupe || groupes.at(-1)?.titre || "";
+      if (groupes.at(-1)?.titre !== titre) groupes.push({ titre, champs: [] });
+      groupes.at(-1).champs.push(c);
+    }
+    return groupes.map((g, i) => (
+      <div key={g.titre || i}>
+        {g.titre && <div style={{ ...titreGroupe, ...(i === 0 ? { borderTop: "none", paddingTop: 0 } : {}) }}>{g.titre}</div>}
+        <div style={grilleGroupe}>
+          {g.champs.map((c) => (
+            <div key={c.nom} style={c.pleineLargeur || c.type === "long" || c.type === "case" ? { gridColumn: "1 / -1" } : undefined}>
+              <UnChamp c={c} valeurs={valeurs} maj={maj} />
+            </div>
+          ))}
+        </div>
+      </div>
+    ));
+  }
   const enGrille = champs.filter((c) => !c.pleineLargeur && c.type !== "long" && c.type !== "case");
   const pleins = champs.filter((c) => c.pleineLargeur || c.type === "long" || c.type === "case");
   return (
