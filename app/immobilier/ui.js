@@ -17,6 +17,7 @@ import {
   CHAUFFAGES, ANIMAUX, FUMEUR,
   servicesListe, trouver, dateLisible, argent, taille, etatExpiration, nomLogement, etatSignatures, STATUTS_SIGNATURE, REPONSES_AVIS, libelle,
 } from "@/lib/immobilierCalculs";
+import { formaterTelephone } from "@/lib/telephone";
 
 export { nomLogement };
 
@@ -432,7 +433,7 @@ export function FormulaireBail({ logementId, locataires, initial, loyerSuggere, 
       <div style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 4px" }}>{locataires.length > 0 ? "…ou un nouveau locataire :" : "Nouveau locataire :"}</div>
       <div style={grille2}>
         <Champ label="Nom"><input value={nouveau.nom} onChange={(e) => setNouveau((n) => ({ ...n, nom: e.target.value }))} style={champStyle} /></Champ>
-        <Champ label="Téléphone"><input type="tel" value={nouveau.telephone} onChange={(e) => setNouveau((n) => ({ ...n, telephone: e.target.value }))} style={champStyle} /></Champ>
+        <Champ label="Téléphone"><input type="tel" value={nouveau.telephone} onChange={(e) => setNouveau((n) => ({ ...n, telephone: e.target.value }))} onBlur={(e) => setNouveau((n) => ({ ...n, telephone: formaterTelephone(e.target.value) }))} style={champStyle} /></Champ>
         <Champ label="Courriel"><input type="email" value={nouveau.courriel} onChange={(e) => setNouveau((n) => ({ ...n, courriel: e.target.value }))} style={champStyle} /></Champ>
       </div>
       <Erreur texte={erreur} />
