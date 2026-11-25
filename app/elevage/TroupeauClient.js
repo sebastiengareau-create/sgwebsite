@@ -15,6 +15,7 @@ import {
 import ScanElevage from "./ScanElevage";
 import { formaterBoucle, emplacement } from "@/lib/registreElevage";
 import { champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, useApi, DeuxColonnes } from "./ui";
+import ChampArgent from "@/app/components/ChampArgent";
 
 const FILTRES = [
   { code: "ACTIVE", label: "Au troupeau" },
@@ -349,7 +350,7 @@ export function ChampsBete({ fiche, maj, femelles, taureaux = [] }) {
             <input type="date" max="9999-12-31" value={fiche.dateAcquisition} onChange={maj("dateAcquisition")} style={champStyle} />
           </Champ>
           <Champ label="Coût d'achat (avant taxes)">
-            <input inputMode="decimal" value={fiche.coutAcquisition} onChange={maj("coutAcquisition")} placeholder="0,00" style={champStyle} />
+            <ChampArgent negatif={false} value={fiche.coutAcquisition} onChange={maj("coutAcquisition")} placeholder="0,00 $" style={champStyle} />
           </Champ>
           <Champ label="Achetée de">
             <input value={fiche.provenance} onChange={maj("provenance")} placeholder="Éleveur, encan…" style={champStyle} />

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RAISONS, CODES_RAPPEL, CODES_VACANCES, CODES_AUTRES_SOMMES, LIBELLES_PERIODE, MAX_PERIODES, periodesDePaie } from "@/lib/releveEmploiCalculs";
 import { stylePanneau, TitrePanneau, TEINTES, Pastille } from "../../../../components/StyleSection";
+import ChampArgent from "@/app/components/ChampArgent";
 
 const JOUR = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short", timeZone: "UTC" });
 const court = (s) => (s ? JOUR.format(new Date(`${s}T12:00:00Z`)) : "");
@@ -158,7 +159,7 @@ export default function FormulaireReleve({ initial, erreursInitiales, employe, e
             {r.gainsParPeriode.map((g, i) => (
               <label key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-muted)" }}>
                 <span style={{ width: 92, flexShrink: 0 }}>{i + 1}. {periodes[i] ? `${court(periodes[i].debut)} – ${court(periodes[i].fin)}` : ""}</span>
-                <input inputMode="decimal" value={g} onChange={(e) => setGain(i, e.target.value.replace(",", "."))} aria-label={`Gains de la période ${i + 1}`} className="champ" style={{ flex: 1, minWidth: 0, fontSize: 13, textAlign: "right" }} />
+                <ChampArgent negatif={false} value={g} onChange={(e) => setGain(i, e.target.value.replace(",", "."))} aria-label={`Gains de la période ${i + 1}`} className="champ" style={{ flex: 1, minWidth: 0, fontSize: 13, textAlign: "right" }} />
               </label>
             ))}
           </div>
@@ -184,7 +185,7 @@ export default function FormulaireReleve({ initial, erreursInitiales, employe, e
             </label>
             {r.vacances?.code && r.vacances.code !== "1" && (
               <label style={etiquette}>Montant
-                <input inputMode="decimal" value={r.vacances.montant ?? ""} onChange={(e) => maj({ vacances: { ...r.vacances, montant: e.target.value.replace(",", ".") } })} className="champ" style={champ} />
+                <ChampArgent negatif={false} value={r.vacances.montant ?? ""} onChange={(e) => maj({ vacances: { ...r.vacances, montant: e.target.value.replace(",", ".") } })} className="champ" style={champ} />
               </label>
             )}
             {(r.vacances?.code === "3" || r.vacances?.code === "4") && (
@@ -203,7 +204,7 @@ export default function FormulaireReleve({ initial, erreursInitiales, employe, e
           {r.joursFeries.map((f, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <input type="date" value={f.date} onChange={(e) => ligne("joursFeries", i, { date: e.target.value })} aria-label="Date du jour férié" className="champ" style={{ flex: 1, minWidth: 0, fontSize: 13 }} />
-              <input inputMode="decimal" value={f.montant} onChange={(e) => ligne("joursFeries", i, { montant: e.target.value.replace(",", ".") })} aria-label="Montant" placeholder="Montant" className="champ" style={{ width: 110, fontSize: 13, textAlign: "right" }} />
+              <ChampArgent negatif={false} value={f.montant} onChange={(e) => ligne("joursFeries", i, { montant: e.target.value.replace(",", ".") })} aria-label="Montant" placeholder="Montant" className="champ" style={{ width: 110, fontSize: 13, textAlign: "right" }} />
               <button type="button" onClick={() => maj({ joursFeries: r.joursFeries.filter((_, n) => n !== i) })} aria-label="Retirer" style={petitBouton}>✕</button>
             </div>
           ))}
@@ -216,7 +217,7 @@ export default function FormulaireReleve({ initial, erreursInitiales, employe, e
                 <option value="">Choisir…</option>
                 {Object.entries(CODES_AUTRES_SOMMES).map(([code, { libelle, assurable }]) => <option key={code} value={code}>{code} — {libelle}{assurable ? "" : " (non assurable)"}</option>)}
               </select>
-              <input inputMode="decimal" value={a.montant} onChange={(e) => ligne("autresSommes", i, { montant: e.target.value.replace(",", ".") })} aria-label="Montant" placeholder="Montant" className="champ" style={{ width: 110, fontSize: 13, textAlign: "right" }} />
+              <ChampArgent negatif={false} value={a.montant} onChange={(e) => ligne("autresSommes", i, { montant: e.target.value.replace(",", ".") })} aria-label="Montant" placeholder="Montant" className="champ" style={{ width: 110, fontSize: 13, textAlign: "right" }} />
               <button type="button" onClick={() => maj({ autresSommes: r.autresSommes.filter((_, n) => n !== i) })} aria-label="Retirer" style={petitBouton}>✕</button>
             </div>
           ))}

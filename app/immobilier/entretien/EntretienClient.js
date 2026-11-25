@@ -8,6 +8,7 @@ import {
   ENTRETIENS_SUGGERES_IMMO, TYPES_ENTRETIEN, CATEGORIES_REPARATION, argent, dateLisible, dateCourte, trouver, libelle, etatEcheance, frequenceLisible,
 } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Formulaire, Onglets, Vide, BoutonTexte, BoutonSupprimer, PastilleEtat, valeursDe, champStyle, labelStyle, useApi, Erreur, lien, aujourdhui } from "../ui";
+import ChampArgent from "@/app/components/ChampArgent";
 
 // Les essentiels d'un plex, ajoutés d'un coup à un immeuble
 const ESSENTIELS = ["Vérification des avertisseurs de fumée", "Ramonage de la cheminée", "Inspection des chauffe-eau", "Nettoyage des gouttières", "Inspection de la toiture", "Inspection des balcons, escaliers et garde-corps"];
@@ -22,7 +23,7 @@ const champsEntretien = (immeubles) => [
   { nom: "derniereDate", label: "Dernière fois", type: "date" },
   { nom: "entrepreneur", label: "Entrepreneur habituel" },
   { nom: "telephoneEntrepreneur", label: "Téléphone de l'entrepreneur", typeHtml: "tel" },
-  { nom: "coutEstime", label: "Coût estimé ($)", type: "nombre" },
+  { nom: "coutEstime", label: "Coût estimé ($)", type: "argent" },
   { nom: "obligatoire", label: "Exigé par la loi, un règlement municipal ou l'assureur", type: "case" },
   { nom: "dansLogements", label: "Se fait dans les logements (avis d'accès de 24 h aux locataires)", type: "case" },
   { nom: "actif", label: "Actif (dans le calendrier)", type: "case", defaut: true },
@@ -189,7 +190,7 @@ function FormFait({ e, onFini }) {
     <div style={boiteForm}>
       <div style={grille}>
         <div><label style={labelStyle}>Fait le</label><input type="date" value={v.date} onChange={maj("date")} style={champStyle} /></div>
-        <div><label style={labelStyle}>Coût réel ($)</label><input inputMode="decimal" value={v.coutReel} onChange={maj("coutReel")} placeholder={e.coutEstime != null ? String(e.coutEstime).replace(".", ",") : ""} style={champStyle} /></div>
+        <div><label style={labelStyle}>Coût réel ($)</label><ChampArgent negatif={false} value={v.coutReel} onChange={maj("coutReel")} placeholder={e.coutEstime != null ? String(e.coutEstime).replace(".", ",") : ""} style={champStyle} /></div>
         <div><label style={labelStyle}>Entrepreneur</label><input value={v.entrepreneur} onChange={maj("entrepreneur")} style={champStyle} /></div>
         <div><label style={labelStyle}>N° de facture</label><input value={v.numeroFacture} onChange={maj("numeroFacture")} style={champStyle} /></div>
       </div>

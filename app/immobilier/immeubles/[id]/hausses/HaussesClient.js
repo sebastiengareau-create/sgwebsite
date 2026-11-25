@@ -8,6 +8,7 @@ import {
   POURCENTAGE_IMMOBILISATIONS_TAL,
 } from "@/lib/immobilierCalculs";
 import { Retour, Panneau, Vide, Erreur, PastilleEtat, champStyle, labelStyle, boutonPrincipal, lien, useApi } from "../../../ui";
+import ChampArgent from "@/app/components/ChampArgent";
 
 // « 1 234,56 » → 1234.56 ; vide ou invalide → null
 const nombre = (v) => {
@@ -101,8 +102,8 @@ export default function HaussesClient({ immeuble, parAnnee, travaux: travauxProp
             </label>
             {t.choisi && (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, margin: "8px 0 0 24px" }}>
-                <div><label style={labelStyle}>Coût ($)</label><input inputMode="decimal" value={t.montant} onChange={(e) => majTravaux(t.cle, "montant", e.target.value)} style={champStyle} /></div>
-                <div><label style={labelStyle}>Aides, subventions ($)</label><input inputMode="decimal" value={t.aide} onChange={(e) => majTravaux(t.cle, "aide", e.target.value)} style={champStyle} /></div>
+                <div><label style={labelStyle}>Coût ($)</label><ChampArgent negatif={false} value={t.montant} onChange={(e) => majTravaux(t.cle, "montant", e.target.value)} style={champStyle} /></div>
+                <div><label style={labelStyle}>Aides, subventions ($)</label><ChampArgent negatif={false} value={t.aide} onChange={(e) => majTravaux(t.cle, "aide", e.target.value)} style={champStyle} /></div>
                 <div>
                   <label style={labelStyle}>Pour</label>
                   <select value={t.logementId} onChange={(e) => majTravaux(t.cle, "logementId", e.target.value)} style={champStyle}>
@@ -184,8 +185,8 @@ function LigneCharge({ titre, annee, valeurs, onChange }) {
     <div style={{ borderTop: "1px solid var(--border)", padding: "9px 0" }}>
       <div style={{ fontSize: 13.5, fontWeight: 700, marginBottom: 6 }}>{titre}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-        <div><label style={labelStyle}>{annee - 1} ($)</label><input inputMode="decimal" value={valeurs.avant} onChange={(e) => onChange("avant", e.target.value)} style={{ ...champStyle, marginBottom: 0 }} /></div>
-        <div><label style={labelStyle}>{annee} ($)</label><input inputMode="decimal" value={valeurs.apres} onChange={(e) => onChange("apres", e.target.value)} placeholder={`compte de ${annee}`} style={{ ...champStyle, marginBottom: 0 }} /></div>
+        <div><label style={labelStyle}>{annee - 1} ($)</label><ChampArgent negatif={false} value={valeurs.avant} onChange={(e) => onChange("avant", e.target.value)} style={{ ...champStyle, marginBottom: 0 }} /></div>
+        <div><label style={labelStyle}>{annee} ($)</label><ChampArgent negatif={false} value={valeurs.apres} onChange={(e) => onChange("apres", e.target.value)} placeholder={`compte de ${annee}`} style={{ ...champStyle, marginBottom: 0 }} /></div>
       </div>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
         {hausse == null ? "Inscris les deux années pour en tenir compte." : `${hausse >= 0 ? "Hausse" : "Baisse"} de ${argent(Math.abs(hausse))} (${pc((hausse / avant) * 100, 1)}) — seule la part au-delà du pourcentage de base s'ajoute au loyer.`}

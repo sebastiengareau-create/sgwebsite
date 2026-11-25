@@ -19,6 +19,7 @@ import { Lignee, Reproduction } from "./Reproduction";
 import CourbePoids from "./CourbePoids";
 import Identification from "./Identification";
 import { formaterBoucle } from "@/lib/registreElevage";
+import ChampArgent from "@/app/components/ChampArgent";
 
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const decimal = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().replace(".", ",");
@@ -400,7 +401,7 @@ function FormulaireAbattage({ bete, coupes, poidsVifInitial, carcasseInitiale })
         <Champ label="Poids vif (kg)"><input inputMode="decimal" value={champs.poidsVif} onChange={maj("poidsVif")} style={champStyle} /></Champ>
         <Champ label="Carcasse froide (kg)"><input inputMode="decimal" value={champs.poidsCarcasse} onChange={maj("poidsCarcasse")} style={champStyle} /></Champ>
         <Champ label="Persillage BMS (1 à 12)"><input inputMode="numeric" value={champs.bms} onChange={maj("bms")} style={champStyle} /></Champ>
-        <Champ label="Frais abattage + découpe ($)"><input inputMode="decimal" value={champs.fraisAbattage} onChange={maj("fraisAbattage")} placeholder="0,00" style={champStyle} /></Champ>
+        <Champ label="Frais abattage + découpe ($)"><ChampArgent negatif={false} value={champs.fraisAbattage} onChange={maj("fraisAbattage")} placeholder="0,00 $" style={champStyle} /></Champ>
       </div>
       {nombre(champs.poidsVif) > 0 && nombre(champs.poidsCarcasse) > 0 && (
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px" }}>Rendement carcasse : {decimal((nombre(champs.poidsCarcasse) / nombre(champs.poidsVif)) * 100)} %</p>
@@ -732,7 +733,7 @@ function Frais({ bete }) {
             {CATEGORIES_FRAIS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
           <input value={champs.description} onChange={maj("description")} placeholder="Description" style={{ ...champStyle, marginBottom: 0 }} />
-          <input inputMode="decimal" value={champs.montant} onChange={maj("montant")} placeholder="Montant ($)" style={{ ...champStyle, marginBottom: 0 }} />
+          <ChampArgent negatif={false} value={champs.montant} onChange={maj("montant")} placeholder="Montant (0,00 $)" style={{ ...champStyle, marginBottom: 0 }} />
         </div>
         <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter les frais</BoutonAction>
       </div>}
@@ -798,7 +799,7 @@ function Sortie({ bete }) {
             <TitrePanneau icone={choix === "VENDUE" ? "banque" : "alerte"} teinte={choix === "VENDUE" ? TEINTES.bleu : TEINTES.rouge} titre={choix === "VENDUE" ? "Vente sur pied" : "Bête morte"} />
             <div style={grille2}>
               <Champ label="Date"><input type="date" max="9999-12-31" value={champs.dateSortie} onChange={(e) => setChamps((c) => ({ ...c, dateSortie: e.target.value }))} style={champStyle} /></Champ>
-              {choix === "VENDUE" && <Champ label="Prix de vente (avant taxes)"><input inputMode="decimal" value={champs.prixVente} onChange={(e) => setChamps((c) => ({ ...c, prixVente: e.target.value }))} style={champStyle} /></Champ>}
+              {choix === "VENDUE" && <Champ label="Prix de vente (avant taxes)"><ChampArgent negatif={false} value={champs.prixVente} onChange={(e) => setChamps((c) => ({ ...c, prixVente: e.target.value }))} style={champStyle} /></Champ>}
             </div>
             <Erreur texte={erreur} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
