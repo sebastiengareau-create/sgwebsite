@@ -173,7 +173,8 @@ on décide quand et à qui une modification s'applique.
   défaut), `lib/immobilier.js` ;
   volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
   modules — à brancher client par client ; parc de démonstration à charger ou
-  retirer dans Administrateur, `lib/immobilierDemo.js`).
+  retirer dans Administrateur, `lib/immobilierDemo.js` — le logement 201 y
+  a un nouveau locataire, pour montrer le bail officiel à préparer).
   **Inspection numérique** (active par défaut, `lib/inspections.js`) :
   inspection multipoint lancée depuis le bon, avec une grille complète, rapide
   ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`),
