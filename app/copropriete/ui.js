@@ -11,6 +11,7 @@ import { Pastille } from "../components/StyleSection";
 import { champStyle, labelStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi } from "../elevage/ui";
 import { trouver, taille } from "@/lib/coproprieteCalculs";
 import ChampArgent from "../components/ChampArgent";
+import { formaterTelephone } from "@/lib/telephone";
 
 export { champStyle, labelStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi };
 export { Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui } from "../elevage/ui";
@@ -122,7 +123,9 @@ function UnChamp({ c, valeurs, maj }) {
   } else if (c.type === "argent") {
     entree = <ChampArgent value={v} onChange={changer} placeholder={c.placeholder || "0,00 $"} negatif={c.negatif !== false} style={champStyle} />;
   } else {
-    entree = <input value={v} onChange={changer} inputMode={c.type === "nombre" ? "decimal" : undefined} placeholder={c.placeholder} type={c.typeHtml || "text"} style={champStyle} />;
+    // Téléphone : mis sous la forme (450) 555-1234 en sortant de la case
+    const tel = c.typeHtml === "tel";
+    entree = <input value={v} onChange={changer} onBlur={tel ? (e) => maj(c.nom, formaterTelephone(e.target.value)) : undefined} inputMode={c.type === "nombre" ? "decimal" : undefined} placeholder={c.placeholder} type={c.typeHtml || "text"} style={champStyle} />;
   }
   return <Champ label={c.label}>{entree}</Champ>;
 }
