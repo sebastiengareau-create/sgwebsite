@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
 import { alignerInventaireAuGL } from "@/lib/comptabilite";
+import { CLIENT } from "@/lib/client";
 
 export async function POST(request) {
   const session = await obtenirSession();
@@ -9,7 +10,7 @@ export async function POST(request) {
     return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });
   }
 
-  const { nom, numero, autresNumeros, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie } = await request.json();
+  const { nom, numero, autresNumeros, codeBarre, qte, qteMin, qteMax, emplacement, fournisseurId, prix, coutant, categorie, photo } = await request.json();
   if (!nom || !numero || prix === undefined) {
     return NextResponse.json({ erreur: "Champs manquants." }, { status: 400 });
   }
@@ -39,6 +40,9 @@ export async function POST(request) {
   const autres = String(autresNumeros || "").split(/[,;\n]+/).map((n) => n.trim())
     .filter((n, i, t) => n && t.findIndex((x) => x.toLowerCase() === n.toLowerCase()) === i);
   const qteInitiale = Number(qte) || 0;
+  // Photo de référence prise dans le formulaire (réglage photoPiece,
+  // lib/photoPiece.js) : créée avec la pièce
+  const avecPhoto = CLIENT.photoPiece && /^data:image\/[a-z+]+;base64,/.test(photo || "");
   const piece = await prisma.piece.create({
     data: {
       nom,
@@ -58,6 +62,7 @@ export async function POST(request) {
           create: { type: "AJUSTEMENT", qte: qteInitiale, solde: qteInitiale, note: "Stock de départ", creePar: session.nom },
         },
       }),
+      ...(avecPhoto && { photo: { create: { url: photo, employeId: session.id } } }),
     },
   });
 

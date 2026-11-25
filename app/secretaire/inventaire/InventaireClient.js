@@ -15,6 +15,7 @@ import { CLIENT } from "@/lib/client";
 import { coutantKit, kitsDisponibles } from "@/lib/kits";
 import FormulaireKit from "./FormulaireKit";
 import ChampsPiece from "./ChampsPiece";
+import { ChampPhotoNouvellePiece } from "./PhotoPiece";
 import { Icone, TEINTES, CarteChiffre, GrilleChiffres, BoutonPlein, BoutonContour, BoutonAction, GroupeLiens, Panneau, Pastille, TitrePanneau, stylePanneau } from "../../components/StyleSection";
 import { argent } from "@/lib/format";
 
@@ -525,6 +526,9 @@ function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeB
   // Prix de vente saisi à la main : la proposition calculée du coûtant ne
   // l'écrase plus (vider le champ la rétablit)
   const [prixManuel, setPrixManuel] = useState(false);
+  // Photo de référence (réglage photoPiece, lib/photoPiece.js) : dataUrl
+  // compressée, envoyée avec la création
+  const [photo, setPhoto] = useState("");
   const marge = CLIENT.margePrixVente;
   const [erreur, setErreur] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -548,7 +552,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeB
     const res = await fetch("/api/inventaire", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(valeurs),
+      body: JSON.stringify({ ...valeurs, ...(CLIENT.photoPiece && photo && { photo }) }),
     });
     setEnCours(false);
     if (!res.ok) {
@@ -570,6 +574,7 @@ function FormulaireCreation({ categories, fournisseurs, onCree, onAnnuler, codeB
   return (
     <form onSubmit={creer} style={{ ...stylePanneau, border: "1.5px solid var(--accent)", marginBottom: 20 }}>
       <TitrePanneau icone="boite" titre="Nouvelle pièce" />
+      {CLIENT.photoPiece && <ChampPhotoNouvellePiece valeur={photo} onChange={setPhoto} />}
       <ChampsPiece
         valeurs={valeurs} onChange={changer} onErreur={setErreur} categories={categories} fournisseurs={fournisseurs} requis
         libelleCoutant="Prix coûtant ($)" libellePrix={marge == null ? "Prix de vente ($)" : `Prix de vente ($) — marge ${marge} % proposée`}

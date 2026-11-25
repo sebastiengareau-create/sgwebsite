@@ -10,7 +10,7 @@ import { pieceCorrespond } from "@/lib/codesBarres";
 import { argent, nombre } from "@/lib/format";
 import { CLIENT } from "@/lib/client";
 import { urlPhotoPiece } from "@/lib/photoPiece";
-import { PanneauPhotoPiece, VisionneusePhotoPiece } from "./PhotoPiece";
+import { PanneauPhotoPiece, VisionneusePhotoPiece } from "../PhotoPiece";
 
 const ONGLETS = [
   { code: "resume", label: "Résumé" },
