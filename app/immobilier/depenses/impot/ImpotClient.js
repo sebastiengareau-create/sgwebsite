@@ -5,7 +5,7 @@ import Link from "next/link";
 import BandeauSection from "../../../components/BandeauSection";
 import { TEINTES, Icone } from "../../../components/StyleSection";
 import { argent, dateLisible } from "@/lib/immobilierCalculs";
-import { NavImmo, Panneau, Statistique, champStyle, lien } from "../../ui";
+import { NavImmo, Panneau, Statistique, champStyle, lien, RetourArriere } from "../../ui";
 
 // Même allure que BoutonContour (StyleSection), mais un vrai lien : le PDF et le CSV viennent d'une route d'API
 const boutonLien = {
@@ -59,6 +59,7 @@ export default function ImpotClient({ etat, annee, courante }) {
   const plusieurs = etat.immeubles.length > 1;
   return (
     <div className="conteneur-page">
+      <RetourArriere href="/immobilier/depenses" />
       <BandeauSection icone="🧾" titre="Revenus de location pour l'impôt" sousTitre="Lignes du T776 (ARC) — mêmes renseignements au TP-128 de Revenu Québec, un par immeuble." />
       <NavImmo actif="/immobilier/depenses" />
 

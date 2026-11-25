@@ -113,6 +113,22 @@ export function LigneMouvement({ titre, detail, montant, sousMontant, actions, c
   );
 }
 
+// « ← Retour » à la page d'où l'on vient (écrans ouverts de plusieurs
+// endroits : locateur, automatisations, entretien, impôt) ; sans page
+// précédente dans l'appli (lien ouvert directement), va à `href`
+export function RetourArriere({ href = "/immobilier", children = "Retour" }) {
+  const router = useRouter();
+  const retour = (e) => {
+    e.preventDefault();
+    // Historique dans l'onglet, sauf si on arrive d'un autre site
+    let externe = false;
+    try { externe = Boolean(document.referrer) && new URL(document.referrer).origin !== window.location.origin; } catch { externe = false; }
+    if (window.history.length > 1 && !externe) router.back();
+    else router.push(href);
+  };
+  return <a href={href} onClick={retour} style={{ fontSize: 12, color: "var(--text-muted)", textDecoration: "none", display: "inline-block", marginBottom: 8 }}>← {children}</a>;
+}
+
 // Menu de l'immobilier : une rangée qui défile au doigt sur un téléphone (le
 // contenu reste en haut de l'écran), 4 × 2 dès la tablette (.nav-section,
 // app/globals.css). Sur téléphone, l'écran ouvert est ramené en vue.
@@ -249,6 +265,10 @@ export const champsLocataire = [
   { nom: "telephone", label: "Téléphone", typeHtml: "tel" },
   { nom: "courriel", label: "Courriel", typeHtml: "email" },
   { nom: "telephone2", label: "Autre téléphone", typeHtml: "tel" },
+  { nom: "adresse", label: "Adresse actuelle : n° et rue (section A du bail)" },
+  { nom: "appartement", label: "App." },
+  { nom: "ville", label: "Municipalité" },
+  { nom: "codePostal", label: "Code postal" },
   { nom: "contactUrgence", label: "Personne à joindre en cas d'urgence", pleineLargeur: true },
   { nom: "avisCourriel", label: "Lui envoyer par courriel le suivi de ses demandes de réparation", type: "case", defaut: true },
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },

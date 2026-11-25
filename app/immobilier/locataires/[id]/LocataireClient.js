@@ -36,6 +36,7 @@ export default function LocataireClient({ locataire, comptes, lien, courrielConf
             <LigneInfo label="Téléphone" valeur={locataire.telephone && <a href={`tel:${locataire.telephone}`} style={styleLien}>{locataire.telephone}</a>} />
             <LigneInfo label="Autre téléphone" valeur={locataire.telephone2} />
             <LigneInfo label="Courriel" valeur={locataire.courriel && <a href={`mailto:${locataire.courriel}`} style={styleLien}>{locataire.courriel}</a>} />
+            <LigneInfo label="Adresse" valeur={[[locataire.adresse, locataire.appartement && `app. ${locataire.appartement}`].filter(Boolean).join(", "), locataire.ville, locataire.codePostal].filter(Boolean).join(", ")} />
             <LigneInfo label="En cas d'urgence" valeur={locataire.contactUrgence} />
             {locataire.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{locataire.notes}</p>}
           </>

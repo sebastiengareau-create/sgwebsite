@@ -134,7 +134,8 @@ on décide quand et à qui une modification s'applique.
   (`/immobilier/locateur`, `lib/locateurImmo.js`, réglage `immo_locateur` :
   un ou deux locateurs avec n°, rue, app., municipalité, code postal,
   téléphones, courriel, et le représentant — reprise des informations de
-  l'entreprise tant qu'elle est vide) ; stationnement extérieur et
+  l'entreprise tant qu'elle est vide) ; adresse actuelle du locataire (n° et
+  rue, app., municipalité, code postal, dans sa fiche) ; stationnement extérieur et
   intérieur du bail (places et emplacements) cochés à la section B
   (document `BAIL_FORMULAIRE`, offert pour tout bail de
   logement : section « Bail officiel » et « Générer un document », où il

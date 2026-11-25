@@ -15,7 +15,7 @@ export default async function FicheBail(props) {
       where: { id },
       include: {
         logement: { select: { id: true, numero: true, type: true, pieces: true, etage: true, adresseCivique: true, immeuble: { select: { id: true, nom: true, adresse: true, ville: true, codePostal: true, anneeConstruction: true } } } },
-        locataires: { select: { id: true, nom: true, telephone: true, telephone2: true, courriel: true } },
+        locataires: { select: { id: true, nom: true, telephone: true, telephone2: true, courriel: true, adresse: true, appartement: true, ville: true, codePostal: true } },
         charges: { orderBy: { date: "asc" } },
         paiements: { orderBy: { date: "asc" } },
         documents: {
