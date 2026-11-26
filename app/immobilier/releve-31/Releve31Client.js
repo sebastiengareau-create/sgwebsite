@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
-import { bailAu31Decembre, donneesReleve31, echeanceReleve31, dateLisible, nomLogement } from "@/lib/immobilierCalculs";
+import { bailAu31Decembre, donneesReleve31, LIENS_RELEVE31, echeanceReleve31, dateLisible, nomLogement } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Statistique, Vide, Alerte, BoutonTexte, useApi, Erreur, champStyle, lien } from "../ui";
 
 export default function Releve31Client({ baux, annee, defaut }) {
@@ -48,6 +48,7 @@ export default function Releve31Client({ baux, annee, defaut }) {
         <select value={annee} onChange={(e) => router.push(`/immobilier/releve-31?annee=${e.target.value}`)} style={{ ...champStyle, width: "auto", marginBottom: 0 }}>
           {[defaut + 1, defaut, defaut - 1, defaut - 2, defaut - 3].map((a) => <option key={a} value={a}>Logements occupés au 31 décembre {a}</option>)}
         </select>
+        <a href={LIENS_RELEVE31.produire} target="_blank" rel="noreferrer" className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>↗ Produire les relevés (Revenu Québec)</a>
         {lignes.length > 0 && <BoutonTexte onClick={exporter}>⬇️ Exporter (CSV)</BoutonTexte>}
         {lignes.length > 0 && <a href={`/api/immobilier/releves31/pdf?annee=${annee}`} target="_blank" rel="noreferrer" className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>🧾 Relevés des locataires (PDF)</a>}
         {lignes.length > 0 && <BoutonTexte onClick={() => window.open(`/api/immobilier/releves31/pdf?annee=${annee}&proprietaire=1`, "_blank")}>📁 Avec copie du propriétaire</BoutonTexte>}
@@ -67,7 +68,7 @@ export default function Releve31Client({ baux, annee, defaut }) {
           <li><strong>Qui est visé</strong> : un relevé par logement pour lequel un loyer était payé ou payable {anneeFinie ? "le" : "au"} 31 décembre {annee} (bail en cours ce jour-là). Les locaux commerciaux, stationnements et rangements ne sont pas visés.</li>
           <li><strong>Case A — numéro de logement</strong> : il est déterminé par Revenu Québec et reste le même d'une année à l'autre. La première fois, tu l'obtiens dans le service en ligne « Produire et consulter des relevés 31 » (Mon dossier pour les entreprises ou pour les citoyens) en inscrivant l'adresse du logement ; inscris-le ensuite ici une fois pour toutes.</li>
           <li><strong>Case B — nombre de locataires</strong> : tous les locataires et sous-locataires du logement au 31 décembre (l'appli compte ceux du bail — ajoute au bail un colocataire ou sous-locataire qui manque). <strong>Case C</strong> : l'adresse propre au logement (appartement, numéro, rue, ville, code postal) ; dans un plex à plusieurs numéros civiques, indique l'adresse exacte du logement.</li>
-          <li>Complète ce qui est signalé ⚠️ ci-dessous, puis <strong>produis les relevés</strong> dans le service en ligne de Revenu Québec (obligatoire par Internet au-delà de 5 relevés ; sur papier sinon), en recopiant les cases de chaque fiche ou à partir de l'export CSV. Code « R » pour un relevé original ; pour corriger un relevé déjà transmis, produis-en un modifié (code « A ») dans le même service.</li>
+          <li>Complète ce qui est signalé ⚠️ ci-dessous, puis <strong>produis les relevés</strong> dans le service en ligne de Revenu Québec (obligatoire par Internet au-delà de 5 relevés ; sur papier sinon), en recopiant les cases de chaque fiche ou à partir de l'export CSV — <a href={LIENS_RELEVE31.produire} target="_blank" rel="noreferrer" style={lien}>page de Revenu Québec</a> (accès au service par Mon dossier ; <a href={LIENS_RELEVE31.trouverService} target="_blank" rel="noreferrer" style={lien}>comment trouver le service</a>). Code « R » pour un relevé original ; pour corriger un relevé déjà transmis, produis-en un modifié (code « A ») dans le même service.</li>
           <li><strong>Remets à chaque locataire sa copie</strong> : « Relevés des locataires (PDF) » prépare une page par locataire, prête à imprimer ou à envoyer (ou le bouton 🧾 de chaque logement). Garde la copie du propriétaire dans tes dossiers.</li>
           <li>Tout doit être fait au plus tard le <strong>{dateLisible(echeance)}</strong> (transmission à Revenu Québec et copies aux locataires). Coche « Produit » et « Remis » ici pour suivre où tu en es.</li>
         </ol>
