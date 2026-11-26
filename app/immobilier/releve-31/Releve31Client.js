@@ -12,7 +12,7 @@ export default function Releve31Client({ baux, annee, defaut }) {
   const { appeler, enCours, erreur } = useApi();
   const lignes = baux
     .filter((b) => bailAu31Decembre(b, annee))
-    .map((b) => ({ ...b, rl: donneesReleve31(b), suivi: b.releves31[0] || {} }))
+    .map((b) => ({ ...b, annee, rl: donneesReleve31(b), suivi: b.releves31[0] || {} }))
     .sort((a, b) => a.logement.immeuble.nom.localeCompare(b.logement.immeuble.nom) || a.logement.numero.localeCompare(b.logement.numero, "fr", { numeric: true }));
   const prets = lignes.filter((l) => l.rl.problemes.length === 0);
   const produits = lignes.filter((l) => l.suivi.produitLe);
@@ -49,7 +49,8 @@ export default function Releve31Client({ baux, annee, defaut }) {
           {[defaut + 1, defaut, defaut - 1, defaut - 2, defaut - 3].map((a) => <option key={a} value={a}>Logements occupés au 31 décembre {a}</option>)}
         </select>
         {lignes.length > 0 && <BoutonTexte onClick={exporter}>⬇️ Exporter (CSV)</BoutonTexte>}
-        {lignes.length > 0 && <BoutonTexte onClick={() => window.print()}>🖨️ Imprimer</BoutonTexte>}
+        {lignes.length > 0 && <a href={`/api/immobilier/releves31/pdf?annee=${annee}`} target="_blank" rel="noreferrer" className="bouton-3d" style={{ padding: "8px 12px", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>🧾 Relevés des locataires (PDF)</a>}
+        {lignes.length > 0 && <BoutonTexte onClick={() => window.open(`/api/immobilier/releves31/pdf?annee=${annee}&proprietaire=1`, "_blank")}>📁 Avec copie du propriétaire</BoutonTexte>}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 14 }}>
@@ -63,10 +64,12 @@ export default function Releve31Client({ baux, annee, defaut }) {
 
       <Section titre="Comment faire">
         <ol style={{ fontSize: 13, margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-          <li>Un relevé par logement occupé {anneeFinie ? "le" : "au"} 31 décembre {annee} (bail en cours ce jour-là), avec tous les locataires qui ont signé le bail. Les locaux commerciaux, stationnements et rangements ne sont pas visés.</li>
-          <li>Complète ce qui manque ci-dessous : surtout le <strong>numéro de logement (case A)</strong>, déterminé par Revenu Québec et le même d'une année à l'autre, et l'adresse propre à chaque logement d'un plex.</li>
-          <li>Produis les relevés dans le service en ligne de Revenu Québec « Produire et consulter des relevés 31 » (obligatoire par Internet au-delà de 5 relevés), en recopiant ces données ou à partir de l'export.</li>
-          <li>Remets une copie à chaque locataire et transmets-les à Revenu Québec au plus tard le <strong>{dateLisible(echeance)}</strong>. Coche « Produit » et « Remis » ici pour suivre où tu en es.</li>
+          <li><strong>Qui est visé</strong> : un relevé par logement pour lequel un loyer était payé ou payable {anneeFinie ? "le" : "au"} 31 décembre {annee} (bail en cours ce jour-là). Les locaux commerciaux, stationnements et rangements ne sont pas visés.</li>
+          <li><strong>Case A — numéro de logement</strong> : il est déterminé par Revenu Québec et reste le même d'une année à l'autre. La première fois, tu l'obtiens dans le service en ligne « Produire et consulter des relevés 31 » (Mon dossier pour les entreprises ou pour les citoyens) en inscrivant l'adresse du logement ; inscris-le ensuite ici une fois pour toutes.</li>
+          <li><strong>Case B — nombre de locataires</strong> : tous les locataires et sous-locataires du logement au 31 décembre (l'appli compte ceux du bail — ajoute au bail un colocataire ou sous-locataire qui manque). <strong>Case C</strong> : l'adresse propre au logement (appartement, numéro, rue, ville, code postal) ; dans un plex à plusieurs numéros civiques, indique l'adresse exacte du logement.</li>
+          <li>Complète ce qui est signalé ⚠️ ci-dessous, puis <strong>produis les relevés</strong> dans le service en ligne de Revenu Québec (obligatoire par Internet au-delà de 5 relevés ; sur papier sinon), en recopiant les cases de chaque fiche ou à partir de l'export CSV. Code « R » pour un relevé original ; pour corriger un relevé déjà transmis, produis-en un modifié (code « A ») dans le même service.</li>
+          <li><strong>Remets à chaque locataire sa copie</strong> : « Relevés des locataires (PDF) » prépare une page par locataire, prête à imprimer ou à envoyer (ou le bouton 🧾 de chaque logement). Garde la copie du propriétaire dans tes dossiers.</li>
+          <li>Tout doit être fait au plus tard le <strong>{dateLisible(echeance)}</strong> (transmission à Revenu Québec et copies aux locataires). Coche « Produit » et « Remis » ici pour suivre où tu en es.</li>
         </ol>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "8px 0 0" }}>L'appli prépare et suit les relevés ; elle ne les transmet pas elle-même (un logiciel doit être autorisé chaque année par Revenu Québec pour le faire).</p>
       </Section>
@@ -104,7 +107,8 @@ function Fiche({ l, suivre, enCours }) {
           <Link href={`/immobilier/logements/${l.logement.id}`} style={{ ...lien, fontWeight: 800, fontSize: 15 }}>{l.logement.immeuble.nom} · {nomLogement(l.logement)}</Link>
           <div style={{ fontSize: 13 }}><Link href={`/immobilier/baux/${l.id}`} style={{ color: "inherit" }}>{rl.locataires.join(", ") || "—"}</Link></div>
         </div>
-        <div style={{ display: "flex", gap: 14, alignItems: "center", fontSize: 13 }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", fontSize: 13, flexWrap: "wrap" }}>
+          <a href={`/api/immobilier/releves31/pdf?annee=${l.annee}&bailId=${l.id}`} target="_blank" rel="noreferrer" style={{ ...lien, fontWeight: 700 }}>🧾 Relevé (PDF)</a>
           <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
             <input type="checkbox" checked={Boolean(suivi.produitLe)} disabled={enCours} onChange={(e) => suivre([l.id], { produit: e.target.checked })} />
             Produit{suivi.produitLe && <span style={{ color: "var(--text-muted)" }}> {dateLisible(suivi.produitLe)}</span>}
