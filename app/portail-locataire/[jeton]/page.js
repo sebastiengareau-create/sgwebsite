@@ -30,7 +30,7 @@ export default async function PortailLocataire(props) {
   }
 
   const resume = await bauxDuLocataire(l.id);
-  const [baux, documents, reparations, aSigner] = await Promise.all([
+  const [baux, documents, reparations, aSigner, releves31] = await Promise.all([
     prisma.bailImmo.findMany({
       where: { id: { in: resume.map((b) => b.id) } },
       select: {
@@ -62,6 +62,12 @@ export default async function PortailLocataire(props) {
       select: { id: true, jeton: true, demandeLe: true, document: { select: { titre: true, genre: true, bailId: true } } },
       orderBy: { demandeLe: "desc" },
     }),
+    // Relevés 31 produits par le propriétaire (Immobilier → Relevé 31)
+    prisma.releve31Immo.findMany({
+      where: { bailId: { in: resume.map((b) => b.id) }, produitLe: { not: null } },
+      select: { id: true, annee: true, produitLe: true, bail: { select: { logement: { select: { numero: true, type: true, immeuble: { select: { nom: true } } } } } } },
+      orderBy: { annee: "desc" },
+    }),
   ]);
 
   return (
@@ -69,7 +75,7 @@ export default async function PortailLocataire(props) {
       jeton={jeton}
       locataire={{ id: l.id, nom: l.nom }}
       entreprise={{ nom: entreprise.nomEntreprise, telephone: entreprise.telephone, courriel: entreprise.courriel }}
-      {...JSON.parse(JSON.stringify({ baux, documents, reparations, aSigner }))}
+      {...JSON.parse(JSON.stringify({ baux, documents, reparations, aSigner, releves31 }))}
     />
   );
 }
