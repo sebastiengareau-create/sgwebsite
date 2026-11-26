@@ -44,7 +44,7 @@ const jour = (n) => (n === 1 ? "1er" : String(n));
 // Moment précis (signature, demande) : la journée au Québec
 const jourQc = (d) => new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Toronto" }).format(new Date(d));
 
-export default function PortailLocataireClient({ jeton, locataire, entreprise, baux, documents, reparations, aSigner = [] }) {
+export default function PortailLocataireClient({ jeton, locataire, entreprise, baux, documents, reparations, aSigner = [], releves31 = [] }) {
   const [onglet, setOnglet] = useState("LOGEMENT");
   const actifs = baux.filter((b) => b.statut === "ACTIF");
   // Anciens baux : seulement s'il y reste un solde
@@ -72,7 +72,7 @@ export default function PortailLocataireClient({ jeton, locataire, entreprise, b
             note={solde > 0.005 ? "Loyer à payer" : "Votre compte est à jour"} onClick={() => setOnglet("LOGEMENT")}
           />
           <CarteChiffre titre="Réparations en cours" montant={String(ouvertes)} teinte="var(--accent)" note={`${reparations.length} au total`} onClick={() => setOnglet("REPARATIONS")} />
-          <CarteChiffre titre="Documents" montant={String(documents.length)} teinte="var(--bleu)" note="Bail, avis, reçus…" onClick={() => setOnglet("DOCUMENTS")} />
+          <CarteChiffre titre="Documents" montant={String(documents.length + releves31.length)} teinte="var(--bleu)" note={releves31.length ? "Bail, avis, relevé 31…" : "Bail, avis, reçus…"} onClick={() => setOnglet("DOCUMENTS")} />
         </div>
 
         {docsASigner.length > 0 && (
@@ -99,7 +99,7 @@ export default function PortailLocataireClient({ jeton, locataire, entreprise, b
             {anciens.map((b) => <Bail key={b.id} bail={b} jeton={jeton} locataireId={locataire.id} ancien />)}
           </>
         )}
-        {onglet === "DOCUMENTS" && <Documents documents={documents} jeton={jeton} />}
+        {onglet === "DOCUMENTS" && <><Releves31 releves31={releves31} jeton={jeton} /><Documents documents={documents} jeton={jeton} aucunAutre={releves31.length > 0} /></>}
         {onglet === "REPARATIONS" && <Reparations reparations={reparations} actifs={actifs} jeton={jeton} locataireId={locataire.id} />}
         <p style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "var(--text-muted)", textAlign: "center", margin: "24px 0 8px" }}>
           <Icone nom="cadenas" taille={14} couleur="var(--text-muted)" /> Ce lien vous est personnel : ne le partagez pas.
@@ -242,7 +242,30 @@ function LienDocument({ d, jeton, premiere }) {
   );
 }
 
-function Documents({ documents, jeton }) {
+// Relevés 31 : pour la composante logement du crédit d'impôt pour solidarité
+function Releves31({ releves31, jeton }) {
+  if (releves31.length === 0) return null;
+  const plusieurs = new Set(releves31.map((r) => r.annee)).size < releves31.length;
+  return (
+    <Bloc icone="document" teinte={TEINTES.vert} titre="Relevé 31" sousTitre="Pour le crédit d'impôt pour solidarité (annexe D de votre déclaration du Québec)">
+      {releves31.map((r, i) => (
+        <a key={r.id} href={`/api/portail-locataire/${jeton}/releves31/${r.id}`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)", textDecoration: "none", color: "var(--text)" }}>
+          <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: TEINTES.bleu.fond, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icone nom="document" taille={18} couleur={TEINTES.bleu.couleur} />
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>Relevé 31 — {r.annee}{plusieurs ? ` · ${r.bail.logement.immeuble.nom}, ${nomLogement(r.bail.logement)}` : ""}</span>
+            <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>Logement occupé au 31 décembre {r.annee} · produit le {dateLisible(r.produitLe)}</span>
+          </span>
+          <Icone nom="chevron" taille={16} couleur="var(--text-muted)" />
+        </a>
+      ))}
+    </Bloc>
+  );
+}
+
+function Documents({ documents, jeton, aucunAutre }) {
+  if (documents.length === 0 && aucunAutre) return null;
   if (documents.length === 0) return <Bloc icone="document" teinte={TEINTES.bleu} titre="Documents"><Vide>Aucun document pour le moment.</Vide></Bloc>;
   const categories = CATEGORIES_DOCUMENTS.map((c) => ({ ...c, docs: documents.filter((d) => d.categorie === c.code) })).filter((c) => c.docs.length > 0);
   return categories.map((c) => (

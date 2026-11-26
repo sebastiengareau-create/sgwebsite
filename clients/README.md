@@ -160,8 +160,9 @@ on décide quand et à qui une modification s'applique.
   relevés 31 (`/immobilier/releve-31`) avec la copie de chaque locataire en
   PDF, mise en page comme le relevé (cases A, B, C1 à C5, locataire,
   propriétaire — une page par locataire, copie du propriétaire en option,
-  `lib/pdfReleve31.js`), portail sécurisé des locataires
+  `lib/pdfReleve31.js`, `lib/releve31.js`), portail sécurisé des locataires
   (`/portail-locataire/<jeton>` : bail, compte et reçus, documents partagés,
+  relevé 31 de chaque année dès qu'il est coché « Produit »,
   demandes de réparation, réponse signée à l'avis de modification, documents
   à signer), envoi par
   courriel des avis, relevés de compte et reçus avec journal des envois
