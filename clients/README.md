@@ -157,7 +157,10 @@ on décide quand et à qui une modification s'applique.
   signature au doigt avec consentement, IP et empreinte SHA-256, version
   signée et certificat de signature envoyés aux locataires
   (`lib/signatureImmo.js`), préparation et suivi des
-  relevés 31 (`/immobilier/releve-31`), portail sécurisé des locataires
+  relevés 31 (`/immobilier/releve-31`) avec la copie de chaque locataire en
+  PDF, mise en page comme le relevé (cases A, B, C1 à C5, locataire,
+  propriétaire — une page par locataire, copie du propriétaire en option,
+  `lib/pdfReleve31.js`), portail sécurisé des locataires
   (`/portail-locataire/<jeton>` : bail, compte et reçus, documents partagés,
   demandes de réparation, réponse signée à l'avis de modification, documents
   à signer), envoi par
