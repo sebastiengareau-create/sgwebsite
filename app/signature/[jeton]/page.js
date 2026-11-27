@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { obtenirInfosEntreprise, lignesEnteteEntreprise } from "@/lib/config";
-import { signatureParJeton, modeReponse } from "@/lib/signatureImmo";
+import { signatureParJeton, modeReponse, reglementAAttester } from "@/lib/signatureImmo";
 import { adresseLogement, ajouterMois } from "@/lib/immobilierCalculs";
 import LogoClient from "../../components/LogoClient";
 import SignatureClient from "./SignatureClient";
@@ -40,6 +40,7 @@ export default async function PageSignature(props) {
       select: { loyer: true, nouveauLoyer: true, dateFin: true, avisEnvoyeLe: true, logement: { select: { numero: true, type: true, adresseCivique: true, immeuble: { select: { nom: true, adresse: true, ville: true, codePostal: true } } } } },
     })
     : null;
+  const reglementRemisLe = d.statut === "EN_ATTENTE" ? await reglementAAttester(d, doc) : null;
   const avis = mode === "AVIS" && bail?.dateFin ? {
     loyer: bail.loyer, nouveauLoyer: bail.nouveauLoyer ?? bail.loyer, finBail: bail.dateFin,
     debut: new Date(new Date(bail.dateFin).getTime() + 86400000), limite: bail.avisEnvoyeLe ? ajouterMois(bail.avisEnvoyeLe, 1) : null,
@@ -62,7 +63,8 @@ export default async function PageSignature(props) {
           mode={mode}
           {...JSON.parse(JSON.stringify({
             demande: { nom: d.nom, role: d.role, statut: d.statut, message: d.message, signataireNom: d.signataireNom, signature: d.signature, reponduLe: d.reponduLe, reponseAvis: d.reponseAvis, note: d.note },
-            document: { titre: doc.titre, signe: Boolean(doc.signeLe), adresse: bail ? adresseLogement(bail.logement) : null },
+            document: { titre: doc.titre, signe: Boolean(doc.signeLe), empreinteSignee: doc.empreinteSignee, adresse: bail ? adresseLogement(bail.logement) : null },
+            reglementRemisLe,
             parties: doc.signatures.filter((s) => s.statut !== "ANNULE").map((s) => ({ id: s.id, nom: s.nom, role: s.role, statut: s.statut, moi: s.id === d.id })),
             avis,
           }))}
