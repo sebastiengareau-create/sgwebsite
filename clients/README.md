@@ -74,7 +74,7 @@ on décide quand et à qui une modification s'applique.
   charger ou retirer dans Administrateur (employés fictifs, période
   verrouillée, anomalies à régler, `lib/quartsDemo.js`).
   **Copropriété** (syndicat de copropriété : bâtiments (année et
-  entrepreneur), unités et quotes-parts, copropriétaires et historique des
+  entrepreneur, photo ou vue de la rue), unités et quotes-parts, copropriétaires et historique des
   propriétaires, contact d'urgence, clés magnétiques, mobilité réduite
   (aide pour évacuer, ♿ sur l'unité) et autres personnes sous leur toit —
   jamais sur le portail, charges communes,
@@ -83,7 +83,9 @@ on décide quand et à qui une modification s'applique.
   de démonstration à charger ou retirer dans Administrateur,
   `lib/coproprieteDemo.js`).
   **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
-  immeubles locatifs — immeubles (année, entrepreneur ; plan par étage, une
+  immeubles locatifs — immeubles (année, entrepreneur ; photo prise depuis la
+  fiche, sinon vue de la rue de Google Street View avec la clé Google —
+  adresses, `lib/photoBatiment.js` ; plan par étage, une
   case par logement colorée selon son état : loyer en retard, vacant, bail à
   surveiller, en règle) et logements, locataires et baux avec les
   délais d'avis de modification du TAL et le renouvellement, loyers du mois,

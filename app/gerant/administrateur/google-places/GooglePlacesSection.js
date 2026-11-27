@@ -42,7 +42,8 @@ export default function GooglePlacesSection({ configInitiale }) {
           adresses réelles ; un clic remplit l'adresse, la ville, la province et le code postal. Sans clé, seules les villes
           sont suggérées (d'après le code postal et la liste des municipalités). La clé se crée dans Google Cloud Console
           (projet avec facturation, API « Places API (New) » activée) ; Google offre chaque mois un nombre de recherches
-          gratuites avant de facturer.
+          gratuites avant de facturer. Active aussi l'API « Street View Static API » sur la même clé : les immeubles et
+          bâtiments sans photo montrent alors la vue de la rue de leur adresse.
         </p>
         {config.variable && !config.cleEnregistree && (
           <p style={{ fontSize: 12, color: "var(--success)", marginBottom: 12 }}>

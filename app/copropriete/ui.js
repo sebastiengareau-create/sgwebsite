@@ -292,12 +292,13 @@ export function Recherche({ valeur, onChange, placeholder }) {
 }
 
 // Carte cliquable d'une liste (bande de couleur à gauche)
-export function CarteListe({ href, couleur = "var(--border)", titre, sousTitre, droite, bas }) {
+export function CarteListe({ href, couleur = "var(--border)", titre, sousTitre, droite, bas, image }) {
   return (
     <Link href={href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
       <div style={{ position: "relative", overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "13px 16px 13px 20px", display: "flex", justifyContent: "space-between", gap: 12 }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: couleur }} />
-        <div style={{ minWidth: 0 }}>
+        {image}
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>{titre}</div>
           {sousTitre && <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{sousTitre}</div>}
           {bas && <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>{bas}</div>}

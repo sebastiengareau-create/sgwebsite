@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import BandeauSection from "../../components/BandeauSection";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
+import PhotoBatiment from "../../components/PhotoBatiment";
+import { adresseComplete } from "@/lib/photoBatiment";
 import {
   TYPES_UNITE, TYPES_ESPACE, MODES_ESPACE, argent, pourcent, libelle, trouver, nomsProprietaires,
 } from "@/lib/coproprieteCalculs";
@@ -49,7 +51,7 @@ const ONGLETS = [
   { code: "BATIMENTS", label: "Bâtiments" },
 ];
 
-export default function UnitesClient({ unites, batiments, espaces, soldes }) {
+export default function UnitesClient({ unites, batiments, espaces, soldes, vueRue }) {
   const [onglet, setOnglet] = useState("UNITES");
   return (
     <div className="conteneur-page">
@@ -58,7 +60,7 @@ export default function UnitesClient({ unites, batiments, espaces, soldes }) {
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
       {onglet === "UNITES" && <ListeUnites unites={unites} batiments={batiments} soldes={soldes} />}
       {onglet === "ESPACES" && <ListeEspaces espaces={espaces} batiments={batiments} unites={unites} />}
-      {onglet === "BATIMENTS" && <ListeBatiments batiments={batiments} />}
+      {onglet === "BATIMENTS" && <ListeBatiments batiments={batiments} vueRue={vueRue} />}
     </div>
   );
 }
@@ -151,7 +153,7 @@ function ListeEspaces({ espaces, batiments, unites }) {
   );
 }
 
-function ListeBatiments({ batiments }) {
+function ListeBatiments({ batiments, vueRue }) {
   const [formulaire, setFormulaire] = useState(false);
   const [edition, setEdition] = useState(null);
   return (
@@ -167,6 +169,7 @@ function ListeBatiments({ batiments }) {
             <Formulaire cadre={false} champs={champsBatiment} initial={valeursDe(b, champsBatiment)} url={`/api/copropriete/batiments/${b.id}`} methode="PATCH" onFini={() => setEdition(null)} />
           ) : (
             <>
+              <PhotoBatiment urlApi={`/api/copropriete/batiments/${b.id}/photo`} photoLe={b.photo?.ajouteeLe} adresse={adresseComplete(b)} vueRue={vueRue} hauteur={200} />
               <div className="ligne-info"><span>Adresse</span><span>{b.adresse || "—"}</span></div>
               <div className="ligne-info"><span>Unités</span><span>{b._count.unites}</span></div>
               {b.anneeConstruction && <div className="ligne-info"><span>Construit en</span><span>{b.anneeConstruction}</span></div>}
