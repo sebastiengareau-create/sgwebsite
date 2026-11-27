@@ -7,6 +7,8 @@ import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { TYPES_IMMEUBLE, argent, trouver, bailActuel, tauxOccupation } from "@/lib/immobilierCalculs";
 import { NavImmo, Formulaire, Recherche, CarteListe, Vide } from "../ui";
+import { VignetteBatiment } from "../../components/PhotoBatiment";
+import { adresseComplete } from "@/lib/photoBatiment";
 
 export const champsImmeuble = [
   { nom: "nom", label: "Nom", placeholder: "Triplex Champlain, 85 des Érables…" },
@@ -24,7 +26,7 @@ export const champsImmeuble = [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
-export default function ImmeublesClient({ immeubles, comptes, reparations }) {
+export default function ImmeublesClient({ immeubles, comptes, reparations, vueRue }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState(false);
   const [recherche, setRecherche] = useState("");
@@ -48,6 +50,7 @@ export default function ImmeublesClient({ immeubles, comptes, reparations }) {
           return (
             <CarteListe
               key={i.id} href={`/immobilier/immeubles/${i.id}`}
+              image={<VignetteBatiment urlApi={`/api/immobilier/immeubles/${i.id}/photo`} photoLe={i.photo?.ajouteeLe} adresse={adresseComplete(i)} vueRue={vueRue} />}
               couleur={retard > 0.005 ? "var(--danger)" : vacants > 0 ? "var(--accent)" : "var(--success)"}
               titre={<>{trouver(TYPES_IMMEUBLE, i.type)?.icone} {i.nom}</>}
               sousTitre={[

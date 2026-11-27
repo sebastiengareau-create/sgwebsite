@@ -9,12 +9,14 @@ import {
   etatEcheance, frequenceLisible, TYPES_ENTRETIEN, TYPES_LOGEMENT,
 } from "@/lib/immobilierCalculs";
 import { champsImmeuble } from "../ImmeublesClient";
+import PhotoBatiment from "../../../components/PhotoBatiment";
+import { adresseComplete } from "@/lib/photoBatiment";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, Vide, valeursDe, aujourdhui, Statistique,
   champsLogement, champsDepense, FormulaireReparation, FormulaireDocument, ListeDocuments, ListeReparations, PastilleEtat, Solde, lien, LigneMouvement,
 } from "../../ui";
 
-export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, annee, locataires }) {
+export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, annee, locataires, vueRue }) {
   const type = trouver(TYPES_IMMEUBLE, immeuble.type);
   const { lignes } = rendement({ immeubles: [immeuble], ...donnees });
   const r = lignes[0];
@@ -24,6 +26,7 @@ export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, ann
     <div className="conteneur-page">
       <Retour href="/immobilier/immeubles">Immeubles</Retour>
       <h1 style={{ fontSize: 21, margin: "10px 0 14px" }}>{type?.icone} {immeuble.nom}</h1>
+      <PhotoBatiment urlApi={`/api/immobilier/immeubles/${immeuble.id}/photo`} photoLe={immeuble.photo?.ajouteeLe} adresse={adresseComplete(immeuble)} vueRue={vueRue} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Statistique valeur={argent(loyers)} label="Loyers par mois" note={`${argent(loyers * 12)} par année`} teinte="var(--success)" />
         <Statistique valeur={`${String(tauxOccupation(immeuble.logements)).replace(".", ",")} %`} label={`Occupation · ${immeuble.logements.length} logement${immeuble.logements.length > 1 ? "s" : ""}`} teinte="var(--bleu)" />

@@ -2039,6 +2039,7 @@ model BatimentCopro {
   travaux           TravailCopro[]
   entretiens        EntretienCopro[]
   documents         DocumentCopro[]
+  photo             PhotoBatiment? // photo du bâtiment (lib/photoBatiment.js)
   creeLe            DateTime         @default(now())
 }
 
@@ -2387,7 +2388,24 @@ model ImmeubleImmo {
   reparations          ReparationImmo[]
   documents            DocumentImmo[]
   entretiens           EntretienImmo[]
+  photo                PhotoBatiment? // photo de l'immeuble (lib/photoBatiment.js)
   creeLe               DateTime         @default(now())
+}
+
+// Photo d'un immeuble (Immobilier) ou d'un bâtiment (Copropriété), une au
+// plus, prise ou choisie depuis sa fiche (lib/photoBatiment.js). Sans photo,
+// la fiche montre la vue de la rue de Google Street View, jamais gardée en
+// base. Table à part pour ne pas charger l'image avec les listes ; url :
+// image compressée (data URL), comme PhotoPiece.
+model PhotoBatiment {
+  id         String         @id @default(cuid())
+  immeubleId String?        @unique
+  immeuble   ImmeubleImmo?  @relation(fields: [immeubleId], references: [id], onDelete: Cascade)
+  batimentId String?        @unique
+  batiment   BatimentCopro? @relation(fields: [batimentId], references: [id], onDelete: Cascade)
+  url        String
+  ajoutePar  String?
+  ajouteeLe  DateTime       @default(now())
 }
 
 // Logement, local commercial, stationnement ou rangement loué

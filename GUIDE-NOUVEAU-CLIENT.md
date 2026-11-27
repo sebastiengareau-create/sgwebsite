@@ -81,7 +81,9 @@ Chaque client a son **propre projet Railway complet** :
    (New) » s'entre dans l'appli (Paramètres → Google Places), ou dans la
    variable `GOOGLE_PLACES_API_KEY`. Sans clé, les champs Ville et Code
    postal font quand même leurs suggestions (données locales). Voir
-   `lib/googlePlaces.js`.
+   `lib/googlePlaces.js`. Avec l'API « Street View Static API » activée sur
+   la même clé, les immeubles (Immobilier) et bâtiments (Copropriété) sans
+   photo montrent la vue de la rue de leur adresse (`lib/photoBatiment.js`).
 10. Paiement en ligne (facultatif — module « Paiement en ligne (Stripe) ») :
    le garage ouvre son propre compte Stripe (stripe.com). Dans Stripe →
    Développeurs → Clés API, copie la clé secrète dans `STRIPE_SECRET_KEY`
