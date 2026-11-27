@@ -14,5 +14,5 @@ export async function exigerAccesImmo() {
 export const simple = (x) => JSON.parse(JSON.stringify(x));
 
 // Champs d'un document sans son contenu (jamais envoyé à la page)
-export const DOC_SANS_DONNEES = { id: true, visibleLocataire: true, titre: true, categorie: true, date: true, expireLe: true, description: true, nom: true, typeMime: true, taille: true, creeLe: true, immeubleId: true, logementId: true, bailId: true, locataireId: true, genre: true, signeLe: true };
+export const DOC_SANS_DONNEES = { id: true, visibleLocataire: true, titre: true, categorie: true, date: true, expireLe: true, description: true, nom: true, typeMime: true, taille: true, creeLe: true, immeubleId: true, logementId: true, bailId: true, locataireId: true, genre: true, signeLe: true, empreinteSignee: true };
 export const FICHIER_SANS_DONNEES = { id: true, nom: true, typeMime: true, taille: true, creeLe: true, ajoutePar: true };

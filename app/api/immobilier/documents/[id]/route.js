@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { routesElement } from "@/lib/immobilierRoutes";
 import { sessionImmo, refus, erreur, reponseFichier } from "@/lib/immobilier";
-import { versionDocument } from "@/lib/signatureImmo";
+import { versionDocument, verrouSignature } from "@/lib/signatureImmo";
 
 export async function GET(request, props) {
   if (!(await sessionImmo())) return refus();
@@ -11,4 +11,7 @@ export async function GET(request, props) {
   return reponseFichier(versionDocument(doc, request), request);
 }
 
-export const { PATCH, DELETE } = routesElement("documentImmo", "document");
+// Un document envoyé à la signature reste au dossier (preuve de la signature)
+export const { PATCH, DELETE } = routesElement("documentImmo", "document", {
+  avantSuppression: (d) => verrouSignature({ id: d.id }),
+});

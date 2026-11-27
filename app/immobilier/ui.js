@@ -527,6 +527,8 @@ export function ListeDocuments({ documents, vide = "Aucun document.", envoi = fa
     const exp = etatExpiration(d.expireLe);
     const sig = etatSignatures(d.signatures);
     const signable = signataires && d.typeMime === "application/pdf" && (d.bailId || d.locataireId);
+    // Envoyé à la signature : reste au dossier (lib/signatureImmo.js, verrouSignature)
+    const verrouille = d.signeLe || (d.signatures || []).some((s) => s.statut === "SIGNE" || s.statut === "EN_ATTENTE");
     return (
       <div key={d.id}>
         <div className="ligne-info ligne-pastilles" style={{ gap: 8 }}>
@@ -543,7 +545,9 @@ export function ListeDocuments({ documents, vide = "Aucun document.", envoi = fa
             {signable && !sig && <button type="button" onClick={() => setOuvert((x) => (x === d.id ? null : d.id))} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 700, color: "var(--accent)", whiteSpace: "nowrap" }}>✍️ Faire signer</button>}
             {envoi && (d.bailId || d.locataireId) && <BoutonEnvoyer url={`/api/immobilier/documents/${d.id}/envoyer`} confirmation={`Envoyer « ${d.titre} » par courriel au locataire ? Le PDF est joint ; l'envoi est consigné sur la fiche du bail.`} />}
             <BasculeVisible d={d} />
-            <BoutonSupprimer url={`/api/immobilier/documents/${d.id}`} confirmation={`Supprimer le document « ${d.titre} » ?${sig ? " Ses signatures disparaissent aussi." : ""}`}>✕</BoutonSupprimer>
+            {verrouille
+              ? <span title={d.signeLe ? "Document signé : il reste au dossier, avec ses signatures et son certificat." : "Signature demandée : annule la demande pour pouvoir le supprimer."} style={{ fontSize: 13, cursor: "help" }}>🔒</span>
+              : <BoutonSupprimer url={`/api/immobilier/documents/${d.id}`} confirmation={`Supprimer le document « ${d.titre} » ?${sig ? " Ses signatures refusées ou annulées disparaissent aussi." : ""}`}>✕</BoutonSupprimer>}
           </span>
         </div>
         {ouvert === d.id && (signable || sig) && <SignaturesDocument d={d} signataires={signataires || []} envoi={envoi} />}
@@ -624,7 +628,7 @@ function SignaturesDocument({ d, signataires, envoi }) {
               </span>
             </div>
           ))}
-          {d.signeLe && <p style={{ fontSize: 12.5, margin: "8px 0 0" }}>✅ Toutes les signatures reçues le {dateHeure(d.signeLe)} : {d.genre ? "la version signée, avec le certificat de signature, a été produite" : "le certificat de signature accompagne le fichier d'origine"} et envoyée aux locataires qui ont un courriel.</p>}
+          {d.signeLe && <p style={{ fontSize: 12.5, margin: "8px 0 0" }}>✅ Toutes les signatures reçues le {dateHeure(d.signeLe)} : {d.genre ? "la version signée, avec le certificat de signature, a été produite" : "le certificat de signature accompagne le fichier d'origine"} et envoyée aux locataires qui ont un courriel. Le document reste au dossier : il ne peut plus être supprimé.{d.empreinteSignee && <span style={{ display: "block", fontSize: 11.5, color: "var(--text-muted)", marginTop: 4, overflowWrap: "anywhere" }}>Empreinte SHA-256 de la version signée : <code>{d.empreinteSignee}</code></span>}</p>}
         </div>
       )}
       {peutDemander && (

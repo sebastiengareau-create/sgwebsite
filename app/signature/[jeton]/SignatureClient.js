@@ -17,12 +17,13 @@ const LIBELLES_STATUT = { EN_ATTENTE: "en attente", SIGNE: "signé", REFUSE: "re
 
 // Signature d'un document (bail, document déposé) ou réponse signée à un
 // avis de modification (mode « AVIS »)
-export default function SignatureClient({ jeton, mode, demande, document, parties, avis, telephone }) {
+export default function SignatureClient({ jeton, mode, demande, document, parties, avis, reglementRemisLe, telephone }) {
   const avisMode = mode === "AVIS";
   const [statut, setStatut] = useState(demande.statut);
   const [nom, setNom] = useState(demande.nom || "");
   const [signature, setSignature] = useState(null);
   const [consentement, setConsentement] = useState(false);
+  const [reglementRecu, setReglementRecu] = useState(false);
   const [reponseAvis, setReponseAvis] = useState("");
   const [note, setNote] = useState("");
   const [refusOuvert, setRefusOuvert] = useState(false);
@@ -39,13 +40,14 @@ export default function SignatureClient({ jeton, mode, demande, document, partie
       if (avisMode && !reponseAvis) return setErreur("Choisissez votre réponse.");
       if (!nom.trim()) return setErreur("Entrez votre nom.");
       if (!signature) return setErreur("Signez dans la case.");
+      if (reglementRemisLe && !reglementRecu) return setErreur("Cochez la case confirmant que vous avez reçu le règlement de l'immeuble.");
       if (!consentement) return setErreur("Cochez la case de consentement.");
     }
     setEnCours(true);
     const res = await fetch(`/api/signature/${jeton}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, nom, signature, consentement, reponseAvis, note }),
+      body: JSON.stringify({ action, nom, signature, consentement, reglementRecu, reponseAvis, note }),
     }).catch(() => null);
     setEnCours(false);
     if (!res?.ok) {
@@ -102,6 +104,11 @@ export default function SignatureClient({ jeton, mode, demande, document, partie
         <a href={`${lienPdf}?telecharger`} style={lien}>⬇️ Télécharger</a>
         {document.signe && <a href={`${lienPdf}?version=signee`} target="_blank" rel="noreferrer" style={lien}>✅ Version signée</a>}
       </div>
+      {document.signe && document.empreinteSignee && (
+        <p style={{ fontSize: 11.5, color: "var(--text-muted)", textAlign: "center", margin: "-8px 0 18px", overflowWrap: "anywhere" }}>
+          Empreinte SHA-256 de la version signée : <code>{document.empreinteSignee}</code>
+        </p>
+      )}
 
       {parties.length > 1 && (
         <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
@@ -141,6 +148,12 @@ export default function SignatureClient({ jeton, mode, demande, document, partie
           <CaseSignature onChange={setSignature} />
           <label style={etiquette}>Message (facultatif)</label>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={1000} style={{ ...champ, resize: "vertical", fontFamily: "inherit" }} />
+          {reglementRemisLe && (
+            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, marginBottom: 10, cursor: "pointer" }}>
+              <input type="checkbox" checked={reglementRecu} onChange={(e) => setReglementRecu(e.target.checked)} style={{ width: 20, height: 20, flexShrink: 0, accentColor: "var(--success)" }} />
+              <span>J&apos;ai reçu le règlement de l&apos;immeuble (remis le {DATE.format(new Date(reglementRemisLe))}) avant de signer ce bail.</span>
+            </label>
+          )}
           <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, marginBottom: 14, cursor: "pointer" }}>
             <input type="checkbox" checked={consentement} onChange={(e) => setConsentement(e.target.checked)} style={{ width: 20, height: 20, flexShrink: 0, accentColor: "var(--success)" }} />
             <span>J&apos;ai lu le document au complet et je consens à {avisMode ? "signer ma réponse" : "le signer"} électroniquement. Ma signature électronique a la même valeur que ma signature à la main.</span>

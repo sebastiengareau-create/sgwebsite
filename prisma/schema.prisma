@@ -2630,6 +2630,7 @@ model DocumentImmo {
   signatures     SignatureImmo[]
   donneesSignees Bytes?
   signeLe        DateTime?
+  empreinteSignee String? // SHA-256 de la version signée (donneesSignees), calculée à sa production
 
   @@index([categorie])
   @@index([immeubleId])
@@ -2684,6 +2685,7 @@ model SignatureImmo {
   signataireNom String? // nom entré en signant
   signature     String? // image PNG de la signature (data URL)
   reponseAvis   String? // avis de modification : ACCEPTE | REFUSE | QUITTE
+  reglementRecuLe DateTime? // bail : le locataire atteste en signant avoir reçu le règlement de l'immeuble
   note          String? // message laissé avec la réponse
   ip            String?
   navigateur    String?

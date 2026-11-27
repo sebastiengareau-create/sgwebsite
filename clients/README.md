@@ -155,8 +155,11 @@ on décide quand et à qui une modification s'applique.
   **signature électronique** du bail, de la réponse à l'avis de modification
   et de tout PDF déposé : lien personnel par courriel (`/signature/<jeton>`),
   signature au doigt avec consentement, IP et empreinte SHA-256, version
-  signée et certificat de signature envoyés aux locataires
-  (`lib/signatureImmo.js`), préparation et suivi des
+  signée et certificat de signature envoyés aux locataires avec l'empreinte
+  de la version signée (conservée, `empreinteSignee`) ; pour un bail qui
+  mentionne la remise du règlement de l'immeuble, chaque locataire atteste
+  en signant l'avoir reçu ; un document envoyé à la signature ne peut plus
+  être supprimé (`lib/signatureImmo.js`), préparation et suivi des
   relevés 31 (`/immobilier/releve-31`) avec la copie de chaque locataire en
   PDF, mise en page comme le relevé (cases A, B, C1 à C5, locataire,
   propriétaire — une page par locataire, copie du propriétaire en option,
