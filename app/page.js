@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { obtenirSession } from "@/lib/auth";
+import { accueilDuRole } from "@/lib/client";
 
 export default async function Accueil() {
   const session = await obtenirSession();
   if (!session) redirect("/login");
-  const destination = session.role === "DEVELOPPEUR" || session.role === "NIVEAU4" ? "gerant" : session.role.toLowerCase();
-  redirect(`/${destination}`);
+  redirect(accueilDuRole(session.role));
 }

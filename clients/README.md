@@ -9,6 +9,45 @@ la variable Railway `NEXT_PUBLIC_CLIENT`.
 |---|---|---|---|
 | Modèle de base (démo, nouvelles ventes) | *(vide)* ou `template` | `client/template` | — |
 | VR Premium | `vr-premium` | `client/vr-premium` | [vr-premium/CLIENT.md](vr-premium/CLIENT.md) |
+| Démo Premium | `demo-premium` | `client/template` | — |
+| Démo Ferme | `demo-ferme` | `client/template` | — |
+| Démo Copropriété | `demo-copropriete` | `client/template` | — |
+| Démo Immobilier | `demo-immobilier` | `client/template` | — |
+
+## Démos des 5 déclinaisons (vente)
+
+Les démos vivent toutes dans le **projet Railway du modèle de base** : un
+service par déclinaison, tous sur la branche `client/template` (appliquer à
+`template` met donc les 5 à jour d'un coup), chacun avec **sa propre base**
+(un seul service Postgres avec une base par démo suffit).
+
+| Service | `NEXT_PUBLIC_CLIENT` | Au premier démarrage |
+|---|---|---|
+| Garage | `template` | atelier de démonstration dans Administrateur |
+| Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration |
+| Ferme | `demo-ferme` | module Élevage actif, arrivée sur `/elevage` |
+| Copropriété | `demo-copropriete` | module Copropriété actif, sections du garage retirées, arrivée sur `/copropriete` |
+| Immobilier | `demo-immobilier` | module Immobilier actif, sections du garage retirées, arrivée sur `/immobilier` |
+
+- **Ajouter un service** : Railway → projet du modèle de base → *New* →
+  *GitHub Repo* (même dépôt), branche `client/template`, variables
+  `NEXT_PUBLIC_CLIENT`, `DATABASE_URL` (sa base à lui), `SESSION_SECRET`,
+  et une adresse (domaine).
+- **Liens entre les démos** : variable `NEXT_PUBLIC_DEMOS`, la même dans
+  chaque service (variable partagée du projet) :
+  `garage=https://…,premium=https://…,ferme=https://…,copropriete=https://…,immobilier=https://…`.
+  Sur l'écran de connexion, les autres déclinaisons deviennent des liens
+  vers leur démo (`lib/marque.js`).
+- **Modules de départ** : réglage `reglagesDemarrage` du profil, inscrit dans
+  la base au démarrage seulement s'il n'y est pas encore
+  (`lib/reglagesDemarrage.js`) — ce que l'Administrateur change ensuite
+  reste. Les données de démonstration se chargent ensuite dans
+  Administrateur (atelier, troupeau, copropriété, parc locatif).
+- **Mise en veille** (*Serverless* dans les réglages du service) : une démo
+  inactive ne coûte presque rien ; le premier chargement prend quelques
+  secondes.
+- Logos : `public/clients/demo-<déclinaison>/logo.png`, le logo métal de la
+  déclinaison (`public/marque/`).
 
 ## Appliquer une modification à un client
 
@@ -273,9 +312,12 @@ on décide quand et à qui une modification s'applique.
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.
 - **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
-  modèle de base seulement) : « DÉMO » dans le haut et, sous le logo Garage,
-  les autres déclinaisons (Ferme, Copropriété, Immobilier, Premium) en texte
-  de leur couleur (`DECLINAISONS_DEMO`, `lib/marque.js`).
+  modèle de base et démos des déclinaisons) : « DÉMO » dans le haut et, sous
+  le logo, les autres déclinaisons (Garage, Ferme, Copropriété, Immobilier,
+  Premium) en texte de leur couleur, liens vers leur démo quand
+  `NEXT_PUBLIC_DEMOS` donne leur adresse (`DECLINAISONS_DEMO`,
+  `lib/marque.js`). Page d'arrivée du gérant après la connexion : réglage
+  `accueilGerant` du profil (vue d'ensemble `/gerant` par défaut).
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
   tous — discrète (bas de la page de connexion, Paramètres → À propos, avec
