@@ -7,6 +7,10 @@ async function register() {
     if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
       console.error("⚠️  SESSION_SECRET n'est pas défini : les sessions ne sont pas protégées. Ajoute cette variable dans Railway (voir GUIDE-NOUVEAU-CLIENT.md).");
     }
+    // Démos des déclinaisons : modules et accès de départ du profil
+    // (reglagesDemarrage, lib/client.js), si la base ne les a pas encore
+    const { appliquerReglagesDemarrage } = require("./lib/reglagesDemarrage");
+    await appliquerReglagesDemarrage();
     const { demarrerPlanificateurSauvegarde } = require("./lib/planificateurSauvegarde");
     demarrerPlanificateurSauvegarde();
   }
