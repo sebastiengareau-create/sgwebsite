@@ -24,7 +24,7 @@ service par déclinaison, tous sur la branche `client/template` (appliquer à
 | Service | `NEXT_PUBLIC_CLIENT` | Au premier démarrage |
 |---|---|---|
 | Garage | `template` | atelier de démonstration dans Administrateur |
-| Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration |
+| Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration en VR (roulottes et motorisés, travaux, pièces et fournisseurs de VR) |
 | Ferme | `demo-ferme` | module Élevage actif, arrivée sur `/elevage` |
 | Copropriété | `demo-copropriete` | module Copropriété actif, sections du garage retirées, arrivée sur `/copropriete` |
 | Immobilier | `demo-immobilier` | module Immobilier actif, sections du garage retirées, arrivée sur `/immobilier` |
