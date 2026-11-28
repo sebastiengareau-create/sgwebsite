@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../../components/EnTete";
 import { exigerAccesCopro, simple, SANS_DONNEES } from "../../acces";
+import { lienComptaCoproActif, statutsFactures, ORIGINE_TRAVAIL } from "@/lib/coproprieteCompta";
 import TravailClient from "./TravailClient";
 
 export default async function FicheTravail(props) {
@@ -25,10 +26,13 @@ export default async function FicheTravail(props) {
     prisma.fournisseur.findMany({ where: { actif: true }, select: { id: true, nom: true }, orderBy: { nom: "asc" } }),
   ]);
   if (!travail) notFound();
+  // Copropriété reliée à la comptabilité : facture du bon aux comptes à payer
+  const compta = await lienComptaCoproActif();
+  const facture = compta ? (await statutsFactures(ORIGINE_TRAVAIL, [travail.id]))[travail.id] || "AUCUNE" : null;
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <TravailClient {...simple({ travail, unites, batiments, fournisseurs })} />
+      <TravailClient {...simple({ travail, unites, batiments, fournisseurs })} facture={facture} />
     </div>
   );
 }

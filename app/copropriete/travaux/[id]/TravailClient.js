@@ -10,7 +10,7 @@ import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, valeursDe, useApi, Erreur, EnvoiFichiers, ListeFichiers, champStyle, aujourdhui, Endroit,
 } from "../../ui";
 
-export default function TravailClient({ travail: t, unites, batiments, fournisseurs }) {
+export default function TravailClient({ travail: t, unites, batiments, fournisseurs, facture }) {
   const router = useRouter();
   const [edition, setEdition] = useState(false);
   const champs = champsTravail({ unites, batiments, fournisseurs });
@@ -47,7 +47,7 @@ export default function TravailClient({ travail: t, unites, batiments, fournisse
         )}
       </Section>
 
-      <Cloture t={t} />
+      <Cloture t={t} facture={facture} />
 
       <Section titre="Photos, soumissions et factures">
         <ListeFichiers fichiers={t.fichiers} />
@@ -91,7 +91,7 @@ function Progression({ t, demandeur }) {
   );
 }
 
-function Cloture({ t }) {
+function Cloture({ t, facture }) {
   const [edition, setEdition] = useState(false);
   const termine = t.statut === "TERMINE";
   return (
@@ -103,6 +103,13 @@ function Cloture({ t }) {
           <LigneInfo label="Coût réel" valeur={t.coutReel != null && <strong>{argent(t.coutReel)}</strong>} />
           {t.coutReel != null && t.coutEstime != null && <LigneInfo label="Écart avec l'estimé" valeur={argent(t.coutReel - t.coutEstime)} />}
           <LigneInfo label="Facture du fournisseur" valeur={t.numeroFacture} />
+          {t.fondsPrevoyance && <LigneInfo label="Payé par" valeur="Le fonds de prévoyance" />}
+          {facture && (
+            <LigneInfo
+              label="Comptes à payer"
+              valeur={facture === "AUCUNE" ? "Inscrite une fois le bon terminé, avec son coût réel" : <Link href="/gerant/comptabilite/comptes-a-payer" style={{ color: "var(--accent)" }}>{facture === "PAYEE" ? "✅ Facture payée" : "Facture à payer"}</Link>}
+            />
+          )}
           <LigneInfo label="Terminé le" valeur={t.dateFin && dateLisible(t.dateFin)} />
           <LigneInfo label="Garantie jusqu'au" valeur={t.garantieFin && dateLisible(t.garantieFin)} />
           {termine && t.coutReel == null && <p style={{ fontSize: 12.5, color: "var(--accent)", margin: "8px 0 0" }}>Entre le coût réel pour tenir l'historique des réparations (et le carnet d'entretien) à jour.</p>}

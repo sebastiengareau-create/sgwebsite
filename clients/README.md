@@ -26,8 +26,8 @@ service par déclinaison, tous sur la branche `client/template` (appliquer à
 | Garage | `template` | atelier de démonstration dans Administrateur |
 | Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration en VR (roulottes et motorisés, travaux, pièces et fournisseurs de VR) |
 | Ferme | `demo-ferme` | module Élevage actif, arrivée sur `/elevage` |
-| Copropriété | `demo-copropriete` | module Copropriété actif, sections du garage retirées, arrivée sur `/copropriete` |
-| Immobilier | `demo-immobilier` | module Immobilier actif, sections du garage retirées, arrivée sur `/immobilier` |
+| Copropriété | `demo-copropriete` | module Copropriété actif avec l'option « Reliée à la comptabilité », sections du garage retirées, arrivée sur `/copropriete` |
+| Immobilier | `demo-immobilier` | module Immobilier actif avec l'option « Relié à la comptabilité », sections du garage retirées, arrivée sur `/immobilier` |
 
 - **Ajouter un service** : Railway → projet du modèle de base → *New* →
   *GitHub Repo* (même dépôt), branche `client/template`, variables
@@ -117,9 +117,27 @@ on décide quand et à qui une modification s'applique.
   propriétaires, contact d'urgence, clés magnétiques, mobilité réduite
   (aide pour évacuer, ♿ sur l'unité) et autres personnes sous leur toit —
   jamais sur le portail, charges communes,
-  demandes de réparation et bons de travail, entretien préventif, documents
-  et portail sécurisé des copropriétaires, `lib/copropriete.js` ; copropriété
-  de démonstration à charger ou retirer dans Administrateur,
+  demandes de réparation et bons de travail (cochés au besoin « payé par le
+  fonds de prévoyance »), entretien préventif, documents
+  et portail sécurisé des copropriétaires, `lib/copropriete.js` ; tableau de
+  bord avec la **rue illustrée** des bâtiments en immeubles « condo » (une
+  fenêtre par unité : cotisations à jour, en retard, demande en cours, sans
+  propriétaire ; `lib/coproprieteVisuel.js`), cotisations du mois encaissées,
+  conseil du mois du syndicat et cartes des bâtiments (photo, vue de la rue
+  ou façade illustrée, aussi dans Unités → Bâtiments), couleurs bleues de la
+  marque Copropriété (`BandeauCopro.js`) ; **lien avec la comptabilité**
+  (`/copropriete/comptabilite`, `lib/coproprieteCompta.js`, calculs vérifiés
+  par `npm run test:copropriete`) : option du
+  forfait comme celle de l'Immobilier (`module_copropriete_comptabilite`,
+  active dans la démo Copropriété, réglage `copro_comptabilite`) —
+  cotisations au compte « Cotisations à recevoir », réparties entre le fonds
+  d'exploitation, le fonds de prévoyance et le fonds d'autoassurance dans la
+  proportion du budget de l'exercice, cotisations spéciales et frais d'usage
+  à leurs comptes, paiements au compte de banque choisi, bons de travail
+  terminés en factures du fournisseur aux comptes à payer
+  (`Depense.origine` `COPRO_TRAVAIL`, poste du fonds de prévoyance au
+  besoin), postes « Copropriété — … » pour les autres dépenses du syndicat ;
+  copropriété de démonstration à charger ou retirer dans Administrateur,
   `lib/coproprieteDemo.js`).
   **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
   immeubles locatifs — immeubles (année, entrepreneur ; photo prise depuis la
@@ -133,14 +151,16 @@ on décide quand et à qui une modification s'applique.
   de résiliation au TAL ; `etatCompte`, `lib/immobilierCalculs.js`, vérifié
   par `npm run test:immobilier`), tableau de bord avec la liste « À faire »
   et les loyers facturés et reçus des 12 derniers mois, **rue illustrée**
-  en tête (`app/immobilier/RueImmo.js`, `lib/immobilierVisuel.js` : chaque
+  en tête (`app/components/RueIllustree.js`, `lib/immobilierVisuel.js` : chaque
   immeuble dessiné selon son type — plex à corniche, balcons et escalier
   extérieur, multilogement, mixte avec ses commerces, maison —, une fenêtre
   par logement de la couleur de son état, ciel selon l'heure et la saison au
   Québec, salutation, loyers du mois encaissés et conseil du mois du
   propriétaire) et cartes des immeubles (photo, vue de la rue ou façade
   illustrée, aussi dans la page Immeubles et la fiche sans photo), couleurs
-  violettes de la marque Immobilier (`BandeauImmo.js` sur chaque écran), **calcul des hausses
+  violettes de la marque Immobilier (`BandeauImmo.js` sur chaque écran ;
+  dessins communs avec la Copropriété dans `app/components/` :
+  `RueIllustree.js`, `HeroRue.js`, `BandeauBatiments.js`, `TuileVive.js`), **calcul des hausses
   de loyer** selon la méthode du TAL en vigueur depuis 2026 (par immeuble,
   `/immobilier/immeubles/<id>/hausses`, `lib/immobilierHausses.js` :
   pourcentage de base, part de la hausse des taxes et des assurances au-delà
@@ -228,7 +248,8 @@ on décide quand et à qui une modification s'applique.
   semaines, assurance qui expire — type `IMMO_A_SURVEILLER`, actif par
   défaut), `lib/immobilier.js` ;
   **lien avec la comptabilité** (`/immobilier/comptabilite`,
-  `lib/immobilierCompta.js`) : **option du forfait**, activée seulement par
+  `lib/immobilierCompta.js`, moteur commun avec la Copropriété :
+  `lib/lienCompta.js`) : **option du forfait**, activée seulement par
   le développeur ou le super-administrateur dans Administrateur → Modules,
   sous Immobilier (`module_immobilier_comptabilite`, inactive par défaut,
   active dans la démo Immobilier) ; exige le module Comptabilité. Le client

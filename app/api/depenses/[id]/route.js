@@ -12,10 +12,15 @@ function jourCivil(dateStr) {
 // Facture créée par l'Immobilier relié à la comptabilité (lib/immobilierCompta.js) :
 // elle se modifie ou se retire dans l'Immobilier, qui la tient à jour — ici,
 // seulement son paiement
-const ORIGINES_IMMOBILIER = { IMMO_DEPENSE: "Immobilier → Dépenses", IMMO_REPARATION: "la réparation, dans Immobilier → Réparations" };
+// (et de même pour la Copropriété, lib/coproprieteCompta.js)
+const ORIGINES_MODULES = {
+  IMMO_DEPENSE: ["l'Immobilier", "Immobilier → Dépenses"],
+  IMMO_REPARATION: ["l'Immobilier", "la réparation, dans Immobilier → Réparations"],
+  COPRO_TRAVAIL: ["la Copropriété", "le bon de travail, dans Copropriété → Entretien"],
+};
 function refusImmobilier(depense) {
-  const ou = ORIGINES_IMMOBILIER[depense?.origine];
-  return ou ? NextResponse.json({ erreur: `Cette facture vient de l'Immobilier : modifie-la ou retire-la dans ${ou}. Seul son paiement se fait ici.` }, { status: 409 }) : null;
+  const o = ORIGINES_MODULES[depense?.origine];
+  return o ? NextResponse.json({ erreur: `Cette facture vient de ${o[0]} : modifie-la ou retire-la dans ${o[1]}. Seul son paiement se fait ici.` }, { status: 409 }) : null;
 }
 
 export async function PATCH(request, props) {

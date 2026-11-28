@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein, Pastille } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import {
@@ -24,7 +24,7 @@ export default function EntretienClient(props) {
   const [onglet, setOnglet] = useState(ONGLETS.some((o) => o.code === props.ongletInitial) ? props.ongletInitial : "DEMANDES");
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🛠️" titre="Entretien et réparations" sousTitre="Demandes des copropriétaires, bons de travail aux fournisseurs, entretien préventif et inspections." />
+      <BandeauCopro icone="🛠️" titre="Entretien et réparations" sousTitre="Demandes des copropriétaires, bons de travail aux fournisseurs, entretien préventif et inspections." />
       <NavCopro actif="/copropriete/entretien" />
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
       {onglet === "DEMANDES" && <Demandes {...props} />}

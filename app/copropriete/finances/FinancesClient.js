@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein } from "../../components/StyleSection";
 import {
   MODES_PAIEMENT, argent, pourcent, libelle, dateLisible, repartitionBudget, totalBudget, prevoyanceSuffisante, budgetPourPeriode, periodeLisible, nomsProprietaires, TYPES_CHARGE,
@@ -27,12 +27,18 @@ const champsBudget = [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
-export default function FinancesClient({ budgets, unites, soldes, cotisations, derniersPaiements, ongletInitial }) {
+export default function FinancesClient({ budgets, unites, soldes, cotisations, derniersPaiements, ongletInitial, compta }) {
   const [onglet, setOnglet] = useState(ONGLETS.some((o) => o.code === ongletInitial) ? ongletInitial : "BUDGET");
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="💰" titre="Charges communes" sousTitre="Budget annuel, répartition selon les quotes-parts, cotisations mensuelles et paiements." />
+      <BandeauCopro icone="💰" titre="Charges communes" sousTitre="Budget annuel, répartition selon les quotes-parts, cotisations mensuelles et paiements." />
       <NavCopro actif="/copropriete/finances" />
+      {compta && (
+        <p style={{ margin: "-6px 0 12px", fontSize: 13.5 }}>
+          <Link href="/copropriete/comptabilite" style={{ fontWeight: 700, color: "var(--accent)" }}>📚 Reliée à la comptabilité</Link>
+          <span style={{ color: "var(--text-muted)" }}> — cotisations, paiements et travaux vont aux livres du syndicat.</span>
+        </p>
+      )}
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
       {onglet === "BUDGET" && <Budgets budgets={budgets} unites={unites} />}
       {onglet === "COTISATIONS" && <Cotisations budgets={budgets} cotisations={cotisations} />}

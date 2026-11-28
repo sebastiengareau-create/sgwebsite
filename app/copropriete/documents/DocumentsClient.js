@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein, Pastille } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { CATEGORIES_DOCUMENTS, VISIBILITES, libelle, dateLisible, taille } from "@/lib/coproprieteCalculs";
@@ -29,7 +29,7 @@ export default function DocumentsClient({ documents, unites, batiments }) {
 
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="📁" titre="Documents" sousTitre="Classés par catégorie et partagés aux copropriétaires dans leur portail sécurisé." />
+      <BandeauCopro icone="📁" titre="Documents" sousTitre="Classés par catégorie et partagés aux copropriétaires dans leur portail sécurisé." />
       <NavCopro actif="/copropriete/documents" />
       <div style={{ marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Déposer un document"}</BoutonPlein>

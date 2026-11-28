@@ -2,7 +2,7 @@
 
 // Cartes des immeubles (tableau de bord et page Immeubles) : la photo de
 // l'immeuble, sinon la vue de la rue de Google, sinon sa façade illustrée
-// (RueImmo.js) ; puis un carré par logement de la couleur de son état, les
+// (RueIllustree.js) ; puis un carré par logement de la couleur de son état, les
 // loyers du mois et ce qui demande de l'attention.
 
 import { useState } from "react";
@@ -10,12 +10,12 @@ import Link from "next/link";
 import { TYPES_IMMEUBLE, argent, trouver, bailActuel, nomsLocataires, nomLogement, tauxOccupation } from "@/lib/immobilierCalculs";
 import { etatLogement } from "@/lib/immobilierVisuel";
 import { adresseComplete, urlPhoto, urlVueRue } from "@/lib/photoBatiment";
-import { FacadeImmo, ETATS_FENETRE } from "./RueImmo";
+import { FacadeIllustree, ETATS_FENETRE } from "../components/RueIllustree";
 
 const HABITABLES = ["LOGEMENT", "COMMERCIAL"];
 
 // Couleur d'un état dans l'interface (les mêmes que les fenêtres de la rue)
-export const COULEURS_ETAT = { OK: "#f0b429", RETARD: "#e5533f", SURVEILLER: "#3f9ae8", VACANT: null };
+export const COULEURS_ETAT = { OK: "#f0b429", RETARD: "#e5533f", SURVEILLER: "#3f9ae8", VACANT: null, SANS: null };
 
 // { [logementId]: { etat, texte } } pour la rue et les façades
 export function infosLogements(immeubles, comptes) {
@@ -30,18 +30,19 @@ export function infosLogements(immeubles, comptes) {
   return infos;
 }
 
-// Légende des couleurs : [[etat, nombre]…] présents
-export function LegendeEtats({ infos, clair }) {
+// Légende des couleurs : [[etat, nombre]…] présents ; libelles : noms des
+// états propres au module (ex. Copropriété), sinon ceux de l'Immobilier
+export function LegendeEtats({ infos, clair, libelles = {} }) {
   const compte = {};
   for (const { etat } of Object.values(infos)) compte[etat] = (compte[etat] || 0) + 1;
-  const ordre = ["OK", "SURVEILLER", "RETARD", "VACANT"].filter((e) => compte[e]);
+  const ordre = ["OK", "SURVEILLER", "RETARD", "VACANT", "SANS"].filter((e) => compte[e]);
   if (ordre.length === 0) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 12, color: clair ? "rgba(255,255,255,0.88)" : "var(--text-muted)" }}>
       {ordre.map((e) => (
         <span key={e} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <CarreEtat etat={e} />
-          {ETATS_FENETRE[e].label} ({compte[e]})
+          {libelles[e] || ETATS_FENETRE[e].label} ({compte[e]})
         </span>
       ))}
     </div>
@@ -61,10 +62,12 @@ export function CarreEtat({ etat, taille = 10, titre }) {
   );
 }
 
-function ImageImmeuble({ immeuble, infos, moment, saison, vueRue, hauteur }) {
+// La photo, sinon la vue de la rue, sinon la façade illustrée. urlApi : route
+// de la photo (Immobilier par défaut ; /api/copropriete/batiments/<id>/photo)
+export function ImageImmeuble({ immeuble, infos, moment, saison, vueRue, hauteur, urlApi }) {
   const [echec, setEchec] = useState(false);
   const adresse = adresseComplete(immeuble);
-  const api = `/api/immobilier/immeubles/${immeuble.id}/photo`;
+  const api = urlApi || `/api/immobilier/immeubles/${immeuble.id}/photo`;
   const src = immeuble.photo?.ajouteeLe ? urlPhoto(api, immeuble.photo.ajouteeLe) : vueRue && adresse ? urlVueRue(api, adresse) : null;
   if (src && !echec) {
     return (
@@ -72,7 +75,7 @@ function ImageImmeuble({ immeuble, infos, moment, saison, vueRue, hauteur }) {
       <img src={src} alt="" loading="lazy" onError={() => setEchec(true)} style={{ display: "block", width: "100%", height: hauteur, objectFit: "cover" }} />
     );
   }
-  return <FacadeImmo immeuble={immeuble} infos={infos} moment={moment} saison={saison} hauteur={hauteur} />;
+  return <FacadeIllustree immeuble={immeuble} infos={infos} moment={moment} saison={saison} hauteur={hauteur} />;
 }
 
 // immeuble : { id, nom, type, adresse, ville, photo, logements: [{ id, numero, type, etage, loyerVise, baux }] } ;

@@ -2268,6 +2268,10 @@ model TravailCopro {
   coutReel      Float?
   numeroFacture String?
   garantieFin   DateTime?
+  // Travaux payés par le fonds de prévoyance (réparations majeures, remplacement
+  // des parties communes) plutôt que par les charges courantes ; la facture va
+  // alors à ce poste quand la Copropriété est reliée à la comptabilité
+  fondsPrevoyance Boolean           @default(false)
   notes         String?
   suivis        SuiviTravailCopro[]
   fichiers      FichierCopro[]

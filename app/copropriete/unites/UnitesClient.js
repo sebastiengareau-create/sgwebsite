@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import PhotoBatiment from "../../components/PhotoBatiment";
 import { adresseComplete } from "@/lib/photoBatiment";
+import { FacadeIllustree } from "../../components/RueIllustree";
+import { etatUnite, ETATS_UNITE, batimentsPourRue } from "@/lib/coproprieteVisuel";
 import {
   TYPES_UNITE, TYPES_ESPACE, MODES_ESPACE, argent, pourcent, libelle, trouver, nomsProprietaires,
 } from "@/lib/coproprieteCalculs";
@@ -51,16 +53,16 @@ const ONGLETS = [
   { code: "BATIMENTS", label: "Bâtiments" },
 ];
 
-export default function UnitesClient({ unites, batiments, espaces, soldes, vueRue }) {
-  const [onglet, setOnglet] = useState("UNITES");
+export default function UnitesClient({ unites, batiments, espaces, soldes, vueRue, duCeMois = {}, demandesDe = {}, visuel, ongletInitial }) {
+  const [onglet, setOnglet] = useState(ONGLETS.some((o) => o.code === ongletInitial) ? ongletInitial : "UNITES");
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🏠" titre="Unités" sousTitre="Parties privatives, quotes-parts, stationnements, rangements et bâtiments." />
+      <BandeauCopro icone="🏠" titre="Unités" sousTitre="Parties privatives, quotes-parts, stationnements, rangements et bâtiments." />
       <NavCopro actif="/copropriete/unites" />
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
       {onglet === "UNITES" && <ListeUnites unites={unites} batiments={batiments} soldes={soldes} />}
       {onglet === "ESPACES" && <ListeEspaces espaces={espaces} batiments={batiments} unites={unites} />}
-      {onglet === "BATIMENTS" && <ListeBatiments batiments={batiments} vueRue={vueRue} />}
+      {onglet === "BATIMENTS" && <ListeBatiments batiments={batiments} vueRue={vueRue} unites={unites} soldes={soldes} duCeMois={duCeMois} demandesDe={demandesDe} visuel={visuel} />}
     </div>
   );
 }
@@ -153,9 +155,15 @@ function ListeEspaces({ espaces, batiments, unites }) {
   );
 }
 
-function ListeBatiments({ batiments, vueRue }) {
+function ListeBatiments({ batiments, vueRue, unites, soldes, duCeMois, demandesDe, visuel }) {
   const [formulaire, setFormulaire] = useState(false);
   const [edition, setEdition] = useState(null);
+  // Façade illustrée (une fenêtre par unité) quand il n'y a ni photo ni vue de la rue
+  const facades = Object.fromEntries(batimentsPourRue(batiments, unites).map((b) => [b.id, b]));
+  const infos = Object.fromEntries(unites.map((u) => {
+    const etat = etatUnite({ solde: soldes[u.id] || 0, duCeMois: duCeMois[u.id] || 0, demandes: demandesDe[u.id] || 0, proprietaires: u.proprietes.length });
+    return [u.id, { etat, texte: [`Unité ${u.numero}`, nomsProprietaires(u), ETATS_UNITE[etat].toLowerCase()].filter(Boolean).join(" · ") }];
+  }));
   return (
     <>
       <div style={{ marginBottom: 14 }}>
@@ -169,7 +177,10 @@ function ListeBatiments({ batiments, vueRue }) {
             <Formulaire cadre={false} champs={champsBatiment} initial={valeursDe(b, champsBatiment)} url={`/api/copropriete/batiments/${b.id}`} methode="PATCH" onFini={() => setEdition(null)} />
           ) : (
             <>
-              <PhotoBatiment urlApi={`/api/copropriete/batiments/${b.id}/photo`} photoLe={b.photo?.ajouteeLe} adresse={adresseComplete(b)} vueRue={vueRue} hauteur={200} />
+              <PhotoBatiment
+                urlApi={`/api/copropriete/batiments/${b.id}/photo`} photoLe={b.photo?.ajouteeLe} adresse={adresseComplete(b)} vueRue={vueRue} hauteur={200}
+                illustration={visuel && facades[b.id] && <FacadeIllustree immeuble={facades[b.id]} infos={infos} moment={visuel.moment} saison={visuel.saison} hauteur={200} />}
+              />
               <div className="ligne-info"><span>Adresse</span><span>{b.adresse || "—"}</span></div>
               <div className="ligne-info"><span>Unités</span><span>{b._count.unites}</span></div>
               {b.anneeConstruction && <div className="ligne-info"><span>Construit en</span><span>{b.anneeConstruction}</span></div>}

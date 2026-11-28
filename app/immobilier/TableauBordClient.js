@@ -9,7 +9,8 @@ import {
 } from "@/lib/immobilierCalculs";
 import { NavImmo, Panneau, Vide, PastilleEtat, nomLogement, lien, TableauRendement } from "./ui";
 import LoyersParMois from "./LoyersParMois";
-import { RueImmo, CielImmo, VOILES } from "./RueImmo";
+import TuileVive from "../components/TuileVive";
+import HeroRue, { ConseilDuMois, majuscule } from "../components/HeroRue";
 import { CarteImmeuble, GrilleImmeubles, LegendeEtats, infosLogements } from "./CartesImmeubles";
 import { CONSEILS_MOIS } from "@/lib/immobilierVisuel";
 
@@ -72,21 +73,21 @@ export default function TableauBordClient({ releve31, courriel, visuel, vueRue, 
       <NavImmo actif="/immobilier" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 10, marginBottom: 16 }}>
-        <Tuile
+        <TuileVive
           href="/immobilier/loyers?onglet=PAIEMENTS" icone="banque" teinte={TEINTES.vert} label={`Encaissé en ${moisLisible}`} valeur={argent(ceMois.percu)}
           note={attendu > 0 ? `sur ${argent(attendu)} de loyers du mois` : "aucun loyer inscrit ce mois-ci"}
           jauge={attendu > 0 ? encaisse : null}
         />
-        <Tuile
+        <TuileVive
           href="/immobilier/loyers?onglet=RETARDS" icone="alerte" teinte={totalRetard > 0 ? TEINTES.rouge : TEINTES.vert} label="En retard" valeur={argent(totalRetard)}
           couleur={totalRetard > 0 ? "var(--danger)" : undefined}
           note={enRetard.length === 0 ? "tout est payé à temps" : `${enRetard.length} ${enRetard.length > 1 ? "baux" : "bail"}${plusDeTroisSemaines ? ` · ${plusDeTroisSemaines} depuis plus de 3 sem.` : ""}`}
         />
-        <Tuile
+        <TuileVive
           href="#vacants" icone="maison" teinte={vacants.length > 0 ? TEINTES.ambre : TEINTES.bleu} label="Occupation" valeur={`${String(tauxOccupation(logements)).replace(".", ",")} %`}
           note={vacants.length === 0 ? "aucun logement vacant" : `${vacants.length} vacant${vacants.length > 1 ? "s" : ""}${manqueAGagner > 0 ? ` · ${argent(manqueAGagner)} / mois` : ""}`}
         />
-        <Tuile
+        <TuileVive
           href="/immobilier/reparations" icone="outils" teinte={urgentes.length > 0 ? TEINTES.rouge : TEINTE_IMMO} label="Réparations ouvertes" valeur={String(reparations.length)}
           note={urgentes.length > 0 ? `${urgentes.length} urgente${urgentes.length > 1 ? "s" : ""}` : "aucune urgente"}
         />
@@ -104,7 +105,7 @@ export default function TableauBordClient({ releve31, courriel, visuel, vueRue, 
         </Panneau>
       )}
 
-      <ConseilDuMois conseil={CONSEILS_MOIS[visuel.mois - 1]} mois={moisLisible} />
+      <ConseilDuMois conseil={CONSEILS_MOIS[visuel.mois - 1]} etiquette={`En ${moisLisible}, chez les proprios`} />
 
       <AFaire items={aFaire} />
 
@@ -189,27 +190,6 @@ export default function TableauBordClient({ releve31, courriel, visuel, vueRue, 
 }
 
 const ligneLien = { display: "flex", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: "1px solid var(--border)", textDecoration: "none", color: "inherit", fontSize: 13.5 };
-
-// Tuile chiffrée cliquable : bande de couleur, icône, chiffre, note, jauge facultative (0 à 1)
-function Tuile({ href, icone, teinte, label, valeur, note, couleur, jauge }) {
-  return (
-    <Link href={href} className="tuile-immo" style={{ position: "relative", overflow: "hidden", display: "block", textDecoration: "none", color: "inherit", background: `linear-gradient(150deg, ${teinte.fond} 0%, var(--surface) 78%)`, border: "1px solid var(--border)", borderRadius: 16, padding: "13px 14px" }}>
-      <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-muted)", fontWeight: 600 }}>
-        <span style={{ width: 30, height: 30, borderRadius: 10, background: teinte.couleur, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 3px 8px rgba(0,0,0,0.12)" }}>
-          <Icone nom={icone} taille={16} couleur="#fff" />
-        </span>
-        <span style={{ minWidth: 0 }}>{label}</span>
-      </span>
-      <span style={{ display: "block", fontSize: 22, fontWeight: 800, letterSpacing: "-0.01em", margin: "8px 0 2px", color: couleur || "var(--text)" }}>{valeur}</span>
-      <span style={{ display: "block", fontSize: 11.5, color: "var(--text-muted)" }}>{note}</span>
-      {jauge != null && (
-        <span role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(jauge * 100)} aria-label="Part des loyers du mois encaissée" style={{ display: "block", height: 6, borderRadius: 3, background: "var(--success-fond)", marginTop: 8 }}>
-          <span style={{ display: "block", height: 6, borderRadius: 3, width: `${Math.round(jauge * 100)}%`, background: "var(--success)" }} />
-        </span>
-      )}
-    </Link>
-  );
-}
 
 // Tout ce qui demande une action, du plus urgent au moins pressé
 function listeAFaire({ baux, aFacturer, periode, releve31, urgentes, documents, entretiens, loyersAuto }) {
@@ -306,10 +286,7 @@ function Automatisations({ reglages, dernier, courriel }) {
   );
 }
 
-const majuscule = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t);
-
-// En-tête du tableau de bord : le ciel du moment, la salutation, les loyers
-// du mois, et la rue du parc (RueImmo.js) — chaque immeuble mène à sa fiche
+// En-tête du tableau de bord : ciel, salutation, loyers du mois et rue du parc
 function HeroImmo({ visuel, immeubles, infos, nbLogements, nbLocataires, percu, attendu, encaisse, moisLisible, totalRetard, occupation }) {
   const tout = attendu > 0 && encaisse >= 0.999;
   const phrase = immeubles.length === 0
@@ -319,54 +296,13 @@ function HeroImmo({ visuel, immeubles, infos, nbLogements, nbLocataires, percu, 
       : attendu > 0
         ? `${majuscule(moisLisible)} : ${argent(percu)} encaissés sur ${argent(attendu)}${totalRetard > 0.005 ? ` · ${argent(totalRetard)} en retard` : ""}`
         : `Aucun loyer inscrit pour ${moisLisible} pour le moment.`;
-  const puce = { display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", whiteSpace: "nowrap" };
+  const s = (n) => (n > 1 ? "s" : "");
   return (
-    <section style={{ position: "relative", overflow: "hidden", borderRadius: 20, marginBottom: 8, border: "1px solid var(--border)", boxShadow: "0 12px 30px rgba(40, 20, 90, 0.18)" }}>
-      <CielImmo moment={visuel.moment} saison={visuel.saison} />
-      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: VOILES[visuel.moment] || VOILES.jour }} />
-      <div style={{ position: "relative", padding: "18px 20px 6px", color: "#fff", textShadow: "0 1px 10px rgba(10,5,30,0.35)" }}>
-        <span style={{ ...puce, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textShadow: "none" }}>🏘️ IMMOBILIER</span>
-        <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: "10px 0 4px", color: "#fff" }}>{visuel.salutation}{visuel.prenom ? ` ${visuel.prenom}` : ""}</h1>
-        <p style={{ margin: 0, fontSize: 14.5, maxWidth: 520, color: "rgba(255,255,255,0.95)" }}>{phrase}</p>
-        {attendu > 0 && (
-          <div role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(encaisse * 100)} aria-label={`Loyers de ${moisLisible} encaissés`} style={{ width: "min(100%, 380px)", height: 8, borderRadius: 999, background: "rgba(255,255,255,0.22)", marginTop: 10, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.round(encaisse * 100)}%`, borderRadius: 999, background: tout ? "linear-gradient(90deg, #7ee2a0, #3fc47a)" : "linear-gradient(90deg, #ffd36b, #ff9a5a)" }} />
-          </div>
-        )}
-        {immeubles.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12, fontSize: 12.5, fontWeight: 600, textShadow: "none" }}>
-            <span style={puce}>🏘️ {immeubles.length} immeuble{immeubles.length > 1 ? "s" : ""}</span>
-            <span style={puce}>🚪 {nbLogements} logement{nbLogements > 1 ? "s" : ""}</span>
-            <span style={puce}>👥 {nbLocataires} locataire{nbLocataires > 1 ? "s" : ""}</span>
-            <span style={puce}>✨ {String(occupation).replace(".", ",")} % occupé</span>
-          </div>
-        )}
-      </div>
-      <div style={{ position: "relative", marginTop: 4 }}>
-        <RueImmo immeubles={immeubles} infos={infos} moment={visuel.moment} saison={visuel.saison} hrefDe={(i) => `/immobilier/immeubles/${i.id}`} />
-      </div>
-      {immeubles.length > 6 && (
-        <Link href="/immobilier/immeubles" style={{ position: "absolute", right: 12, bottom: 10, fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(16,10,44,0.55)", padding: "4px 10px", borderRadius: 999, textDecoration: "none" }}>
-          + {immeubles.length - 6} autre{immeubles.length - 6 > 1 ? "s" : ""}
-        </Link>
-      )}
-    </section>
-  );
-}
-
-// Rappel du calendrier du propriétaire au Québec (lib/immobilierVisuel.js)
-function ConseilDuMois({ conseil, mois }) {
-  if (!conseil) return null;
-  return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px", borderRadius: 16, marginBottom: 16, background: "linear-gradient(120deg, var(--immo-fond), rgba(240,150,90,0.12))", border: "1px solid var(--border)" }}>
-      <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 11, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 17, background: "linear-gradient(135deg, #6c45c0, #ec8a5c)", boxShadow: "0 3px 8px rgba(80,40,140,0.25)" }}>💡</span>
-      <div style={{ minWidth: 0, fontSize: 13.5 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--immo)" }}>En {mois}, chez les proprios</div>
-        <div style={{ marginTop: 2 }}>
-          {conseil.texte}
-          {conseil.href && <> <Link href={conseil.href} style={{ fontWeight: 700, ...lien }}>{conseil.lien} →</Link></>}
-        </div>
-      </div>
-    </div>
+    <HeroRue
+      visuel={visuel} badge="🏘️ IMMOBILIER" phrase={phrase}
+      jauge={attendu > 0 ? { valeur: encaisse, tout, libelle: `Loyers de ${moisLisible} encaissés` } : null}
+      puces={immeubles.length > 0 ? [`🏘️ ${immeubles.length} immeuble${s(immeubles.length)}`, `🚪 ${nbLogements} logement${s(nbLogements)}`, `👥 ${nbLocataires} locataire${s(nbLocataires)}`, `✨ ${String(occupation).replace(".", ",")} % occupé`] : []}
+      immeubles={immeubles} infos={infos} hrefDe={(i) => `/immobilier/immeubles/${i.id}`} plus="/immobilier/immeubles"
+    />
   );
 }

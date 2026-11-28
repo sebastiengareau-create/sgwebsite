@@ -15,7 +15,7 @@ const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "A
 // urlApi : /api/immobilier/immeubles/<id>/photo ou
 // /api/copropriete/batiments/<id>/photo ; photoLe : date de la photo ou null ;
 // illustration (facultative) : dessin affiché quand il n'y a ni photo ni vue
-// de la rue (ex. la façade illustrée d'un immeuble, app/immobilier/RueImmo.js).
+// de la rue (ex. la façade illustrée d'un immeuble, app/components/RueIllustree.js).
 export default function PhotoBatiment({ urlApi, photoLe: initiale, adresse, vueRue, hauteur = 240, illustration }) {
   const router = useRouter();
   const [photoLe, setPhotoLe] = useState(initiale || null);
