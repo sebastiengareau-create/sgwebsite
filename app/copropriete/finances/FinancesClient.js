@@ -5,7 +5,7 @@ import Link from "next/link";
 import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein } from "../../components/StyleSection";
 import {
-  MODES_PAIEMENT, argent, pourcent, libelle, dateLisible, repartitionBudget, totalBudget, prevoyanceSuffisante, budgetPourPeriode, periodeLisible, nomsProprietaires, TYPES_CHARGE,
+  MODES_PAIEMENT, argent, pourcent, libelle, dateLisible, repartitionBudget, totalBudget, prevoyanceSuffisante, budgetPourPeriode, periodeLisible, nomsProprietaires, TYPES_CHARGE, nomUnite,
 } from "@/lib/coproprieteCalculs";
 import {
   NavCopro, Section, Formulaire, Onglets, BoutonTexte, BoutonSupprimer, Vide, Tableau, cellule, celluleDroite, valeursDe, aujourdhui, useApi, Erreur, champStyle, Statistique,
@@ -188,7 +188,7 @@ function Cotisations({ budgets, cotisations }) {
 }
 
 const champsPaiement = (unites) => [
-  { nom: "uniteId", label: "Unité", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: `${u.numero}${nomsProprietaires(u) ? ` — ${nomsProprietaires(u)}` : ""}` })) },
+  { nom: "uniteId", label: "Unité", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: `${nomUnite(u)}${nomsProprietaires(u) ? ` — ${nomsProprietaires(u)}` : ""}` })) },
   { nom: "date", label: "Date", type: "date" },
   { nom: "montant", label: "Montant ($)", type: "argent" },
   { nom: "mode", label: "Mode", type: "choix", vide: "—", options: MODES_PAIEMENT },
@@ -215,7 +215,7 @@ function Soldes({ unites, soldes, derniersPaiements }) {
           <Tableau entetes={["Unité", "Propriétaires", "Solde"]} alignDroite={[2]}>
             {unites.map((u) => (
               <tr key={u.id}>
-                <td style={cellule}><Link href={`/copropriete/unites/${u.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>{u.numero}</Link></td>
+                <td style={cellule}><Link href={`/copropriete/unites/${u.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>{nomUnite(u)}</Link></td>
                 <td style={{ ...cellule, fontSize: 12.5 }}>{nomsProprietaires(u) || "—"}</td>
                 <td style={{ ...celluleDroite, fontWeight: 700, color: solde(u.id) > 0.005 ? "var(--danger)" : solde(u.id) < -0.005 ? "var(--success)" : "var(--text-muted)" }}>{argent(solde(u.id))}</td>
               </tr>

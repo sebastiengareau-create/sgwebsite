@@ -2059,7 +2059,7 @@ model BatimentCopro {
 // stationnement / rangement quand il forme une fraction à lui seul
 model UniteCopro {
   id         String           @id @default(cuid())
-  numero     String           @unique // « 101 », « P-12 »…
+  numero     String // « 101 », « P-12 »… — unique dans son bâtiment (lib/copropriete.js : aussi parmi les unités sans bâtiment)
   batimentId String?
   batiment   BatimentCopro?   @relation(fields: [batimentId], references: [id], onDelete: SetNull)
   type       String           @default("LOGEMENT") // "LOGEMENT" | "COMMERCIAL" | "STATIONNEMENT" | "RANGEMENT" | "AUTRE"
@@ -2078,6 +2078,7 @@ model UniteCopro {
   documents  DocumentCopro[]
   creeLe     DateTime         @default(now())
 
+  @@unique([batimentId, numero])
   @@index([batimentId])
 }
 

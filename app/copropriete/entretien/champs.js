@@ -5,6 +5,11 @@ import {
 } from "@/lib/coproprieteCalculs";
 
 const options = (liste, libelle = (x) => x.nom) => liste.map((x) => ({ code: x.id, label: libelle(x) }));
+// « 101 — Bâtiment A » : le même numéro peut revenir dans chaque bâtiment
+const optionsUnites = (unites, batiments) => options(unites, (u) => {
+  const b = batiments.find((x) => x.id === u.batimentId);
+  return b ? `${u.numero} — ${b.nom}` : u.numero;
+});
 
 export function champsDemande({ unites, batiments, coproprietaires }) {
   return [
@@ -12,7 +17,7 @@ export function champsDemande({ unites, batiments, coproprietaires }) {
     { nom: "priorite", label: "Priorité", type: "choix", options: PRIORITES, defaut: "NORMALE" },
     { nom: "titre", label: "Problème (en quelques mots)", pleineLargeur: true },
     { nom: "categorie", label: "Catégorie", type: "choix", vide: "—", options: CATEGORIES_TRAVAUX },
-    { nom: "uniteId", label: "Unité", type: "choix", vide: "— parties communes —", options: options(unites, (u) => u.numero) },
+    { nom: "uniteId", label: "Unité", type: "choix", vide: "— parties communes —", options: optionsUnites(unites, batiments) },
     ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: options(batiments) }] : []),
     { nom: "emplacement", label: "Endroit précis", placeholder: "Garage P1, toit, corridor 3e…" },
     { nom: "coproprietaireId", label: "Demandé par (copropriétaire)", type: "choix", vide: "—", options: options(coproprietaires) },
@@ -29,7 +34,7 @@ export function champsTravail({ unites, batiments, fournisseurs }) {
     { nom: "categorie", label: "Catégorie", type: "choix", vide: "—", options: CATEGORIES_TRAVAUX },
     { nom: "datePrevue", label: "Date prévue", type: "date" },
     { nom: "coutEstime", label: "Coût estimé ($)", type: "argent" },
-    { nom: "uniteId", label: "Unité", type: "choix", vide: "— parties communes —", options: options(unites, (u) => u.numero) },
+    { nom: "uniteId", label: "Unité", type: "choix", vide: "— parties communes —", options: optionsUnites(unites, batiments) },
     ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: options(batiments) }] : []),
     { nom: "emplacement", label: "Endroit précis" },
     { nom: "description", label: "Description", type: "long", lignes: 3 },

@@ -4,7 +4,7 @@ import { useState } from "react";
 import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein, Pastille } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
-import { CATEGORIES_DOCUMENTS, VISIBILITES, libelle, dateLisible, taille } from "@/lib/coproprieteCalculs";
+import { CATEGORIES_DOCUMENTS, VISIBILITES, libelle, dateLisible, taille, nomUnite } from "@/lib/coproprieteCalculs";
 import FormulaireDocument from "./FormulaireDocument";
 import { NavCopro, Section, Formulaire, Recherche, BoutonTexte, BoutonSupprimer, Vide, valeursDe, champStyle } from "../ui";
 
@@ -23,7 +23,7 @@ export default function DocumentsClient({ documents, unites, batiments }) {
     { nom: "categorie", label: "Catégorie", type: "choix", options: CATEGORIES_DOCUMENTS },
     { nom: "date", label: "Date", type: "date" },
     { nom: "visibilite", label: "Qui le voit", type: "choix", options: VISIBILITES },
-    { nom: "uniteId", label: "Unité", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: u.numero })) },
+    { nom: "uniteId", label: "Unité", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: nomUnite(u) })) },
     { nom: "description", label: "Description", type: "long", lignes: 2 },
   ];
 

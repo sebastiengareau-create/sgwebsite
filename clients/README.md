@@ -129,7 +129,13 @@ on décide quand et à qui une modification s'applique.
   charger ou retirer dans Administrateur (employés fictifs, période
   verrouillée, anomalies à régler, `lib/quartsDemo.js`).
   **Copropriété** (syndicat de copropriété : bâtiments (année et
-  entrepreneur, adresse, photo ou vue de la rue), unités et quotes-parts, copropriétaires et historique des
+  entrepreneur, adresse, photo ou vue de la rue ; fiche du bâtiment
+  `/copropriete/batiments/<id>` avec son **plan par étages** comme
+  l'Immobilier — une case par unité colorée selon son état, propriétaires,
+  locataire, quote-part et solde —, ses stationnements et rangements, ses
+  demandes et bons de travail ouverts), unités et quotes-parts — numéro
+  unique dans son bâtiment (une unité 101 dans chaque bâtiment,
+  `verifierNumeroUnite`, `lib/copropriete.js`), listées par bâtiment —, copropriétaires et historique des
   propriétaires, contact d'urgence, clés magnétiques, mobilité réduite
   (aide pour évacuer, ♿ sur l'unité) et autres personnes sous leur toit —
   jamais sur le portail, charges communes,

@@ -11,13 +11,13 @@ export default async function FinancesCopro(props) {
   depuis.setMonth(depuis.getMonth() - 24);
   const [budgets, unites, sommeCharges, sommePaiements, cotisations, derniersPaiements] = await Promise.all([
     prisma.budgetCopro.findMany({ orderBy: { annee: "desc" } }),
-    prisma.uniteCopro.findMany({ select: { id: true, numero: true, quotePart: true, proprietes: { where: { dateFin: null }, select: { coproprietaire: { select: { nom: true } } } } } }),
+    prisma.uniteCopro.findMany({ select: { id: true, numero: true, quotePart: true, batiment: { select: { nom: true } }, proprietes: { where: { dateFin: null }, select: { coproprietaire: { select: { nom: true } } } } } }),
     prisma.chargeCopro.groupBy({ by: ["uniteId"], _sum: { montant: true } }),
     prisma.paiementCopro.groupBy({ by: ["uniteId"], _sum: { montant: true } }),
     prisma.chargeCopro.groupBy({ by: ["periode", "type"], where: { periode: { not: null }, date: { gte: depuis } }, _sum: { montant: true }, _count: true }),
     prisma.paiementCopro.findMany({ include: { unite: { select: { numero: true } } }, orderBy: [{ date: "desc" }, { creeLe: "desc" }], take: 30 }),
   ]);
-  unites.sort((a, b) => a.numero.localeCompare(b.numero, "fr", { numeric: true }));
+  unites.sort((a, b) => (a.batiment?.nom || "").localeCompare(b.batiment?.nom || "", "fr") || a.numero.localeCompare(b.numero, "fr", { numeric: true }));
   const compta = await lienComptaCoproActif();
   const soldes = {};
   for (const c of sommeCharges) soldes[c.uniteId] = (soldes[c.uniteId] || 0) + (c._sum.montant || 0);
