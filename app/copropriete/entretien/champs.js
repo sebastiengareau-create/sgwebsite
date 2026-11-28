@@ -33,6 +33,7 @@ export function champsTravail({ unites, batiments, fournisseurs }) {
     ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: options(batiments) }] : []),
     { nom: "emplacement", label: "Endroit précis" },
     { nom: "description", label: "Description", type: "long", lignes: 3 },
+    { nom: "fondsPrevoyance", label: "Payé par le fonds de prévoyance (réparation majeure ou remplacement d'une partie commune : toiture, fenêtres, chauffe-eau…)", type: "case" },
   ];
 }
 
@@ -42,6 +43,7 @@ export const champsCloture = [
   { nom: "coutReel", label: "Coût réel ($)", type: "argent" },
   { nom: "numeroFacture", label: "No de facture du fournisseur" },
   { nom: "garantieFin", label: "Garantie jusqu'au", type: "date" },
+  { nom: "fondsPrevoyance", label: "Payé par le fonds de prévoyance", type: "case" },
 ];
 
 export function champsEntretien({ batiments, fournisseurs }) {

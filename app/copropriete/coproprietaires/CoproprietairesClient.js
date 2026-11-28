@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein, Pastille } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { pourcent } from "@/lib/coproprieteCalculs";
@@ -36,7 +36,7 @@ export default function CoproprietairesClient({ coproprietaires }) {
   const affiches = coproprietaires.filter((c) => !q || correspondRecherche(q, c.nom, c.courriel, c.telephone, c.clesMagnetiques, ...c.proprietes.map((p) => p.unite.numero)));
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="👥" titre="Copropriétaires" sousTitre="Coordonnées, fractions détenues, quote-part et accès au portail." />
+      <BandeauCopro icone="👥" titre="Copropriétaires" sousTitre="Coordonnées, fractions détenues, quote-part et accès au portail." />
       <NavCopro actif="/copropriete/coproprietaires" />
       <div style={{ marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouveau copropriétaire"}</BoutonPlein>

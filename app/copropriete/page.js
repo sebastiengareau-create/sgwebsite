@@ -1,16 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import EnTete from "../components/EnTete";
+import { momentQuebec } from "@/lib/immobilierVisuel";
+import { vueRueDisponible } from "@/lib/photoBatimentServeur";
 import { exigerAccesCopro, simple } from "./acces";
 import TableauBordClient from "./TableauBordClient";
 
 export default async function TableauBordCopro() {
   const session = await exigerAccesCopro();
-  const [unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, sommeCharges, sommePaiements] = await Promise.all([
-    prisma.uniteCopro.findMany({ select: { id: true, numero: true, type: true, quotePart: true, proprietes: { where: { dateFin: null }, select: { id: true } } } }),
+  // Mois en cours (heure du Québec) : cotisations du mois et paiements reçus
+  const periode = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto" }).format(new Date()).slice(0, 7);
+  const [a, m] = periode.split("-").map(Number);
+  const [unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, sommeCharges, sommePaiements, batiments, chargesDuMois, paiementsDuMois, vueRue] = await Promise.all([
+    prisma.uniteCopro.findMany({ select: { id: true, numero: true, type: true, quotePart: true, etage: true, batimentId: true, proprietes: { where: { dateFin: null }, select: { id: true, coproprietaire: { select: { nom: true } } } } } }),
     prisma.coproprietaireCopro.count(),
     prisma.demandeCopro.findMany({
       where: { statut: { in: ["NOUVELLE", "ACCEPTEE", "EN_COURS"] } },
-      select: { id: true, numero: true, titre: true, priorite: true, statut: true, creeLe: true, source: true, unite: { select: { numero: true } }, emplacement: true },
+      select: { id: true, numero: true, titre: true, priorite: true, statut: true, creeLe: true, source: true, uniteId: true, unite: { select: { numero: true } }, emplacement: true },
       orderBy: { creeLe: "desc" },
     }),
     prisma.travailCopro.findMany({
@@ -23,14 +28,24 @@ export default async function TableauBordCopro() {
     prisma.documentCopro.findMany({ select: { id: true, titre: true, categorie: true, date: true, creeLe: true }, orderBy: { creeLe: "desc" }, take: 5 }),
     prisma.chargeCopro.groupBy({ by: ["uniteId"], _sum: { montant: true } }),
     prisma.paiementCopro.groupBy({ by: ["uniteId"], _sum: { montant: true } }),
+    prisma.batimentCopro.findMany({ select: { id: true, nom: true, adresse: true, nbEtages: true, photo: { select: { ajouteeLe: true } } }, orderBy: { nom: "asc" } }),
+    prisma.chargeCopro.groupBy({ by: ["uniteId"], where: { periode }, _sum: { montant: true } }),
+    prisma.paiementCopro.aggregate({ where: { date: { gte: new Date(Date.UTC(a, m - 1, 1)), lt: new Date(Date.UTC(a, m, 1)) } }, _sum: { montant: true } }),
+    vueRueDisponible(),
   ]);
+  const duCeMois = Object.fromEntries(chargesDuMois.map((c) => [c.uniteId, c._sum.montant || 0]));
   const paye = Object.fromEntries(sommePaiements.map((p) => [p.uniteId, p._sum.montant || 0]));
   const soldes = sommeCharges.map((c) => ({ uniteId: c.uniteId, solde: Math.round(((c._sum.montant || 0) - (paye[c.uniteId] || 0)) * 100) / 100 }));
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <TableauBordClient {...simple({ unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, soldes })} />
+      <TableauBordClient
+        {...simple({ unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, soldes, batiments, duCeMois, periode, vueRue })}
+        percuCeMois={paiementsDuMois._sum.montant || 0}
+        // Rue illustrée : ciel du moment au Québec, salutation par le prénom
+        visuel={{ ...momentQuebec(), prenom: (session.nom || "").trim().split(/\s+/)[0] || "" }}
+      />
     </div>
   );
 }

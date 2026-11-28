@@ -631,17 +631,23 @@ html[data-theme="light"] .logo-sombre { display: none; }
   .textos-grille[data-ouverte="0"] .textos-fil { display: none; }
 }
 
-/* ---------- Immobilier : rue illustrée, ciel et couleurs (app/immobilier/RueImmo.js) ---------- */
+/* ---------- Immobilier et Copropriété : rue illustrée, ciel et couleurs (app/components/RueIllustree.js) ---------- */
 :root {
   --immo: #a37ff0;          /* violet de la marque Immobilier, éclairci pour le thème sombre */
   --immo-fort: #7c4dbd;
   --immo-fond: rgba(163, 127, 240, 0.16);
   --immo-texte-sur: #ffffff;
+  --copro: #5aa6ee;         /* bleu de la marque Copropriété, éclairci pour le thème sombre */
+  --copro-fort: #2f6db5;
+  --copro-fond: rgba(90, 166, 238, 0.16);
 }
 html[data-theme="light"] {
   --immo: #6c3fb0;
   --immo-fort: #7c4dbd;
   --immo-fond: rgba(124, 77, 189, 0.10);
+  --copro: #245d9e;
+  --copro-fort: #2f6db5;
+  --copro-fond: rgba(47, 109, 181, 0.10);
 }
 .immeuble-rue { cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease; transform-box: fill-box; transform-origin: 50% 100%; outline: none; }
 .immeuble-rue:hover, .immeuble-rue:focus-visible { filter: brightness(1.1) saturate(1.12); transform: translateY(-3px); }

@@ -12,7 +12,8 @@
     "test:paie": "node scripts/tester-paie.js",
     "test:quarts": "node scripts/tester-quarts.js",
     "test:immobilier": "node --no-warnings scripts/tester-immobilier.mjs",
-    "test:pneus": "node --no-warnings scripts/tester-pneus.mjs"
+    "test:pneus": "node --no-warnings scripts/tester-pneus.mjs",
+    "test:copropriete": "node --no-warnings scripts/tester-copropriete.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

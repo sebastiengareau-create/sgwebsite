@@ -1,16 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import BandeauSection from "../components/BandeauSection";
 import {
-  argent, pourcent, dateLisible, etatEcheance, budgetPourPeriode, totalBudget, libelle, trouver,
+  argent, pourcent, dateLisible, etatEcheance, budgetPourPeriode, totalBudget, libelle, trouver, periodeLisible,
   PRIORITES, STATUTS_DEMANDE, STATUTS_TRAVAIL, CATEGORIES_DOCUMENTS, TYPES_ENTRETIEN,
 } from "@/lib/coproprieteCalculs";
-import { NavCopro, Section, Statistique, PastilleCode, Vide, aujourdhui } from "./ui";
+import { CONSEILS_MOIS_COPRO, ETATS_UNITE, etatUnite, batimentsPourRue } from "@/lib/coproprieteVisuel";
+import { TEINTES } from "../components/StyleSection";
+import TuileVive from "../components/TuileVive";
+import HeroRue, { ConseilDuMois, majuscule } from "../components/HeroRue";
+import { LegendeEtats, CarreEtat, ImageImmeuble } from "../immobilier/CartesImmeubles";
+import { NavCopro, Section, PastilleCode, Vide, aujourdhui } from "./ui";
+
+// Bleu de la marque Copropriété
+const TEINTE_COPRO = { couleur: "var(--copro)", fond: "var(--copro-fond)" };
+const s = (n) => (n > 1 ? "s" : "");
 
 const rangPriorite = (p) => trouver(PRIORITES, p)?.rang ?? 9;
 
-export default function TableauBordClient({ unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, soldes }) {
+export default function TableauBordClient({ unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, soldes, batiments = [], duCeMois = {}, periode, vueRue, percuCeMois = 0, visuel }) {
   const totalQp = unites.reduce((s, u) => s + (u.quotePart || 0), 0);
   const sansProprietaire = unites.filter((u) => u.proprietes.length === 0).length;
   const aRecevoir = soldes.filter((s) => s.solde > 0.005);
@@ -21,18 +29,51 @@ export default function TableauBordClient({ unites, nbCoproprietaires, demandes,
   const enRetard = aVenir.filter((e) => e.etat.code === "RETARD").length;
   const demandesTriees = [...demandes].sort((a, b) => rangPriorite(a.priorite) - rangPriorite(b.priorite) || new Date(b.creeLe) - new Date(a.creeLe));
 
+  // Rue illustrée : un immeuble par bâtiment, une fenêtre par unité
+  const soldeDe = Object.fromEntries(soldes.map((x) => [x.uniteId, x.solde]));
+  const demandesDe = {};
+  for (const d of demandes) if (d.uniteId) demandesDe[d.uniteId] = (demandesDe[d.uniteId] || 0) + 1;
+  const infos = {};
+  for (const u of unites) {
+    const etat = etatUnite({ solde: soldeDe[u.id] || 0, duCeMois: duCeMois[u.id] || 0, demandes: demandesDe[u.id] || 0, proprietaires: u.proprietes.length });
+    const noms = u.proprietes.map((p) => p.coproprietaire?.nom).filter(Boolean).join(", ");
+    infos[u.id] = { etat, texte: [`Unité ${u.numero}`, noms, ETATS_UNITE[etat].toLowerCase()].filter(Boolean).join(" · ") };
+  }
+  const rue = batimentsPourRue(batiments, unites);
+  const enRetardUnites = Object.values(infos).filter((i) => i.etat === "RETARD").length;
+  const attendu = Object.values(duCeMois).reduce((t, x) => t + x, 0);
+  const encaisse = attendu > 0 ? Math.min(1, percuCeMois / attendu) : 0;
+  const mois = periodeLisible(periode || aujourdhui().slice(0, 7)).split(" ")[0];
+
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🏢" titre="Copropriété" sousTitre="Unités, copropriétaires, charges communes, entretien et documents du syndicat." />
+      <HeroCopro
+        visuel={visuel} rue={rue} infos={infos} mois={mois} attendu={attendu} percu={percuCeMois} encaisse={encaisse}
+        nbUnites={unites.length} nbCoproprietaires={nbCoproprietaires} nbDemandes={demandes.length} budget={budget}
+      />
+      {rue.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "6px 14px", margin: "0 4px 14px" }}>
+          <LegendeEtats infos={infos} libelles={ETATS_UNITE} />
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Une fenêtre par unité · touche un bâtiment pour l'ouvrir</span>
+        </div>
+      )}
       <NavCopro actif="/copropriete" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", gap: 10, marginBottom: 16 }}>
-        <Statistique valeur={unites.length} label={`Unités · ${nbCoproprietaires} copropriétaire${nbCoproprietaires > 1 ? "s" : ""}`} teinte="var(--bleu)" />
-        <Statistique valeur={argent(totalARecevoir)} label={`À recevoir (${aRecevoir.length} unité${aRecevoir.length > 1 ? "s" : ""})`} teinte={totalARecevoir > 0 ? "var(--danger)" : "var(--success)"} />
-        <Statistique valeur={demandes.length} label="Demandes ouvertes" teinte="var(--accent)" />
-        <Statistique valeur={travaux.length} label="Bons de travail ouverts" teinte="#8C6BC4" />
-        <Statistique valeur={enRetard} label="Entretiens en retard" teinte={enRetard > 0 ? "var(--danger)" : "var(--success)"} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 10, marginBottom: 16 }}>
+        <TuileVive
+          href="/copropriete/finances?onglet=COTISATIONS" icone="banque" teinte={TEINTES.vert} label={`Encaissé en ${mois}`} valeur={argent(percuCeMois)}
+          note={attendu > 0 ? `sur ${argent(attendu)} de cotisations du mois` : "aucune cotisation inscrite ce mois-ci"} jauge={attendu > 0 ? encaisse : null}
+        />
+        <TuileVive
+          href="/copropriete/finances?onglet=SOLDES" icone="alerte" teinte={totalARecevoir > 0.005 ? TEINTES.rouge : TEINTES.vert} label="À recevoir" valeur={argent(totalARecevoir)}
+          couleur={enRetardUnites > 0 ? "var(--danger)" : undefined}
+          note={aRecevoir.length === 0 ? "toutes les unités sont à jour" : `${aRecevoir.length} unité${s(aRecevoir.length)}${enRetardUnites ? ` · ${enRetardUnites} en retard` : ""}`}
+        />
+        <TuileVive href="/copropriete/entretien" icone="outils" teinte={demandes.some((d) => d.priorite === "URGENTE") ? TEINTES.rouge : TEINTE_COPRO} label="Demandes ouvertes" valeur={String(demandes.length)} note={`${travaux.length} bon${s(travaux.length)} de travail ouvert${s(travaux.length)}`} />
+        <TuileVive href="/copropriete/entretien?onglet=PREVENTIF" icone="calendrier" teinte={enRetard > 0 ? TEINTES.rouge : TEINTES.bleu} label="Entretiens" valeur={String(aVenir.length)} note={enRetard > 0 ? `${enRetard} en retard` : "d'ici 30 jours"} />
       </div>
+
+      <ConseilDuMois conseil={visuel ? CONSEILS_MOIS_COPRO[visuel.mois - 1] : null} etiquette={`En ${mois}, au syndicat`} couleur="var(--copro)" fond="var(--copro-fond)" />
 
       {(unites.length > 0 && Math.abs(totalQp - 100) > 0.001) && (
         <Alerte>Les quotes-parts totalisent {pourcent(totalQp)} au lieu de 100 % — vérifie-les dans <Link href="/copropriete/unites" style={{ color: "var(--accent)" }}>Unités</Link> (déclaration de copropriété).</Alerte>
@@ -48,6 +89,14 @@ export default function TableauBordClient({ unites, nbCoproprietaires, demandes,
             <li>Planifie l'entretien préventif et les inspections, et dépose les documents du syndicat.</li>
             <li>Active le portail de chaque copropriétaire : il y verra ses documents et pourra faire ses demandes.</li>
           </ol>
+        </Section>
+      )}
+
+      {rue.length > 0 && (
+        <Section titre={rue.length > 1 ? "Mes bâtiments" : "Mon immeuble"} droite={<Link href="/copropriete/unites?onglet=BATIMENTS" style={{ fontSize: 12, color: "var(--accent)" }}>Bâtiments</Link>}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 230px), 1fr))", gap: 12, marginTop: 10 }}>
+            {rue.map((b) => <CarteBatiment key={b.id} batiment={b} infos={infos} visuel={visuel} vueRue={vueRue} duCeMois={duCeMois} demandesDe={demandesDe} />)}
+          </div>
         </Section>
       )}
 
@@ -120,5 +169,67 @@ function Alerte({ children }) {
     <div style={{ background: "var(--danger-fond)", border: "1px solid var(--danger)", color: "var(--text)", borderRadius: 12, padding: "10px 14px", fontSize: 13, marginBottom: 12 }}>
       ⚠️ {children}
     </div>
+  );
+}
+
+// En-tête : ciel, salutation, cotisations du mois et rue des bâtiments
+function HeroCopro({ visuel, rue, infos, mois, attendu, percu, encaisse, nbUnites, nbCoproprietaires, nbDemandes, budget }) {
+  if (!visuel) return null;
+  const tout = attendu > 0 && encaisse >= 0.999;
+  const phrase = nbUnites === 0
+    ? "Bienvenue ! Ajoute les unités de l'immeuble : elles s'allumeront ici, une fenêtre par unité."
+    : tout
+      ? `Toutes les cotisations de ${mois} sont encaissées. Beau travail ! 🎉`
+      : attendu > 0
+        ? `${majuscule(mois)} : ${argent(percu)} de cotisations encaissées sur ${argent(attendu)}`
+        : `Aucune cotisation inscrite pour ${mois} pour le moment.`;
+  return (
+    <HeroRue
+      visuel={visuel} badge="🏢 COPROPRIÉTÉ" phrase={phrase}
+      jauge={attendu > 0 ? { valeur: encaisse, tout, libelle: `Cotisations de ${mois} encaissées` } : null}
+      puces={nbUnites > 0 ? [
+        ...(rue.length > 1 ? [`🏢 ${rue.length} bâtiments`] : []),
+        `🚪 ${nbUnites} unité${s(nbUnites)}`, `👥 ${nbCoproprietaires} copropriétaire${s(nbCoproprietaires)}`,
+        `🛠️ ${nbDemandes} demande${s(nbDemandes)} ouverte${s(nbDemandes)}`,
+        ...(budget ? [`💰 ${argent(totalBudget(budget))} / an`] : []),
+      ] : []}
+      immeubles={rue} infos={infos} hrefDe={() => "/copropriete/unites?onglet=BATIMENTS"} plus="/copropriete/unites?onglet=BATIMENTS"
+    />
+  );
+}
+
+// Carte d'un bâtiment : photo (ou façade illustrée), une case par unité,
+// cotisations du mois, demandes ouvertes
+function CarteBatiment({ batiment: b, infos, visuel, vueRue, duCeMois, demandesDe }) {
+  const unites = b.logements.filter((u) => u.type === "LOGEMENT" || u.type === "COMMERCIAL");
+  const aJour = unites.filter((u) => infos[u.id]?.etat !== "RETARD").length;
+  const cotisations = b.logements.reduce((t, u) => t + (duCeMois[u.id] || 0), 0);
+  const demandes = b.logements.reduce((t, u) => t + (demandesDe[u.id] || 0), 0);
+  const reel = b.id !== "sans-batiment";
+  return (
+    <Link href="/copropriete/unites?onglet=BATIMENTS" className="carte-immeuble" style={{ display: "flex", flexDirection: "column", textDecoration: "none", color: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", minWidth: 0 }}>
+      <div style={{ position: "relative" }}>
+        <ImageImmeuble
+          immeuble={b} infos={infos} moment={visuel?.moment || "jour"} saison={visuel?.saison || "ete"} vueRue={reel && vueRue} hauteur={140}
+          urlApi={reel ? `/api/copropriete/batiments/${b.id}/photo` : undefined}
+        />
+        <span style={{ position: "absolute", left: 10, top: 10, fontSize: 11.5, fontWeight: 800, padding: "4px 9px", borderRadius: 999, background: "rgba(255,255,255,0.92)", color: "#14305c", boxShadow: "0 1px 4px rgba(0,0,0,0.18)" }}>🏢 {unites.length} unité{s(unites.length)}</span>
+      </div>
+      <div style={{ padding: "11px 13px 13px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.nom}</div>
+          {b.adresse && <div style={{ fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.adresse}</div>}
+        </div>
+        {unites.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }} aria-label="État des unités">
+            {unites.map((u) => <CarreEtat key={u.id} etat={infos[u.id]?.etat || "SANS"} titre={infos[u.id]?.texte} taille={12} />)}
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 12.5, marginTop: "auto", flexWrap: "wrap" }}>
+          <span style={{ color: "var(--text-muted)" }}>{aJour} / {unites.length} à jour{demandes ? ` · 🛠️ ${demandes}` : ""}</span>
+          <span style={{ fontWeight: 800, fontSize: 14 }}>{argent(cotisations)}<span style={{ fontWeight: 500, fontSize: 11.5, color: "var(--text-muted)" }}> ce mois</span></span>
+        </div>
+      </div>
+    </Link>
   );
 }

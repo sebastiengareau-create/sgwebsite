@@ -12,7 +12,7 @@ import { champsImmeuble } from "../ImmeublesClient";
 import PhotoBatiment from "../../../components/PhotoBatiment";
 import { adresseComplete } from "@/lib/photoBatiment";
 import { etagesDe, etatLogement } from "@/lib/immobilierVisuel";
-import { FacadeImmo } from "../../RueImmo";
+import { FacadeIllustree } from "../../../components/RueIllustree";
 import { infosLogements } from "../../CartesImmeubles";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, Vide, valeursDe, aujourdhui, Statistique,
@@ -31,7 +31,7 @@ export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, ann
       <h1 style={{ fontSize: 21, margin: "10px 0 14px" }}>{type?.icone} {immeuble.nom}</h1>
       <PhotoBatiment
         urlApi={`/api/immobilier/immeubles/${immeuble.id}/photo`} photoLe={immeuble.photo?.ajouteeLe} adresse={adresseComplete(immeuble)} vueRue={vueRue}
-        illustration={visuel && <FacadeImmo immeuble={immeuble} infos={infosLogements([immeuble], comptes)} moment={visuel.moment} saison={visuel.saison} hauteur={240} />}
+        illustration={visuel && <FacadeIllustree immeuble={immeuble} infos={infosLogements([immeuble], comptes)} moment={visuel.moment} saison={visuel.saison} hauteur={240} />}
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Statistique valeur={argent(loyers)} label="Loyers par mois" note={`${argent(loyers * 12)} par année`} teinte="var(--success)" />

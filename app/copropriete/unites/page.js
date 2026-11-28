@@ -3,10 +3,13 @@ import EnTete from "../../components/EnTete";
 import { exigerAccesCopro, simple } from "../acces";
 import UnitesClient from "./UnitesClient";
 import { vueRueDisponible } from "@/lib/photoBatimentServeur";
+import { momentQuebec } from "@/lib/immobilierVisuel";
 
-export default async function UnitesCopro() {
+export default async function UnitesCopro(props) {
+  const searchParams = await props.searchParams;
   const session = await exigerAccesCopro();
-  const [unites, batiments, espaces, charges, paiements, vueRue] = await Promise.all([
+  const periode = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto" }).format(new Date()).slice(0, 7);
+  const [unites, batiments, espaces, charges, paiements, vueRue, chargesDuMois, demandes] = await Promise.all([
     prisma.uniteCopro.findMany({
       include: {
         batiment: { select: { nom: true } },
@@ -20,7 +23,12 @@ export default async function UnitesCopro() {
     prisma.chargeCopro.groupBy({ by: ["uniteId"], _sum: { montant: true } }),
     prisma.paiementCopro.groupBy({ by: ["uniteId"], _sum: { montant: true } }),
     vueRueDisponible(),
+    // État de chaque unité sur la façade illustrée des bâtiments
+    prisma.chargeCopro.groupBy({ by: ["uniteId"], where: { periode }, _sum: { montant: true } }),
+    prisma.demandeCopro.groupBy({ by: ["uniteId"], where: { statut: { in: ["NOUVELLE", "ACCEPTEE", "EN_COURS"] }, uniteId: { not: null } }, _count: true }),
   ]);
+  const duCeMois = Object.fromEntries(chargesDuMois.map((c) => [c.uniteId, c._sum.montant || 0]));
+  const demandesDe = Object.fromEntries(demandes.map((d) => [d.uniteId, d._count]));
   const soldes = {};
   for (const c of charges) soldes[c.uniteId] = (soldes[c.uniteId] || 0) + (c._sum.montant || 0);
   for (const p of paiements) soldes[p.uniteId] = (soldes[p.uniteId] || 0) - (p._sum.montant || 0);
@@ -31,7 +39,7 @@ export default async function UnitesCopro() {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <UnitesClient {...simple({ unites, batiments, espaces, soldes, vueRue })} />
+      <UnitesClient {...simple({ unites, batiments, espaces, soldes, vueRue, duCeMois, demandesDe })} visuel={momentQuebec()} ongletInitial={searchParams?.onglet} />
     </div>
   );
 }

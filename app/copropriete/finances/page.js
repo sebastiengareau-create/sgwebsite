@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import EnTete from "../../components/EnTete";
+import { lienComptaCoproActif } from "@/lib/coproprieteCompta";
 import { exigerAccesCopro, simple } from "../acces";
 import FinancesClient from "./FinancesClient";
 
@@ -17,13 +18,14 @@ export default async function FinancesCopro(props) {
     prisma.paiementCopro.findMany({ include: { unite: { select: { numero: true } } }, orderBy: [{ date: "desc" }, { creeLe: "desc" }], take: 30 }),
   ]);
   unites.sort((a, b) => a.numero.localeCompare(b.numero, "fr", { numeric: true }));
+  const compta = await lienComptaCoproActif();
   const soldes = {};
   for (const c of sommeCharges) soldes[c.uniteId] = (soldes[c.uniteId] || 0) + (c._sum.montant || 0);
   for (const p of sommePaiements) soldes[p.uniteId] = (soldes[p.uniteId] || 0) - (p._sum.montant || 0);
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <FinancesClient {...simple({ budgets, unites, soldes, cotisations, derniersPaiements })} ongletInitial={searchParams?.onglet} />
+      <FinancesClient {...simple({ budgets, unites, soldes, cotisations, derniersPaiements })} ongletInitial={searchParams?.onglet} compta={compta} />
     </div>
   );
 }

@@ -1,17 +1,19 @@
 "use client";
 
-// Rue illustrée de l'Immobilier, dessinée à partir du parc : un immeuble par
-// immeuble inscrit (plex à corniche, balcons et escalier extérieur ;
-// multilogement ; mixte avec ses commerces ; maison), une fenêtre par
-// logement, de la couleur de son état — allumée s'il est loué et en règle,
-// rouge s'il est en retard, bleue si le bail est à surveiller, éteinte avec
-// une pancarte « À louer » s'il est vacant. Le ciel suit le moment de la
+// Rue illustrée de l'Immobilier et de la Copropriété, dessinée à partir des
+// données : un immeuble par immeuble (ou bâtiment) inscrit (plex à corniche,
+// balcons et escalier extérieur ; multilogement ; mixte avec ses commerces ;
+// maison ; immeuble en copropriété « CONDO », moderne, à balcons vitrés), une
+// fenêtre par logement ou unité, de la couleur de son état — allumée s'il
+// est en règle, rouge en retard, bleue à surveiller, éteinte avec une
+// pancarte « À louer » s'il est vacant, éteinte sans pancarte (« SANS ») pour
+// une unité sans propriétaire inscrit. Le ciel suit le moment de la
 // journée au Québec, les arbres et la neige suivent la saison
 // (lib/immobilierVisuel.js). Aucune image téléchargée : tout est dessiné ici.
 //
-//   <CielImmo>   ciel (dégradé, soleil ou lune, étoiles, nuages, neige)
-//   <RueImmo>    la rue entière (tableau de bord)
-//   <FacadeImmo> un seul immeuble, pour une carte ou une vignette
+//   <CielIllustre>   ciel (dégradé, soleil ou lune, étoiles, nuages, neige)
+//   <RueIllustree>    la rue entière (tableau de bord)
+//   <FacadeIllustree> un seul immeuble, pour une carte ou une vignette
 
 import { useRouter } from "next/navigation";
 import { rangeesImmeuble, graine } from "@/lib/immobilierVisuel";
@@ -23,9 +25,12 @@ export const ETATS_FENETRE = {
   RETARD: { label: "Loyer en retard", verre: "#ff7a68", halo: "#ff4b38" },
   SURVEILLER: { label: "Bail à surveiller", verre: "#8fd0ff", halo: "#45adff" },
   VACANT: { label: "Vacant", verre: "#2b2742", halo: null },
+  SANS: { label: "Sans propriétaire inscrit", verre: "#2b2742", halo: null },
 };
 
 const MURS = ["#b4533c", "#c9773f", "#d8c29c", "#5a7899", "#7a5ea8", "#6f8f6b", "#a8475f", "#e2d1b1"];
+// Immeubles en copropriété : béton clair, ardoise, bois, sable
+const MURS_CONDO = ["#d7d2c9", "#9aa6b4", "#c49a72", "#e4ddd0", "#6f8396", "#b8c4bf"];
 const PORTES = ["#2f5d8a", "#8a2f3b", "#2f6b4f", "#5b3d8f", "#c2632f"];
 const AUVENTS = ["#d94f4f", "#2f8f6f", "#3a6fd1", "#e09a20", "#8e4fc9"];
 
@@ -97,9 +102,9 @@ function repartir(rangee, travees) {
 
 // ---------- Morceaux de décor ----------
 
-function Fenetre({ x, y, l, h, etat, info, ciel, haute }) {
+function Fenetre({ x, y, l, h, etat, info, ciel, haute, moderne }) {
   const e = ETATS_FENETRE[etat] || ETATS_FENETRE.VACANT;
-  const cadre = melanger("#f4eee3", ciel.ombre[0], ciel.ombre[1] * 0.8);
+  const cadre = moderne ? "#363b46" : melanger("#f4eee3", ciel.ombre[0], ciel.ombre[1] * 0.8);
   const hauteur = haute ? h + 7 : h;
   return (
     <g>
@@ -185,7 +190,9 @@ function Lampadaire({ x, sol, ciel }) {
 // Un immeuble, posé sur le sol en x ; infos : { [logementId]: { etat, texte } }
 function Immeuble({ im, p, x, sol, ciel, saison, infos, href, onOuvrir }) {
   const alea = graine(im.id || im.nom);
-  const mur = MURS[Math.floor(alea() * MURS.length)];
+  const condo = im.type === "CONDO";
+  const murs = condo ? MURS_CONDO : MURS;
+  const mur = murs[Math.floor(alea() * murs.length)];
   const porte = PORTES[Math.floor(alea() * PORTES.length)];
   const fonce = assombrir(mur, 0.28);
   const neige = NEIGE[ciel.moment];
@@ -202,9 +209,16 @@ function Immeuble({ im, p, x, sol, ciel, saison, infos, href, onOuvrir }) {
   const facade = (
     <>
       <rect x={x} y={haut} width={p.largeur} height={p.corps} fill={mur} />
-      <rect x={x} y={haut} width={p.largeur} height={p.corps} fill="url(#briques-immo)" />
+      {!condo && <rect x={x} y={haut} width={p.largeur} height={p.corps} fill="url(#briques-immo)" />}
       <rect x={x} y={sol - 5} width={p.largeur} height={5} fill={assombrir(mur, 0.35)} />
-      {maison ? (
+      {condo ? (
+        <>
+          {/* Dalles de béton à chaque étage, parapet et local technique sur le toit */}
+          {p.rangees.slice(1).map((_, r) => <rect key={r} x={x} y={sol - RC - r * ETAGE - 2} width={p.largeur} height={3} fill={eclaircir(mur, 0.35)} />)}
+          <rect x={x - 2} y={haut - 6} width={p.largeur + 4} height={6} fill={assombrir(mur, 0.22)} />
+          <rect x={x + p.largeur * 0.58} y={haut - CORNICHE} width={Math.max(18, p.largeur * 0.22)} height={8} fill={assombrir(mur, 0.3)} />
+        </>
+      ) : maison ? (
         <>
           <rect x={x + p.largeur * 0.68} y={haut - p.largeur * 0.3} width={10} height={p.largeur * 0.2} fill={assombrir(mur, 0.2)} />
           <polygon points={`${x - 8},${haut + 2} ${x + p.largeur / 2},${haut - p.largeur * 0.36} ${x + p.largeur + 8},${haut + 2}`} fill="#4c3f57" />
@@ -243,16 +257,17 @@ function Immeuble({ im, p, x, sol, ciel, saison, infos, href, onOuvrir }) {
       for (let t = debut; t <= fin; t++) {
         const fx = x0 + t * TRAVEE + (TRAVEE - fenL) / 2;
         const fy = hautEtage + (r === 0 ? 12 : 9);
-        // Porte-fenêtre sur le balcon : la première travée de chaque logement d'un plex
-        const haute = plex && r > 0 && t === debut && fin > debut;
-        fenetres.push(<Fenetre key={`${l.id}-${t}`} x={fx} y={fy} l={fenL} h={fenH} etat={etatDe(l)} info={texteDe(l)} ciel={ciel} haute={haute} />);
+        // Porte-fenêtre sur le balcon : la première travée de chaque logement
+        // d'un plex, et chaque unité en copropriété au-dessus du rez-de-chaussée
+        const haute = (plex && r > 0 && t === debut && fin > debut) || (condo && r > 0);
+        fenetres.push(<Fenetre key={`${l.id}-${t}`} x={fx} y={fy} l={fenL} h={fenH} etat={etatDe(l)} info={texteDe(l)} ciel={ciel} haute={haute} moderne={condo} />);
       }
     }
   });
   // Demi-sous-sol : petites fenêtres au ras du sol
   for (const [l, debut, fin] of repartir(p.sousSol, p.travees)) {
     for (let t = debut; t <= fin; t++) {
-      fenetres.push(<Fenetre key={`ss-${l.id}-${t}`} x={x0 + t * TRAVEE + (TRAVEE - fenL) / 2} y={sol - 14} l={fenL} h={8} etat={etatDe(l)} info={texteDe(l)} ciel={ciel} />);
+      fenetres.push(<Fenetre key={`ss-${l.id}-${t}`} x={x0 + t * TRAVEE + (TRAVEE - fenL) / 2} y={sol - 14} l={fenL} h={8} etat={etatDe(l)} info={texteDe(l)} ciel={ciel} moderne={condo} />);
     }
   }
 
@@ -261,9 +276,19 @@ function Immeuble({ im, p, x, sol, ciel, saison, infos, href, onOuvrir }) {
   const entree = (
     <>
       {ciel.halo > 0 && <rect x={px - 2} y={sol - 42} width={20} height={9} fill="#ffcf6a" opacity={ciel.halo * 0.5} filter="url(#halo-immo)" />}
-      <rect x={px} y={sol - 40} width={16} height={7} fill="#ffd982" stroke={eclaircir(porte, 0.5)} strokeWidth={1} />
-      <rect x={px} y={sol - 32} width={16} height={32} fill={porte} />
-      <circle cx={px + 12.5} cy={sol - 15} r={1.3} fill="#f2d27a" />
+      {condo ? (
+        <>
+          <rect x={px} y={sol - 38} width={16} height={38} fill={ciel.halo > 0 ? "#ffe3a0" : "#9fd0ee"} stroke="#2d3440" strokeWidth={1.6} />
+          <line x1={px + 8} y1={sol - 38} x2={px + 8} y2={sol} stroke="#2d3440" strokeWidth={1.2} />
+          <rect x={px - 6} y={sol - 44} width={28} height={4} rx={1} fill="#2d3440" />
+        </>
+      ) : (
+        <>
+          <rect x={px} y={sol - 40} width={16} height={7} fill="#ffd982" stroke={eclaircir(porte, 0.5)} strokeWidth={1} />
+          <rect x={px} y={sol - 32} width={16} height={32} fill={porte} />
+          <circle cx={px + 12.5} cy={sol - 15} r={1.3} fill="#f2d27a" />
+        </>
+      )}
       <rect x={px - 3} y={sol - 2} width={22} height={2} fill={assombrir(mur, 0.4)} />
       {im.type === "MULTILOGEMENT" && <rect x={px - 5} y={sol - 46} width={26} height={4} rx={1} fill="#2c2838" />}
     </>
@@ -272,7 +297,26 @@ function Immeuble({ im, p, x, sol, ciel, saison, infos, href, onOuvrir }) {
   // Balcons et escalier extérieur (plex et mixte), à l'avant
   const fer = ciel.halo >= 0.5 ? "#4a4560" : "#2c2838";
   const balcons = [];
-  if (!maison && im.type !== "MULTILOGEMENT") {
+  // Balcons vitrés d'un immeuble en copropriété : un par unité, aux étages
+  if (condo) {
+    p.rangees.forEach((rangee, r) => {
+      if (r === 0) return;
+      const y = sol - RC - (r - 1) * ETAGE;
+      for (const [l, debut, fin] of repartir(rangee, p.travees)) {
+        const xa = x0 + debut * TRAVEE + 2;
+        const xb = x0 + (fin + 1) * TRAVEE - 2;
+        balcons.push(
+          <g key={`bv-${l.id}`}>
+            <rect x={xa} y={y - 12} width={xb - xa} height={11} fill="#b9e2fb" opacity={0.5} />
+            <line x1={xa} y1={y - 12} x2={xb} y2={y - 12} stroke="#e8edf2" strokeWidth={1.6} />
+            <rect x={xa - 1} y={y - 1} width={xb - xa + 2} height={3} fill={eclaircir(mur, 0.35)} />
+            {saison === "hiver" && <rect x={xa} y={y - 14} width={xb - xa} height={2} rx={1} fill={neige} />}
+          </g>,
+        );
+      }
+    });
+  }
+  if (!maison && !condo && im.type !== "MULTILOGEMENT") {
     for (let r = 1; r < p.rangees.length; r++) {
       const y = sol - RC - (r - 1) * ETAGE;
       const xa = x0 - 4;
@@ -308,7 +352,9 @@ function Immeuble({ im, p, x, sol, ciel, saison, infos, href, onOuvrir }) {
   }
 
   // Neige sur le toit
-  const neigeToit = saison === "hiver" && (maison
+  const neigeToit = saison === "hiver" && (condo
+    ? <rect x={x - 3} y={haut - 9} width={p.largeur + 6} height={4.5} rx={2} fill={neige} />
+    : maison
     ? <polygon points={`${x - 6},${haut - 1} ${x + p.largeur / 2},${haut - p.largeur * 0.36 + 2} ${x + p.largeur + 6},${haut - 1} ${x + p.largeur / 2},${haut - p.largeur * 0.3}`} fill={neige} opacity={0.95} />
     : <rect x={x - 4} y={haut - CORNICHE - 4} width={p.largeur + 8} height={5} rx={2.5} fill={neige} />);
 
@@ -375,7 +421,7 @@ const styleSvg = (largeur, hauteur, max, min) => ({ display: "block", width: "10
 
 // La rue du parc. immeubles : [{ id, nom, type, logements: [{ id, numero, type, etage }] }] ;
 // infos : { [logementId]: { etat, texte } } ; hrefDe(immeuble) → lien de sa fiche
-export function RueImmo({ immeubles, infos, moment, saison, hrefDe, max = 6, hauteurMax = 230, hauteurMin = 120 }) {
+export function RueIllustree({ immeubles, infos, moment, saison, hrefDe, max = 6, hauteurMax = 230, hauteurMin = 120 }) {
   const router = useRouter();
   const ciel = cielDe(moment, saison);
   const alea = graine(immeubles.map((i) => i.id).join());
@@ -406,7 +452,7 @@ export function RueImmo({ immeubles, infos, moment, saison, hrefDe, max = 6, hau
 }
 
 // Un seul immeuble, dans son ciel (cartes et vignettes) ; sans lien
-export function FacadeImmo({ immeuble, infos, moment, saison, hauteur = 150, arrondi = 0 }) {
+export function FacadeIllustree({ immeuble, infos, moment, saison, hauteur = 150, arrondi = 0 }) {
   const ciel = cielDe(moment, saison);
   const alea = graine(`${immeuble.id}-decor`);
   const p = plan(immeuble);
@@ -428,7 +474,7 @@ export function FacadeImmo({ immeuble, infos, moment, saison, hauteur = 150, arr
 }
 
 // Ciel du moment : dégradé, soleil ou lune, étoiles, nuages, neige qui tombe
-export function CielImmo({ moment, saison }) {
+export function CielIllustre({ moment, saison }) {
   const ciel = cielDe(moment, saison);
   const alea = graine(`ciel-${moment}`);
   const etoiles = moment === "nuit" ? Array.from({ length: 46 }, () => [alea() * 1000, alea() * 260, 0.5 + alea() * 1.3, 0.4 + alea() * 0.6]) : [];
