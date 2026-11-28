@@ -25,7 +25,7 @@ service par déclinaison, tous sur la branche `client/template` (appliquer à
 |---|---|---|
 | Garage | `template` | atelier de démonstration dans Administrateur |
 | Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration en VR (roulottes et motorisés, travaux, pièces et fournisseurs de VR) |
-| Ferme | `demo-ferme` | module Élevage actif, arrivée sur `/elevage` |
+| Ferme | `demo-ferme` | module Élevage actif, sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/elevage` |
 | Copropriété | `demo-copropriete` | module Copropriété actif avec l'option « Reliée à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/copropriete` |
 | Immobilier | `demo-immobilier` | module Immobilier actif avec l'option « Relié à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/immobilier` |
 
@@ -363,10 +363,11 @@ on décide quand et à qui une modification s'applique.
 - **Sections retirées** (réglage `sectionsRetirees` du profil, vide au
   modèle de base) : sections absentes de l'installation pour tout le monde,
   développeur compris — menu, pages et Administrateur → Rôles et accès
-  (`aAccesSection`, `lib/auth.js`). Les démos Immobilier et Copropriété
-  retirent celles du garage (`SECTIONS_GARAGE` : bons et factures, clients,
+  (`aAccesSection`, `lib/auth.js`). Les démos Ferme, Immobilier et
+  Copropriété retirent celles du garage (`SECTIONS_GARAGE` : bons et factures, clients,
   calendrier, horodateur, inventaire, pneus, jobs, productivité, vue
-  d'ensemble) ; à reprendre pour un vrai client propriétaire ou syndicat.
+  d'ensemble) ; à reprendre pour un vrai client éleveur, propriétaire ou
+  syndicat.
 - **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
   modèle de base et démos des déclinaisons) : « DÉMO » dans le haut ; chaque
   démo est indépendante, sans liste ni lien vers les autres déclinaisons.
