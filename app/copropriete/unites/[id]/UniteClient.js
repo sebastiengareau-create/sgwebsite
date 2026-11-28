@@ -57,7 +57,7 @@ function Fiche({ unite, batiments }) {
         <>
           <LigneInfo label="Type" valeur={libelle(TYPES_UNITE, unite.type)} />
           <LigneInfo label="Quote-part" valeur={pourcent(unite.quotePart)} />
-          <LigneInfo label="Bâtiment" valeur={unite.batiment?.nom} />
+          <LigneInfo label="Bâtiment" valeur={unite.batiment && <Link href={`/copropriete/batiments/${unite.batiment.id}`} style={{ color: "var(--accent)", fontWeight: 700 }}>{unite.batiment.nom}</Link>} />
           <LigneInfo label="Étage" valeur={unite.etage} />
           <LigneInfo label="Superficie" valeur={unite.superficie && `${String(unite.superficie).replace(".", ",")} pi²`} />
           <LigneInfo label="Lot (cadastre)" valeur={unite.numeroLot} />

@@ -1,10 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { routesElement } from "@/lib/coproprieteRoutes";
+import { verifierNumeroUnite } from "@/lib/copropriete";
 
-// Une unité qui a un compte (charges ou paiements) reste : son historique
-// financier en dépend
+// Numéro unique dans son bâtiment. Une unité qui a un compte (charges ou
+// paiements) reste : son historique financier en dépend
 export const { PATCH, DELETE } = routesElement("uniteCopro", "unite", {
-  doublon: "Une unité porte déjà ce numéro.",
+  doublon: "Une unité porte déjà ce numéro dans ce bâtiment.",
+  avant: async (data, { element }) => {
+    if (data.numero === undefined && data.batimentId === undefined) return;
+    const erreur = await verifierNumeroUnite({
+      numero: data.numero ?? element.numero,
+      batimentId: data.batimentId !== undefined ? data.batimentId : element.batimentId,
+      id: element.id,
+    });
+    if (erreur) return { erreur };
+  },
   avantSuppression: async (u) => {
     const [charges, paiements] = await Promise.all([
       prisma.chargeCopro.count({ where: { uniteId: u.id } }),

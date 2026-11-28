@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CATEGORIES_DOCUMENTS, VISIBILITES } from "@/lib/coproprieteCalculs";
+import { CATEGORIES_DOCUMENTS, VISIBILITES, nomUnite } from "@/lib/coproprieteCalculs";
 import { ChampsFormulaire, Erreur, boutonPrincipal, labelStyle, aujourdhui } from "../ui";
 
 // Dépôt d'un document : fichier, titre, catégorie, date, qui le voit.
@@ -21,7 +21,7 @@ export default function FormulaireDocument({ unites = [], batiments = [], fixe =
     { nom: "categorie", label: "Catégorie", type: "choix", options: CATEGORIES_DOCUMENTS },
     { nom: "date", label: "Date du document", type: "date" },
     ...(fixe.visibilite ? [] : [{ nom: "visibilite", label: "Qui le voit", type: "choix", options: VISIBILITES }]),
-    ...(!fixe.uniteId && unites.length > 0 ? [{ nom: "uniteId", label: valeurs.visibilite === "UNITE" ? "Unité (obligatoire)" : "Unité concernée", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: u.numero })) }] : []),
+    ...(!fixe.uniteId && unites.length > 0 ? [{ nom: "uniteId", label: valeurs.visibilite === "UNITE" ? "Unité (obligatoire)" : "Unité concernée", type: "choix", vide: "—", options: unites.map((u) => ({ code: u.id, label: nomUnite(u) })) }] : []),
     ...(batiments.length > 0 ? [{ nom: "batimentId", label: "Bâtiment", type: "choix", vide: "—", options: batiments.map((b) => ({ code: b.id, label: b.nom })) }] : []),
     { nom: "description", label: "Description", type: "long", lignes: 2 },
   ];

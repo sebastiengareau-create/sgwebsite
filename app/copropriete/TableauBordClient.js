@@ -193,10 +193,13 @@ function HeroCopro({ visuel, rue, infos, mois, attendu, percu, encaisse, nbUnite
         `🛠️ ${nbDemandes} demande${s(nbDemandes)} ouverte${s(nbDemandes)}`,
         ...(budget ? [`💰 ${argent(totalBudget(budget))} / an`] : []),
       ] : []}
-      immeubles={rue} infos={infos} hrefDe={() => "/copropriete/unites?onglet=BATIMENTS"} plus="/copropriete/unites?onglet=BATIMENTS"
+      immeubles={rue} infos={infos} hrefDe={hrefBatiment} plus="/copropriete/unites?onglet=BATIMENTS"
     />
   );
 }
+
+// Fiche d'un bâtiment et son plan par étages ; les unités sans bâtiment : la liste des unités
+const hrefBatiment = (b) => (b.id === "sans-batiment" ? "/copropriete/unites" : `/copropriete/batiments/${b.id}`);
 
 // Carte d'un bâtiment : photo (ou façade illustrée), une case par unité,
 // cotisations du mois, demandes ouvertes
@@ -207,7 +210,7 @@ function CarteBatiment({ batiment: b, infos, visuel, vueRue, duCeMois, demandesD
   const demandes = b.logements.reduce((t, u) => t + (demandesDe[u.id] || 0), 0);
   const reel = b.id !== "sans-batiment";
   return (
-    <Link href="/copropriete/unites?onglet=BATIMENTS" className="carte-immeuble" style={{ display: "flex", flexDirection: "column", textDecoration: "none", color: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", minWidth: 0 }}>
+    <Link href={hrefBatiment(b)} className="carte-immeuble" style={{ display: "flex", flexDirection: "column", textDecoration: "none", color: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", minWidth: 0 }}>
       <div style={{ position: "relative" }}>
         <ImageImmeuble
           immeuble={b} infos={infos} moment={visuel?.moment || "jour"} saison={visuel?.saison || "ete"} vueRue={reel && vueRue} hauteur={140}

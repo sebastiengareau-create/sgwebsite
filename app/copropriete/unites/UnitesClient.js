@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein } from "../../components/StyleSection";
@@ -11,7 +12,7 @@ import { adresseComplete as adresseLisible } from "@/lib/adresse";
 import { FacadeIllustree } from "../../components/RueIllustree";
 import { etatUnite, ETATS_UNITE, batimentsPourRue } from "@/lib/coproprieteVisuel";
 import {
-  TYPES_UNITE, TYPES_ESPACE, MODES_ESPACE, argent, pourcent, libelle, trouver, nomsProprietaires,
+  TYPES_UNITE, TYPES_ESPACE, MODES_ESPACE, argent, pourcent, libelle, trouver, nomsProprietaires, nomUnite,
 } from "@/lib/coproprieteCalculs";
 import {
   NavCopro, Section, Formulaire, Onglets, Recherche, CarteListe, Vide, BoutonTexte, BoutonSupprimer, Tableau, cellule, celluleDroite, valeursDe, champsAdresse,
@@ -31,7 +32,7 @@ export const champsUnite = (batiments) => [
 export const champsEspace = (batiments, unites) => [
   { nom: "type", label: "Type", type: "choix", options: TYPES_ESPACE, defaut: "STATIONNEMENT" },
   { nom: "numero", label: "Numéro" },
-  { nom: "uniteId", label: "Attribué à l'unité", type: "choix", vide: "— libre —", options: unites.map((u) => ({ code: u.id, label: u.numero })) },
+  { nom: "uniteId", label: "Attribué à l'unité", type: "choix", vide: "— libre —", options: unites.map((u) => ({ code: u.id, label: nomUnite(u) })) },
   { nom: "mode", label: "Statut", type: "choix", options: MODES_ESPACE, defaut: "USAGE_RESTREINT" },
   { nom: "fraisMensuel", label: "Frais mensuels ($)", type: "argent" },
   { nom: "emplacement", label: "Emplacement", placeholder: "Garage P1, casier B…" },
@@ -40,7 +41,7 @@ export const champsEspace = (batiments, unites) => [
 ];
 
 // Par blocs ; l'adresse au format de l'appli (champsAdresse)
-const champsBatiment = [
+export const champsBatiment = [
   { nom: "nom", label: "Nom", placeholder: "Bâtiment A, Phase 1…", groupe: "Bâtiment" },
   { nom: "nbEtages", label: "Nombre d'étages", type: "nombre" },
   { nom: "anneeConstruction", label: "Année de construction", type: "nombre" },
@@ -88,35 +89,54 @@ function ListeUnites({ unites, batiments, soldes }) {
       </div>
       {formulaire && <Formulaire champs={champsUnite(batiments)} url="/api/copropriete/unites" bouton="Ajouter l'unité" onFini={(d) => router.push(`/copropriete/unites/${d.id}`)} />}
       <Recherche valeur={recherche} onChange={setRecherche} placeholder="Numéro, propriétaire, locataire, clé magnétique…" />
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {affichees.map((u) => {
-          const type = trouver(TYPES_UNITE, u.type);
-          const solde = Math.round((soldes[u.id] || 0) * 100) / 100;
-          const locataires = u.occupants.filter((o) => o.type === "LOCATAIRE");
-          return (
-            <CarteListe
-              key={u.id} href={`/copropriete/unites/${u.id}`}
-              couleur={solde > 0.005 ? "var(--danger)" : u.proprietes.length === 0 ? "var(--accent)" : "var(--success)"}
-              titre={<>{type?.icone} Unité {u.numero}{[...u.proprietes.map((p) => p.coproprietaire), ...u.occupants].some((x) => x.mobiliteReduite) && <span title="Mobilité réduite : aide pour évacuer"> ♿</span>}</>}
-              sousTitre={[
-                nomsProprietaires(u) || "Aucun propriétaire inscrit",
-                locataires.length > 0 && `louée à ${locataires.map((o) => o.nom).join(", ")}`,
-                u.batiment?.nom,
-                u.etage && `étage ${u.etage}`,
-                u._count.espaces > 0 && `${u._count.espaces} espace${u._count.espaces > 1 ? "s" : ""}`,
-              ].filter(Boolean).join(" · ")}
-              droite={<>
-                <div style={{ fontSize: 15, fontWeight: 800 }}>{pourcent(u.quotePart)}</div>
-                <div style={{ color: "var(--text-muted)" }}>quote-part</div>
-                {Math.abs(solde) > 0.005 && <div style={{ fontWeight: 700, color: solde > 0 ? "var(--danger)" : "var(--success)" }}>{solde > 0 ? `Doit ${argent(solde)}` : `Crédit ${argent(-solde)}`}</div>}
-              </>}
-            />
-          );
-        })}
-        {affichees.length === 0 && <Vide>Aucune unité.</Vide>}
-      </div>
+      {groupesParBatiment(affichees, batiments).map((g) => (
+        <div key={g.cle} style={{ marginBottom: 14 }}>
+          {g.titre && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, margin: "4px 2px 8px" }}>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-muted)" }}>🏢 {g.titre} · {g.unites.length}</span>
+              {g.id && <Link href={`/copropriete/batiments/${g.id}`} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>Plan par étages</Link>}
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {g.unites.map((u) => {
+              const type = trouver(TYPES_UNITE, u.type);
+              const solde = Math.round((soldes[u.id] || 0) * 100) / 100;
+              const locataires = u.occupants.filter((o) => o.type === "LOCATAIRE");
+              return (
+                <CarteListe
+                  key={u.id} href={`/copropriete/unites/${u.id}`}
+                  couleur={solde > 0.005 ? "var(--danger)" : u.proprietes.length === 0 ? "var(--accent)" : "var(--success)"}
+                  titre={<>{type?.icone} Unité {u.numero}{[...u.proprietes.map((p) => p.coproprietaire), ...u.occupants].some((x) => x.mobiliteReduite) && <span title="Mobilité réduite : aide pour évacuer"> ♿</span>}</>}
+                  sousTitre={[
+                    nomsProprietaires(u) || "Aucun propriétaire inscrit",
+                    locataires.length > 0 && `louée à ${locataires.map((o) => o.nom).join(", ")}`,
+                    u.etage && `étage ${u.etage}`,
+                    u._count.espaces > 0 && `${u._count.espaces} espace${u._count.espaces > 1 ? "s" : ""}`,
+                  ].filter(Boolean).join(" · ")}
+                  droite={<>
+                    <div style={{ fontSize: 15, fontWeight: 800 }}>{pourcent(u.quotePart)}</div>
+                    <div style={{ color: "var(--text-muted)" }}>quote-part</div>
+                    {Math.abs(solde) > 0.005 && <div style={{ fontWeight: 700, color: solde > 0 ? "var(--danger)" : "var(--success)" }}>{solde > 0 ? `Doit ${argent(solde)}` : `Crédit ${argent(-solde)}`}</div>}
+                  </>}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {affichees.length === 0 && <Vide>Aucune unité.</Vide>}
     </>
   );
+}
+
+// Unités regroupées par bâtiment (un même numéro peut revenir dans chaque
+// bâtiment) ; sans bâtiment du tout, une seule liste sans titre
+function groupesParBatiment(unites, batiments) {
+  if (batiments.length === 0) return [{ cle: "toutes", titre: null, unites }];
+  const groupes = batiments.map((b) => ({ cle: b.id, id: b.id, titre: b.nom, unites: unites.filter((u) => u.batimentId === b.id) }));
+  const seules = unites.filter((u) => !batiments.some((b) => b.id === u.batimentId));
+  if (seules.length) groupes.push({ cle: "sans", titre: "Sans bâtiment", unites: seules });
+  return groupes.filter((g) => g.unites.length > 0);
 }
 
 function ListeEspaces({ espaces, batiments, unites }) {
@@ -174,7 +194,7 @@ function ListeBatiments({ batiments, vueRue, unites, soldes, duCeMois, demandesD
       {formulaire && <Formulaire champs={champsBatiment} url="/api/copropriete/batiments" bouton="Ajouter le bâtiment" onFini={() => setFormulaire(false)} />}
       {batiments.length === 0 && <Vide>Aucun bâtiment : facultatif pour un immeuble seul, utile pour plusieurs bâtiments ou phases.</Vide>}
       {batiments.map((b) => (
-        <Section key={b.id} titre={`🏢 ${b.nom}`} droite={<span><BoutonTexte onClick={() => setEdition(edition?.id === b.id ? null : b)}>{edition?.id === b.id ? "Annuler" : "Modifier"}</BoutonTexte></span>}>
+        <Section key={b.id} titre={`🏢 ${b.nom}`} droite={<span style={{ display: "flex", gap: 12 }}><Link href={`/copropriete/batiments/${b.id}`} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>Plan par étages</Link><BoutonTexte onClick={() => setEdition(edition?.id === b.id ? null : b)}>{edition?.id === b.id ? "Annuler" : "Modifier"}</BoutonTexte></span>}>
           {edition?.id === b.id ? (
             <Formulaire cadre={false} champs={champsBatiment} initial={valeursDe(b, champsBatiment)} url={`/api/copropriete/batiments/${b.id}`} methode="PATCH" onFini={() => setEdition(null)} />
           ) : (
