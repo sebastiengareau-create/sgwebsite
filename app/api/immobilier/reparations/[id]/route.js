@@ -1,5 +1,5 @@
 import { routesElement } from "@/lib/immobilierRoutes";
-import { aviserLocataireReparation } from "@/lib/immobilier";
+import { aviserLocataireReparation, appliquerFournisseur } from "@/lib/immobilier";
 import { STATUTS_REPARATION, libelle, dateLisible } from "@/lib/immobilierCalculs";
 
 // Passée à « Terminée » sans date de fin : aujourd'hui. Le locataire qui l'a
@@ -8,6 +8,7 @@ import { STATUTS_REPARATION, libelle, dateLisible } from "@/lib/immobilierCalcul
 export const { PATCH, DELETE } = routesElement("reparationImmo", "reparation", {
   avant: (data, { element }) => {
     if (data.statut === "TERMINEE" && !element.dateFin && data.dateFin === undefined) data.dateFin = new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+    return appliquerFournisseur(data, "entrepreneur");
   },
   apres: async (r, { avant }) => {
     if (!r.locataireId) return;

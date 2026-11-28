@@ -8,12 +8,15 @@ import { BoutonPlein } from "../../components/StyleSection";
 import { CATEGORIES_DEPENSE, argent, libelle, trouver, dateLisible, dateCourte, rendement } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Formulaire, Vide, BoutonTexte, BoutonSupprimer, valeursDe, champsDepense, aujourdhui, champStyle, lien, TableauRendement, LigneMouvement } from "../ui";
 
-export default function DepensesClient({ immeubles, depenses, donnees, annee, courante, immeubleInit }) {
+const STATUT_FACTURE = { IMPAYEE: { texte: "À payer", couleur: "var(--danger)" }, PAYEE: { texte: "Payée", couleur: "var(--success)" } };
+
+export default function DepensesClient({ immeubles, depenses, donnees, annee, courante, immeubleInit, fournisseurs, statuts = {} }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState(false);
   const [edition, setEdition] = useState(null);
   const [immeuble, setImmeuble] = useState(immeubleInit);
-  const champs = champsDepense(immeubles);
+  const champs = champsDepense(immeubles, { fournisseurs });
+  const champsCreation = champsDepense(immeubles, { fournisseurs, creation: true });
   const nomImmeuble = Object.fromEntries(immeubles.map((i) => [i.id, i.nom]));
   const filtrees = depenses.filter((d) => !immeuble || d.immeubleId === immeuble);
   const { lignes, total } = rendement({ immeubles: immeubles.filter((i) => !immeuble || i.id === immeuble), ...donnees });
@@ -44,6 +47,7 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouvelle dépense"}</BoutonPlein>
         <Link href={`/immobilier/depenses/impot?annee=${annee}`} style={{ fontSize: 13.5, fontWeight: 700, ...lien }}>🧾 Revenus de location pour l'impôt (T776, TP-128)</Link>
+        <Link href="/immobilier/comptabilite" style={{ fontSize: 13.5, fontWeight: 700, ...lien }}>📚 {fournisseurs ? "Relié à la comptabilité" : "Lien avec la comptabilité"}</Link>
         <select value={annee} onChange={(e) => router.push(`/immobilier/depenses?annee=${e.target.value}${immeuble ? `&immeuble=${immeuble}` : ""}`)} style={{ ...champStyle, width: "auto", marginBottom: 0 }}>
           {Array.from({ length: 6 }, (_, i) => courante - i).map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
@@ -55,7 +59,7 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
         )}
       </div>
       {formulaire && (immeubles.length === 0 ? <Vide>Ajoute d'abord un immeuble.</Vide> : (
-        <Formulaire champs={champs} initial={{ date: aujourdhui(), immeubleId: immeuble || immeubles[0].id }} url="/api/immobilier/depenses" bouton="Ajouter la dépense" onFini={() => setFormulaire(false)} />
+        <Formulaire champs={champsCreation} initial={{ date: aujourdhui(), immeubleId: immeuble || immeubles[0].id }} url="/api/immobilier/depenses" bouton="Ajouter la dépense" onFini={() => setFormulaire(false)} />
       ))}
       {edition && <Formulaire key={edition.id} champs={champs} initial={valeursDe(edition, champs)} url={`/api/immobilier/depenses/${edition.id}`} methode="PATCH" bouton="Enregistrer la dépense" onFini={() => setEdition(null)} />}
 
@@ -70,7 +74,7 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
             <TableauRendement lignes={lignes} />
           </div>
         )}
-        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>Aperçu de gestion, sans lien avec la comptabilité : le remboursement du capital de l'hypothèque n'est pas une dépense ; seuls les intérêts le sont.</p>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>{fournisseurs ? "Aperçu de gestion ; les loyers, paiements, dépenses et réparations vont aussi aux livres" : "Aperçu de gestion, sans lien avec la comptabilité"} : le remboursement du capital de l'hypothèque n'est pas une dépense ; seuls les intérêts le sont.</p>
       </Section>
 
       <Section titre="Par catégorie">
@@ -96,6 +100,7 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
                 titre={<span title={libelle(CATEGORIES_DEPENSE, d.categorie)}>{trouver(CATEGORIES_DEPENSE, d.categorie)?.icone} {d.description || libelle(CATEGORIES_DEPENSE, d.categorie)}</span>}
                 detail={[dateLisible(d.date), nomImmeuble[d.immeubleId], d.payeA && `${d.payeA}${d.reference ? ` · ${d.reference}` : ""}`].filter(Boolean).join(" · ")}
                 montant={argent(d.montant)}
+                sousMontant={STATUT_FACTURE[statuts[d.id]] && <span style={{ color: STATUT_FACTURE[statuts[d.id]].couleur, fontWeight: 700 }}>{STATUT_FACTURE[statuts[d.id]].texte}</span>}
                 actions={<>
                   <BoutonTexte onClick={() => setEdition(d)}>Modifier</BoutonTexte>
                   <BoutonSupprimer url={`/api/immobilier/depenses/${d.id}`} confirmation={`Supprimer la dépense de ${argent(d.montant)} ?`}>✕ Retirer</BoutonSupprimer>

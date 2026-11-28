@@ -290,19 +290,26 @@ export const champsCharge = [
   { nom: "description", label: "Description", pleineLargeur: true },
 ];
 
-export const champsDepense = (immeubles) => [
+// fournisseurs [{ id, nom }] : Immobilier relié à la comptabilité — la
+// dépense va aux comptes à payer, chez ce fournisseur ; creation : offre
+// aussi « Déjà payée »
+const champFournisseur = (fournisseurs, aide) => ({ nom: "fournisseurId", label: `Fournisseur (comptes à payer)`, type: "choix", vide: aide, options: fournisseurs.map((f) => ({ code: f.id, label: f.nom })) });
+
+export const champsDepense = (immeubles, { fournisseurs, creation } = {}) => [
   ...(immeubles ? [{ nom: "immeubleId", label: "Immeuble", type: "choix", options: immeubles.map((i) => ({ code: i.id, label: i.nom })) }] : []),
   { nom: "date", label: "Date", type: "date" },
   { nom: "categorie", label: "Catégorie", type: "choix", options: CATEGORIES_DEPENSE, defaut: "ENTRETIEN" },
-  { nom: "montant", label: "Montant ($)", type: "argent" },
-  { nom: "payeA", label: "Payé à" },
+  { nom: "montant", label: "Montant ($), taxes incluses", type: "argent" },
+  ...(fournisseurs ? [champFournisseur(fournisseurs, "— selon « Payé à » —")] : []),
+  { nom: "payeA", label: fournisseurs ? "Payé à (nouveau fournisseur)" : "Payé à" },
   { nom: "reference", label: "Référence (facture, chèque…)" },
   { nom: "description", label: "Description", pleineLargeur: true },
+  ...(fournisseurs && creation ? [{ nom: "payee", label: "Déjà payée : la facture est inscrite payée aux comptes à payer (sinon, elle attend d'y être payée)", type: "case" }] : []),
 ];
 
 // Réparation : immeubles [{ id, nom, logements: [{ id, numero, type }] }],
 // locataires [{ id, nom }] ; immeubleId choisi → ses logements seulement
-export function champsReparation({ immeubles, locataires, immeubleId, fixe = {} }) {
+export function champsReparation({ immeubles, locataires, immeubleId, fixe = {}, fournisseurs }) {
   const imm = immeubles.find((i) => i.id === immeubleId);
   return [
     { nom: "titre", label: "Réparation", pleineLargeur: true, placeholder: "Robinet qui coule, fenêtre brisée…" },
@@ -312,7 +319,8 @@ export function champsReparation({ immeubles, locataires, immeubleId, fixe = {} 
     { nom: "statut", label: "État", type: "choix", options: STATUTS_REPARATION, defaut: "NOUVELLE" },
     { nom: "categorie", label: "Catégorie", type: "choix", vide: "—", options: CATEGORIES_REPARATION },
     ...(locataires ? [{ nom: "locataireId", label: "Signalée par le locataire", type: "choix", vide: "—", options: locataires.map((l) => ({ code: l.id, label: l.nom })) }] : []),
-    { nom: "entrepreneur", label: "Entrepreneur" },
+    ...(fournisseurs ? [champFournisseur(fournisseurs, "— selon « Entrepreneur » —")] : []),
+    { nom: "entrepreneur", label: fournisseurs ? "Entrepreneur (nouveau fournisseur)" : "Entrepreneur" },
     { nom: "telephoneEntrepreneur", label: "Téléphone de l'entrepreneur", typeHtml: "tel" },
     { nom: "datePrevue", label: "Date prévue", type: "date" },
     { nom: "dateFin", label: "Terminée le", type: "date" },
