@@ -8,7 +8,7 @@ import { argent, nombre } from "@/lib/format";
 import HeroRue, { ConseilDuMois } from "../components/HeroRue";
 import { AtelierIllustre } from "../components/AtelierIllustre";
 import { SECTEURS } from "@/lib/marque";
-import { CONSEILS_MOIS_GARAGE, ETATS_VEHICULE, vehiculesAtelier } from "@/lib/garageVisuel";
+import { CONSEILS_MOIS_GARAGE, CONSEILS_MOIS_VR, ETATS_VEHICULE, vehiculesAtelier, vehiculesAVendrePourAtelier } from "@/lib/garageVisuel";
 import { Icone, TEINTES, TitrePanneau, stylePanneau, TitreGroupe } from "../components/StyleSection";
 
 function fmt(montant) {
@@ -101,7 +101,7 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
 
       {visuel && (
         <ConseilDuMois
-          conseil={CONSEILS_MOIS_GARAGE[visuel.mois - 1]} couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)"
+          conseil={(vr ? CONSEILS_MOIS_VR : CONSEILS_MOIS_GARAGE)[visuel.mois - 1]} couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)"
           etiquette={`En ${new Intl.DateTimeFormat("fr-CA", { month: "long", timeZone: "America/Toronto" }).format(new Date())}, à l'atelier`}
         />
       )}
@@ -473,8 +473,9 @@ function HeroAtelier({ nomUtilisateur, atelier, vr, visuel, children }) {
     );
   }
   const { portes, cour } = vehiculesAtelier(atelier.bons, atelier.enChrono);
+  const aVendre = vehiculesAVendrePourAtelier(atelier.aVendre || []);
   const compte = {};
-  for (const v of [...portes, ...cour]) compte[v.etat] = (compte[v.etat] || 0) + 1;
+  for (const v of [...portes, ...cour, ...aVendre]) compte[v.etat] = (compte[v.etat] || 0) + 1;
   const auChrono = new Set(Object.values(atelier.enChrono).flat()).size;
   const s = (n) => (n > 1 ? "s" : "");
   const vehicules = vr ? "VR" : "véhicule";
@@ -486,19 +487,21 @@ function HeroAtelier({ nomUtilisateur, atelier, vr, visuel, children }) {
     ...(compte.TRAVAIL || compte.COURS ? [`🔧 ${(compte.TRAVAIL || 0) + (compte.COURS || 0)} en cours`] : []),
     ...(compte.ATTENTE ? [`⏱️ ${compte.ATTENTE} en attente`] : []),
     ...(compte.PRET ? [`✅ ${compte.PRET} prêt${s(compte.PRET)}`] : []),
+    ...(compte.VENTE ? [`🏷️ ${compte.VENTE} ${vehicules}${vr ? "" : s(compte.VENTE)} à vendre`] : []),
   ];
   const couleur = (SECTEURS[vr ? "premium" : "garage"] || SECTEURS.garage).couleur;
-  const scenes = [["atelier-large", 6, 8], ["atelier-etroite", 3, 3]];
+  const scenes = [["atelier-large", 6, 8, 4], ["atelier-etroite", 3, 3, 1]];
   return (
     <>
       <HeroRue
         visuel={{ ...visuel, prenom }} badge={vr ? "🚐 ATELIER VR" : "🔧 ATELIER"} phrase={phrase} puces={puces}
-        scene={scenes.map(([classe, maxPortes, maxCour]) => {
+        scene={scenes.map(([classe, maxPortes, maxCour, maxVente]) => {
           const cachees = Math.max(0, portes.length - maxPortes) + Math.max(0, cour.length - maxCour);
           return (
             <div key={classe} className={classe}>
               <AtelierIllustre
                 cle={classe} portes={portes.slice(0, maxPortes)} cour={cour.slice(0, maxCour)} maxPortes={maxPortes} vr={vr} couleurEnseigne={couleur}
+                aVendre={aVendre.slice(0, maxVente)} hrefVente={(v) => `/secretaire/inventaire/vehicules/${v.id}`}
                 nomEntreprise={atelier.nomEntreprise} moment={visuel.moment} saison={visuel.saison} mois={visuel.mois} hrefDe={(v) => `/bons/${v.id}`}
               />
               {cachees > 0 && (
@@ -512,7 +515,7 @@ function HeroAtelier({ nomUtilisateur, atelier, vr, visuel, children }) {
       >
         {children}
       </HeroRue>
-      {total > 0 && (
+      {total + aVendre.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "6px 14px", margin: "0 4px 14px", fontSize: 12, color: "var(--text-muted)" }}>
           <span style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
             {Object.entries(ETATS_VEHICULE).filter(([code]) => compte[code]).map(([code, e]) => (
@@ -522,7 +525,7 @@ function HeroAtelier({ nomUtilisateur, atelier, vr, visuel, children }) {
               </span>
             ))}
           </span>
-          <span>Touche un {vr ? "VR" : "véhicule"} pour ouvrir son bon</span>
+          <span>Touche un {vr ? "VR" : "véhicule"} pour ouvrir son bon{aVendre.length ? " ou sa fiche de vente" : ""}</span>
         </div>
       )}
     </>

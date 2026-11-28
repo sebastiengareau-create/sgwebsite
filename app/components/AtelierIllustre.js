@@ -6,8 +6,11 @@
 // un chrono est en marche —, et dans la cour les véhicules en attente ou
 // prêts (client avisé), avec leur pastille (lib/garageVisuel.js). Toucher un
 // véhicule ouvre son bon. Autos (berline, VUS, camionnette) ou, pour un
-// garage de VR (profil typeVehicules « vr »), motorisés et roulottes. Piles
-// de pneus (plus nombreuses en saison des pneus), neige l'hiver ; le ciel
+// garage de VR (profil typeVehicules « vr »), motorisés et roulottes. Les
+// véhicules à vendre de l'entreprise (profil vehiculesAVendre) dans une cour
+// de vente sous des fanions, avec leur prix. Piles de pneus (plus
+// nombreuses en saison des pneus) ou, en VR, bonbonnes de propane ; neige
+// l'hiver ; le ciel
 // (CielIllustre) suit le moment de la journée au Québec. Tout est dessiné ici.
 
 import { useRouter } from "next/navigation";
@@ -139,6 +142,34 @@ function Mecanicien({ x, sol }) {
   );
 }
 
+function Bonbonnes({ x, sol }) {
+  return [0, 1, 2].map((i) => (
+    <g key={i}>
+      <rect x={x + i * 11} y={sol - 22} width={9} height={22} rx={4} fill={i === 1 ? "#d9dde2" : "#f1f3f5"} stroke="#9aa0a8" strokeWidth={0.8} />
+      <rect x={x + i * 11 + 2.5} y={sol - 26} width={4} height={4.5} rx={1} fill="#7a7f87" />
+    </g>
+  ));
+}
+
+// Fanions de la cour de vente, de x1 à x2
+function Fanions({ x1, x2, y }) {
+  const n = Math.max(4, Math.floor((x2 - x1) / 12));
+  const couleurs = ["#d94f4f", "#f0b429", "#2e6fbf", "#3fae5a"];
+  return (
+    <g>
+      <line x1={x1} y1={y + 46} x2={x1} y2={y - 2} stroke="#4a4f57" strokeWidth={2} />
+      <line x1={x2} y1={y + 46} x2={x2} y2={y - 2} stroke="#4a4f57" strokeWidth={2} />
+      <path d={`M${x1} ${y} Q${(x1 + x2) / 2} ${y + 12} ${x2} ${y}`} stroke="#4a4f57" strokeWidth={1} fill="none" />
+      {Array.from({ length: n }, (_, i) => {
+        const t = (i + 0.5) / n;
+        const fx = x1 + (x2 - x1) * t;
+        const fy = y + 12 * 4 * t * (1 - t) * 0.5;
+        return <polygon key={i} points={`${fx - 4},${fy} ${fx + 4},${fy} ${fx},${fy + 8}`} fill={couleurs[i % couleurs.length]} />;
+      })}
+    </g>
+  );
+}
+
 function PilePneus({ x, sol, etages }) {
   return Array.from({ length: etages }, (_, i) => (
     <g key={i}>
@@ -151,7 +182,8 @@ function PilePneus({ x, sol, etages }) {
 // L'atelier. portes : véhicules aux portes (bons en cours) ; cour : en
 // attente ou prêts — vehiculesAtelier() ; nomEntreprise : l'enseigne ;
 // vr : motorisés et roulottes ; mois : 1 à 12 (saison des pneus)
-export function AtelierIllustre({ portes, cour, nomEntreprise, vr = false, moment, saison, mois, hrefDe, couleurEnseigne = "#e07338", maxPortes = 6, hauteurMax = 240, hauteurMin = 130, cle = "a" }) {
+// aVendre : véhicules à vendre (vehiculesAVendrePourAtelier) ; hrefVente(v) → leur fiche
+export function AtelierIllustre({ portes, cour, aVendre = [], nomEntreprise, vr = false, moment, saison, mois, hrefDe, hrefVente, couleurEnseigne = "#e07338", maxPortes = 6, hauteurMax = 240, hauteurMin = 130, cle = "a" }) {
   const router = useRouter();
   const ciel = cielDe(moment, saison);
   const neige = NEIGE[ciel.moment];
@@ -165,12 +197,13 @@ export function AtelierIllustre({ portes, cour, nomEntreprise, vr = false, momen
   const xPortes = x0 + BUREAU;
   const finBatiment = xPortes + nbPortes * g.porte + 10;
   const xCour = finBatiment + 46;
-  const largeur = Math.max(640, xCour + Math.max(2, cour.length) * g.place + 50);
+  const xVente = xCour + Math.max(2, cour.length) * g.place + 40;
+  const largeur = Math.max(640, aVendre.length ? xVente + aVendre.length * g.place + 50 : xCour + Math.max(2, cour.length) * g.place + 50);
   const haut = SOL - g.mur;
   const teinte = (c, f = 1) => melanger(c, ciel.ombre[0], ciel.ombre[1] * f);
   const mur = teinte("#c9ced5");
   const allume = ciel.halo > 0;
-  const saisonPneus = [3, 4, 10, 11].includes(mois);
+  const saisonPneus = !vr && [3, 4, 10, 11].includes(mois);
   const ouvrir = (ev, href) => { ev.preventDefault(); router.push(href); };
   const enseigne = String(nomEntreprise || "Garage").slice(0, 26);
 
@@ -252,7 +285,7 @@ export function AtelierIllustre({ portes, cour, nomEntreprise, vr = false, momen
       })}
 
       {/* Pneus empilés : plus nombreux en saison des pneus */}
-      <PilePneus x={finBatiment + 8} sol={SOL} etages={saisonPneus ? 5 : 3} />
+      {vr ? <Bonbonnes x={finBatiment + 6} sol={SOL} /> : <PilePneus x={finBatiment + 8} sol={SOL} etages={saisonPneus ? 5 : 3} />}
       {saisonPneus && <PilePneus x={x0 - 26} sol={SOL} etages={4} />}
 
       {/* La cour : prêts près de la porte, puis en attente */}
@@ -267,6 +300,33 @@ export function AtelierIllustre({ portes, cour, nomEntreprise, vr = false, momen
             <ellipse cx={cx} cy={SOL + 1} rx={g.place * 0.42} ry={3} fill="#000" opacity={0.18} />
             <Vehicule v={v} x={cx} y={SOL} sens={i % 2 ? -1 : 1} vr={vr} ciel={ciel} saison={saison} dehors neige={neige} />
             <Pastille x={cx} y={SOL - hauteurV - 10} etat={v.etat} />
+          </a>
+        );
+      })}
+      {/* Cour de vente : fanions, pancarte et prix */}
+      {aVendre.length > 0 && (
+        <g>
+          <Fanions x1={xVente - 14} x2={xVente + aVendre.length * g.place + 6} y={SOL - (vr ? 70 : 52)} />
+          <rect x={xVente - 34} y={SOL - 40} width={34} height={14} rx={2} fill={couleurEnseigne} />
+          <text x={xVente - 17} y={SOL - 30} textAnchor="middle" fontSize={7} fontWeight={800} fill="#fff">À VENDRE</text>
+          <line x1={xVente - 17} y1={SOL - 26} x2={xVente - 17} y2={SOL} stroke="#4a4f57" strokeWidth={1.6} />
+        </g>
+      )}
+      {aVendre.map((v, i) => {
+        const cx = xVente + i * g.place + g.place / 2;
+        const href = hrefVente ? hrefVente(v) : "#";
+        const hauteurV = vr ? 48 : 30;
+        return (
+          <a key={v.id} href={href} className="vehicule-atelier" onClick={(ev) => ouvrir(ev, href)} aria-label={v.texte}>
+            <title>{v.texte}</title>
+            <ellipse cx={cx} cy={SOL + 1} rx={g.place * 0.42} ry={3} fill="#000" opacity={0.18} />
+            <Vehicule v={v} x={cx} y={SOL} sens={1} vr={vr} ciel={ciel} saison={saison} dehors neige={neige} />
+            {v.prix && (
+              <g style={{ pointerEvents: "none" }}>
+                <rect x={cx - 25} y={SOL - hauteurV - 18} width={50} height={13} rx={3} fill="#ffd34d" stroke="#8a6a10" strokeWidth={0.8} />
+                <text x={cx} y={SOL - hauteurV - 8.6} textAnchor="middle" fontSize={8} fontWeight={800} fill="#3a2a05">{v.prix}</text>
+              </g>
+            )}
           </a>
         );
       })}

@@ -377,7 +377,11 @@ on décide quand et à qui une modification s'applique.
   garage de VR (`typeVehicules`) ; pneus empilés en saison, neige l'hiver,
   ciel selon l'heure ; salutation, journée en chiffres, choix du mois et
   conseil du mois de l'atelier (pneus d'hiver obligatoires du 1er décembre
-  au 15 mars…). Le **bandeau des sections communes** (`BandeauSection`)
+  au 15 mars…). Pour un atelier de VR : bonbonnes de propane au lieu des
+  pneus, calendrier du VR (`CONSEILS_MOIS_VR` : mises en service au
+  printemps, hivernisation à l'automne) et, avec `vehiculesAVendre`, la
+  cour de vente — fanions, enseigne « À VENDRE », chaque VR en stock avec
+  son prix demandé, un clic ouvre sa fiche de vente. Le **bandeau des sections communes** (`BandeauSection`)
   prend la couleur et la silhouette de la déclinaison (`secteurMarque` :
   atelier orange du garage, VR dorés du Premium, grange de la Ferme, plex
   de l'Immobilier, tours de la Copropriété).

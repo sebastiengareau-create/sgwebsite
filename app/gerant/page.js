@@ -157,6 +157,13 @@ export default async function EspaceGerant(props) {
     bons: bonsOuverts.map((b) => ({ id: b.id, numero: b.numero, statut: b.statut, avisPretLe: b.avisPretLe, vehicule: b.vehicule, client: b.client })),
     enChrono,
     nomEntreprise: (await obtenirInfosEntreprise()).nomEntreprise,
+    // Véhicules à vendre de l'entreprise (profil vehiculesAVendre), dans la cour de vente
+    aVendre: CLIENT.vehiculesAVendre
+      ? await prisma.vehiculeVente.findMany({
+        where: { statut: "EN_STOCK" }, orderBy: { creeLe: "desc" }, take: 12,
+        select: { id: true, numero: true, prixDemande: true, vehicule: { select: { id: true, marque: true, modele: true, annee: true } } },
+      })
+      : [],
   };
   // Valeur avant taxes des bons en attente et en cours — à titre informatif
   // seulement (rien n'est comptabilisé avant la facture)
