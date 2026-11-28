@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
+import { CLIENT } from "@/lib/client";
 import { prisma } from "@/lib/prisma";
 import { limitesMoisQuebec, dateAujourdhuiQuebec, dateQuebecStr } from "@/lib/temps";
 import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailRevenusDepenses } from "@/lib/rapportsComptables";
@@ -68,6 +69,9 @@ export default async function EspaceGerant(props) {
     // GERANT est maintenant configurable ici aussi (voir aAccesSection) —
     // s'il n'a pas cette section, on ne peut plus le renvoyer vers /gerant
     // (boucle infinie), donc /secretaire comme repli sûr dans ce cas précis.
+    // Installation sans vue d'ensemble (sectionsRetirees du profil) : la page
+    // d'arrivée du gérant, son module
+    if (CLIENT.accueilGerant && CLIENT.accueilGerant !== "/gerant" && ["GERANT", "NIVEAU4", "DEVELOPPEUR"].includes(session.role)) redirect(CLIENT.accueilGerant);
     redirect(session.role === "GERANT" ? "/secretaire" : `/${session.role.toLowerCase()}`);
   }
 
