@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obtenirSession, aAccesSection } from "@/lib/auth";
-import { CLIENT } from "@/lib/client";
+import { CLIENT, estVr } from "@/lib/client";
+import { obtenirInfosEntreprise } from "@/lib/config";
+import { momentQuebec } from "@/lib/immobilierVisuel";
 import { prisma } from "@/lib/prisma";
 import { limitesMoisQuebec, dateAujourdhuiQuebec, dateQuebecStr } from "@/lib/temps";
 import { calculerResumeFermeture, calculerResumeRevenusDepenses, calculerDetailRevenusDepenses } from "@/lib/rapportsComptables";
@@ -123,7 +125,12 @@ export default async function EspaceGerant(props) {
     // seront pas facturés à un client (leur montant va au coûtant du véhicule)
     prisma.bonTravail.findMany({
       where: { statut: { in: ["EN_ATTENTE", "EN_COURS"] }, facture: null, vehiculeVenteId: null },
-      include: { problemes: { include: { pieces: { select: { qte: true, prix: true, kit: true } }, entreesTemps: { select: { debut: true, fin: true } } } } },
+      include: {
+        problemes: { include: { pieces: { select: { qte: true, prix: true, kit: true } }, entreesTemps: { select: { debut: true, fin: true } } } },
+        // Atelier illustré : le véhicule et le client de chaque bon
+        vehicule: { select: { id: true, marque: true, modele: true, annee: true } },
+        client: { select: { nom: true } },
+      },
     }),
     prisma.parametre.findUnique({ where: { cle: "taux_horaire_client" } }),
     prisma.piece.findMany({ where: { actif: true, estKit: false }, select: { qte: true, qteMin: true } }),
@@ -140,6 +147,17 @@ export default async function EspaceGerant(props) {
   ]);
 
   const stockBas = inventaire.filter((p) => p.qte <= p.qteMin);
+  // Atelier illustré : bons pas encore facturés, et qui est au chrono sur lesquels
+  const enChrono = {};
+  for (const e of poinconsActifs) {
+    const bonId = e.probleme?.bon?.id;
+    if (bonId) enChrono[bonId] = [...new Set([...(enChrono[bonId] || []), e.employe?.nom].filter(Boolean))];
+  }
+  const atelier = {
+    bons: bonsOuverts.map((b) => ({ id: b.id, numero: b.numero, statut: b.statut, avisPretLe: b.avisPretLe, vehicule: b.vehicule, client: b.client })),
+    enChrono,
+    nomEntreprise: (await obtenirInfosEntreprise()).nomEntreprise,
+  };
   // Valeur avant taxes des bons en attente et en cours — à titre informatif
   // seulement (rien n'est comptabilisé avant la facture)
   const tauxHoraireClient = Number(tauxHoraireParam?.valeur || 195);
@@ -225,6 +243,10 @@ export default async function EspaceGerant(props) {
         alertes={alertes}
         rentabilite={{ mois: detailMois, annee: detailAnnee }}
         afficherRapports={(await productiviteActif()) && (await aAccesSection(session, "jobs-temps-reel"))}
+        atelier={JSON.parse(JSON.stringify(atelier))}
+        vr={estVr}
+        // Atelier illustré : ciel du moment au Québec
+        visuel={momentQuebec()}
       />
 
       <div className="conteneur-page" style={{ paddingTop: 0 }}>

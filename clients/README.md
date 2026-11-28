@@ -368,6 +368,19 @@ on décide quand et à qui une modification s'applique.
   calendrier, horodateur, inventaire, pneus, jobs, productivité, vue
   d'ensemble) ; à reprendre pour un vrai client éleveur, propriétaire ou
   syndicat.
+- **Vue d'ensemble du garage** : en tête, l'**atelier illustré**
+  (`app/components/AtelierIllustre.js`, `lib/garageVisuel.js`, vérifié par
+  `npm run test:garage`) — enseigne au nom de l'entreprise, une porte par
+  bon en cours (véhicule monté sur le pont avec le mécanicien quand un
+  chrono est en marche), véhicules en attente ou prêts (client avisé) dans
+  la cour, un clic ouvre le bon ; autos, ou motorisés et roulottes pour un
+  garage de VR (`typeVehicules`) ; pneus empilés en saison, neige l'hiver,
+  ciel selon l'heure ; salutation, journée en chiffres, choix du mois et
+  conseil du mois de l'atelier (pneus d'hiver obligatoires du 1er décembre
+  au 15 mars…). Le **bandeau des sections communes** (`BandeauSection`)
+  prend la couleur et la silhouette de la déclinaison (`secteurMarque` :
+  atelier orange du garage, VR dorés du Premium, grange de la Ferme, plex
+  de l'Immobilier, tours de la Copropriété).
 - **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
   modèle de base et démos des déclinaisons) : « DÉMO » dans le haut ; chaque
   démo est indépendante, sans liste ni lien vers les autres déclinaisons.

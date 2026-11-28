@@ -15,8 +15,9 @@ const puce = { display: "inline-flex", alignItems: "center", gap: 5, padding: "3
 // visuel : { moment, saison, salutation, prenom } ; badge : « 🏘️ IMMOBILIER » ;
 // jauge : { valeur (0 à 1), tout, libelle } ou null ; puces : [texte…] ;
 // immeubles, infos, hrefDe : la rue ; plus : lien au-delà de 6 immeubles ;
-// scene : autre dessin à la place de la rue (ex. la ferme, FermeIllustree.js)
-export default function HeroRue({ visuel, badge, phrase, jauge, puces = [], immeubles = [], infos, hrefDe, plus, scene }) {
+// scene : autre dessin à la place de la rue (ex. la ferme, FermeIllustree.js) ;
+// children : sous les puces (ex. le choix du mois de la Vue d'ensemble)
+export default function HeroRue({ visuel, badge, phrase, jauge, puces = [], immeubles = [], infos, hrefDe, plus, scene, children }) {
   return (
     <section style={{ position: "relative", overflow: "hidden", borderRadius: 20, marginBottom: 8, border: "1px solid var(--border)", boxShadow: "0 12px 30px rgba(40, 20, 90, 0.18)" }}>
       <CielIllustre moment={visuel.moment} saison={visuel.saison} />
@@ -35,6 +36,7 @@ export default function HeroRue({ visuel, badge, phrase, jauge, puces = [], imme
             {puces.map((p) => <span key={p} style={puce}>{p}</span>)}
           </div>
         )}
+        {children}
       </div>
       <div style={{ position: "relative", marginTop: 4 }}>
         {scene || <RueIllustree immeubles={immeubles} infos={infos} moment={visuel.moment} saison={visuel.saison} hrefDe={hrefDe} />}

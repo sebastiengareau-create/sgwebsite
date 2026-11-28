@@ -660,6 +660,14 @@ html[data-theme="light"] {
 .etoile-immo { animation: scintille-immo 2.8s ease-in-out infinite alternate; }
 .bete-ferme { cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease; transform-box: fill-box; transform-origin: 50% 100%; outline: none; }
 .bete-ferme:hover, .bete-ferme:focus-visible { filter: brightness(1.35); transform: translateY(-2px); }
+.vehicule-atelier { cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease; transform-box: fill-box; transform-origin: 50% 100%; outline: none; }
+.vehicule-atelier:hover, .vehicule-atelier:focus-visible { filter: brightness(1.12) saturate(1.1); transform: translateY(-2px); }
+/* Atelier illustré : grande scène sur un écran large, plus petite sur un téléphone */
+.atelier-etroite { display: none; }
+@media (max-width: 699px) {
+  .atelier-large { display: none; }
+  .atelier-etroite { display: block; }
+}
 /* Ferme illustrée : grande scène sur un écran large, plus petite sur un téléphone */
 .ferme-etroite { display: none; }
 @media (max-width: 699px) {
@@ -686,6 +694,6 @@ html[data-theme="light"] {
 .tuile-immo:hover, .tuile-immo:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(40, 20, 80, 0.14); border-color: var(--immo) !important; }
 @media (prefers-reduced-motion: reduce) {
   .neige-immo, .etoile-immo { animation: none; }
-  .immeuble-rue, .carte-immeuble, .tuile-immo, .bete-ferme { transition: none; }
-  .immeuble-rue:hover, .carte-immeuble:hover, .tuile-immo:hover, .bete-ferme:hover { transform: none; }
+  .immeuble-rue, .carte-immeuble, .tuile-immo, .bete-ferme, .vehicule-atelier { transition: none; }
+  .immeuble-rue:hover, .carte-immeuble:hover, .tuile-immo:hover, .bete-ferme:hover, .vehicule-atelier:hover { transform: none; }
 }
