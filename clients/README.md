@@ -220,9 +220,12 @@ on décide quand et à qui une modification s'applique.
   semaines, assurance qui expire — type `IMMO_A_SURVEILLER`, actif par
   défaut), `lib/immobilier.js` ;
   **lien avec la comptabilité** (`/immobilier/comptabilite`,
-  `lib/immobilierCompta.js`, inactif par défaut, exige le module Comptabilité
-  et l'accès « Comptabilité », réglage `immo_comptabilite` : à partir d'une
-  date de départ, loyers et frais aux comptes « Loyers à recevoir » et
+  `lib/immobilierCompta.js`) : **option du forfait**, activée seulement par
+  le développeur ou le super-administrateur dans Administrateur → Modules,
+  sous Immobilier (`module_immobilier_comptabilite`, inactive par défaut,
+  active dans la démo Immobilier) ; exige le module Comptabilité. Le client
+  règle ensuite, avec l'accès « Comptabilité », la date de départ et le
+  compte de banque (réglage `immo_comptabilite`) : à partir de cette date, loyers et frais aux comptes « Loyers à recevoir » et
   « Revenus de location », paiements au compte de banque choisi, dépenses des
   immeubles et réparations terminées en factures du fournisseur aux comptes à
   payer (`Depense.origine` `IMMO_DEPENSE` / `IMMO_REPARATION`, payées là, ou

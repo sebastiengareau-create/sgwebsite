@@ -121,7 +121,24 @@ export default function AdministrateurClient({ modules, atelierDemo, troupeauDem
               onClick={() => toggle(m.id, !m.actif)} disabled={enCoursId === m.id || m.pasEncoreConstruit}
             />
           </div>
-        ))}
+        )).flatMap((ligne, i) => {
+          // Options du forfait d'un module (ex. Immobilier relié à la
+          // comptabilité) : sous lui, offertes seulement quand il est actif
+          const m = modules[i];
+          if (!m.actif || !m.options?.length) return [ligne];
+          return [ligne, ...m.options.map((o) => (
+            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 4px 12px 52px" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5 }}>↳ {o.label}</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{o.description}</div>
+              </div>
+              <Interrupteur
+                actif={o.actif} couleur="var(--success)" libelle={`${o.actif ? "Désactiver" : "Activer"} l'option ${o.label}`}
+                onClick={() => toggle(o.id, !o.actif)} disabled={enCoursId === o.id}
+              />
+            </div>
+          ))];
+        })}
       </Panneau>
 
       {atelierDemo && <AtelierDemo etat={atelierDemo} />}
