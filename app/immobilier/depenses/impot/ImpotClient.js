@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BandeauSection from "../../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { TEINTES, Icone } from "../../../components/StyleSection";
 import { argent, dateLisible } from "@/lib/immobilierCalculs";
 import { NavImmo, Panneau, Statistique, champStyle, lien, RetourArriere } from "../../ui";
@@ -60,7 +60,7 @@ export default function ImpotClient({ etat, annee, courante }) {
   return (
     <div className="conteneur-page">
       <RetourArriere href="/immobilier/depenses" />
-      <BandeauSection icone="🧾" titre="Revenus de location pour l'impôt" sousTitre="Lignes du T776 (ARC) — mêmes renseignements au TP-128 de Revenu Québec, un par immeuble." />
+      <BandeauImmo icone="🧾" titre="Revenus de location pour l'impôt" sousTitre="Lignes du T776 (ARC) — mêmes renseignements au TP-128 de Revenu Québec, un par immeuble." />
       <NavImmo actif="/immobilier/depenses" />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>

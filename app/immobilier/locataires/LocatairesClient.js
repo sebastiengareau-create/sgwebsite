@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { argent, additionnerComptes } from "@/lib/immobilierCalculs";
@@ -26,7 +26,7 @@ export default function LocatairesClient({ locataires, comptes }) {
     .filter((l) => !q || correspondRecherche(q, l.nom, l.courriel, l.telephone, ...l.baux.map((b) => `${b.logement.immeuble.nom} ${b.logement.numero}`)));
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="👥" titre="Locataires" sousTitre="Coordonnées, baux et compte de chaque locataire." />
+      <BandeauImmo icone="👥" titre="Locataires" sousTitre="Coordonnées, baux et compte de chaque locataire." />
       <NavImmo actif="/immobilier/locataires" />
       <div style={{ marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouveau locataire"}</BoutonPlein>

@@ -346,8 +346,6 @@ a { color: inherit; }
 .case-logement:has(.lien-etire:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Tuile chiffrée cliquable du tableau de bord de l'immobilier */
-.tuile-immo { transition: border-color 0.15s; }
-.tuile-immo:hover, .tuile-immo:focus-visible { border-color: var(--accent) !important; }
 
 .ligne-info {
   display: flex;
@@ -631,4 +629,43 @@ html[data-theme="light"] .logo-sombre { display: none; }
 @media (max-width: 999px) {
   .textos-grille[data-ouverte="1"] .textos-liste { display: none; }
   .textos-grille[data-ouverte="0"] .textos-fil { display: none; }
+}
+
+/* ---------- Immobilier : rue illustrée, ciel et couleurs (app/immobilier/RueImmo.js) ---------- */
+:root {
+  --immo: #a37ff0;          /* violet de la marque Immobilier, éclairci pour le thème sombre */
+  --immo-fort: #7c4dbd;
+  --immo-fond: rgba(163, 127, 240, 0.16);
+  --immo-texte-sur: #ffffff;
+}
+html[data-theme="light"] {
+  --immo: #6c3fb0;
+  --immo-fort: #7c4dbd;
+  --immo-fond: rgba(124, 77, 189, 0.10);
+}
+.immeuble-rue { cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease; transform-box: fill-box; transform-origin: 50% 100%; outline: none; }
+.immeuble-rue:hover, .immeuble-rue:focus-visible { filter: brightness(1.1) saturate(1.12); transform: translateY(-3px); }
+.etoile-immo { animation: scintille-immo 2.8s ease-in-out infinite alternate; }
+@keyframes scintille-immo { from { opacity: 0.25; } to { opacity: 1; } }
+.neige-immo {
+  position: absolute; inset: -260px 0 0 0; pointer-events: none; opacity: 0.85;
+  background-image:
+    radial-gradient(2px 2px at 30px 40px, #fff 50%, transparent 52%),
+    radial-gradient(2.5px 2.5px at 120px 90px, #fff 50%, transparent 52%),
+    radial-gradient(1.6px 1.6px at 170px 20px, #fff 50%, transparent 52%),
+    radial-gradient(2px 2px at 80px 160px, #fff 50%, transparent 52%),
+    radial-gradient(3px 3px at 60px 230px, rgba(255,255,255,0.9) 50%, transparent 52%),
+    radial-gradient(2.4px 2.4px at 210px 190px, rgba(255,255,255,0.9) 50%, transparent 52%);
+  background-size: 220px 260px;
+  animation: neige-immo 14s linear infinite;
+}
+@keyframes neige-immo { from { transform: translateY(0); } to { transform: translateY(260px); } }
+.carte-immeuble { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.carte-immeuble:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(40, 20, 80, 0.18); }
+.tuile-immo { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.15s; }
+.tuile-immo:hover, .tuile-immo:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(40, 20, 80, 0.14); border-color: var(--immo) !important; }
+@media (prefers-reduced-motion: reduce) {
+  .neige-immo, .etoile-immo { animation: none; }
+  .immeuble-rue, .carte-immeuble, .tuile-immo { transition: none; }
+  .immeuble-rue:hover, .carte-immeuble:hover, .tuile-immo:hover { transform: none; }
 }

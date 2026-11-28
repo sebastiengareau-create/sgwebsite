@@ -4,6 +4,7 @@ import EnTete from "../../../components/EnTete";
 import { comptesDesBaux, soldesDe, donneesRendement } from "@/lib/immobilier";
 import { periodeCourante } from "@/lib/immobilierCalculs";
 import { exigerAccesImmo, simple, DOC_SANS_DONNEES } from "../../acces";
+import { momentQuebec } from "@/lib/immobilierVisuel";
 import ImmeubleClient from "./ImmeubleClient";
 import { vueRueDisponible } from "@/lib/photoBatimentServeur";
 
@@ -35,7 +36,7 @@ export default async function FicheImmeuble(props) {
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <ImmeubleClient {...simple({ immeuble, soldes: soldesDe(comptes), comptes, donnees, annee, locataires, vueRue })} />
+      <ImmeubleClient {...simple({ immeuble, soldes: soldesDe(comptes), comptes, donnees, annee, locataires, vueRue, visuel: momentQuebec() })} />
     </div>
   );
 }

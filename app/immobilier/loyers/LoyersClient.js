@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { argent, dateLisible, libelle, periodeLisible, nomsLocataires, loyerDuMois, MODES_PAIEMENT, JOURS_RETARD_TAL } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Onglets, Vide, Tableau, cellule, celluleDroite, useApi, Erreur, Statistique, Solde, nomLogement, lien, aujourdhui, champStyle } from "../ui";
 
@@ -19,7 +19,7 @@ export default function LoyersClient({ courriel, periode, courante, baux, charge
   const [onglet, setOnglet] = useState(ongletInit);
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="💵" titre="Loyers" sousTitre="Loyers du mois, paiements reçus et retards." />
+      <BandeauImmo icone="💵" titre="Loyers" sousTitre="Loyers du mois, paiements reçus et retards." />
       <NavImmo actif="/immobilier/loyers" />
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
       {onglet === "MOIS" && <Mois periode={periode} courante={courante} baux={baux} charges={charges} soldes={soldes} comptes={comptes} />}

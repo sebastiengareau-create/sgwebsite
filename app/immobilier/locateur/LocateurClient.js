@@ -4,7 +4,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { TEINTES } from "../../components/StyleSection";
 import { NavImmo, Panneau, ChampsFormulaire, Erreur, boutonPrincipal, useApi, RetourArriere } from "../ui";
 
@@ -39,7 +39,7 @@ export default function LocateurClient({ locateur }) {
   return (
     <div className="conteneur-page">
       <RetourArriere href="/immobilier" />
-      <BandeauSection icone="🧑‍💼" titre="Locateur" sousTitre="Qui loue les logements : les lignes de la section A du bail." />
+      <BandeauImmo icone="🧑‍💼" titre="Locateur" sousTitre="Qui loue les logements : les lignes de la section A du bail." />
       <NavImmo actif="/immobilier/locateur" />
       {!locateur.enregistre && (
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 12px" }}>Reprise des informations de l'entreprise (Administrateur) : vérifie, complète et enregistre.</p>
