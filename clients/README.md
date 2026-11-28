@@ -372,12 +372,20 @@ on décide quand et à qui une modification s'applique.
   (`app/components/AtelierIllustre.js`, `lib/garageVisuel.js`, vérifié par
   `npm run test:garage`) — enseigne au nom de l'entreprise, une porte par
   bon en cours (véhicule monté sur le pont avec le mécanicien quand un
-  chrono est en marche), véhicules en attente ou prêts (client avisé) dans
-  la cour, un clic ouvre le bon ; autos, ou motorisés et roulottes pour un
+  chrono est en marche ; jusqu'à 8 portes, 6 en VR), véhicules en attente
+  ou prêts (client avisé) dans la cour avec les bons en cours qui attendent
+  une porte — deux rangées quand une ne suffit plus, si bien qu'une
+  vingtaine de bons tiennent dans la scène ; au téléphone, un échantillon
+  de chaque état et « + N autres » (`dispositionAtelier`) —, un clic ouvre
+  le bon ; autos, ou motorisés et roulottes pour un
   garage de VR (`typeVehicules`) ; pneus empilés en saison, neige l'hiver,
   ciel selon l'heure ; salutation, journée en chiffres, choix du mois et
   conseil du mois de l'atelier (pneus d'hiver obligatoires du 1er décembre
-  au 15 mars…). Le **bandeau des sections communes** (`BandeauSection`)
+  au 15 mars…). Pour un atelier de VR : bonbonnes de propane au lieu des
+  pneus, calendrier du VR (`CONSEILS_MOIS_VR` : mises en service au
+  printemps, hivernisation à l'automne) et, avec `vehiculesAVendre`, la
+  cour de vente — fanions, enseigne « À VENDRE », chaque VR en stock avec
+  son prix demandé, un clic ouvre sa fiche de vente. Le **bandeau des sections communes** (`BandeauSection`)
   prend la couleur et la silhouette de la déclinaison (`secteurMarque` :
   atelier orange du garage, VR dorés du Premium, grange de la Ferme, plex
   de l'Immobilier, tours de la Copropriété).
