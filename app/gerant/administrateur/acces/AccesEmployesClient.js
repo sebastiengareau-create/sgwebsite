@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { CLIENT } from "@/lib/client";
 import BandeauSection from "../../../components/BandeauSection";
 import { TEINTES, TitrePanneau, stylePanneau, Panneau, Pastille } from "../../../components/StyleSection";
 
-const SECTIONS = [
+const TOUTES_LES_SECTIONS = [
   { cle: "operations", label: "🔧 Bons de commande / Factures" },
   { cle: "calendrier", label: "📅 Calendrier" },
   { cle: "clients", label: "🧑‍🤝‍🧑 Clients" },
@@ -27,6 +28,8 @@ const SECTIONS = [
   { cle: "parametres", label: "⚙️ Paramètres" },
   { cle: "notifications", label: "🔔 Notifications — envoyer des messages" },
 ];
+// Sections retirées de cette installation (réglage sectionsRetirees du profil) : absentes
+const SECTIONS = TOUTES_LES_SECTIONS.filter((s) => !(CLIENT.sectionsRetirees || []).includes(s.cle));
 // NIVEAU4 (accès total, toujours) reste seul non configurable — GERANT est
 // maintenant configurable comme les autres, mais part avec tout activé par
 // défaut (voir DEFAUTS_INITIAUX_ROLE dans lib/auth.js).
@@ -115,7 +118,7 @@ export default function AccesEmployesClient({ employes, defautsRolesInit, nomsRo
                 icone={role === ROLE_ACCES_TOTAL ? "cadenas" : "utilisateurs"} teinte={teinte} titre={nomsRoles[role]}
                 sousTitre={role === ROLE_ACCES_TOTAL
                   ? `Accès complet à tout, toujours — non modifiable · ${n} employé${n > 1 ? "s" : ""}`
-                  : `${sections.length} section${sections.length > 1 ? "s" : ""} sur ${SECTIONS.length} · ${n} employé${n > 1 ? "s" : ""}`}
+                  : `${sections.filter((c) => SECTIONS.some((x) => x.cle === c)).length} section${sections.length > 1 ? "s" : ""} sur ${SECTIONS.length} · ${n} employé${n > 1 ? "s" : ""}`}
                 droite={
                   <button onClick={() => { setEditionNomRole(role); setNouveauNom(nomsRoles[role]); }} style={boutonPetit}>
                     ✏️ Renommer

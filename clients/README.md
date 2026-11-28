@@ -26,8 +26,8 @@ service par déclinaison, tous sur la branche `client/template` (appliquer à
 | Garage | `template` | atelier de démonstration dans Administrateur |
 | Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration en VR (roulottes et motorisés, travaux, pièces et fournisseurs de VR) |
 | Ferme | `demo-ferme` | module Élevage actif, arrivée sur `/elevage` |
-| Copropriété | `demo-copropriete` | module Copropriété actif avec l'option « Reliée à la comptabilité », sections du garage retirées, arrivée sur `/copropriete` |
-| Immobilier | `demo-immobilier` | module Immobilier actif avec l'option « Relié à la comptabilité », sections du garage retirées, arrivée sur `/immobilier` |
+| Copropriété | `demo-copropriete` | module Copropriété actif avec l'option « Reliée à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/copropriete` |
+| Immobilier | `demo-immobilier` | module Immobilier actif avec l'option « Relié à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/immobilier` |
 
 - **Ajouter un service** : Railway → projet du modèle de base → *New* →
   *GitHub Repo* (même dépôt), branche `client/template`, variables
@@ -350,6 +350,13 @@ on décide quand et à qui une modification s'applique.
   d'un coup — pour présenter le modèle de base ou l'essayer. Offert seulement
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.
+- **Sections retirées** (réglage `sectionsRetirees` du profil, vide au
+  modèle de base) : sections absentes de l'installation pour tout le monde,
+  développeur compris — menu, pages et Administrateur → Rôles et accès
+  (`aAccesSection`, `lib/auth.js`). Les démos Immobilier et Copropriété
+  retirent celles du garage (`SECTIONS_GARAGE` : bons et factures, clients,
+  calendrier, horodateur, inventaire, pneus, jobs, productivité, vue
+  d'ensemble) ; à reprendre pour un vrai client propriétaire ou syndicat.
 - **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
   modèle de base et démos des déclinaisons) : « DÉMO » dans le haut ; chaque
   démo est indépendante, sans liste ni lien vers les autres déclinaisons.
