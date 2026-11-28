@@ -24,7 +24,7 @@ import ChampArgent from "@/app/components/ChampArgent";
 const nombre = (v) => Number(String(v ?? "").replace(",", ".").replace(/\s/g, "")) || 0;
 const decimal = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toString().replace(".", ",");
 
-export default function BeteClient({ bete, registre, coupes, rendementCarcasse, gmqCible, lieux }) {
+export default function BeteClient({ bete, registre, coupes, rendementCarcasse, gmqCible, lieux, lienCompta = false, fournisseurs = [] }) {
   const femelles = registre.filter((b) => b.sexe === "FEMELLE" && b.id !== bete.id);
   const taureaux = registre.filter((b) => b.sexe === "TAUREAU" && b.id !== bete.id);
   const veaux = bete.sexe === "FEMELLE" ? bete.veaux : bete.veauxPere;
@@ -99,7 +99,7 @@ export default function BeteClient({ bete, registre, coupes, rendementCarcasse, 
       {onglet === "couts" && (
         <DeuxColonnes>
           <Rentabilite bete={bete} />
-          <Frais bete={bete} />
+          <Frais bete={bete} lienCompta={lienCompta} fournisseurs={fournisseurs} />
         </DeuxColonnes>
       )}
       {onglet === "abattage" && (bete.abattage ? <Decoupe bete={bete} /> : <EstimationEtAbattage bete={bete} coupes={coupes} rendementCarcasse={rendementCarcasse} retrait={retrait} />)}
@@ -703,8 +703,10 @@ function Soins({ bete }) {
 
 // ---------- Frais ----------
 
-function Frais({ bete }) {
-  const [champs, setChamps] = useState({ date: aujourdhui(), categorie: "ALIMENTATION", description: "", montant: "" });
+// lienCompta : Élevage relié à la comptabilité (lib/elevageCompta.js) — les
+// frais vont aux comptes à payer du fournisseur, ou payés tout de suite
+function Frais({ bete, lienCompta, fournisseurs }) {
+  const [champs, setChamps] = useState({ date: aujourdhui(), categorie: "ALIMENTATION", description: "", fournisseur: "", montant: "", payee: false });
   const [ajout, setAjout] = useState(false);
   const { appeler, enCours, erreur } = useApi();
   const maj = (champ) => (e) => setChamps((c) => ({ ...c, [champ]: e.target.value }));
@@ -712,7 +714,7 @@ function Frais({ bete }) {
 
   async function ajouter() {
     if (await appeler(`/api/elevage/betes/${bete.id}/frais`, "POST", champs)) {
-      setChamps((c) => ({ ...c, description: "", montant: "" }));
+      setChamps((c) => ({ ...c, description: "", montant: "", payee: false }));
       setAjout(false);
     }
   }
@@ -734,7 +736,15 @@ function Frais({ bete }) {
           </select>
           <input value={champs.description} onChange={maj("description")} placeholder="Description" style={{ ...champStyle, marginBottom: 0 }} />
           <ChampArgent negatif={false} value={champs.montant} onChange={maj("montant")} placeholder="Montant (0,00 $)" style={{ ...champStyle, marginBottom: 0 }} />
+          <input value={champs.fournisseur} onChange={maj("fournisseur")} placeholder="Fournisseur (meunerie, vétérinaire…)" list="fournisseurs-frais" style={{ ...champStyle, marginBottom: 0, gridColumn: "1 / -1" }} />
+          <datalist id="fournisseurs-frais">{fournisseurs.map((n) => <option key={n} value={n} />)}</datalist>
         </div>
+        {lienCompta && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 8 }}>
+            <input type="checkbox" checked={champs.payee} onChange={(e) => setChamps((c) => ({ ...c, payee: e.target.checked }))} />
+            Déjà payée — sinon, la facture attend aux comptes à payer
+          </label>
+        )}
         <BoutonAction icone="plus" couleur="#221f18" fond="var(--accent)" bordure="var(--accent)" onClick={ajouter} disabled={enCours} style={{ width: "100%" }}>Ajouter les frais</BoutonAction>
       </div>}
       <Erreur texte={erreur} />
@@ -743,7 +753,7 @@ function Frais({ bete }) {
         <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "9px 2px", borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{libelle(CATEGORIES_FRAIS, f.categorie)}</div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateLisible(f.date)}{f.description && ` · ${f.description}`}</div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{dateLisible(f.date)}{f.description && ` · ${f.description}`}{f.fournisseur && ` · ${f.fournisseur}`}</div>
           </div>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
             <strong style={{ fontSize: 14, fontVariantNumeric: "tabular-nums" }}>{argent(f.montant)}</strong>

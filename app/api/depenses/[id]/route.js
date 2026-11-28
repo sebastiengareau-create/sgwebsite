@@ -12,11 +12,15 @@ function jourCivil(dateStr) {
 // Facture créée par l'Immobilier relié à la comptabilité (lib/immobilierCompta.js) :
 // elle se modifie ou se retire dans l'Immobilier, qui la tient à jour — ici,
 // seulement son paiement
-// (et de même pour la Copropriété, lib/coproprieteCompta.js)
+// (et de même pour la Copropriété, lib/coproprieteCompta.js, et l'Élevage,
+// lib/elevageCompta.js)
 const ORIGINES_MODULES = {
   IMMO_DEPENSE: ["l'Immobilier", "Immobilier → Dépenses"],
   IMMO_REPARATION: ["l'Immobilier", "la réparation, dans Immobilier → Réparations"],
   COPRO_TRAVAIL: ["la Copropriété", "le bon de travail, dans Copropriété → Entretien"],
+  ELEVAGE_ACHAT: ["l'Élevage", "la fiche de la bête, dans Élevage → Troupeau"],
+  ELEVAGE_FRAIS: ["l'Élevage", "les frais de la bête, dans Élevage → Troupeau"],
+  ELEVAGE_ABATTAGE: ["l'Élevage", "l'abattage, sur la fiche de la bête"],
 };
 function refusImmobilier(depense) {
   const o = ORIGINES_MODULES[depense?.origine];

@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { obtenirSession } from "@/lib/auth";
 import { peutGererElevage, lireRendementCarcasse, lireGmqCible, lieuxConnus, assurerCoupesParDefaut } from "@/lib/elevage";
+import { lienComptaElevageActif } from "@/lib/elevageCompta";
 import EnTete from "../../components/EnTete";
 import BeteClient from "./BeteClient";
 
@@ -12,7 +13,7 @@ export default async function FicheBete(props) {
   if (!(await peutGererElevage(session))) redirect("/mecanicien");
   await assurerCoupesParDefaut();
 
-  const [bete, registre, coupes, rendementCarcasse, gmqCible, lieux] = await Promise.all([
+  const [bete, registre, coupes, rendementCarcasse, gmqCible, lieux, lienCompta, fournisseurs] = await Promise.all([
     prisma.bete.findUnique({
       where: { id: params.id },
       include: {
@@ -45,13 +46,16 @@ export default async function FicheBete(props) {
     lireRendementCarcasse(),
     lireGmqCible(),
     lieuxConnus(),
+    lienComptaElevageActif(),
+    // Suggestions pour le fournisseur des frais
+    prisma.fournisseur.findMany({ select: { nom: true }, orderBy: { nom: "asc" }, take: 500 }),
   ]);
   if (!bete) notFound();
 
   return (
     <div>
       <EnTete nom={session.nom} role={session.role} />
-      <BeteClient bete={JSON.parse(JSON.stringify(bete))} registre={registre} coupes={coupes} rendementCarcasse={rendementCarcasse} gmqCible={gmqCible} lieux={lieux} />
+      <BeteClient bete={JSON.parse(JSON.stringify(bete))} registre={registre} coupes={coupes} rendementCarcasse={rendementCarcasse} gmqCible={gmqCible} lieux={lieux} lienCompta={lienCompta} fournisseurs={fournisseurs.map((f) => f.nom)} />
     </div>
   );
 }
