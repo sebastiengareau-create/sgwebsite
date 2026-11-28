@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import { CATEGORIES_DEPENSE, argent, libelle, trouver, dateLisible, dateCourte, rendement } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Formulaire, Vide, BoutonTexte, BoutonSupprimer, valeursDe, champsDepense, aujourdhui, champStyle, lien, TableauRendement, LigneMouvement } from "../ui";
@@ -42,7 +42,7 @@ export default function DepensesClient({ immeubles, depenses, donnees, annee, co
 
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="📈" titre="Dépenses et rendement" sousTitre="Taxes, assurances, intérêts, énergie… et le revenu net de chaque immeuble." />
+      <BandeauImmo icone="📈" titre="Dépenses et rendement" sousTitre="Taxes, assurances, intérêts, énergie… et le revenu net de chaque immeuble." />
       <NavImmo actif="/immobilier/depenses" />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouvelle dépense"}</BoutonPlein>

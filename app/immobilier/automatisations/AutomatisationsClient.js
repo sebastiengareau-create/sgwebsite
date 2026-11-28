@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { TEINTES, BoutonContour } from "../../components/StyleSection";
 import { JOURS_RETARD_TAL } from "@/lib/immobilierCalculs";
 import { NavImmo, Panneau, Interrupteur, useApi, Erreur, champStyle, lien, RetourArriere } from "../ui";
@@ -27,7 +27,7 @@ export default function AutomatisationsClient({ reglages, dernier, courriel, not
   return (
     <div className="conteneur-page">
       <RetourArriere href="/immobilier" />
-      <BandeauSection icone="⚙️" titre="Automatisations" sousTitre="Ce que l'appli fait toute seule pour ton parc, une fois par jour." />
+      <BandeauImmo icone="⚙️" titre="Automatisations" sousTitre="Ce que l'appli fait toute seule pour ton parc, une fois par jour." />
       <NavImmo actif="/immobilier/automatisations" />
       <Erreur texte={erreur} />
 

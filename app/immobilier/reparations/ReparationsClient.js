@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { PRIORITES, STATUTS_REPARATION, STATUTS_REPARATION_OUVERTS, argent, trouver, dateLisible } from "@/lib/immobilierCalculs";
@@ -28,7 +28,7 @@ export default function ReparationsClient({ reparations, immeubles, locataires }
     .sort((a, b) => (onglet === "OUVERTES" ? rangPriorite(a.priorite) - rangPriorite(b.priorite) : 0) || new Date(b.creeLe) - new Date(a.creeLe));
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🛠️" titre="Réparations" sousTitre="Demandes des locataires, travaux planifiés, entrepreneurs et coûts." />
+      <BandeauImmo icone="🛠️" titre="Réparations" sousTitre="Demandes des locataires, travaux planifiés, entrepreneurs et coûts." />
       <NavImmo actif="/immobilier/reparations" />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Statistique valeur={ouvertes.length} label="À faire" teinte="var(--accent)" />

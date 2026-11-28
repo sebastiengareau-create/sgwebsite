@@ -13,8 +13,10 @@ const dateCourte = (d) => new Date(d).toLocaleDateString("fr-CA", { timeZone: "A
 // sur sa fiche. Sans photo, la vue de la rue de Google Street View quand une
 // clé Google est configurée (vueRue) et que l'adresse est connue.
 // urlApi : /api/immobilier/immeubles/<id>/photo ou
-// /api/copropriete/batiments/<id>/photo ; photoLe : date de la photo ou null.
-export default function PhotoBatiment({ urlApi, photoLe: initiale, adresse, vueRue, hauteur = 240 }) {
+// /api/copropriete/batiments/<id>/photo ; photoLe : date de la photo ou null ;
+// illustration (facultative) : dessin affiché quand il n'y a ni photo ni vue
+// de la rue (ex. la façade illustrée d'un immeuble, app/immobilier/RueImmo.js).
+export default function PhotoBatiment({ urlApi, photoLe: initiale, adresse, vueRue, hauteur = 240, illustration }) {
   const router = useRouter();
   const [photoLe, setPhotoLe] = useState(initiale || null);
   const [echecRue, setEchecRue] = useState(false);
@@ -75,6 +77,13 @@ export default function PhotoBatiment({ urlApi, photoLe: initiale, adresse, vueR
               style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }}
             />
           </a>
+        ) : illustration ? (
+          <button type="button" onClick={choix.ouvrir} disabled={enCours} title="Ajouter une photo" style={{ display: "block", width: "100%", height: "100%", border: "none", padding: 0, background: "none", cursor: "pointer" }}>
+            {illustration}
+            <span style={{ position: "absolute", left: 10, bottom: 10, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 11.5, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>
+              Illustration · 📷 ajoute une vraie photo
+            </span>
+          </button>
         ) : (
           <button
             type="button" onClick={choix.ouvrir} disabled={enCours}

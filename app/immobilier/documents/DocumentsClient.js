@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { CATEGORIES_DOCUMENTS, trouver, etatExpiration, dateLisible, taille } from "@/lib/immobilierCalculs";
@@ -18,7 +18,7 @@ export default function DocumentsClient({ documents, immeubles }) {
   const aSurveiller = documents.map((d) => ({ ...d, etat: etatExpiration(d.expireLe) })).filter((d) => d.etat && d.etat.code !== "OK");
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="📁" titre="Documents" sousTitre="Baux signés, avis, états des lieux, assurances, taxes, actes…" />
+      <BandeauImmo icone="📁" titre="Documents" sousTitre="Baux signés, avis, états des lieux, assurances, taxes, actes…" />
       <NavImmo actif="/immobilier/documents" />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Déposer un document"}</BoutonPlein>

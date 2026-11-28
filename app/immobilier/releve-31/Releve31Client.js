@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { bailAu31Decembre, donneesReleve31, LIENS_RELEVE31, echeanceReleve31, dateLisible, nomLogement } from "@/lib/immobilierCalculs";
 import { NavImmo, Section, Statistique, Vide, Alerte, BoutonTexte, useApi, Erreur, champStyle, lien } from "../ui";
 
@@ -41,7 +41,7 @@ export default function Releve31Client({ baux, annee, defaut }) {
 
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🧾" titre="Relevé 31" sousTitre="Renseignements sur l'occupation d'un logement au 31 décembre, à produire pour Revenu Québec." />
+      <BandeauImmo icone="🧾" titre="Relevé 31" sousTitre="Renseignements sur l'occupation d'un logement au 31 décembre, à produire pour Revenu Québec." />
       <NavImmo actif="/immobilier/releve-31" />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>

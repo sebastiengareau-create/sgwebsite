@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
-import { TYPES_IMMEUBLE, argent, trouver, bailActuel, tauxOccupation } from "@/lib/immobilierCalculs";
-import { NavImmo, Formulaire, Recherche, CarteListe, Vide } from "../ui";
-import { VignetteBatiment } from "../../components/PhotoBatiment";
-import { adresseComplete } from "@/lib/photoBatiment";
+import { TYPES_IMMEUBLE } from "@/lib/immobilierCalculs";
+import { NavImmo, Formulaire, Recherche, Vide } from "../ui";
+import { CarteImmeuble, GrilleImmeubles, infosLogements } from "../CartesImmeubles";
 
 export const champsImmeuble = [
   { nom: "nom", label: "Nom", placeholder: "Triplex Champlain, 85 des Érables…" },
@@ -26,49 +25,29 @@ export const champsImmeuble = [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
-export default function ImmeublesClient({ immeubles, comptes, reparations, vueRue }) {
+export default function ImmeublesClient({ immeubles, comptes, reparations, vueRue, visuel }) {
   const router = useRouter();
   const [formulaire, setFormulaire] = useState(false);
   const [recherche, setRecherche] = useState("");
   const q = recherche.trim().toLowerCase();
   const affiches = immeubles.filter((i) => !q || correspondRecherche(q, i.nom, i.adresse, i.ville));
+  const infos = infosLogements(immeubles, comptes);
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🏘️" titre="Immeubles" sousTitre="Ton parc immobilier : immeubles, logements et locaux." />
+      <BandeauImmo icone="🏘️" titre="Immeubles" sousTitre="Ton parc immobilier : immeubles, logements et locaux." />
       <NavImmo actif="/immobilier/immeubles" />
       <div style={{ marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouvel immeuble"}</BoutonPlein>
       </div>
       {formulaire && <Formulaire champs={champsImmeuble} url="/api/immobilier/immeubles" bouton="Ajouter l'immeuble" onFini={(d) => router.push(`/immobilier/immeubles/${d.id}`)} />}
       {immeubles.length > 3 && <Recherche valeur={recherche} onChange={setRecherche} placeholder="Nom, adresse, ville…" />}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {affiches.map((i) => {
-          const baux = i.logements.map(bailActuel).filter(Boolean);
-          const loyers = baux.reduce((s, b) => s + b.loyer, 0);
-          const retard = baux.reduce((s, b) => s + (comptes[b.id]?.enRetard || 0), 0);
-          const vacants = i.logements.length - baux.length;
-          return (
-            <CarteListe
-              key={i.id} href={`/immobilier/immeubles/${i.id}`}
-              image={<VignetteBatiment urlApi={`/api/immobilier/immeubles/${i.id}/photo`} photoLe={i.photo?.ajouteeLe} adresse={adresseComplete(i)} vueRue={vueRue} />}
-              couleur={retard > 0.005 ? "var(--danger)" : vacants > 0 ? "var(--accent)" : "var(--success)"}
-              titre={<>{trouver(TYPES_IMMEUBLE, i.type)?.icone} {i.nom}</>}
-              sousTitre={[
-                [i.adresse, i.ville].filter(Boolean).join(", "),
-                `${i.logements.length} logement${i.logements.length > 1 ? "s" : ""}`,
-                vacants > 0 && `${vacants} vacant${vacants > 1 ? "s" : ""}`,
-                reparations[i.id] && `${reparations[i.id]} réparation${reparations[i.id] > 1 ? "s" : ""} ouverte${reparations[i.id] > 1 ? "s" : ""}`,
-              ].filter(Boolean).join(" · ")}
-              droite={<>
-                <div style={{ fontSize: 15, fontWeight: 800 }}>{argent(loyers)}</div>
-                <div style={{ color: "var(--text-muted)" }}>par mois · {String(tauxOccupation(i.logements)).replace(".", ",")} % occupé</div>
-                {retard > 0.005 && <div style={{ fontWeight: 700, color: "var(--danger)" }}>Retards : {argent(retard)}</div>}
-              </>}
-            />
-          );
-        })}
-        {affiches.length === 0 && <Vide>Aucun immeuble.</Vide>}
-      </div>
+      {affiches.length === 0 ? <Vide>Aucun immeuble.</Vide> : (
+        <GrilleImmeubles>
+          {affiches.map((i) => (
+            <CarteImmeuble key={i.id} immeuble={i} infos={infos} comptes={comptes} moment={visuel.moment} saison={visuel.saison} vueRue={vueRue} reparations={reparations[i.id]} hauteurImage={150} />
+          ))}
+        </GrilleImmeubles>
+      )}
     </div>
   );
 }

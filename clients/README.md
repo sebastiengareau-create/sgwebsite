@@ -132,7 +132,15 @@ on décide quand et à qui une modification s'applique.
   échéance, en retard dès le lendemain, signalé passé trois semaines — seuil
   de résiliation au TAL ; `etatCompte`, `lib/immobilierCalculs.js`, vérifié
   par `npm run test:immobilier`), tableau de bord avec la liste « À faire »
-  et les loyers facturés et reçus des 12 derniers mois, **calcul des hausses
+  et les loyers facturés et reçus des 12 derniers mois, **rue illustrée**
+  en tête (`app/immobilier/RueImmo.js`, `lib/immobilierVisuel.js` : chaque
+  immeuble dessiné selon son type — plex à corniche, balcons et escalier
+  extérieur, multilogement, mixte avec ses commerces, maison —, une fenêtre
+  par logement de la couleur de son état, ciel selon l'heure et la saison au
+  Québec, salutation, loyers du mois encaissés et conseil du mois du
+  propriétaire) et cartes des immeubles (photo, vue de la rue ou façade
+  illustrée, aussi dans la page Immeubles et la fiche sans photo), couleurs
+  violettes de la marque Immobilier (`BandeauImmo.js` sur chaque écran), **calcul des hausses
   de loyer** selon la méthode du TAL en vigueur depuis 2026 (par immeuble,
   `/immobilier/immeubles/<id>/hausses`, `lib/immobilierHausses.js` :
   pourcentage de base, part de la hausse des taxes et des assurances au-delà

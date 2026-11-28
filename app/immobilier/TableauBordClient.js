@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../components/BandeauSection";
 import { Icone, TEINTES } from "../components/StyleSection";
 import {
   argent, dateLisible, trouver, periodeLisible, bailActuel, nomsLocataires, etatExpiration, rendement, tauxOccupation, loyerDuMois, echeanceReleve31,
@@ -10,6 +9,12 @@ import {
 } from "@/lib/immobilierCalculs";
 import { NavImmo, Panneau, Vide, PastilleEtat, nomLogement, lien, TableauRendement } from "./ui";
 import LoyersParMois from "./LoyersParMois";
+import { RueImmo, CielImmo, VOILES } from "./RueImmo";
+import { CarteImmeuble, GrilleImmeubles, LegendeEtats, infosLogements } from "./CartesImmeubles";
+import { CONSEILS_MOIS } from "@/lib/immobilierVisuel";
+
+// Violet de la marque Immobilier
+const TEINTE_IMMO = { couleur: "var(--immo)", fond: "var(--immo-fond)" };
 
 // Niveaux de la liste « À faire » (aSurveillerBail, lib/immobilierCalculs.js)
 const NIVEAUX = [
@@ -19,7 +24,7 @@ const NIVEAUX = [
 ];
 const A_FAIRE_VISIBLES = 8;
 
-export default function TableauBordClient({ releve31, courriel, immeubles, comptes, reparations, documents, bauxFactures, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens = [], bauxOfficiels = {} }) {
+export default function TableauBordClient({ releve31, courriel, visuel, vueRue, immeubles, comptes, reparations, documents, bauxFactures, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens = [], bauxOfficiels = {} }) {
   const logements = immeubles.flatMap((i) => i.logements.map((l) => ({ ...l, immeuble: i })));
   const vacants = logements.filter((l) => !bailActuel(l));
   const baux = logements.filter((l) => bailActuel(l)).map((l) => ({ ...bailActuel(l), logement: l, compte: comptes[bailActuel(l).id], bailOfficiel: bauxOfficiels[bailActuel(l).id] }));
@@ -47,10 +52,23 @@ export default function TableauBordClient({ releve31, courriel, immeubles, compt
   const valeur = immeubles.reduce((s, i) => s + (i.valeurEstimee || 0), 0);
   const dette = immeubles.reduce((s, i) => s + (i.soldeHypotheque || 0), 0);
   const moisLisible = periodeLisible(periode).split(" ")[0];
+  const infos = infosLogements(immeubles, comptes);
+  const netDe = Object.fromEntries(lignes.map((l) => [l.id, l.net]));
+  const reparationsDe = {};
+  for (const r of reparations) reparationsDe[r.immeubleId] = (reparationsDe[r.immeubleId] || 0) + 1;
 
   return (
     <div className="conteneur-page">
-      <BandeauSection icone="🏘️" titre="Immobilier" sousTitre={`${immeubles.length} immeuble${immeubles.length > 1 ? "s" : ""} · ${logements.length} logement${logements.length > 1 ? "s" : ""} · ${nbLocataires} locataire${nbLocataires > 1 ? "s" : ""} · ${argent(revenuMensuel)} de loyers par mois`} />
+      <HeroImmo
+        visuel={visuel} immeubles={immeubles} infos={infos} nbLogements={logements.length} nbLocataires={nbLocataires}
+        percu={ceMois.percu} attendu={attendu} encaisse={encaisse} moisLisible={moisLisible} totalRetard={totalRetard} occupation={tauxOccupation(logements)}
+      />
+      {immeubles.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "6px 14px", margin: "0 4px 14px" }}>
+          <LegendeEtats infos={infos} />
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Une fenêtre par logement · touche un immeuble pour l'ouvrir</span>
+        </div>
+      )}
       <NavImmo actif="/immobilier" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 10, marginBottom: 16 }}>
@@ -69,7 +87,7 @@ export default function TableauBordClient({ releve31, courriel, immeubles, compt
           note={vacants.length === 0 ? "aucun logement vacant" : `${vacants.length} vacant${vacants.length > 1 ? "s" : ""}${manqueAGagner > 0 ? ` · ${argent(manqueAGagner)} / mois` : ""}`}
         />
         <Tuile
-          href="/immobilier/reparations" icone="outils" teinte={urgentes.length > 0 ? TEINTES.rouge : TEINTES.neutre} label="Réparations ouvertes" valeur={String(reparations.length)}
+          href="/immobilier/reparations" icone="outils" teinte={urgentes.length > 0 ? TEINTES.rouge : TEINTE_IMMO} label="Réparations ouvertes" valeur={String(reparations.length)}
           note={urgentes.length > 0 ? `${urgentes.length} urgente${urgentes.length > 1 ? "s" : ""}` : "aucune urgente"}
         />
       </div>
@@ -86,7 +104,26 @@ export default function TableauBordClient({ releve31, courriel, immeubles, compt
         </Panneau>
       )}
 
+      <ConseilDuMois conseil={CONSEILS_MOIS[visuel.mois - 1]} mois={moisLisible} />
+
       <AFaire items={aFaire} />
+
+      {immeubles.length > 0 && (
+        <Panneau
+          icone="immeuble" teinte={TEINTE_IMMO} titre="Mes immeubles"
+          sousTitre={`${argent(revenuMensuel)} de loyers par mois · ${nbLocataires} locataire${nbLocataires > 1 ? "s" : ""}`}
+          droite={<Link href="/immobilier/immeubles" style={{ fontSize: 12.5, fontWeight: 700, ...lien }}>Tous</Link>}
+        >
+          <GrilleImmeubles>
+            {immeubles.map((i) => (
+              <CarteImmeuble
+                key={i.id} immeuble={i} infos={infos} comptes={comptes} moment={visuel.moment} saison={visuel.saison} vueRue={vueRue}
+                net={netDe[i.id]} annee={annee} reparations={reparationsDe[i.id]}
+              />
+            ))}
+          </GrilleImmeubles>
+        </Panneau>
+      )}
 
       {immeubles.length > 0 && (
         <Panneau icone="graphique" teinte={TEINTES.bleu} titre="Loyers des 12 derniers mois" sousTitre="Loyers inscrits pour chaque mois et paiements reçus pendant le mois">
@@ -156,11 +193,10 @@ const ligneLien = { display: "flex", alignItems: "center", gap: 10, padding: "9p
 // Tuile chiffrée cliquable : bande de couleur, icône, chiffre, note, jauge facultative (0 à 1)
 function Tuile({ href, icone, teinte, label, valeur, note, couleur, jauge }) {
   return (
-    <Link href={href} className="tuile-immo" style={{ position: "relative", overflow: "hidden", display: "block", textDecoration: "none", color: "inherit", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "13px 14px 13px 18px" }}>
-      <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: teinte.couleur }} />
+    <Link href={href} className="tuile-immo" style={{ position: "relative", overflow: "hidden", display: "block", textDecoration: "none", color: "inherit", background: `linear-gradient(150deg, ${teinte.fond} 0%, var(--surface) 78%)`, border: "1px solid var(--border)", borderRadius: 16, padding: "13px 14px" }}>
       <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--text-muted)", fontWeight: 600 }}>
-        <span style={{ width: 26, height: 26, borderRadius: 8, background: teinte.fond, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Icone nom={icone} taille={15} couleur={teinte.couleur} />
+        <span style={{ width: 30, height: 30, borderRadius: 10, background: teinte.couleur, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "0 3px 8px rgba(0,0,0,0.12)" }}>
+          <Icone nom={icone} taille={16} couleur="#fff" />
         </span>
         <span style={{ minWidth: 0 }}>{label}</span>
       </span>
@@ -267,5 +303,70 @@ function Automatisations({ reglages, dernier, courriel }) {
         </div>
       ))}
     </Panneau>
+  );
+}
+
+const majuscule = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+
+// En-tête du tableau de bord : le ciel du moment, la salutation, les loyers
+// du mois, et la rue du parc (RueImmo.js) — chaque immeuble mène à sa fiche
+function HeroImmo({ visuel, immeubles, infos, nbLogements, nbLocataires, percu, attendu, encaisse, moisLisible, totalRetard, occupation }) {
+  const tout = attendu > 0 && encaisse >= 0.999;
+  const phrase = immeubles.length === 0
+    ? "Bienvenue ! Ajoute ton premier immeuble : il apparaîtra ici, dans ta rue."
+    : tout
+      ? `Tous les loyers de ${moisLisible} sont encaissés. Beau travail ! 🎉`
+      : attendu > 0
+        ? `${majuscule(moisLisible)} : ${argent(percu)} encaissés sur ${argent(attendu)}${totalRetard > 0.005 ? ` · ${argent(totalRetard)} en retard` : ""}`
+        : `Aucun loyer inscrit pour ${moisLisible} pour le moment.`;
+  const puce = { display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.22)", whiteSpace: "nowrap" };
+  return (
+    <section style={{ position: "relative", overflow: "hidden", borderRadius: 20, marginBottom: 8, border: "1px solid var(--border)", boxShadow: "0 12px 30px rgba(40, 20, 90, 0.18)" }}>
+      <CielImmo moment={visuel.moment} saison={visuel.saison} />
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: VOILES[visuel.moment] || VOILES.jour }} />
+      <div style={{ position: "relative", padding: "18px 20px 6px", color: "#fff", textShadow: "0 1px 10px rgba(10,5,30,0.35)" }}>
+        <span style={{ ...puce, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textShadow: "none" }}>🏘️ IMMOBILIER</span>
+        <h1 style={{ fontSize: 26, lineHeight: 1.2, margin: "10px 0 4px", color: "#fff" }}>{visuel.salutation}{visuel.prenom ? ` ${visuel.prenom}` : ""}</h1>
+        <p style={{ margin: 0, fontSize: 14.5, maxWidth: 520, color: "rgba(255,255,255,0.95)" }}>{phrase}</p>
+        {attendu > 0 && (
+          <div role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(encaisse * 100)} aria-label={`Loyers de ${moisLisible} encaissés`} style={{ width: "min(100%, 380px)", height: 8, borderRadius: 999, background: "rgba(255,255,255,0.22)", marginTop: 10, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.round(encaisse * 100)}%`, borderRadius: 999, background: tout ? "linear-gradient(90deg, #7ee2a0, #3fc47a)" : "linear-gradient(90deg, #ffd36b, #ff9a5a)" }} />
+          </div>
+        )}
+        {immeubles.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12, fontSize: 12.5, fontWeight: 600, textShadow: "none" }}>
+            <span style={puce}>🏘️ {immeubles.length} immeuble{immeubles.length > 1 ? "s" : ""}</span>
+            <span style={puce}>🚪 {nbLogements} logement{nbLogements > 1 ? "s" : ""}</span>
+            <span style={puce}>👥 {nbLocataires} locataire{nbLocataires > 1 ? "s" : ""}</span>
+            <span style={puce}>✨ {String(occupation).replace(".", ",")} % occupé</span>
+          </div>
+        )}
+      </div>
+      <div style={{ position: "relative", marginTop: 4 }}>
+        <RueImmo immeubles={immeubles} infos={infos} moment={visuel.moment} saison={visuel.saison} hrefDe={(i) => `/immobilier/immeubles/${i.id}`} />
+      </div>
+      {immeubles.length > 6 && (
+        <Link href="/immobilier/immeubles" style={{ position: "absolute", right: 12, bottom: 10, fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(16,10,44,0.55)", padding: "4px 10px", borderRadius: 999, textDecoration: "none" }}>
+          + {immeubles.length - 6} autre{immeubles.length - 6 > 1 ? "s" : ""}
+        </Link>
+      )}
+    </section>
+  );
+}
+
+// Rappel du calendrier du propriétaire au Québec (lib/immobilierVisuel.js)
+function ConseilDuMois({ conseil, mois }) {
+  if (!conseil) return null;
+  return (
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px", borderRadius: 16, marginBottom: 16, background: "linear-gradient(120deg, var(--immo-fond), rgba(240,150,90,0.12))", border: "1px solid var(--border)" }}>
+      <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 11, flexShrink: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 17, background: "linear-gradient(135deg, #6c45c0, #ec8a5c)", boxShadow: "0 3px 8px rgba(80,40,140,0.25)" }}>💡</span>
+      <div style={{ minWidth: 0, fontSize: 13.5 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--immo)" }}>En {mois}, chez les proprios</div>
+        <div style={{ marginTop: 2 }}>
+          {conseil.texte}
+          {conseil.href && <> <Link href={conseil.href} style={{ fontWeight: 700, ...lien }}>{conseil.lien} →</Link></>}
+        </div>
+      </div>
+    </div>
   );
 }

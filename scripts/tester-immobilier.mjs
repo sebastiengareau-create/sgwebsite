@@ -24,6 +24,7 @@ const { piecesParDefaut, piecesPourSortie, comparerAEntree, dommagesDepuisEntree
 const { ficheBailTal, texteFiche, manquesFiche, dateCases, estReconduction, loyerPlusBas12Mois } = await import("../lib/bailTal.js");
 const { donneesFormulaire, separerAdresse, casesDate, bailFormulaire } = await import("../lib/pdfBailFormulaire.js");
 const { PDFDocument } = await import("pdf-lib");
+const { momentQuebec, rangeesImmeuble, etatLogement, CONSEILS_MOIS } = await import("../lib/immobilierVisuel.js");
 
 let reussis = 0;
 const asynchrones = [];
@@ -461,6 +462,45 @@ test("Formulaire de bail : PDF de 8 pages, annexe si le texte déborde", async (
   assert.equal((await PDFDocument.load(pdf)).getPageCount(), 8);
   const long = await bailFormulaire(bailFormulaireEssai({ conditions: "Condition très longue. ".repeat(80) }), {}, {});
   assert.equal((await PDFDocument.load(long)).getPageCount(), 9, "annexe ajoutée");
+});
+
+// ---------- Visuel : ciel, saison, fenêtres de la rue (lib/immobilierVisuel.js) ----------
+
+test("Rue illustrée : moment de la journée et saison au Québec", () => {
+  const a = (iso) => momentQuebec(new Date(iso));
+  assert.equal(a("2026-11-27T13:00:00Z").moment, "matin", "8 h en novembre");
+  assert.equal(a("2026-11-27T17:00:00Z").moment, "jour", "midi");
+  assert.equal(a("2026-11-27T20:30:00Z").moment, "soir", "15 h 30 : le soleil se couche tôt en novembre");
+  assert.equal(a("2026-11-28T03:00:00Z").moment, "nuit", "22 h");
+  assert.equal(a("2026-07-15T23:00:00Z").moment, "jour", "19 h en juillet : encore le jour");
+  assert.equal(a("2026-11-28T03:00:00Z").salutation, "Bonsoir");
+  assert.equal(a("2026-11-27T17:00:00Z").salutation, "Bonjour");
+  assert.equal(a("2026-01-10T17:00:00Z").saison, "hiver");
+  assert.equal(a("2026-07-10T17:00:00Z").saison, "ete");
+  assert.equal(a("2026-10-10T17:00:00Z").saison, "automne");
+  assert.equal(CONSEILS_MOIS.length, 12, "un conseil par mois");
+});
+
+test("Rue illustrée : logements répartis en étages", () => {
+  const l = (numero, extra = {}) => ({ id: numero, numero, type: "LOGEMENT", ...extra });
+  const triplex = rangeesImmeuble({ type: "PLEX", logements: [l("1"), l("2"), l("3"), { id: "p", numero: "P-1", type: "STATIONNEMENT" }] });
+  assert.deepEqual(triplex.rangees.map((r) => r.map((x) => x.numero)), [["1"], ["2"], ["3"]], "triplex : un logement par étage, stationnement ignoré");
+  const sixplex = rangeesImmeuble({ type: "PLEX", logements: ["1", "2", "3", "4", "5", "6"].map((n) => l(n)) });
+  assert.deepEqual(sixplex.rangees.map((r) => r.length), [2, 2, 2]);
+  const mixte = rangeesImmeuble({ type: "MIXTE", logements: [l("A", { type: "COMMERCIAL" }), l("B", { type: "COMMERCIAL" }), l("201"), l("202")] });
+  assert.ok(mixte.commercesAuRc, "commerces au rez-de-chaussée");
+  assert.deepEqual(mixte.rangees.map((r) => r.map((x) => x.numero)), [["A", "B"], ["201"], ["202"]], "logements au-dessus, un par étage comme un plex");
+  const etages = rangeesImmeuble({ type: "PLEX", logements: [l("3", { etage: "2" }), l("1", { etage: "RC" }), l("SS", { etage: "Sous-sol" }), l("2", { etage: "1" })] });
+  assert.deepEqual(etages.rangees.map((r) => r.map((x) => x.numero)), [["1"], ["2"], ["3"]], "selon les étages notés");
+  assert.deepEqual(etages.sousSol.map((x) => x.numero), ["SS"]);
+  assert.deepEqual(rangeesImmeuble({ type: "MAISON", logements: [] }).rangees, [[]], "sans logement : une façade vide");
+});
+
+test("Rue illustrée : état de chaque fenêtre", () => {
+  const bail = { statut: "ACTIF", dateDebut: jour("2026-07-01"), dateFin: null };
+  assert.equal(etatLogement(null), "VACANT");
+  assert.equal(etatLogement(bail, { enRetard: 50 }), "RETARD");
+  assert.equal(etatLogement(bail, { enRetard: 0 }), "OK");
 });
 
 await Promise.all(asynchrones);

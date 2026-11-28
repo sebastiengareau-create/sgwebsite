@@ -11,12 +11,15 @@ import {
 import { champsImmeuble } from "../ImmeublesClient";
 import PhotoBatiment from "../../../components/PhotoBatiment";
 import { adresseComplete } from "@/lib/photoBatiment";
+import { etagesDe, etatLogement } from "@/lib/immobilierVisuel";
+import { FacadeImmo } from "../../RueImmo";
+import { infosLogements } from "../../CartesImmeubles";
 import {
   Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, Vide, valeursDe, aujourdhui, Statistique,
   champsLogement, champsDepense, FormulaireReparation, FormulaireDocument, ListeDocuments, ListeReparations, PastilleEtat, Solde, lien, LigneMouvement,
 } from "../../ui";
 
-export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, annee, locataires, vueRue }) {
+export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, annee, locataires, vueRue, visuel }) {
   const type = trouver(TYPES_IMMEUBLE, immeuble.type);
   const { lignes } = rendement({ immeubles: [immeuble], ...donnees });
   const r = lignes[0];
@@ -26,7 +29,10 @@ export default function ImmeubleClient({ immeuble, soldes, comptes, donnees, ann
     <div className="conteneur-page">
       <Retour href="/immobilier/immeubles">Immeubles</Retour>
       <h1 style={{ fontSize: 21, margin: "10px 0 14px" }}>{type?.icone} {immeuble.nom}</h1>
-      <PhotoBatiment urlApi={`/api/immobilier/immeubles/${immeuble.id}/photo`} photoLe={immeuble.photo?.ajouteeLe} adresse={adresseComplete(immeuble)} vueRue={vueRue} />
+      <PhotoBatiment
+        urlApi={`/api/immobilier/immeubles/${immeuble.id}/photo`} photoLe={immeuble.photo?.ajouteeLe} adresse={adresseComplete(immeuble)} vueRue={vueRue}
+        illustration={visuel && <FacadeImmo immeuble={immeuble} infos={infosLogements([immeuble], comptes)} moment={visuel.moment} saison={visuel.saison} hauteur={240} />}
+      />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Statistique valeur={argent(loyers)} label="Loyers par mois" note={`${argent(loyers * 12)} par année`} teinte="var(--success)" />
         <Statistique valeur={`${String(tauxOccupation(immeuble.logements)).replace(".", ",")} %`} label={`Occupation · ${immeuble.logements.length} logement${immeuble.logements.length > 1 ? "s" : ""}`} teinte="var(--bleu)" />
@@ -74,35 +80,6 @@ function Fiche({ immeuble }) {
   );
 }
 
-// Étage lisible et rang pour le plan : le haut de l'immeuble d'abord, le
-// rez-de-chaussée puis le sous-sol en bas. Texte libre dans la fiche du
-// logement (« RC », « 2 », « Sous-sol »…).
-function etageDe(etage) {
-  const t = (etage || "").trim();
-  if (!t) return null;
-  const bas = t.toLowerCase();
-  if (/^(sous|ss\b|s-s|-)/.test(bas)) return { rang: -1, label: "Sous-sol" };
-  if (/^(rc|rdc|rez|0$)/.test(bas)) return { rang: 0, label: "Rez-de-chaussée" };
-  const n = parseInt(bas, 10);
-  if (Number.isFinite(n)) return { rang: n, label: `Étage ${n}` };
-  return { rang: 0.5, label: t };
-}
-
-const comparerNumeros = (a, b) => a.numero.localeCompare(b.numero, "fr", { numeric: true });
-
-// Logements regroupés par étage, du haut vers le bas ; sans étage noté
-// nulle part, un seul groupe sans titre
-function etagesDe(logements) {
-  if (!logements.some((l) => etageDe(l.etage))) return [{ cle: "tous", label: null, logements: [...logements].sort(comparerNumeros) }];
-  const groupes = new Map();
-  for (const l of logements) {
-    const e = etageDe(l.etage) || (l.type === "LOGEMENT" || l.type === "COMMERCIAL" ? { rang: -2, label: "Étage non indiqué" } : { rang: -3, label: "Autres espaces" });
-    if (!groupes.has(e.label)) groupes.set(e.label, { cle: e.label, label: e.label, rang: e.rang, logements: [] });
-    groupes.get(e.label).logements.push(l);
-  }
-  return [...groupes.values()].sort((a, b) => b.rang - a.rang).map((g) => ({ ...g, logements: g.logements.sort(comparerNumeros) }));
-}
-
 // État d'un logement sur le plan, du plus pressant au plus calme
 const ETATS_PLAN = {
   RETARD: { label: "Loyer en retard", couleur: "var(--danger)" },
@@ -110,16 +87,6 @@ const ETATS_PLAN = {
   SURVEILLER: { label: "Bail à surveiller", couleur: "var(--bleu)" },
   OK: { label: "En règle", couleur: "var(--success)" },
 };
-const BAUX_A_SURVEILLER = ["ECHU", "AVIS_A_ENVOYER"];
-
-function etatPlan(bail, compte) {
-  if (!bail) return "VACANT";
-  if ((compte?.enRetard || 0) > 0.005) return "RETARD";
-  const fin = etatFinBail(bail);
-  if (BAUX_A_SURVEILLER.includes(fin.code) || (fin.code === "AVIS_ENVOYE" && ["REFUSE", "QUITTE"].includes(bail.reponseAvis))) return "SURVEILLER";
-  return "OK";
-}
-
 function CaseLogement({ logement: l, bail: b, compte, solde, etat }) {
   const e = ETATS_PLAN[etat];
   const fin = b && etatFinBail(b);
@@ -154,7 +121,7 @@ function Logements({ immeuble, soldes, comptes }) {
   const [ajout, setAjout] = useState(false);
   const etats = Object.fromEntries(immeuble.logements.map((l) => {
     const b = bailActuel(l);
-    return [l.id, etatPlan(b, b && comptes[b.id])];
+    return [l.id, etatLogement(b, b && comptes[b.id])];
   }));
   const presents = Object.keys(ETATS_PLAN).filter((k) => Object.values(etats).includes(k));
   const groupes = etagesDe(immeuble.logements);

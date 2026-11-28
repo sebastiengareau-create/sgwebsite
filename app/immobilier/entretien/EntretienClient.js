@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import {
   ENTRETIENS_SUGGERES_IMMO, TYPES_ENTRETIEN, CATEGORIES_REPARATION, argent, dateLisible, dateCourte, trouver, libelle, etatEcheance, frequenceLisible,
@@ -56,7 +56,7 @@ export default function EntretienClient({ entretiens, immeubles, immeubleInitial
   return (
     <div className="conteneur-page">
       <RetourArriere href="/immobilier/reparations" />
-      <BandeauSection icone="🗓️" titre="Entretien préventif" sousTitre="Ramonage, avertisseurs, gouttières… ce qui revient chaque année dans tes immeubles." />
+      <BandeauImmo icone="🗓️" titre="Entretien préventif" sousTitre="Ramonage, avertisseurs, gouttières… ce qui revient chaque année dans tes immeubles." />
       <NavImmo actif="/immobilier/reparations" />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { TEINTES, BoutonContour } from "../../components/StyleSection";
 import { argent } from "@/lib/immobilierCalculs";
 import { NavImmo, Panneau, useApi, Erreur, Alerte, champStyle, lien, RetourArriere } from "../ui";
@@ -27,7 +27,7 @@ export default function ComptabiliteClient({ reglages, dernier, etat, tresorerie
   return (
     <div className="conteneur-page">
       <RetourArriere href="/immobilier/depenses" />
-      <BandeauSection icone="📚" titre="Lien avec la comptabilité" sousTitre="Loyers, paiements, dépenses et réparations aux livres, aux fournisseurs et aux comptes à payer." />
+      <BandeauImmo icone="📚" titre="Lien avec la comptabilité" sousTitre="Loyers, paiements, dépenses et réparations aux livres, aux fournisseurs et aux comptes à payer." />
       <NavImmo actif="/immobilier/depenses" />
       <Erreur texte={erreur} />
       {reglages.actif && !moduleCompta && <Alerte>Le module Comptabilité est désactivé : l'Immobilier reste autonome tant qu'il ne l'est pas.</Alerte>}

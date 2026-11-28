@@ -3,6 +3,8 @@ import EnTete from "../components/EnTete";
 import { comptesDesBaux, donneesRendement, etatsBailOfficiel } from "@/lib/immobilier";
 import { lireReglagesImmoAuto, dernierResultatImmoAuto } from "@/lib/immobilierAuto";
 import { periodeCourante, STATUTS_REPARATION_OUVERTS, bailAu31Decembre, ajouterMois } from "@/lib/immobilierCalculs";
+import { momentQuebec } from "@/lib/immobilierVisuel";
+import { vueRueDisponible } from "@/lib/photoBatimentServeur";
 import { exigerAccesImmo, simple } from "./acces";
 import TableauBordClient from "./TableauBordClient";
 
@@ -18,13 +20,13 @@ export default async function TableauBordImmo() {
   const annee = Number(periode.slice(0, 4));
   const mois = douzeMois(periode);
   const [a0, m0] = mois[0].split("-").map(Number);
-  const [immeubles, comptes, reparations, documents, loyersDuMois, nbLocataires, donnees, loyersParMois, paiementsRecents, reglagesAuto, dernierAuto, entretiens] = await Promise.all([
+  const [immeubles, comptes, reparations, documents, loyersDuMois, nbLocataires, donnees, loyersParMois, paiementsRecents, reglagesAuto, dernierAuto, entretiens, vueRue] = await Promise.all([
     prisma.immeubleImmo.findMany({
       select: {
-        id: true, nom: true, type: true, valeurEstimee: true, soldeHypotheque: true,
+        id: true, nom: true, type: true, valeurEstimee: true, soldeHypotheque: true, adresse: true, ville: true, codePostal: true, photo: { select: { ajouteeLe: true } },
         logements: {
           select: {
-            id: true, numero: true, type: true, loyerVise: true, immeubleId: true,
+            id: true, numero: true, type: true, loyerVise: true, immeubleId: true, etage: true,
             baux: {
               where: { statut: "ACTIF" },
               select: {
@@ -40,7 +42,7 @@ export default async function TableauBordImmo() {
     comptesDesBaux(),
     prisma.reparationImmo.findMany({
       where: { statut: { in: STATUTS_REPARATION_OUVERTS } },
-      select: { id: true, numero: true, source: true, titre: true, priorite: true, statut: true, creeLe: true, entrepreneur: true, coutEstime: true, coutReel: true, datePrevue: true, immeuble: { select: { nom: true } }, logement: { select: { numero: true, type: true } } },
+      select: { id: true, numero: true, source: true, titre: true, priorite: true, statut: true, creeLe: true, entrepreneur: true, coutEstime: true, coutReel: true, datePrevue: true, immeubleId: true, immeuble: { select: { nom: true } }, logement: { select: { numero: true, type: true } } },
       orderBy: { creeLe: "desc" },
     }),
     prisma.documentImmo.findMany({ where: { expireLe: { not: null } }, select: { id: true, titre: true, categorie: true, expireLe: true, immeuble: { select: { nom: true } } }, orderBy: { expireLe: "asc" } }),
@@ -58,6 +60,7 @@ export default async function TableauBordImmo() {
       select: { id: true, titre: true, prochaineDate: true, frequenceMois: true, obligatoire: true, dansLogements: true, actif: true, immeuble: { select: { nom: true } } },
       orderBy: { prochaineDate: "asc" },
     }),
+    vueRueDisponible(),
   ]);
 
   // Bail officiel du TAL déposé ou non, pour la liste « À faire » (lib/bailTal.js)
@@ -90,6 +93,9 @@ export default async function TableauBordImmo() {
       <TableauBordClient
         releve31={releve31}
         courriel={Boolean(process.env.RESEND_API_KEY)}
+        // Rue illustrée : ciel du moment au Québec, salutation par le prénom
+        visuel={{ ...momentQuebec(), prenom: (session.nom || "").trim().split(/\s+/)[0] || "" }}
+        vueRue={vueRue}
         {...simple({
           immeubles, comptes, reparations, documents, nbLocataires, donnees, periode, serie, reglagesAuto, dernierAuto, entretiens, bauxOfficiels,
           bauxFactures: loyersDuMois.map((c) => c.bailId),
