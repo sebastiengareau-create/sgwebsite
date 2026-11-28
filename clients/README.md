@@ -33,11 +33,6 @@ service par déclinaison, tous sur la branche `client/template` (appliquer à
   *GitHub Repo* (même dépôt), branche `client/template`, variables
   `NEXT_PUBLIC_CLIENT`, `DATABASE_URL` (sa base à lui), `SESSION_SECRET`,
   et une adresse (domaine).
-- **Liens entre les démos** : variable `NEXT_PUBLIC_DEMOS`, la même dans
-  chaque service (variable partagée du projet) :
-  `garage=https://…,premium=https://…,ferme=https://…,copropriete=https://…,immobilier=https://…`.
-  Sur l'écran de connexion, les autres déclinaisons deviennent des liens
-  vers leur démo (`lib/marque.js`).
 - **Modules de départ** : réglage `reglagesDemarrage` du profil, inscrit dans
   la base au démarrage seulement s'il n'y est pas encore
   (`lib/reglagesDemarrage.js`) — ce que l'Administrateur change ensuite
@@ -356,11 +351,9 @@ on décide quand et à qui une modification s'applique.
   au modèle de base (réglage `atelierDemo` du profil, absent chez les
   clients). Les vrais dossiers ne sont pas touchés.
 - **Écran de connexion de démonstration** (réglage `ecranDemo` du profil,
-  modèle de base et démos des déclinaisons) : « DÉMO » dans le haut et, sous
-  le logo, les autres déclinaisons (Garage, Ferme, Copropriété, Immobilier,
-  Premium) en texte de leur couleur, liens vers leur démo quand
-  `NEXT_PUBLIC_DEMOS` donne leur adresse (`DECLINAISONS_DEMO`,
-  `lib/marque.js`). Page d'arrivée du gérant après la connexion : réglage
+  modèle de base et démos des déclinaisons) : « DÉMO » dans le haut ; chaque
+  démo est indépendante, sans liste ni lien vers les autres déclinaisons.
+  Page d'arrivée du gérant après la connexion : réglage
   `accueilGerant` du profil (vue d'ensemble `/gerant` par défaut).
 - **Marque du logiciel** (kontrolshop, slogan « Tout est sous kontrol. ») :
   `lib/marque.js` et `app/components/LogoKontrolshop.js`, pareille pour
