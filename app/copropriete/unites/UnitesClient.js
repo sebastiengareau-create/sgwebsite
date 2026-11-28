@@ -76,15 +76,21 @@ function ListeUnites({ unites, batiments, soldes }) {
   const [recherche, setRecherche] = useState("");
   const q = recherche.trim().toLowerCase();
   const affichees = unites.filter((u) => !q || correspondRecherche(q, u.numero, nomsProprietaires(u), u.batiment?.nom, ...u.occupants.flatMap((o) => [o.nom, o.clesMagnetiques]), ...u.proprietes.map((p) => p.coproprietaire.clesMagnetiques)));
-  const totalQp = unites.reduce((s, u) => s + (u.quotePart || 0), 0);
-  const ecart = unites.length > 0 && Math.abs(totalQp - 100) > 0.001;
+  // Quotes-parts : 100 % dans chaque bâtiment
+  const qpDe = Object.fromEntries(groupesParBatiment(unites, batiments).map((g) => [g.cle, g.unites.reduce((s, u) => s + (u.quotePart || 0), 0)]));
+  const ecartDe = (cle) => Math.abs((qpDe[cle] ?? 100) - 100) > 0.001;
+  const groupesQp = Object.keys(qpDe);
+  const ecarts = groupesQp.filter(ecartDe);
+  const ecart = ecarts.length > 0;
 
   return (
     <>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <BoutonPlein icone={formulaire ? null : "plus"} onClick={() => setFormulaire((v) => !v)}>{formulaire ? "Annuler" : "Nouvelle unité"}</BoutonPlein>
         <span style={{ fontSize: 12.5, color: ecart ? "var(--danger)" : "var(--text-muted)", fontWeight: ecart ? 700 : 400 }}>
-          {unites.length} unité{unites.length > 1 ? "s" : ""} · quotes-parts : {pourcent(totalQp)}{ecart && " (devrait faire 100 %)"}
+          {unites.length} unité{unites.length > 1 ? "s" : ""} · quotes-parts : {groupesQp.length > 1
+            ? (ecart ? `à vérifier dans ${ecarts.length} bâtiment${ecarts.length > 1 ? "s" : ""} (100 % par bâtiment)` : "100 % dans chaque bâtiment")
+            : <>{pourcent(qpDe[groupesQp[0]] || 0)}{ecart && " (devrait faire 100 %)"}</>}
         </span>
       </div>
       {formulaire && <Formulaire champs={champsUnite(batiments)} url="/api/copropriete/unites" bouton="Ajouter l'unité" onFini={(d) => router.push(`/copropriete/unites/${d.id}`)} />}
@@ -93,7 +99,12 @@ function ListeUnites({ unites, batiments, soldes }) {
         <div key={g.cle} style={{ marginBottom: 14 }}>
           {g.titre && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, margin: "4px 2px 8px" }}>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-muted)" }}>🏢 {g.titre} · {g.unites.length}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-muted)" }}>
+                🏢 {g.titre} · {g.unites.length}
+                <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: ecartDe(g.cle) ? 800 : 600, color: ecartDe(g.cle) ? "var(--danger)" : "var(--text-muted)" }}>
+                  quotes-parts {pourcent(qpDe[g.cle] || 0)}{ecartDe(g.cle) && " (devrait faire 100 %)"}
+                </span>
+              </span>
               {g.id && <Link href={`/copropriete/batiments/${g.id}`} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)" }}>Plan par étages</Link>}
             </div>
           )}
@@ -209,7 +220,7 @@ function ListeBatiments({ batiments, vueRue, unites, soldes, duCeMois, demandesD
               {b.entrepreneur && <div className="ligne-info"><span>Construit par</span><span>{b.entrepreneur}</span></div>}
               {b.nbEtages != null && <div className="ligne-info"><span>Étages</span><span>{b.nbEtages}</span></div>}
               {b.notes && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{b.notes}</p>}
-              <div style={{ marginTop: 8 }}><BoutonSupprimer url={`/api/copropriete/batiments/${b.id}`} confirmation={`Supprimer ${b.nom} ? Ses unités resteront, sans bâtiment.`} /></div>
+              <div style={{ marginTop: 8 }}><BoutonSupprimer url={`/api/copropriete/batiments/${b.id}`} confirmation={`Supprimer ${b.nom} ? Ses unités resteront, sans bâtiment ; ses budgets sont supprimés (les cotisations déjà générées restent).`} /></div>
             </>
           )}
         </Section>

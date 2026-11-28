@@ -135,7 +135,13 @@ on décide quand et à qui une modification s'applique.
   locataire, quote-part et solde —, ses stationnements et rangements, ses
   demandes et bons de travail ouverts), unités et quotes-parts — numéro
   unique dans son bâtiment (une unité 101 dans chaque bâtiment,
-  `verifierNumeroUnite`, `lib/copropriete.js`), listées par bâtiment —, copropriétaires et historique des
+  `verifierNumeroUnite`, `lib/copropriete.js`), listées par bâtiment —,
+  quotes-parts à 100 % **dans chaque bâtiment** et **un budget par
+  bâtiment** (`BudgetCopro.batimentId`, Charges → Budget, un onglet par
+  bâtiment), réparti en cotisations entre les unités du bâtiment
+  (`groupesRepartition`, `budgetDuGroupe`, `lib/coproprieteCalculs.js`,
+  vérifié par `npm run test:copropriete`) — un immeuble seul garde le
+  budget de la copropriété entière, copropriétaires et historique des
   propriétaires, contact d'urgence, clés magnétiques, mobilité réduite
   (aide pour évacuer, ♿ sur l'unité) et autres personnes sous leur toit —
   jamais sur le portail, charges communes,

@@ -37,7 +37,11 @@ export default function BatimentClient({ batiment: b, batiments, soldes, duCeMoi
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", gap: 10, marginBottom: 14 }}>
         <Statistique valeur={b.unites.length} label={`Unité${b.unites.length > 1 ? "s" : ""}${habitables !== b.unites.length ? ` · ${habitables} habitable${habitables > 1 ? "s" : ""}` : ""}`} teinte="var(--bleu)" />
-        <Statistique valeur={pourcent(quoteParts)} label="Quotes-parts du bâtiment" teinte="var(--accent)" />
+        <Statistique
+          valeur={pourcent(quoteParts)} label="Quotes-parts du bâtiment"
+          teinte={Math.abs(quoteParts - 100) > 0.001 && b.unites.length ? "var(--danger)" : "var(--accent)"}
+          note={Math.abs(quoteParts - 100) > 0.001 && b.unites.length ? "devraient faire 100 %" : undefined}
+        />
         <Statistique valeur={argent(cotisations)} label="Cotisations du mois" teinte="var(--success)" />
         <Statistique valeur={enRetard} label="Unités en retard" teinte={enRetard ? "var(--danger)" : "var(--success)"} />
       </div>
@@ -124,7 +128,7 @@ function Fiche({ batiment: b }) {
         <>
           <Formulaire cadre={false} champs={champsBatiment} initial={valeursDe(b, champsBatiment)} url={`/api/copropriete/batiments/${b.id}`} methode="PATCH" onFini={() => setEdition(false)} />
           <div style={{ marginTop: 10 }}>
-            <BoutonSupprimer url={`/api/copropriete/batiments/${b.id}`} confirmation={`Supprimer ${b.nom} ? Ses unités resteront, sans bâtiment.`} onFini={() => router.push("/copropriete/unites?onglet=BATIMENTS")}>Supprimer le bâtiment</BoutonSupprimer>
+            <BoutonSupprimer url={`/api/copropriete/batiments/${b.id}`} confirmation={`Supprimer ${b.nom} ? Ses unités resteront, sans bâtiment ; ses budgets sont supprimés (les cotisations déjà générées restent).`} onFini={() => router.push("/copropriete/unites?onglet=BATIMENTS")}>Supprimer le bâtiment</BoutonSupprimer>
           </div>
         </>
       ) : (
