@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LogoClient from "../components/LogoClient";
 import { SignatureKontrolshop } from "../components/LogoKontrolshop";
 import { CLIENT, accueilDuRole } from "@/lib/client";
-import { DECLINAISONS_DEMO } from "@/lib/marque";
 
 export default function LoginForm({ nomEntreprise }) {
   const router = useRouter();
@@ -126,16 +125,6 @@ export default function LoginForm({ nomEntreprise }) {
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
           <LogoClient alt={nomEntreprise} width={220} height={147} priority />
         </div>
-        {CLIENT.ecranDemo && (
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 14px", marginTop: -6, marginBottom: 18 }}>
-            {DECLINAISONS_DEMO.map((d) => {
-              const style = { color: d.couleur, fontSize: 12, fontWeight: 700, letterSpacing: "0.02em" };
-              return d.url
-                ? <a key={d.cle} href={d.url} style={{ ...style, textDecoration: "none" }} title={`Démo ${d.libelle}`}>{d.libelle}</a>
-                : <span key={d.cle} style={style}>{d.libelle}</span>;
-            })}
-          </div>
-        )}
         <h1 style={{ fontSize: 22, marginBottom: 4, textAlign: "center" }}>{nomEntreprise}</h1>
         <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 24, textAlign: "center" }}>Connecte-toi pour continuer</p>
 
