@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CATEGORIES_DOCUMENTS, CATEGORIES_TRAVAUX, STATUTS_DEMANDE, TYPES_UNITE, TYPES_ESPACE, TYPES_DEMANDE,
-  argent, pourcent, dateLisible, soldeUnite, releveUnite, trouver, libelle, taille,
+  argent, pourcent, dateLisible, soldeUnite, releveUnite, trouver, libelle, taille, nomUnite,
 } from "@/lib/coproprieteCalculs";
 import { Onglets, PastilleCode, ChampsFormulaire, Erreur, boutonPrincipal, labelStyle } from "@/app/copropriete/ui";
 import BandeauSection from "@/app/components/BandeauSection";
@@ -120,7 +120,7 @@ function Unite({ p }) {
       : { texte: "À jour", couleur: "var(--success)", fond: "var(--success-fond)" };
   return (
     <Bloc
-      icone="immeuble" teinte={TEINTES.bleu} titre={`Unité ${u.numero}`} sousTitre={libelle(TYPES_UNITE, u.type)}
+      icone="immeuble" teinte={TEINTES.bleu} titre={`Unité ${u.numero}`} sousTitre={[u.batiment?.nom, libelle(TYPES_UNITE, u.type)].filter(Boolean).join(" · ")}
       droite={<Pastille couleur={etat.couleur} fond={etat.fond}>{etat.texte}</Pastille>}
     >
       <Ligne premiere label="Quote-part" valeur={<>{pourcent(u.quotePart)}{p.partDetenue < 100 && ` (vous en détenez ${pourcent(p.partDetenue, 2)})`}</>} />
@@ -219,7 +219,7 @@ function Demande({ d, jeton }) {
   return (
     <Bloc
       icone="outils" teinte={TEINTES.ambre} titre={d.titre}
-      sousTitre={[d.numero, libelle(TYPES_DEMANDE, d.type), d.unite ? `unité ${d.unite.numero}` : d.emplacement || "parties communes", `envoyée le ${dateLisible(d.creeLe)}`].join(" · ")}
+      sousTitre={[d.numero, libelle(TYPES_DEMANDE, d.type), d.unite ? `unité ${nomUnite(d.unite)}` : [d.emplacement || "parties communes", d.batiment?.nom].filter(Boolean).join(", "), `envoyée le ${dateLisible(d.creeLe)}`].join(" · ")}
     >
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
         <PastilleCode liste={STATUTS_DEMANDE} code={d.statut} />
@@ -268,7 +268,7 @@ function NouvelleDemande({ proprietes, jeton, onFini, onAnnuler }) {
   const maj = (nom, v) => setValeurs((x) => ({ ...x, [nom]: v }));
   const champs = [
     { nom: "type", label: "Je veux…", type: "choix", options: [{ code: "REPARATION", label: "Demander une réparation" }, { code: "SIGNALEMENT", label: "Signaler un problème" }] },
-    { nom: "uniteId", label: "Où ?", type: "choix", vide: "Parties communes", options: unites.map((u) => ({ code: u.id, label: `Mon unité ${u.numero}` })) },
+    { nom: "uniteId", label: "Où ?", type: "choix", vide: "Parties communes", options: unites.map((u) => ({ code: u.id, label: `Mon unité ${nomUnite(u)}` })) },
     { nom: "titre", label: "En quelques mots", placeholder: "Ex. : Fuite d'eau au plafond de la salle de bain", pleineLargeur: true },
     { nom: "emplacement", label: "Endroit précis", placeholder: "Ex. : corridor du 3e, garage P1, porte d'entrée…" },
     { nom: "categorie", label: "Catégorie", type: "choix", vide: "Je ne sais pas", options: CATEGORIES_TRAVAUX },
