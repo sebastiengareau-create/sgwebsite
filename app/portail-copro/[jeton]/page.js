@@ -54,7 +54,8 @@ export default async function PortailCopro(props) {
       where: { coproprietaireId: c.id },
       select: {
         id: true, numero: true, type: true, titre: true, description: true, statut: true, priorite: true, emplacement: true, reponse: true, creeLe: true,
-        unite: { select: { numero: true } },
+        unite: { select: { numero: true, batiment: { select: { nom: true } } } },
+        batiment: { select: { nom: true } },
         fichiers: { select: { id: true, nom: true, typeMime: true, taille: true } },
         travaux: { select: { statut: true, datePrevue: true, suivis: { where: { public: true }, select: { id: true, date: true, texte: true }, orderBy: { date: "desc" } } } },
       },
