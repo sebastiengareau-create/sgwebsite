@@ -94,7 +94,16 @@ on décide quand et à qui une modification s'applique.
   registre à déclarer à Agri-Traçabilité Québec (`lib/registreElevage.js`),
   étiquettes à code QR
   des paquets et page publique de traçabilité `/tracabilite/<lot>`,
-  `lib/elevage.js` ; troupeau de démonstration à charger ou retirer dans
+  `lib/elevage.js` ; Troupeau avec la **ferme illustrée** en tête
+  (`app/components/FermeIllustree.js`, `lib/elevageVisuel.js` : grange
+  rouge à comble brisé, silo, clôture, collines et balles rondes selon la
+  saison, chaque bête au troupeau dessinée selon sa catégorie — veau à côté
+  de sa mère, boucle jaune ATQ —, pastille si elle est en délai de retrait,
+  au poids d'abattage ou gestante, un clic ouvre sa fiche ; ciel selon
+  l'heure, salutation, prochain vêlage, paquets en stock et ventes du mois,
+  conseil du mois de l'éleveur, vérifié par `npm run test:elevage`), tuiles
+  vives et couleurs vertes de la marque Ferme (`BandeauFerme.js`) ;
+  troupeau de démonstration à charger ou retirer dans
   Administrateur, `lib/elevageDemo.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).
   **Pointage de quart et feuilles de temps** (inactif par défaut,
@@ -155,7 +164,8 @@ on décide quand et à qui une modification s'applique.
   illustrée, aussi dans la page Immeubles et la fiche sans photo), couleurs
   violettes de la marque Immobilier (`BandeauImmo.js` sur chaque écran ;
   dessins communs avec la Copropriété dans `app/components/` :
-  `RueIllustree.js`, `HeroRue.js`, `BandeauBatiments.js`, `TuileVive.js`), **calcul des hausses
+  `RueIllustree.js`, `HeroRue.js`, `BandeauBatiments.js`, `TuileVive.js`,
+  aussi pour la Ferme), **calcul des hausses
   de loyer** selon la méthode du TAL en vigueur depuis 2026 (par immeuble,
   `/immobilier/immeubles/<id>/hausses`, `lib/immobilierHausses.js` :
   pourcentage de base, part de la hausse des taxes et des assurances au-delà

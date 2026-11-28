@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ScanElevage from "../ScanElevage";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauFerme from "@/app/elevage/BandeauFerme";
 import { TitreSection } from "../../components/ui";
 import { CANAUX, stockLot, argent, kg, dateCourte, dateLisible, joursAvant } from "@/lib/elevageCalculs";
 import VentesParMois from "./VentesParMois";
@@ -53,7 +53,7 @@ export default function ViandeClient({ coupes, ventes, lotScanne, scanInconnu })
 
   return (
     <div className="conteneur-page" style={{ maxWidth: 1100 }}>
-      <BandeauSection icone="🥩" titre="Viande" sousTitre="Paquets en stock par coupe et ventes en boutique ou en ligne. Chaque paquet vendu reste relié à sa bête." />
+      <BandeauFerme icone="🥩" titre="Viande" sousTitre="Paquets en stock par coupe et ventes en boutique ou en ligne. Chaque paquet vendu reste relié à sa bête." />
       <NavElevage actif="/elevage/viande" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12 }}>

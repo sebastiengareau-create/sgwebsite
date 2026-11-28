@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauFerme from "@/app/elevage/BandeauFerme";
 import { TitreSection } from "../../components/ui";
 import { BoutonPlein, BoutonContour, Pastille } from "../../components/StyleSection";
 import { dateCourte, dateLisible, joursAvant, nomBete } from "@/lib/elevageCalculs";
@@ -69,7 +69,7 @@ export default function RegistreClient({ betes, evenements, lieux }) {
 
   return (
     <div className="conteneur-page" style={{ maxWidth: 1100 }}>
-      <BandeauSection icone="📒" titre="Registre" sousTitre="Identification des bêtes et journal de leurs déplacements, à déclarer à Agri-Traçabilité Québec." />
+      <BandeauFerme icone="📒" titre="Registre" sousTitre="Identification des bêtes et journal de leurs déplacements, à déclarer à Agri-Traçabilité Québec." />
       <NavElevage actif="/elevage/registre" />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>

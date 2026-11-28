@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import BandeauSection from "../components/BandeauSection";
+import HeroRue, { ConseilDuMois } from "../components/HeroRue";
+import TuileVive from "../components/TuileVive";
+import { FermeIllustree } from "../components/FermeIllustree";
+import { CONSEILS_MOIS_FERME, ETATS_BETE, betesPourFerme, prochainVelage, echantillonFerme } from "@/lib/elevageVisuel";
 import { correspondRecherche } from "@/lib/recherche";
 import { nombre } from "@/lib/format";
-import { Icone, BoutonPlein, Pastille } from "../components/StyleSection";
+import { Icone, BoutonPlein, Pastille, TEINTES } from "../components/StyleSection";
 import {
   SEXES, GENETIQUES, STATUTS_BETE, libelle, age, dernierePesee, coutBete, revenusBete,
   carcasseDepuisVif, argent, kg, dateLisible, TYPES_SOIN, retraitEnCours, rappelsAFaire, joursAvant, velagePrevu, saillieEnCours, sousLaCible, nomBete,
@@ -14,7 +17,7 @@ import {
 } from "@/lib/elevageCalculs";
 import ScanElevage from "./ScanElevage";
 import { formaterBoucle, emplacement } from "@/lib/registreElevage";
-import { champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, Onglets, Statistique, NavElevage, useApi, DeuxColonnes } from "./ui";
+import { champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, Onglets, NavElevage, useApi, DeuxColonnes } from "./ui";
 import ChampArgent from "@/app/components/ChampArgent";
 
 const FILTRES = [
@@ -24,7 +27,10 @@ const FILTRES = [
   { code: "TOUTES", label: "Toutes" },
 ];
 
-export default function TroupeauClient({ betes, rendementCarcasse, gmqCible, poidsAbattage, coupes }) {
+// Vert de la marque Ferme
+const TEINTE_FERME = { couleur: "var(--ferme)", fond: "var(--ferme-fond)" };
+
+export default function TroupeauClient({ betes, rendementCarcasse, gmqCible, poidsAbattage, coupes, viande, visuel }) {
   const router = useRouter();
   const [filtre, setFiltre] = useState("ACTIVE");
   const [recherche, setRecherche] = useState("");
@@ -50,7 +56,7 @@ export default function TroupeauClient({ betes, rendementCarcasse, gmqCible, poi
 
   return (
     <div className="conteneur-page" style={{ maxWidth: 1100 }}>
-      <BandeauSection icone="🐂" titre="Élevage" sousTitre="Le troupeau de la naissance à la table : pesées, coûts, abattage, découpe et vente de la viande." />
+      {visuel && <HeroFerme visuel={visuel} betes={betes} actives={actives} poidsVif={poidsVif} poidsAbattage={poidsAbattage} viande={viande} />}
       <NavElevage actif="/elevage" />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
@@ -61,12 +67,14 @@ export default function TroupeauClient({ betes, rendementCarcasse, gmqCible, poi
       </div>
       {formulaire && <NouvelleBete femelles={femelles} taureaux={taureaux} onCree={(id) => router.push(`/elevage/${id}`)} />}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>
-        <Statistique valeur={actives.length} label="Bêtes au troupeau" teinte="var(--success)" note={sansPesee > 0 ? `${sansPesee} sans pesée` : "toutes pesées"} />
-        <Statistique valeur={kg(poidsVif, 0)} label="Poids vif (dernières pesées)" teinte="var(--bleu)" note={`≈ ${kg(carcasse, 0)} de carcasse (${rendementCarcasse} %)`} />
-        <Statistique valeur={argent(investi)} label="Coût investi au troupeau" teinte="var(--accent)" note="achats et frais des bêtes" />
-        <Statistique valeur={valeurViande > 0 ? argent(valeurViande) : "—"} label="Valeur en viande" teinte="var(--accent-ombre)" note={valeurViande > 0 ? "si tout était abattu, au prix boutique" : "prix des coupes à fixer"} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 10, marginBottom: 16 }}>
+        <TuileVive href="#troupeau" icone="drapeau" teinte={TEINTE_FERME} label="Bêtes au troupeau" valeur={String(actives.length)} note={sansPesee > 0 ? `${sansPesee} sans pesée` : "toutes pesées"} />
+        <TuileVive href="#troupeau" icone="tendance" teinte={TEINTES.bleu} label="Poids vif" valeur={kg(poidsVif, 0)} note={`≈ ${kg(carcasse, 0)} de carcasse (${rendementCarcasse} %)`} />
+        <TuileVive href="#troupeau" icone="banque" teinte={TEINTES.ambre} label="Coût investi" valeur={argent(investi)} note="achats et frais des bêtes" />
+        <TuileVive href="/elevage/viande" icone="graphique" teinte={TEINTES.vert} label="Valeur en viande" valeur={valeurViande > 0 ? argent(valeurViande) : "—"} note={valeurViande > 0 ? "si tout était abattu, au prix boutique" : "prix des coupes à fixer"} />
       </div>
+
+      {visuel && <ConseilDuMois conseil={CONSEILS_MOIS_FERME[visuel.mois - 1]} etiquette={`En ${new Intl.DateTimeFormat("fr-CA", { month: "long", timeZone: "America/Toronto" }).format(new Date())}, à la ferme`} couleur="var(--ferme)" fond="var(--ferme-fond)" />}
 
       <Portrait betes={actives} choix={filtre === "ACTIVE" ? categorie : null} onChoix={(c) => { setFiltre("ACTIVE"); setCategorie((v) => (v === c ? null : c)); }} />
 
@@ -75,7 +83,7 @@ export default function TroupeauClient({ betes, rendementCarcasse, gmqCible, poi
         <VersAbattage betes={actives} poidsAbattage={poidsAbattage} />
       </DeuxColonnes>
 
-      <div style={{ position: "relative", marginBottom: 12 }}>
+      <div id="troupeau" style={{ position: "relative", marginBottom: 12 }}>
         <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex" }}>
           <Icone nom="loupe" taille={18} couleur="var(--text-muted)" />
         </span>
@@ -111,7 +119,7 @@ function Portrait({ betes, choix, onChoix }) {
             key={c.code} type="button" onClick={() => onChoix(c.code)} disabled={n === 0} aria-pressed={actif}
             style={{
               flex: "1 1 96px", textAlign: "left", fontFamily: "inherit", cursor: n === 0 ? "default" : "pointer", padding: "10px 12px", borderRadius: 14, color: "var(--text)",
-              background: actif ? "rgba(232,163,61,0.16)" : "var(--surface)", border: `1px solid ${actif ? "var(--accent)" : "var(--border)"}`, opacity: n === 0 ? 0.55 : 1,
+              background: actif ? "var(--ferme-fond)" : "var(--surface)", border: `1px solid ${actif ? "var(--ferme)" : "var(--border)"}`, opacity: n === 0 ? 0.55 : 1,
             }}
           >
             <span style={{ display: "block", fontSize: 20, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{n}</span>
@@ -360,6 +368,62 @@ export function ChampsBete({ fiche, maj, femelles, taureaux = [] }) {
       <Champ label="Notes">
         <textarea value={fiche.notes} onChange={maj("notes")} rows={2} style={{ ...champStyle, resize: "vertical" }} />
       </Champ>
+    </>
+  );
+}
+
+// En-tête : le ciel du moment, la salutation, le troupeau en chiffres et la
+// ferme illustrée — chaque bête mène à sa fiche
+function HeroFerme({ visuel, betes, actives, poidsVif, poidsAbattage, viande }) {
+  const surFerme = betesPourFerme(betes, poidsAbattage);
+  // Grand troupeau (quelques centaines) : une scène représentative — 36 bêtes
+  // sur un écran large, 12 sur un téléphone, les bêtes à surveiller d'abord
+  const scenes = [["ferme-large", echantillonFerme(surFerme, 36)], ["ferme-etroite", echantillonFerme(surFerme, 12)]];
+  const represente = scenes[0][1].autres > 0;
+  const velage = prochainVelage(betes);
+  const compte = {};
+  for (const b of surFerme) compte[b.categorie] = (compte[b.categorie] || 0) + 1;
+  const etats = {};
+  for (const b of surFerme) if (b.etat) etats[b.etat] = (etats[b.etat] || 0) + 1;
+  const mois = new Intl.DateTimeFormat("fr-CA", { month: "long", timeZone: "America/Toronto" }).format(new Date());
+  const ou = { printemps: "au pâturage", ete: "au pâturage", automne: "aux champs", hiver: "à la ferme" }[visuel.saison] || "au troupeau";
+  const phrase = actives.length === 0
+    ? "Bienvenue ! Ajoute ta première bête : elle apparaîtra ici, dans le pâturage."
+    : `${actives.length} bête${actives.length > 1 ? "s" : ""} ${ou} · ${kg(poidsVif, 0)} de poids vif${velage ? ` · ${velage.jours > 0 ? `prochain vêlage dans ${velage.jours} jour${velage.jours > 1 ? "s" : ""}` : "un vêlage est attendu"} (${nomBete(velage.bete)}) 🍼` : ""}`;
+  const puces = [
+    ...CATEGORIES_TROUPEAU.filter((c) => compte[c.code]).map((c) => `${{ VACHE: "🐄", GENISSE: "🐮", TAUREAU: "🐂", BOUVILLON: "🐃", VEAU: "🍼" }[c.code]} ${compte[c.code]} ${(compte[c.code] > 1 ? c.label : c.singulier).toLowerCase()}`),
+    ...(viande?.paquetsEnStock ? [`🥩 ${viande.paquetsEnStock} paquets en stock`] : []),
+    ...(viande?.ventesMois ? [`💰 ${argent(viande.ventesMois)} vendus en ${mois}`] : []),
+  ];
+  return (
+    <>
+      <HeroRue
+        visuel={visuel} badge="🐂 FERME" phrase={phrase} puces={puces}
+        scene={scenes.map(([classe, { visibles, autres }]) => (
+          <div key={classe} className={classe}>
+            <FermeIllustree betes={visibles} cle={classe} moment={visuel.moment} saison={visuel.saison} hrefDe={(b) => `/elevage/${b.id}`} />
+            {autres > 0 && (
+              <a href="#troupeau" style={{ position: "absolute", right: 12, top: 4, fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(16,30,16,0.6)", padding: "4px 10px", borderRadius: 999, textDecoration: "none" }}>
+                + {autres} autre{autres > 1 ? "s" : ""} bête{autres > 1 ? "s" : ""} →
+              </a>
+            )}
+          </div>
+        ))}
+      />
+      {surFerme.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "6px 14px", margin: "0 4px 14px", fontSize: 12, color: "var(--text-muted)" }}>
+          <span style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
+            {Object.entries(ETATS_BETE).filter(([code]) => etats[code]).map(([code, e]) => (
+              <span key={code} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 14, height: 14, borderRadius: 999, background: e.couleur, color: "#fff", fontSize: 9, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{e.signe}</span>
+                {e.label} ({etats[code]})
+              </span>
+            ))}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 10, borderRadius: 2, background: "#f5c400" }} />Boucle ATQ</span>
+          </span>
+          <span>{represente ? "Le troupeau y est représenté, les bêtes à surveiller d'abord" : "Une bête par bête du troupeau"} · touche-la pour ouvrir sa fiche</span>
+        </div>
+      )}
     </>
   );
 }

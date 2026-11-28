@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import BandeauSection from "../../components/BandeauSection";
+import BandeauFerme from "@/app/elevage/BandeauFerme";
 import { TitreSection } from "../../components/ui";
 import { estimerDecoupe, totauxDecoupe, carcasseDepuisVif, argent, kg } from "@/lib/elevageCalculs";
 import {
@@ -20,7 +20,7 @@ export default function CoupesClient({ coupes, rendementCarcasse, gmqCible, poid
   const valeurKg = totauxDecoupe(estimerDecoupe(1000, actives)).valeurBoutique / 1000;
   return (
     <div className="conteneur-page" style={{ maxWidth: 1100 }}>
-      <BandeauSection icone="📐" titre="Coupes et rendements" sousTitre="Ce que donne une carcasse : la part de chaque coupe, le poids d'un paquet et son prix au kg selon le canal de vente." />
+      <BandeauFerme icone="📐" titre="Coupes et rendements" sousTitre="Ce que donne une carcasse : la part de chaque coupe, le poids d'un paquet et son prix au kg selon le canal de vente." />
       <NavElevage actif="/elevage/coupes" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 16 }}>

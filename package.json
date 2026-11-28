@@ -13,7 +13,8 @@
     "test:quarts": "node scripts/tester-quarts.js",
     "test:immobilier": "node --no-warnings scripts/tester-immobilier.mjs",
     "test:pneus": "node --no-warnings scripts/tester-pneus.mjs",
-    "test:copropriete": "node --no-warnings scripts/tester-copropriete.mjs"
+    "test:copropriete": "node --no-warnings scripts/tester-copropriete.mjs",
+    "test:elevage": "node --no-warnings scripts/tester-elevage.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
