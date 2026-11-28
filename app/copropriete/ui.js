@@ -11,7 +11,10 @@ import { Pastille } from "../components/StyleSection";
 import { champStyle, labelStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi } from "../elevage/ui";
 import { trouver, taille } from "@/lib/coproprieteCalculs";
 import ChampArgent from "../components/ChampArgent";
+import { ChampAdresse, ChampVille, ChampCodePostal } from "../components/ChampsAdresse";
+import SelectProvince from "../components/SelectProvince";
 import { formaterTelephone } from "@/lib/telephone";
+import { PROVINCE_DEFAUT, decouperAdresse, normaliserCodePostal, provinceDuCodePostal } from "@/lib/adresse";
 
 export { champStyle, labelStyle, boutonPrincipal, boutonLien, grille2, Champ, Erreur, useApi };
 export { Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui } from "../elevage/ui";
@@ -83,10 +86,28 @@ export function Vide({ children }) {
 
 // ---------- Formulaires décrits par une liste de champs ----------
 // champs : [{ nom, label, type: "texte" | "long" | "date" | "nombre" |
-// "argent" (affiché « 350,00 $ », transmis « 350.00 ») | "choix" | "case", options: [{ code, label }], vide: "— libellé —",
+// "argent" (affiché « 350,00 $ », transmis « 350.00 ») | "choix" | "case" |
+// "adresse" | "ville" | "province" | "codePostal" (bloc d'adresse, voir
+// champsAdresse), options: [{ code, label }], vide: "— libellé —",
 // placeholder, pleineLargeur, groupe }]
 // groupe : titre d'un bloc de champs ; dès qu'un champ en a un, la fiche se
 // présente par blocs sur deux colonnes alignées (pleineLargeur : sur les deux)
+
+// Bloc d'adresse au format de l'appli, comme les fiches client et
+// fournisseur : Adresse (n° et rue — les suggestions Google remplissent le
+// reste), App. au besoin, Ville (municipalités du secteur postal), Province
+// et Code postal (le secteur fixe la province). Les noms sont ceux des
+// champs du modèle ; à placer dans une fiche par blocs (groupe).
+export function champsAdresse({ adresse = "adresse", app, ville = "ville", province = "province", codePostal = "codePostal", label = "Adresse", groupe } = {}) {
+  const lies = { adresse, app, ville, province, codePostal };
+  return [
+    { nom: adresse, label, type: "adresse", lies, pleineLargeur: true, placeholder: "123 rue Principale", ...(groupe && { groupe }) },
+    ...(app ? [{ nom: app, label: "App.", lies }] : []),
+    { nom: ville, label: "Ville", type: "ville", lies, pleineLargeur: !app },
+    { nom: province, label: "Province", type: "province", lies },
+    { nom: codePostal, label: "Code postal", type: "codePostal", lies, placeholder: "J3B 6V5" },
+  ];
+}
 
 const grilleGroupe = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0 10px", alignItems: "end" };
 const titreGroupe = { fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-muted)", margin: "6px 0 6px", paddingTop: 8, borderTop: "1px solid var(--border)" };
@@ -145,6 +166,31 @@ function UnChamp({ c, valeurs, maj }) {
     entree = <textarea value={v} onChange={changer} rows={c.lignes || 3} placeholder={c.placeholder} style={{ ...champStyle, resize: "vertical" }} />;
   } else if (c.type === "date") {
     entree = <input type="date" max="9999-12-31" value={v} onChange={changer} style={champStyle} />;
+  } else if (c.type === "adresse") {
+    const l = c.lies;
+    // Adresse choisie dans les suggestions : tout le bloc se remplit ; avec
+    // une case App. à part, le n° et la rue ici et l'unité dans App.
+    const choisir = (a) => {
+      const rue = l.app && a.unite && (a.numero || a.rue) ? [a.numero, a.rue].filter(Boolean).join(" ") : a.adresse;
+      if (rue) maj(c.nom, rue);
+      if (l.app && a.unite) maj(l.app, a.unite);
+      if (a.ville) maj(l.ville, a.ville);
+      if (a.province) maj(l.province, a.province);
+      if (a.codePostal) maj(l.codePostal, a.codePostal);
+    };
+    entree = <ChampAdresse valeur={v} onChange={(x) => maj(c.nom, x)} onChoisir={choisir} placeholder={c.placeholder} style={champStyle} />;
+  } else if (c.type === "ville") {
+    entree = <ChampVille valeur={v} onChange={(x) => maj(c.nom, x)} codePostal={valeurs[c.lies.codePostal]} style={champStyle} />;
+  } else if (c.type === "province") {
+    entree = <SelectProvince valeur={v} onChange={(x) => maj(c.nom, x)} style={champStyle} />;
+  } else if (c.type === "codePostal") {
+    const l = c.lies;
+    // Le secteur (« J3B ») fixe la province, et la ville s'il n'en a qu'une
+    const secteur = ({ province, villes }) => {
+      if (province) maj(l.province, province);
+      if (!String(valeurs[l.ville] || "").trim() && villes.length === 1) maj(l.ville, villes[0]);
+    };
+    entree = <ChampCodePostal valeur={v} onChange={(x) => maj(c.nom, x)} onSecteur={secteur} onBlur={() => maj(c.nom, normaliserCodePostal(v) || "")} placeholder={c.placeholder} style={champStyle} />;
   } else if (c.type === "argent") {
     entree = <ChampArgent value={v} onChange={changer} placeholder={c.placeholder || "0,00 $"} negatif={c.negatif !== false} style={champStyle} />;
   } else {
@@ -158,7 +204,7 @@ function UnChamp({ c, valeurs, maj }) {
 // Valeurs d'un formulaire à partir d'un élément enregistré (dates en
 // « 2026-11-05 », nombres avec virgule, vide plutôt que null)
 export function valeursDe(element, champs) {
-  return Object.fromEntries(champs.map((c) => {
+  const valeurs = Object.fromEntries(champs.map((c) => {
     const v = element?.[c.nom];
     if (c.type === "case") return [c.nom, v == null ? Boolean(c.defaut) : Boolean(v)];
     if (v == null) return [c.nom, c.defaut ?? ""];
@@ -167,6 +213,22 @@ export function valeursDe(element, champs) {
     if (c.type === "argent") return [c.nom, Number.isFinite(Number(v)) ? Number(v).toFixed(2) : String(v)];
     return [c.nom, String(v)];
   }));
+  for (const c of champs) if (c.type === "adresse") completerAdresse(valeurs, c.lies, !element);
+  return valeurs;
+}
+
+// Bloc d'adresse à l'ouverture d'une fiche : une adresse écrite d'un bloc
+// (« 145 rue du Quai, Saint-Jean-sur-Richelieu (Québec) J3B 6X2 ») est
+// répartie dans ses cases ; la province vient du code postal, sinon QC
+function completerAdresse(valeurs, l, nouvelle) {
+  const plein = (n) => String(valeurs[n] || "").trim();
+  if (plein(l.adresse).includes(",") && !plein(l.ville) && !plein(l.codePostal)) {
+    const d = decouperAdresse(valeurs[l.adresse]);
+    for (const n of ["adresse", "ville", "province", "codePostal"]) if (d[n]) valeurs[l[n]] = d[n];
+  }
+  if (!plein(l.province) && (nouvelle || plein(l.adresse) || plein(l.ville) || plein(l.codePostal))) {
+    valeurs[l.province] = provinceDuCodePostal(valeurs[l.codePostal]) || PROVINCE_DEFAUT;
+  }
 }
 
 // Formulaire complet : champs + bouton, envoyé à l'API (POST ou PATCH).

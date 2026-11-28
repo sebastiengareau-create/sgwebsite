@@ -7,13 +7,14 @@ import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import PhotoBatiment from "../../components/PhotoBatiment";
 import { adresseComplete } from "@/lib/photoBatiment";
+import { adresseComplete as adresseLisible } from "@/lib/adresse";
 import { FacadeIllustree } from "../../components/RueIllustree";
 import { etatUnite, ETATS_UNITE, batimentsPourRue } from "@/lib/coproprieteVisuel";
 import {
   TYPES_UNITE, TYPES_ESPACE, MODES_ESPACE, argent, pourcent, libelle, trouver, nomsProprietaires,
 } from "@/lib/coproprieteCalculs";
 import {
-  NavCopro, Section, Formulaire, Onglets, Recherche, CarteListe, Vide, BoutonTexte, BoutonSupprimer, Tableau, cellule, celluleDroite, valeursDe,
+  NavCopro, Section, Formulaire, Onglets, Recherche, CarteListe, Vide, BoutonTexte, BoutonSupprimer, Tableau, cellule, celluleDroite, valeursDe, champsAdresse,
 } from "../ui";
 
 export const champsUnite = (batiments) => [
@@ -38,13 +39,14 @@ export const champsEspace = (batiments, unites) => [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
+// Par blocs ; l'adresse au format de l'appli (champsAdresse)
 const champsBatiment = [
-  { nom: "nom", label: "Nom", placeholder: "Bâtiment A, Phase 1…" },
-  { nom: "adresse", label: "Adresse", pleineLargeur: true },
+  { nom: "nom", label: "Nom", placeholder: "Bâtiment A, Phase 1…", groupe: "Bâtiment" },
+  { nom: "nbEtages", label: "Nombre d'étages", type: "nombre" },
   { nom: "anneeConstruction", label: "Année de construction", type: "nombre" },
   { nom: "entrepreneur", label: "Entrepreneur (construit par)", placeholder: "Construction ABC inc." },
-  { nom: "nbEtages", label: "Nombre d'étages", type: "nombre" },
-  { nom: "notes", label: "Notes", type: "long", lignes: 2 },
+  ...champsAdresse({ groupe: "Adresse" }),
+  { nom: "notes", label: "Notes", type: "long", lignes: 2, groupe: "Notes" },
 ];
 
 const ONGLETS = [
@@ -181,7 +183,7 @@ function ListeBatiments({ batiments, vueRue, unites, soldes, duCeMois, demandesD
                 urlApi={`/api/copropriete/batiments/${b.id}/photo`} photoLe={b.photo?.ajouteeLe} adresse={adresseComplete(b)} vueRue={vueRue} hauteur={200}
                 illustration={visuel && facades[b.id] && <FacadeIllustree immeuble={facades[b.id]} infos={infos} moment={visuel.moment} saison={visuel.saison} hauteur={200} />}
               />
-              <div className="ligne-info"><span>Adresse</span><span>{b.adresse || "—"}</span></div>
+              <div className="ligne-info"><span>Adresse</span><span>{adresseLisible(b) || "—"}</span></div>
               <div className="ligne-info"><span>Unités</span><span>{b._count.unites}</span></div>
               {b.anneeConstruction && <div className="ligne-info"><span>Construit en</span><span>{b.anneeConstruction}</span></div>}
               {b.entrepreneur && <div className="ligne-info"><span>Construit par</span><span>{b.entrepreneur}</span></div>}

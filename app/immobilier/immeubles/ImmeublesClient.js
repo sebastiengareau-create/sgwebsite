@@ -6,23 +6,22 @@ import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { BoutonPlein } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { TYPES_IMMEUBLE } from "@/lib/immobilierCalculs";
-import { NavImmo, Formulaire, Recherche, Vide } from "../ui";
+import { NavImmo, Formulaire, Recherche, Vide, champsAdresse } from "../ui";
 import { CarteImmeuble, GrilleImmeubles, infosLogements } from "../CartesImmeubles";
 
+// Par blocs ; l'adresse au format de l'appli (champsAdresse)
 export const champsImmeuble = [
-  { nom: "nom", label: "Nom", placeholder: "Triplex Champlain, 85 des Érables…" },
+  { nom: "nom", label: "Nom", placeholder: "Triplex Champlain, 85 des Érables…", groupe: "Immeuble" },
   { nom: "type", label: "Type", type: "choix", options: TYPES_IMMEUBLE, defaut: "PLEX" },
-  { nom: "adresse", label: "Adresse", pleineLargeur: true },
-  { nom: "ville", label: "Ville" },
-  { nom: "codePostal", label: "Code postal" },
   { nom: "anneeConstruction", label: "Année de construction", type: "nombre" },
   { nom: "entrepreneur", label: "Entrepreneur (construit par)", placeholder: "Construction ABC inc." },
-  { nom: "dateAchat", label: "Date d'achat", type: "date" },
+  ...champsAdresse({ groupe: "Adresse" }),
+  { nom: "dateAchat", label: "Date d'achat", type: "date", groupe: "Achat et valeur" },
   { nom: "prixAchat", label: "Prix d'achat ($)", type: "argent" },
   { nom: "evaluationMunicipale", label: "Évaluation municipale ($)", type: "argent" },
   { nom: "valeurEstimee", label: "Valeur marchande estimée ($)", type: "argent" },
   { nom: "soldeHypotheque", label: "Solde de l'hypothèque ($)", type: "argent" },
-  { nom: "notes", label: "Notes", type: "long", lignes: 2 },
+  { nom: "notes", label: "Notes", type: "long", lignes: 2, groupe: "Notes" },
 ];
 
 export default function ImmeublesClient({ immeubles, comptes, reparations, vueRue, visuel }) {

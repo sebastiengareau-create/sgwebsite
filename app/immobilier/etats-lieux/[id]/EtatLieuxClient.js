@@ -8,6 +8,8 @@ import { compresserImage } from "@/lib/images";
 import { dateLisible, nomLogement, nomsLocataires } from "@/lib/immobilierCalculs";
 import { ETATS_ELEMENT, avancement, comparerAEntree, dommagesDepuisEntree, nouvelleCle, pieceVide } from "@/lib/etatsLieuxCalculs";
 import { Retour, Panneau, Erreur, champStyle, labelStyle, boutonPrincipal, lien } from "../../ui";
+import { ChampAdresse } from "../../../components/ChampsAdresse";
+import { adresseComplete } from "@/lib/adresse";
 
 const ETAT = Object.fromEntries(ETATS_ELEMENT.map((e) => [e.code, e]));
 const COURT = { BON: "Bon", USURE: "Usure", DOMMAGE: "Endommagé", NA: "S. O." };
@@ -179,7 +181,7 @@ export default function EtatLieuxClient({ etat, entree, document, courriel }) {
         <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, margin: "4px 0 8px", cursor: "pointer" }}>
           <input type="checkbox" checked={compteurs.avertisseurTeste} disabled={termine} onChange={(e) => setCompteurs((c) => ({ ...c, avertisseurTeste: e.target.checked }))} /> Avertisseur de fumée testé et fonctionnel
         </label>
-        {sortie && <div><label style={labelStyle}>Adresse du locataire après son départ</label><input value={compteurs.adresseSuivante} disabled={termine} onChange={(e) => setCompteurs((c) => ({ ...c, adresseSuivante: e.target.value }))} style={champStyle} /></div>}
+        {sortie && <div><label style={labelStyle}>Adresse du locataire après son départ</label><ChampAdresse valeur={compteurs.adresseSuivante} disabled={termine} onChange={(x) => setCompteurs((c) => ({ ...c, adresseSuivante: x }))} onChoisir={(a) => setCompteurs((c) => ({ ...c, adresseSuivante: adresseComplete(a) }))} placeholder="123 rue Principale, Ville QC J3B 6V5" style={champStyle} /></div>}
       </Panneau>
 
       <Panneau icone="crayon" teinte={TEINTES.neutre} titre="Remarques générales">

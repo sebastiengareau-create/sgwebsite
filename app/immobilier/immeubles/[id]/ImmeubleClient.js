@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
+import { adresseComplete as adresseLisible } from "@/lib/adresse";
 import {
   TYPES_IMMEUBLE, CATEGORIES_DEPENSE, argent, libelle, trouver, dateLisible, bailActuel, nomsLocataires, etatFinBail, rendement, tauxOccupation, STATUTS_REPARATION_OUVERTS,
   etatEcheance, frequenceLisible, TYPES_ENTRETIEN, TYPES_LOGEMENT,
@@ -64,7 +65,7 @@ function Fiche({ immeuble }) {
         </>
       ) : (
         <>
-          <LigneInfo label="Adresse" valeur={[immeuble.adresse, immeuble.ville, immeuble.codePostal].filter(Boolean).join(", ")} />
+          <LigneInfo label="Adresse" valeur={adresseLisible(immeuble)} />
           <LigneInfo label="Type" valeur={libelle(TYPES_IMMEUBLE, immeuble.type)} />
           <LigneInfo label="Construit en" valeur={immeuble.anneeConstruction} />
           {immeuble.entrepreneur && <LigneInfo label="Construit par" valeur={immeuble.entrepreneur} />}

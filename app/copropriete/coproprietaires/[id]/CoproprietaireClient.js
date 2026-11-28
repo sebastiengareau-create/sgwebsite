@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LigneInfo } from "../../../components/ui";
+import { adresseComplete } from "@/lib/adresse";
 import { TYPES_UNITE, STATUTS_DEMANDE, argent, pourcent, dateLisible, trouver, soldeUnite, libelle, MODES_PAIEMENT } from "@/lib/coproprieteCalculs";
 import { champsCoproprietaire, quotePartDetenue } from "../CoproprietairesClient";
 import { Retour, Section, Formulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Tableau, cellule, celluleDroite, valeursDe, useApi, Erreur } from "../../ui";
@@ -85,7 +86,7 @@ function Fiche({ c }) {
           <LigneInfo label="Téléphone" valeur={c.telephone && <a href={`tel:${c.telephone}`} style={{ color: "var(--accent)" }}>{c.telephone}</a>} />
           {c.telephone2 && <LigneInfo label="Autre téléphone" valeur={c.telephone2} />}
           <LigneInfo label="Courriel" valeur={c.courriel && <a href={`mailto:${c.courriel}`} style={{ color: "var(--accent)" }}>{c.courriel}</a>} />
-          <LigneInfo label="Adresse postale" valeur={c.adressePostale} />
+          <LigneInfo label="Adresse postale" valeur={adresseComplete({ adresse: c.adressePostale, ville: c.ville, province: c.province, codePostal: c.codePostal })} />
           <LigneInfo label="Contact d'urgence" valeur={c.contactUrgenceNom && <>
             {c.contactUrgenceNom}{c.contactUrgenceLien && ` (${c.contactUrgenceLien})`}
             {c.contactUrgenceTel && <> · <a href={`tel:${c.contactUrgenceTel}`} style={{ color: "var(--accent)" }}>{c.contactUrgenceTel}</a></>}

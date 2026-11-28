@@ -503,5 +503,16 @@ test("Rue illustrée : état de chaque fenêtre", () => {
   assert.equal(etatLogement(bail, { enRetard: 0 }), "OK");
 });
 
+test("Adresses au format de l'appli (Immobilier, Copropriété)", async () => {
+  const { normaliserFicheAdresse, decouperAdresse } = await import("../lib/adresse.js");
+  assert.deepEqual(
+    normaliserFicheAdresse({ adresse: "220 rue Richelieu", ville: "Saint-Jean-sur-Richelieu", province: "Québec", codePostal: "j3b6y3" }),
+    { adresse: "220 rue Richelieu", ville: "Saint-Jean-sur-Richelieu", province: "QC", codePostal: "J3B 6Y3" },
+  );
+  assert.equal(normaliserFicheAdresse({ adressePostale: null, ville: null, province: "QC", codePostal: null }, { adresse: "adressePostale" }).province, null, "pas de province seule");
+  assert.deepEqual(decouperAdresse("145 rue du Quai, Saint-Jean-sur-Richelieu (Québec) J3B 6X2"), { adresse: "145 rue du Quai", ville: "Saint-Jean-sur-Richelieu", province: "QC", codePostal: "J3B 6X2" }, "adresse écrite d'un bloc répartie");
+  assert.deepEqual(separerAdresse("4-1180 rue Saint-Jacques"), ["4-1180", "rue Saint-Jacques"]);
+});
+
 await Promise.all(asynchrones);
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);

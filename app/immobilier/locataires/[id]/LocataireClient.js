@@ -48,7 +48,7 @@ export default function LocataireClient({ locataire, comptes, lien, courrielConf
             {locataire.adresse || locataire.ville
               ? <p style={{ fontSize: 13, margin: "0 0 4px", lineHeight: 1.5 }}>
                   {[locataire.adresse, locataire.appartement && `app. ${locataire.appartement}`].filter(Boolean).join(", ")}
-                  <br />{[locataire.ville, locataire.codePostal].filter(Boolean).join(" ")}
+                  <br />{[locataire.ville, locataire.province, locataire.codePostal].filter(Boolean).join(" ")}
                 </p>
               : <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 4px" }}>Pas encore inscrite — elle va à la section A du bail (Modifier).</p>}
             {locataire.notes && <>
