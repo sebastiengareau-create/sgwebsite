@@ -4,6 +4,7 @@
 // l'icône en filigrane de BandeauSection, commun aux autres sections).
 //   variante « immobilier » : violet, plex à corniche
 //   variante « copropriete » : bleu, tours en copropriété à balcons vitrés
+//   variante « ferme » : vert et blé, grange, silo et vaches au pâturage
 
 const SILHOUETTE = [
   // [x, largeur, hauteur, corniche]
@@ -18,6 +19,7 @@ const TOURS = [[4, 52, 70], [62, 44, 92], [112, 60, 58], [178, 46, 84], [230, 56
 const FONDS = {
   immobilier: "linear-gradient(118deg, #22195a 0%, #4f3398 38%, #9a4a9c 70%, #ec8a5c 100%)",
   copropriete: "linear-gradient(118deg, #0d2350 0%, #1d4d98 40%, #2b86c4 72%, #5cc4c4 100%)",
+  ferme: "linear-gradient(118deg, #10301a 0%, #2a5e2c 38%, #5f9a3e 70%, #e0b04f 100%)",
 };
 
 function SilhouettePlex() {
@@ -58,6 +60,38 @@ function SilhouetteTours() {
   );
 }
 
+// Grange à comble brisé, silo, clôture et quelques vaches
+function SilhouetteFerme() {
+  const ombre = "#0c2210";
+  const vache = (x, y, e, sens = 1) => (
+    <g key={x} transform={`translate(${x} ${y}) scale(${sens * e} ${e})`} fill={ombre} opacity="0.62">
+      <rect x={-19} y={-26} width={38} height={17} rx={8.5} />
+      {[-14, -9, 8, 13].map((px) => <rect key={px} x={px} y={-11} width={3.6} height={11} />)}
+      <rect x={16} y={-33} width={13} height={10.5} rx={4.2} />
+    </g>
+  );
+  return (
+    <>
+      <circle cx="290" cy="22" r="11" fill="#fff1c4" opacity="0.85" />
+      <g fill={ombre} opacity="0.62">
+        <rect x="150" y="56" width="70" height="44" />
+        <polygon points="146,57 158,38 185,29 212,38 224,57" />
+        <rect x="226" y="34" width="16" height="66" />
+        <path d="M226 34 a8 7 0 0 1 16 0 z" />
+      </g>
+      <rect x="177" y="72" width="16" height="12" fill="#ffd36b" opacity="0.85" />
+      {vache(60, 98, 0.62)}
+      {vache(100, 96, 0.5, -1)}
+      {vache(272, 99, 0.6, -1)}
+      {vache(310, 97, 0.46)}
+      <g stroke={ombre} strokeWidth="1.6" opacity="0.55">
+        <line x1="0" y1="90" x2="140" y2="90" />
+        {[6, 30, 54, 78, 102, 126].map((x) => <line key={x} x1={x} y1="86" x2={x} y2="100" />)}
+      </g>
+    </>
+  );
+}
+
 export default function BandeauBatiments({ icone, titre, sousTitre, children, variante = "immobilier" }) {
   return (
     <div style={{
@@ -74,7 +108,7 @@ export default function BandeauBatiments({ icone, titre, sousTitre, children, va
           <mask id={`masque-${variante}`}><rect x="0" y="0" width="332" height="100" fill={`url(#fondu-${variante})`} /></mask>
         </defs>
         <g mask={`url(#masque-${variante})`}>
-          {variante === "copropriete" ? <SilhouetteTours /> : <SilhouettePlex />}
+          {variante === "copropriete" ? <SilhouetteTours /> : variante === "ferme" ? <SilhouetteFerme /> : <SilhouettePlex />}
         </g>
       </svg>
       <div style={{ position: "relative" }}>

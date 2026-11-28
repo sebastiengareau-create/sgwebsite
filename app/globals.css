@@ -640,6 +640,9 @@ html[data-theme="light"] .logo-sombre { display: none; }
   --copro: #5aa6ee;         /* bleu de la marque Copropriété, éclairci pour le thème sombre */
   --copro-fort: #2f6db5;
   --copro-fond: rgba(90, 166, 238, 0.16);
+  --ferme: #7cc067;         /* vert de la marque Ferme, éclairci pour le thème sombre */
+  --ferme-fort: #457a3c;
+  --ferme-fond: rgba(124, 192, 103, 0.16);
 }
 html[data-theme="light"] {
   --immo: #6c3fb0;
@@ -648,10 +651,21 @@ html[data-theme="light"] {
   --copro: #245d9e;
   --copro-fort: #2f6db5;
   --copro-fond: rgba(47, 109, 181, 0.10);
+  --ferme: #3b6e33;
+  --ferme-fort: #457a3c;
+  --ferme-fond: rgba(69, 122, 60, 0.11);
 }
 .immeuble-rue { cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease; transform-box: fill-box; transform-origin: 50% 100%; outline: none; }
 .immeuble-rue:hover, .immeuble-rue:focus-visible { filter: brightness(1.1) saturate(1.12); transform: translateY(-3px); }
 .etoile-immo { animation: scintille-immo 2.8s ease-in-out infinite alternate; }
+.bete-ferme { cursor: pointer; transition: transform 0.2s ease, filter 0.2s ease; transform-box: fill-box; transform-origin: 50% 100%; outline: none; }
+.bete-ferme:hover, .bete-ferme:focus-visible { filter: brightness(1.35); transform: translateY(-2px); }
+/* Ferme illustrée : grande scène sur un écran large, plus petite sur un téléphone */
+.ferme-etroite { display: none; }
+@media (max-width: 699px) {
+  .ferme-large { display: none; }
+  .ferme-etroite { display: block; }
+}
 @keyframes scintille-immo { from { opacity: 0.25; } to { opacity: 1; } }
 .neige-immo {
   position: absolute; inset: -260px 0 0 0; pointer-events: none; opacity: 0.85;
@@ -672,6 +686,6 @@ html[data-theme="light"] {
 .tuile-immo:hover, .tuile-immo:focus-visible { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(40, 20, 80, 0.14); border-color: var(--immo) !important; }
 @media (prefers-reduced-motion: reduce) {
   .neige-immo, .etoile-immo { animation: none; }
-  .immeuble-rue, .carte-immeuble, .tuile-immo { transition: none; }
-  .immeuble-rue:hover, .carte-immeuble:hover, .tuile-immo:hover { transform: none; }
+  .immeuble-rue, .carte-immeuble, .tuile-immo, .bete-ferme { transition: none; }
+  .immeuble-rue:hover, .carte-immeuble:hover, .tuile-immo:hover, .bete-ferme:hover { transform: none; }
 }

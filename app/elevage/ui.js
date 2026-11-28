@@ -115,7 +115,7 @@ export function NavElevage({ actif }) {
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",
               fontSize: 14, fontWeight: 700, padding: "10px 8px", borderRadius: 10, textDecoration: "none",
-              background: estActif ? "var(--accent)" : "transparent", color: estActif ? "#221f18" : "var(--text-muted)",
+              background: estActif ? "linear-gradient(120deg, #2f6a2f, var(--ferme-fort))" : "transparent", color: estActif ? "#fff" : "var(--text-muted)",
             }}
           >
             {l.label}

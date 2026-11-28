@@ -41,7 +41,7 @@ const CIELS = {
   nuit: { fond: "linear-gradient(180deg, #0a1131 0%, #1b2155 62%, #33296b 100%)", loin: "#252a5d", ombre: ["#120f33", 0.5], sol: "#57526c", rue: "#2a2739", halo: 0.7 },
 };
 const CIEL_JOUR_HIVER = "linear-gradient(180deg, #5c9ce0 0%, #93c1ee 55%, #dcecfb 100%)";
-const NEIGE = { matin: "#f4f7fb", jour: "#f7fbff", soir: "#e6dcef", nuit: "#b8bfdc" };
+export const NEIGE = { matin: "#f4f7fb", jour: "#f7fbff", soir: "#e6dcef", nuit: "#b8bfdc" };
 
 const FEUILLAGES = {
   printemps: ["#86cf62", "#a3dc7b", "#74bf55"],
@@ -66,12 +66,12 @@ function hex(c) {
   const h = c.replace("#", "");
   return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
 }
-function melanger(a, b, t) {
+export function melanger(a, b, t) {
   const [x, y] = [hex(a), hex(b)];
   return `#${x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
 }
-const assombrir = (c, t) => melanger(c, "#000000", t);
-const eclaircir = (c, t) => melanger(c, "#ffffff", t);
+export const assombrir = (c, t) => melanger(c, "#000000", t);
+export const eclaircir = (c, t) => melanger(c, "#ffffff", t);
 
 // ---------- Dimensions d'un immeuble ----------
 
@@ -150,7 +150,7 @@ function Vitrine({ x, y, l, h, etat, info, ciel, auvent }) {
   );
 }
 
-function Arbre({ x, sol, saison, alea, neige }) {
+export function Arbre({ x, sol, saison, alea, neige }) {
   const tronc = "#6b4a35";
   if (saison === "hiver") {
     return (
@@ -175,7 +175,7 @@ function Arbre({ x, sol, saison, alea, neige }) {
   );
 }
 
-function Lampadaire({ x, sol, ciel }) {
+export function Lampadaire({ x, sol, ciel }) {
   const allume = ciel.halo >= 0.5;
   return (
     <g>

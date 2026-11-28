@@ -14,8 +14,9 @@ const puce = { display: "inline-flex", alignItems: "center", gap: 5, padding: "3
 
 // visuel : { moment, saison, salutation, prenom } ; badge : « 🏘️ IMMOBILIER » ;
 // jauge : { valeur (0 à 1), tout, libelle } ou null ; puces : [texte…] ;
-// immeubles, infos, hrefDe : la rue ; plus : { href, nombre } au-delà de 6
-export default function HeroRue({ visuel, badge, phrase, jauge, puces = [], immeubles, infos, hrefDe, plus }) {
+// immeubles, infos, hrefDe : la rue ; plus : lien au-delà de 6 immeubles ;
+// scene : autre dessin à la place de la rue (ex. la ferme, FermeIllustree.js)
+export default function HeroRue({ visuel, badge, phrase, jauge, puces = [], immeubles = [], infos, hrefDe, plus, scene }) {
   return (
     <section style={{ position: "relative", overflow: "hidden", borderRadius: 20, marginBottom: 8, border: "1px solid var(--border)", boxShadow: "0 12px 30px rgba(40, 20, 90, 0.18)" }}>
       <CielIllustre moment={visuel.moment} saison={visuel.saison} />
@@ -36,7 +37,7 @@ export default function HeroRue({ visuel, badge, phrase, jauge, puces = [], imme
         )}
       </div>
       <div style={{ position: "relative", marginTop: 4 }}>
-        <RueIllustree immeubles={immeubles} infos={infos} moment={visuel.moment} saison={visuel.saison} hrefDe={hrefDe} />
+        {scene || <RueIllustree immeubles={immeubles} infos={infos} moment={visuel.moment} saison={visuel.saison} hrefDe={hrefDe} />}
       </div>
       {plus && immeubles.length > 6 && (
         <Link href={plus} style={{ position: "absolute", right: 12, bottom: 10, fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(16,10,44,0.55)", padding: "4px 10px", borderRadius: 999, textDecoration: "none" }}>
