@@ -12,11 +12,11 @@ import {
 // Prochaine étape proposée selon l'état
 const SUITE = { NOUVELLE: ["PLANIFIEE", "📅 Planifiée"], PLANIFIEE: ["EN_COURS", "🔧 Commencée"], EN_COURS: ["TERMINEE", "✅ Terminée"] };
 
-export default function ReparationClient({ reparation: r, locataires }) {
+export default function ReparationClient({ reparation: r, locataires, fournisseurs, facture }) {
   const router = useRouter();
   const [edition, setEdition] = useState(false);
   const { appeler, enCours } = useApi();
-  const champs = champsReparation({ immeubles: [r.immeuble], locataires, immeubleId: r.immeubleId, fixe: { immeubleId: r.immeubleId } });
+  const champs = champsReparation({ immeubles: [r.immeuble], locataires, immeubleId: r.immeubleId, fixe: { immeubleId: r.immeubleId }, fournisseurs });
   const suite = SUITE[r.statut];
   return (
     <div className="conteneur-page">
@@ -51,6 +51,12 @@ export default function ReparationClient({ reparation: r, locataires }) {
             <LigneInfo label="Coût estimé" valeur={r.coutEstime != null && argent(r.coutEstime)} />
             <LigneInfo label="Coût réel" valeur={r.coutReel != null && <strong>{argent(r.coutReel)}</strong>} />
             <LigneInfo label="Facture" valeur={r.numeroFacture} />
+            {fournisseurs && (
+              <LigneInfo
+                label="Comptes à payer"
+                valeur={facture ? <Link href="/gerant/comptabilite/comptes-a-payer" style={lien}>{facture === "PAYEE" ? "✅ Facture payée" : "Facture à payer"}</Link> : "Inscrite une fois terminée, avec son coût réel"}
+              />
+            )}
             {r.immobilisation && <LigneInfo label="Immobilisation" valeur="Oui — travaux majeurs, amortis à l'impôt" />}
             {r.description && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0" }}>{r.description}</p>}
             {r.reponse && <p style={{ fontSize: 13, whiteSpace: "pre-wrap", margin: "8px 0 0", padding: "8px 10px", borderRadius: 10, background: "rgba(232,163,61,0.12)" }}><strong>Réponse au locataire :</strong> {r.reponse}</p>}

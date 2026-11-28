@@ -9,6 +9,15 @@ function jourCivil(dateStr) {
   return new Date(`${dateStr.slice(0, 10)}T12:00:00Z`);
 }
 
+// Facture créée par l'Immobilier relié à la comptabilité (lib/immobilierCompta.js) :
+// elle se modifie ou se retire dans l'Immobilier, qui la tient à jour — ici,
+// seulement son paiement
+const ORIGINES_IMMOBILIER = { IMMO_DEPENSE: "Immobilier → Dépenses", IMMO_REPARATION: "la réparation, dans Immobilier → Réparations" };
+function refusImmobilier(depense) {
+  const ou = ORIGINES_IMMOBILIER[depense?.origine];
+  return ou ? NextResponse.json({ erreur: `Cette facture vient de l'Immobilier : modifie-la ou retire-la dans ${ou}. Seul son paiement se fait ici.` }, { status: 409 }) : null;
+}
+
 export async function PATCH(request, props) {
   const params = await props.params;
   const session = await obtenirSession();
@@ -78,6 +87,8 @@ async function modifierDepense(id, corps, session) {
 
   const depense = await prisma.depense.findUnique({ where: { id }, include: { lignes: true } });
   if (!depense) return NextResponse.json({ erreur: "Dépense introuvable." }, { status: 404 });
+  const refus = refusImmobilier(depense);
+  if (refus) return refus;
 
   const nouvelleDate = dateFacture ? jourCivil(dateFacture) : depense.dateFacture;
   try {
@@ -193,6 +204,8 @@ export async function DELETE(request, props) {
 
   const depense = await prisma.depense.findUnique({ where: { id: params.id } });
   if (!depense) return NextResponse.json({ erreur: "Dépense introuvable." }, { status: 404 });
+  const refus = refusImmobilier(depense);
+  if (refus) return refus;
 
   try {
     await verifierPeriodeModifiable(depense.dateFacture, { nouvellePiece: false });

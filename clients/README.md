@@ -219,8 +219,20 @@ on décide quand et à qui une modification s'applique.
   sans réponse ou refusé, bail à renouveler ou échu, retard de plus de trois
   semaines, assurance qui expire — type `IMMO_A_SURVEILLER`, actif par
   défaut), `lib/immobilier.js` ;
-  volontairement relié ni à la comptabilité ni aux fournisseurs ni aux autres
-  modules — à brancher client par client ; parc de démonstration à charger ou
+  **lien avec la comptabilité** (`/immobilier/comptabilite`,
+  `lib/immobilierCompta.js`, inactif par défaut, exige le module Comptabilité
+  et l'accès « Comptabilité », réglage `immo_comptabilite` : à partir d'une
+  date de départ, loyers et frais aux comptes « Loyers à recevoir » et
+  « Revenus de location », paiements au compte de banque choisi, dépenses des
+  immeubles et réparations terminées en factures du fournisseur aux comptes à
+  payer (`Depense.origine` `IMMO_DEPENSE` / `IMMO_REPARATION`, payées là, ou
+  « déjà payée » à la saisie ; modifiées seulement dans l'Immobilier), travaux
+  majeurs à l'actif « Immeubles — améliorations » ; comptes et postes
+  « Immeubles — … » créés à l'activation seulement ; TPS et TVQ laissées dans
+  la dépense (loyer résidentiel exonéré) ; l'Immobilier reste la source et
+  les livres suivent chaque correction, sauf en période verrouillée ou fermée
+  et pour une écriture conciliée — l'écart est signalé), sinon relié ni aux
+  clients ni aux autres modules ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js` — le logement 201 y
   a un nouveau locataire, pour montrer le bail officiel à préparer).
   **Inspection numérique** (active par défaut, `lib/inspections.js`) :

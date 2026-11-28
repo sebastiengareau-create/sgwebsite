@@ -1507,6 +1507,8 @@ model Fournisseur {
   commandes    CommandeFournisseur[]
   reglesBancaires RegleBancaire[] // classements appris des transactions bancaires
   travauxCopro    TravailCopro[] // bons de travail de la copropriété confiés à ce fournisseur
+  depensesImmo    DepenseImmo[] // dépenses d'un immeuble (Immobilier relié à la comptabilité)
+  reparationsImmo ReparationImmo[] // réparations confiées à cet entrepreneur (Immobilier)
   entretiensCopro EntretienCopro[] // entretiens préventifs et inspections dont il est chargé
   creeLe       DateTime  @default(now())
 }
@@ -1542,12 +1544,18 @@ model Depense {
   compteTresorerie   CompteTresorerie? @relation(fields: [compteTresorerieId], references: [id])
   commandeFournisseurId String? // réception d'une commande fournisseur, si la dépense en vient
   commandeFournisseur   CommandeFournisseur? @relation(fields: [commandeFournisseurId], references: [id], onDelete: SetNull)
+  // Facture créée par l'Immobilier relié à la comptabilité (lib/immobilierCompta.js) :
+  // "IMMO_DEPENSE" (DepenseImmo) ou "IMMO_REPARATION" (ReparationImmo) et son id.
+  // Elle se modifie dans l'Immobilier ; ici, seulement le paiement.
+  origine            String?
+  origineId          String?
   creeLe             DateTime          @default(now())
 
   @@index([statut])
   @@index([fournisseurId])
   @@index([compteTresorerieId])
   @@index([commandeFournisseurId])
+  @@index([origine, origineId])
 }
 
 // Une ligne de fractionnement d'une dépense — chacune débite son propre
@@ -2563,7 +2571,10 @@ model DepenseImmo {
   categorie   String // voir CATEGORIES_DEPENSE
   description String?
   montant     Float
-  payeA       String? // à qui (texte libre : aucun lien aux fournisseurs)
+  payeA       String? // à qui (texte libre ; nom du fournisseur quand il est choisi)
+  // Fournisseur des comptes à payer, quand l'Immobilier est relié à la comptabilité
+  fournisseurId String?
+  fournisseur   Fournisseur? @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
   reference   String?
   creePar     String?
   creeLe      DateTime     @default(now())
@@ -2590,7 +2601,10 @@ model ReparationImmo {
   signalePar            String?
   source       String         @default("INTERNE") // "INTERNE" | "PORTAIL" (demande du locataire)
   reponse      String? // message au locataire, affiché dans son portail
-  entrepreneur          String? // texte libre : aucun lien aux fournisseurs
+  entrepreneur          String? // texte libre (nom du fournisseur quand il est choisi)
+  // Fournisseur des comptes à payer, quand l'Immobilier est relié à la comptabilité
+  fournisseurId         String?
+  fournisseur           Fournisseur?   @relation(fields: [fournisseurId], references: [id], onDelete: SetNull)
   telephoneEntrepreneur String?
   datePrevue            DateTime?
   dateFin               DateTime?
