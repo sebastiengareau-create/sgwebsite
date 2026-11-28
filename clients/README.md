@@ -166,7 +166,9 @@ on décide quand et à qui une modification s'applique.
   (`Depense.origine` `COPRO_TRAVAIL`, poste du fonds de prévoyance au
   besoin), postes « Copropriété — … » pour les autres dépenses du syndicat ;
   copropriété de démonstration à charger ou retirer dans Administrateur,
-  `lib/coproprieteDemo.js`).
+  `lib/coproprieteDemo.js` — deux bâtiments, chacun à 100 % avec son budget :
+  Les Jardins du Richelieu (13 fractions) et Le Pavillon du Canal (6
+  logements, mêmes numéros 101, 102…)).
   **Immobilier** (inactif par défaut : propriétaire d'un ou de plusieurs
   immeubles locatifs — immeubles (année, entrepreneur ; photo prise depuis la
   fiche, sinon vue de la rue de Google Street View avec la clé Google —
