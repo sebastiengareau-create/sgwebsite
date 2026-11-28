@@ -36,6 +36,8 @@ export function useApi() {
       setErreur(data.erreur || "Erreur.");
       return null;
     }
+    // Enregistré, mais un écart aux livres (Élevage relié à la comptabilité)
+    if (data.avertissement) setErreur(data.avertissement);
     router.refresh();
     return data;
   }
@@ -97,6 +99,7 @@ export function NavElevage({ actif }) {
     { href: "/elevage/viande", label: "🥩 Viande" },
     { href: "/elevage/registre", label: "📒 Registre" },
     { href: "/elevage/coupes", label: "📐 Coupes et rendements" },
+    { href: "/elevage/comptabilite", label: "📚 Comptabilité" },
   ];
   // Onglets de même largeur, comme dans la section Opérations — 2 × 2 sur
   // cellulaire, jamais un onglet seul en bas

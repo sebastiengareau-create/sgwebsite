@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { creerAvecNumero } from "@/lib/numerotation";
 import { sessionElevage, normaliserBete, prochainNumeroBete, verifierMere, verifierPere, verifierBoucle } from "@/lib/elevage";
+import { refusPeriodeElevage, livresElevage } from "@/lib/elevageCompta";
 
 // Nouvelle bête au troupeau (née ici ou achetée), avec sa première pesée
 // facultative (poids à la naissance ou à l'arrivée)
@@ -20,6 +21,12 @@ export async function POST(request) {
   const pere = await verifierPere(fiche.data.pereId, null);
   if (pere.erreur) return NextResponse.json({ erreur: pere.erreur }, { status: 400 });
 
+  // Élevage relié à la comptabilité : l'achat va aux comptes à payer
+  if (fiche.data.origine === "ACHETEE" && fiche.data.coutAcquisition > 0) {
+    const refus = await refusPeriodeElevage({ nouvelles: [fiche.data.dateAcquisition || new Date()] });
+    if (refus) return refus;
+  }
+
   let pesee = null;
   if (String(body.poidsInitial ?? "").trim()) {
     const poids = Number(String(body.poidsInitial).replace(",", "."));
@@ -31,5 +38,5 @@ export async function POST(request) {
   const bete = await creerAvecNumero(prochainNumeroBete, (numero) => prisma.bete.create({
     data: { ...fiche.data, numero, creePar: session.nom, ...(pesee && { pesees: { create: pesee } }) },
   }));
-  return NextResponse.json({ id: bete.id, numero: bete.numero });
+  return NextResponse.json({ id: bete.id, numero: bete.numero, ...(await livresElevage(session)) });
 }

@@ -33,8 +33,8 @@ export async function PATCH(request) {
   }
 
   // Options du forfait reliées à la comptabilité (lib/lienCompta.js) :
-  // Immobilier, Copropriété — le module et la Comptabilité doivent être actifs
-  const OPTIONS_COMPTA = { immobilier_comptabilite: ["module_immobilier", "Immobilier"], copropriete_comptabilite: ["module_copropriete", "Copropriété"] };
+  // Immobilier, Copropriété, Élevage — le module et la Comptabilité doivent être actifs
+  const OPTIONS_COMPTA = { immobilier_comptabilite: ["module_immobilier", "Immobilier"], copropriete_comptabilite: ["module_copropriete", "Copropriété"], elevage_comptabilite: ["module_elevage", "Élevage"] };
   if (OPTIONS_COMPTA[nomModule] && actif) {
     const [cleParent, nomParent] = OPTIONS_COMPTA[nomModule];
     const cles = Object.fromEntries((await prisma.parametre.findMany({ where: { cle: { in: [cleParent, "module_comptabilite"] } } })).map((p) => [p.cle, p.valeur]));

@@ -25,7 +25,7 @@ service par déclinaison, tous sur la branche `client/template` (appliquer à
 |---|---|---|
 | Garage | `template` | atelier de démonstration dans Administrateur |
 | Premium | `demo-premium` | réglages de VR Premium (`PREMIUM`, `lib/client.js`), atelier de démonstration en VR (roulottes et motorisés, travaux, pièces et fournisseurs de VR) |
-| Ferme | `demo-ferme` | module Élevage actif, sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/elevage` |
+| Ferme | `demo-ferme` | module Élevage actif avec l'option « Relié à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/elevage` |
 | Copropriété | `demo-copropriete` | module Copropriété actif avec l'option « Reliée à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/copropriete` |
 | Immobilier | `demo-immobilier` | module Immobilier actif avec l'option « Relié à la comptabilité », sections du garage retirées pour tous (`sectionsRetirees`), arrivée sur `/immobilier` |
 
@@ -103,6 +103,18 @@ on décide quand et à qui une modification s'applique.
   l'heure, salutation, prochain vêlage, paquets en stock et ventes du mois,
   conseil du mois de l'éleveur, vérifié par `npm run test:elevage`), tuiles
   vives et couleurs vertes de la marque Ferme (`BandeauFerme.js`) ;
+  **lien avec la comptabilité** (`/elevage/comptabilite`,
+  `lib/elevageCompta.js`, moteur commun `lib/lienCompta.js`) : option du
+  forfait comme celle de l'Immobilier (`module_elevage_comptabilite`, active
+  dans la démo Ferme, réglage `elevage_comptabilite`) — achats de bêtes
+  (facture du vendeur, la provenance), frais des bêtes (facture du
+  fournisseur inscrit aux frais, au poste de sa catégorie, « déjà payée » au
+  besoin) et frais d'abattage (facture de l'abattoir) aux comptes à payer
+  (`Depense.origine` `ELEVAGE_ACHAT` / `ELEVAGE_FRAIS` / `ELEVAGE_ABATTAGE`,
+  modifiées seulement dans l'Élevage), postes « Élevage — … » ; ventes de
+  viande et ventes sur pied au compte de banque choisi, aux comptes « Ventes
+  de viande » et « Ventes d'animaux » ; montants avant taxes (viande, animaux
+  et aliments du bétail détaxés) ;
   troupeau de démonstration à charger ou retirer dans
   Administrateur, `lib/elevageDemo.js`), qui cohabite avec l'Inventaire ou le remplace
   (décocher « Inventaire » dans Rôles et accès).

@@ -23,7 +23,7 @@ export default async function Administrateur() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_immobilier", "module_immobilier_comptabilite", "module_copropriete_comptabilite", "module_productivite", "module_quarts", "module_inspection", "module_pneus", "module_paiement_en_ligne", "module_textos", "module_portail_client", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
+  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_immobilier", "module_immobilier_comptabilite", "module_copropriete_comptabilite", "module_elevage_comptabilite", "module_productivite", "module_quarts", "module_inspection", "module_pneus", "module_paiement_en_ligne", "module_textos", "module_portail_client", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   // Troupeau de démonstration : offert seulement si le module Élevage est actif
   const troupeauDemo = dict.module_elevage === "actif" ? await etatTroupeauDemo() : null;
@@ -55,7 +55,11 @@ export default async function Administrateur() {
           { id: "double_verification", label: "Double vérification à la connexion", description: "Gérants et niveau 4 : après le mot de passe, un code à 6 chiffres envoyé par courriel (une fois par appareil aux 30 jours). Exige l'envoi de courriel configuré", actif: dict.module_double_verification === "actif" },
           { id: "documents", label: "Documents", description: "Lettres (référence d'emploi, promotion…), envoi par courriel et envoi groupé aux clients", actif: dict.module_documents === "actif" },
           { id: "jobs_deplacement", label: "Jobs en déplacement", description: "Envoi de bons à des employés précis, avis par notification, suivi GPS des déplacements", actif: dict.module_jobs_deplacement === "actif" },
-          { id: "elevage", label: "Élevage", description: "Troupeau (bœuf wagyu…) de la naissance à la table : pesées, coût de revient, abattage, découpe en paquets selon les rendements, vente en boutique et en ligne", actif: dict.module_elevage === "actif" },
+          { id: "elevage", label: "Élevage", description: "Troupeau (bœuf wagyu…) de la naissance à la table : pesées, coût de revient, abattage, découpe en paquets selon les rendements, vente en boutique et en ligne", actif: dict.module_elevage === "actif",
+            options: [
+              { id: "elevage_comptabilite", label: "Relié à la comptabilité", description: "Option du forfait : achats de bêtes, frais (alimentation, vétérinaire, transport) et frais d'abattage aux fournisseurs et aux comptes à payer ; ventes de viande et ventes sur pied aux livres. Le client choisit ensuite la date de départ et le compte de banque dans Élevage → Comptabilité. Exige le module Comptabilité", actif: dict.module_elevage_comptabilite === "actif" },
+            ],
+          },
           { id: "copropriete", label: "Copropriété", description: "Syndicat de copropriété : unités, copropriétaires, quotes-parts et charges communes, demandes de réparation, bons de travail, entretien préventif, documents et portail sécurisé des copropriétaires", actif: dict.module_copropriete === "actif" ,
             options: [
               { id: "copropriete_comptabilite", label: "Reliée à la comptabilité", description: "Option du forfait : cotisations (réparties entre le fonds d'exploitation, le fonds de prévoyance et le fonds d'autoassurance selon le budget), paiements et bons de travail aux livres du syndicat, aux fournisseurs et aux comptes à payer. Le client choisit ensuite la date de départ et le compte de banque dans Copropriété → Comptabilité. Exige le module Comptabilité", actif: dict.module_copropriete_comptabilite === "actif" },

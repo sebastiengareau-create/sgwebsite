@@ -1933,6 +1933,7 @@ model FraisBete {
   date        DateTime
   categorie   String // "ALIMENTATION" | "VETERINAIRE" | "TRANSPORT" | "AUTRE"
   description String?
+  fournisseur String? // à qui il est payé — fournisseur aux comptes à payer si l'Élevage est relié à la comptabilité (lib/elevageCompta.js)
   montant     Float // avant taxes
 
   @@index([beteId])
