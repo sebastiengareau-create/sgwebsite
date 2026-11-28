@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { obtenirSession } from "@/lib/auth";
 import { lireCle, detailler } from "@/lib/googlePlaces";
 
-// Adresse choisie dans les suggestions → { adresse, ville, province, codePostal }
+// Adresse choisie dans les suggestions → { adresse, ville, province, codePostal, numero, rue, unite }
 export async function GET(request) {
   const session = await obtenirSession();
   if (!session) return NextResponse.json({ erreur: "Accès refusé." }, { status: 403 });

@@ -6,23 +6,24 @@ import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein, Pastille } from "../../components/StyleSection";
 import { correspondRecherche } from "@/lib/recherche";
 import { pourcent } from "@/lib/coproprieteCalculs";
-import { NavCopro, Formulaire, Recherche, CarteListe, Vide } from "../ui";
+import { NavCopro, Formulaire, Recherche, CarteListe, Vide, champsAdresse } from "../ui";
 import { PastilleMobilite } from "../occupants";
 
+// Par blocs ; l'adresse postale au format de l'appli (champsAdresse)
 export const champsCoproprietaire = [
-  { nom: "nom", label: "Nom (ou raison sociale)" },
-  { nom: "courriel", label: "Courriel", typeHtml: "email" },
+  { nom: "nom", label: "Nom (ou raison sociale)", pleineLargeur: true, groupe: "Copropriétaire" },
   { nom: "telephone", label: "Téléphone", typeHtml: "tel" },
   { nom: "telephone2", label: "Autre téléphone", typeHtml: "tel" },
-  { nom: "contactUrgenceNom", label: "Contact d'urgence — nom" },
-  { nom: "contactUrgenceLien", label: "Contact d'urgence — lien (conjoint, fille…)" },
-  { nom: "contactUrgenceTel", label: "Contact d'urgence — téléphone", typeHtml: "tel" },
-  { nom: "clesMagnetiques", label: "Clé(s) magnétique(s) — numéros", placeholder: "ex. 04512, 04513" },
-  { nom: "adressePostale", label: "Adresse postale (si n'habite pas l'unité)", pleineLargeur: true },
+  { nom: "courriel", label: "Courriel", typeHtml: "email", pleineLargeur: true },
   { nom: "avisCourriel", label: "Reçoit par courriel le suivi de ses demandes", type: "case", defaut: true },
-  { nom: "mobiliteReduite", label: "♿ Mobilité réduite : a besoin d'aide pour évacuer", type: "case" },
+  { nom: "clesMagnetiques", label: "Clé(s) magnétique(s) — numéros", placeholder: "ex. 04512, 04513", pleineLargeur: true },
+  ...champsAdresse({ adresse: "adressePostale", groupe: "Adresse postale (si n'habite pas l'unité)" }),
+  { nom: "contactUrgenceNom", label: "Nom", groupe: "Contact d'urgence" },
+  { nom: "contactUrgenceLien", label: "Lien (conjoint, fille…)" },
+  { nom: "contactUrgenceTel", label: "Téléphone", typeHtml: "tel" },
+  { nom: "mobiliteReduite", label: "♿ Mobilité réduite : a besoin d'aide pour évacuer", type: "case", groupe: "Évacuation" },
   { nom: "besoinsParticuliers", label: "Précisions pour l'évacuation (fauteuil roulant, malentendant, oxygène…)", pleineLargeur: true },
-  { nom: "notes", label: "Notes", type: "long", lignes: 2 },
+  { nom: "notes", label: "Notes", type: "long", lignes: 2, groupe: "Notes" },
 ];
 
 // Quote-part détenue : celle de chaque unité, selon sa part (indivision)

@@ -6,5 +6,5 @@ import { routesPhotoBatiment } from "@/lib/photoBatimentServeur";
 export const { GET, POST, DELETE } = routesPhotoBatiment({
   champ: "immeubleId",
   session: sessionImmo,
-  trouver: (id) => prisma.immeubleImmo.findUnique({ where: { id }, select: { adresse: true, ville: true, codePostal: true } }),
+  trouver: (id) => prisma.immeubleImmo.findUnique({ where: { id }, select: { adresse: true, ville: true, province: true, codePostal: true } }),
 });

@@ -6,21 +6,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BandeauImmo from "@/app/immobilier/BandeauImmo";
 import { TEINTES } from "../../components/StyleSection";
-import { NavImmo, Panneau, ChampsFormulaire, Erreur, boutonPrincipal, useApi, RetourArriere } from "../ui";
+import { NavImmo, Panneau, ChampsFormulaire, Erreur, boutonPrincipal, useApi, RetourArriere, champsAdresse } from "../ui";
 
 // Par blocs, comme la fiche du locataire (ChampsFormulaire : groupe)
 const champs = (n) => [
   { nom: "nom", label: n === 0 ? "Nom du locateur (personne ou entreprise)" : "Nom du 2e locateur", pleineLargeur: true, groupe: "Nom" },
-  { nom: "no", label: "N° civique", groupe: "Adresse" },
-  { nom: "app", label: "App." },
-  { nom: "rue", label: "Rue", pleineLargeur: true },
-  { nom: "ville", label: "Municipalité" },
-  { nom: "codePostal", label: "Code postal" },
+  // Au format de l'appli ; le n° civique et la rue en sont tirés pour le bail
+  ...champsAdresse({ app: "app", groupe: "Adresse" }),
   { nom: "telephone", label: "N° de téléphone", typeHtml: "tel", groupe: "Pour le joindre" },
   { nom: "telephone2", label: "Autre n° (cellulaire)", typeHtml: "tel" },
   { nom: "courriel", label: "Adresse de courriel", pleineLargeur: true },
 ];
-const vide = () => Object.fromEntries(champs(0).map((c) => [c.nom, ""]));
+const vide = () => ({ ...Object.fromEntries(champs(0).map((c) => [c.nom, ""])), province: "QC" });
 
 export default function LocateurClient({ locateur }) {
   const router = useRouter();

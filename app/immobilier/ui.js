@@ -11,6 +11,7 @@ import { TEINTES, TitrePanneau, stylePanneau } from "../components/StyleSection"
 import {
   Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
   Retour, valeursDe, champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, useApi, Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui,
+  champsAdresse,
 } from "../copropriete/ui";
 import {
   TYPES_LOGEMENT, SERVICES_BAIL, CATEGORIES_DOCUMENTS, CATEGORIES_REPARATION, PRIORITES, STATUTS_REPARATION, CATEGORIES_DEPENSE, MODES_PAIEMENT, TYPES_CHARGE,
@@ -24,6 +25,7 @@ export { nomLogement };
 export {
   Formulaire, ChampsFormulaire, BoutonTexte, BoutonSupprimer, PastilleCode, Vide, Recherche, CarteListe, ListeFichiers, EnvoiFichiers,
   Retour, valeursDe, champStyle, labelStyle, boutonPrincipal, grille2, Champ, Erreur, useApi, Onglets, Statistique, Tableau, cellule, celluleDroite, aujourdhui,
+  champsAdresse,
 };
 
 // Icône et teinte d'une section d'après son titre, pour que tous les écrans
@@ -268,10 +270,8 @@ export const champsLocataire = [
   { nom: "courriel", label: "Courriel", typeHtml: "email", pleineLargeur: true },
   { nom: "contactUrgence", label: "Personne à joindre en cas d'urgence", pleineLargeur: true },
   { nom: "avisCourriel", label: "Lui envoyer par courriel le suivi de ses demandes de réparation", type: "case", defaut: true },
-  { nom: "adresse", label: "N° et rue", pleineLargeur: true, groupe: "Adresse actuelle (section A du bail)" },
-  { nom: "appartement", label: "App." },
-  { nom: "codePostal", label: "Code postal" },
-  { nom: "ville", label: "Municipalité", pleineLargeur: true },
+  // Adresse actuelle : n° et rue, app., municipalité et code postal à la section A du bail
+  ...champsAdresse({ app: "appartement", groupe: "Adresse actuelle (section A du bail)" }),
   { nom: "notes", label: "Pour vous seulement (pas montrées au locataire)", type: "long", lignes: 3, groupe: "Notes" },
 ];
 

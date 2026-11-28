@@ -117,7 +117,7 @@ on décide quand et à qui une modification s'applique.
   charger ou retirer dans Administrateur (employés fictifs, période
   verrouillée, anomalies à régler, `lib/quartsDemo.js`).
   **Copropriété** (syndicat de copropriété : bâtiments (année et
-  entrepreneur, photo ou vue de la rue), unités et quotes-parts, copropriétaires et historique des
+  entrepreneur, adresse, photo ou vue de la rue), unités et quotes-parts, copropriétaires et historique des
   propriétaires, contact d'urgence, clés magnétiques, mobilité réduite
   (aide pour évacuer, ♿ sur l'unité) et autres personnes sous leur toit —
   jamais sur le portail, charges communes,
@@ -206,10 +206,11 @@ on décide quand et à qui une modification s'applique.
   en ligne par le locateur et les locataires — signatures dans la section H,
   certificat joint ; section A tirée de la **fiche du locateur**
   (`/immobilier/locateur`, `lib/locateurImmo.js`, réglage `immo_locateur` :
-  un ou deux locateurs avec n°, rue, app., municipalité, code postal,
+  un ou deux locateurs avec adresse, app., ville, province, code postal —
+  le n° civique et la rue en sont tirés pour les cases du bail —,
   téléphones, courriel, et le représentant — reprise des informations de
-  l'entreprise tant qu'elle est vide) ; adresse actuelle du locataire (n° et
-  rue, app., municipalité, code postal, dans sa fiche) ; stationnement extérieur et
+  l'entreprise tant qu'elle est vide) ; adresse actuelle du locataire
+  (adresse, app., ville, province, code postal, dans sa fiche) ; stationnement extérieur et
   intérieur du bail (places et emplacements) cochés à la section B
   (document `BAIL_FORMULAIRE`, offert pour tout bail de
   logement : section « Bail officiel » et « Générer un document », où il
@@ -272,6 +273,15 @@ on décide quand et à qui une modification s'applique.
   clients ni aux autres modules ; parc de démonstration à charger ou
   retirer dans Administrateur, `lib/immobilierDemo.js` — le logement 201 y
   a un nouveau locataire, pour montrer le bail officiel à préparer).
+  **Adresses de l'Immobilier et de la Copropriété** (immeubles, locataires,
+  locateur, bâtiments, adresse postale des copropriétaires) : au format des
+  fiches client et fournisseur — Adresse, App. au besoin, Ville, Province,
+  Code postal — avec les suggestions de Google — adresses (un choix remplit
+  tout le bloc ; sans clé, les villes du secteur postal) : `champsAdresse`,
+  `app/copropriete/ui.js`. Code postal « J3B 6V5 » et province « QC » à
+  l'enregistrement (`normaliserFicheAdresse`, `lib/adresse.js`) ; une
+  ancienne adresse écrite d'un bloc est répartie dans ses cases à
+  l'ouverture de la fiche.
   **Inspection numérique** (active par défaut, `lib/inspections.js`) :
   inspection multipoint lancée depuis le bon, avec une grille complète, rapide
   ou VR selon le type de véhicules du profil (`lib/grillesInspection.js`),

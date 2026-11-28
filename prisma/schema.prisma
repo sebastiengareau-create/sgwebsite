@@ -2037,6 +2037,9 @@ model BatimentCopro {
   id                String           @id @default(cuid())
   nom               String
   adresse           String?
+  ville             String?
+  province          String?
+  codePostal        String?
   anneeConstruction Int?
   entrepreneur      String? // qui l'a construit (entrepreneur général)
   nbEtages          Int?
@@ -2083,7 +2086,10 @@ model CoproprietaireCopro {
   courriel            String?
   telephone           String?
   telephone2          String?
-  adressePostale      String? // si différente de l'unité (propriétaire non occupant)
+  adressePostale      String? // si différente de l'unité (propriétaire non occupant) : n° et rue
+  ville               String? // ville, province et code postal de l'adresse postale
+  province            String?
+  codePostal          String?
   notes               String?
   // Sécurité et accès à l'immeuble (visibles à l'administration seulement,
   // jamais sur le portail)
@@ -2385,6 +2391,7 @@ model ImmeubleImmo {
   nom                  String
   adresse              String?
   ville                String?
+  province             String?
   codePostal           String?
   type                 String           @default("PLEX") // voir TYPES_IMMEUBLE dans lib/immobilierCalculs.js
   anneeConstruction    Int?
@@ -2456,6 +2463,7 @@ model LocataireImmo {
   adresse        String?
   appartement    String?
   ville          String?
+  province       String?
   codePostal     String?
   // Portail du locataire (/portail-locataire/<jeton>) : lien secret, null = aucun accès
   jetonPortail        String?   @unique
