@@ -32,6 +32,13 @@ export async function PATCH(request) {
     return NextResponse.json({ erreur: "Les textos automatiques exigent un compte Twilio : ajoute TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN et TWILIO_NUMERO dans les variables Railway de l'installation." }, { status: 409 });
   }
 
+  // Option du forfait Immobilier : relié à la comptabilité (lib/immobilierCompta.js)
+  if (nomModule === "immobilier_comptabilite" && actif) {
+    const cles = Object.fromEntries((await prisma.parametre.findMany({ where: { cle: { in: ["module_immobilier", "module_comptabilite"] } } })).map((p) => [p.cle, p.valeur]));
+    if (cles.module_immobilier !== "actif") return NextResponse.json({ erreur: "Active d'abord le module Immobilier." }, { status: 409 });
+    if (cles.module_comptabilite === "inactif") return NextResponse.json({ erreur: "Le lien exige le module Comptabilité : active-le d'abord." }, { status: 409 });
+  }
+
   await prisma.parametre.upsert({
     where: { cle: `module_${nomModule}` },
     update: { valeur: actif ? "actif" : "inactif" },

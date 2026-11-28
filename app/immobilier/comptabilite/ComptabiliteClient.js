@@ -5,7 +5,7 @@ import Link from "next/link";
 import BandeauSection from "../../components/BandeauSection";
 import { TEINTES, BoutonContour } from "../../components/StyleSection";
 import { argent } from "@/lib/immobilierCalculs";
-import { NavImmo, Panneau, Interrupteur, useApi, Erreur, Alerte, champStyle, lien, RetourArriere } from "../ui";
+import { NavImmo, Panneau, useApi, Erreur, Alerte, champStyle, lien, RetourArriere } from "../ui";
 
 const dateHeure = (d) => new Intl.DateTimeFormat("fr-CA", { dateStyle: "long", timeStyle: "short", timeZone: "America/Toronto" }).format(new Date(d));
 const liste = { fontSize: 13, margin: "0 0 0 18px", padding: 0, lineHeight: 1.65, color: "var(--text)" };
@@ -30,13 +30,12 @@ export default function ComptabiliteClient({ reglages, dernier, etat, tresorerie
       <BandeauSection icone="📚" titre="Lien avec la comptabilité" sousTitre="Loyers, paiements, dépenses et réparations aux livres, aux fournisseurs et aux comptes à payer." />
       <NavImmo actif="/immobilier/depenses" />
       <Erreur texte={erreur} />
-      {!moduleCompta && <Alerte>Le module Comptabilité est désactivé (Administrateur → Modules) : l'Immobilier reste autonome.</Alerte>}
-      {!acces && <p style={{ ...note, margin: "0 0 12px" }}>🔒 Seule une personne qui a aussi l'accès « Comptabilité » peut changer ces réglages.</p>}
+      {reglages.actif && !moduleCompta && <Alerte>Le module Comptabilité est désactivé : l'Immobilier reste autonome tant qu'il ne l'est pas.</Alerte>}
+      {actif && !acces && <p style={{ ...note, margin: "0 0 12px" }}>🔒 Seule une personne qui a aussi l'accès « Comptabilité » peut changer ces réglages.</p>}
 
       <Panneau
-        icone="banque" teinte={TEINTES.bleu} titre="Relier l'Immobilier à la comptabilité"
-        sousTitre={actif ? `Actif depuis le ${reglages.depuis}` : "Inactif — l'Immobilier est autonome, rien ne va aux livres"}
-        droite={<Interrupteur actif={actif} libelle="Relier à la comptabilité" onClick={() => envoyer({ actif: !reglages.actif })} disabled={enCours || !acces || (!moduleCompta && !reglages.actif)} />}
+        icone="banque" teinte={TEINTES.bleu} titre="Immobilier relié à la comptabilité"
+        sousTitre={actif ? `Actif — aux livres à partir du ${reglages.depuis}` : "Non inclus dans cette installation — l'Immobilier est autonome, rien ne va aux livres"}
       >
         <ul style={liste}>
           <li><strong>Loyers et frais</strong> inscrits aux baux : au compte « Loyers à recevoir » et aux revenus de location.</li>
@@ -49,11 +48,12 @@ export default function ComptabiliteClient({ reglages, dernier, etat, tresorerie
           Le fournisseur se choisit dans la dépense ou la réparation ; sinon, celui du même nom que « Payé à » ou « Entrepreneur » est repris (ou créé). Taxes : le loyer résidentiel est exonéré, donc la TPS et la TVQ payées sur les dépenses d'un immeuble restent dans la dépense (pas de crédit de taxe).
         </p>
         <p style={note}>
-          L'Immobilier reste la source : une correction ou un retrait dans l'Immobilier suit aux livres. Une facture de l'Immobilier se paie aux comptes à payer, mais se modifie ici. Désactiver le lien arrête le suivi ; ce qui est déjà aux livres y reste.
+          L'Immobilier reste la source : une correction ou un retrait dans l'Immobilier suit aux livres. Une facture de l'Immobilier se paie aux comptes à payer, mais se modifie ici.
         </p>
+        {!reglages.actif && <p style={{ ...note, fontWeight: 700, color: "var(--text)" }}>Option offerte avec le forfait : communique avec kontrolshop pour l'ajouter.</p>}
       </Panneau>
 
-      <Panneau icone="calendrier" teinte={TEINTES.ambre} titre="Réglages">
+      {actif && <Panneau icone="calendrier" teinte={TEINTES.ambre} titre="Réglages">
         <div style={ligne}>
           <span>Aux livres à partir du</span>
           <input type="date" value={depuis} max="9999-12-31" onChange={(e) => setDepuis(e.target.value)} aria-label="Date de départ" style={{ ...champStyle, width: "auto", marginBottom: 0 }} disabled={!acces} />
@@ -76,7 +76,7 @@ export default function ComptabiliteClient({ reglages, dernier, etat, tresorerie
             <p style={note}>Avec un poste « Immeubles — … » par catégorie de dépense, dans le plan comptable. Renomme-les au besoin dans Comptabilité → Plan comptable.</p>
           </>
         )}
-      </Panneau>
+      </Panneau>}
 
       {actif && (
         <Panneau icone="graphique" teinte={TEINTES.vert} titre="Aux livres">

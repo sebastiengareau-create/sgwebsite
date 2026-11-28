@@ -23,7 +23,7 @@ export default async function Administrateur() {
     if (!utilisateur?.estSuperAdmin) redirect("/gerant");
   }
 
-  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_immobilier", "module_productivite", "module_quarts", "module_inspection", "module_pneus", "module_paiement_en_ligne", "module_textos", "module_portail_client", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
+  const parametres = await prisma.parametre.findMany({ where: { cle: { in: ["module_calendrier", "module_comptabilite", "module_paie", "module_jobs_deplacement", "module_notifications", "module_documents", "module_elevage", "module_copropriete", "module_immobilier", "module_immobilier_comptabilite", "module_productivite", "module_quarts", "module_inspection", "module_pneus", "module_paiement_en_ligne", "module_textos", "module_portail_client", "module_double_verification", "compte_verrouille", "theme_developpeur", "taille_texte_developpeur"] } } });
   const dict = Object.fromEntries(parametres.map((p) => [p.cle, p.valeur]));
   // Troupeau de démonstration : offert seulement si le module Élevage est actif
   const troupeauDemo = dict.module_elevage === "actif" ? await etatTroupeauDemo() : null;
@@ -57,7 +57,11 @@ export default async function Administrateur() {
           { id: "jobs_deplacement", label: "Jobs en déplacement", description: "Envoi de bons à des employés précis, avis par notification, suivi GPS des déplacements", actif: dict.module_jobs_deplacement === "actif" },
           { id: "elevage", label: "Élevage", description: "Troupeau (bœuf wagyu…) de la naissance à la table : pesées, coût de revient, abattage, découpe en paquets selon les rendements, vente en boutique et en ligne", actif: dict.module_elevage === "actif" },
           { id: "copropriete", label: "Copropriété", description: "Syndicat de copropriété : unités, copropriétaires, quotes-parts et charges communes, demandes de réparation, bons de travail, entretien préventif, documents et portail sécurisé des copropriétaires", actif: dict.module_copropriete === "actif" },
-          { id: "immobilier", label: "Immobilier", description: "Propriétaire d'un ou de plusieurs immeubles locatifs : logements, locataires et baux (avis de modification selon les délais du TAL, renouvellement), loyers et retards, dépenses et rendement par immeuble, réparations, documents. Autonome : relié ni à la comptabilité ni aux autres modules", actif: dict.module_immobilier === "actif" },
+          { id: "immobilier", label: "Immobilier", description: "Propriétaire d'un ou de plusieurs immeubles locatifs : logements, locataires et baux (avis de modification selon les délais du TAL, renouvellement), loyers et retards, dépenses et rendement par immeuble, réparations, documents. Autonome, sauf l'option ci-dessous", actif: dict.module_immobilier === "actif",
+            options: [
+              { id: "immobilier_comptabilite", label: "Relié à la comptabilité", description: "Option du forfait : loyers, paiements, dépenses et réparations aux livres, aux fournisseurs et aux comptes à payer. Le client choisit ensuite la date de départ et le compte de banque dans Immobilier → Comptabilité. Exige le module Comptabilité", actif: dict.module_immobilier_comptabilite === "actif" },
+            ],
+          },
         ]}
         atelierDemo={CLIENT.atelierDemo ? await etatAtelierDemo() : null}
         troupeauDemo={troupeauDemo}
