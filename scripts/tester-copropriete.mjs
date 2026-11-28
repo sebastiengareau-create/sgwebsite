@@ -19,6 +19,7 @@ register("data:text/javascript," + encodeURIComponent(`
 const { partsCotisation } = await import("../lib/coproprieteCompta.js");
 const { etatUnite, batimentsPourRue, CONSEILS_MOIS_COPRO } = await import("../lib/coproprieteVisuel.js");
 const { rangeesImmeuble } = await import("../lib/immobilierVisuel.js");
+const { groupesRepartition, budgetDuGroupe, seulGroupe, repartitionBudget } = await import("../lib/coproprieteCalculs.js");
 
 let reussis = 0;
 function test(nom, fn) {
@@ -65,6 +66,36 @@ test("Bâtiments mis en immeubles « condo » pour la rue", () => {
   assert.equal(batimentsPourRue([], unites)[0].nom, "La copropriété", "sans bâtiment : un seul immeuble");
   const douze = rangeesImmeuble({ type: "CONDO", logements: Array.from({ length: 12 }, (_, i) => ({ id: String(i), numero: String(101 + i), type: "LOGEMENT" })) });
   assert.deepEqual(douze.rangees.map((r) => r.length), [4, 4, 4], "condo : plusieurs unités par étage");
+});
+
+test("Quotes-parts à 100 % par bâtiment, un budget par bâtiment", () => {
+  const batiments = [{ id: "A", nom: "Bâtiment A" }, { id: "B", nom: "Bâtiment B" }];
+  const unites = [
+    { id: "a1", numero: "101", quotePart: 60, batimentId: "A" }, { id: "a2", numero: "102", quotePart: 40, batimentId: "A" },
+    { id: "b1", numero: "101", quotePart: 50, batimentId: "B" }, { id: "b2", numero: "102", quotePart: 50, batimentId: "B" },
+  ];
+  const groupes = groupesRepartition(unites, batiments);
+  assert.deepEqual(groupes.map((g) => [g.nom, g.unites.length]), [["Bâtiment A", 2], ["Bâtiment B", 2]]);
+  const budgets = [
+    { id: "ga", batimentId: "A", annee: 2026, moisDebut: 1, chargesCourantes: 12000 },
+    { id: "gb", batimentId: "B", annee: 2026, moisDebut: 1, chargesCourantes: 24000 },
+    { id: "gc", batimentId: null, annee: 2026, moisDebut: 1, chargesCourantes: 99999 },
+  ];
+  const seul = seulGroupe(unites);
+  assert.equal(seul, false);
+  assert.equal(budgetDuGroupe(budgets, "2026-11", "A", seul).id, "ga");
+  assert.equal(budgetDuGroupe(budgets, "2026-11", "B", seul).id, "gb");
+  assert.equal(budgetDuGroupe(budgets, "2027-01", "A", seul), null, "aucun budget pour l'exercice suivant");
+  assert.equal(budgetDuGroupe(budgets.filter((b) => b.id !== "gb"), "2026-11", "B", seul), null, "un bâtiment sans budget ne prend pas celui de la copropriété");
+  // Chaque bâtiment se répartit son propre budget, à 100 %
+  const mensuel = Object.fromEntries(groupes.flatMap((g) => repartitionBudget(budgetDuGroupe(budgets, "2026-11", g.batimentId, seul), g.unites).lignes.map((l) => [l.uniteId, l.mensuel])));
+  assert.deepEqual(mensuel, { a1: 600, a2: 400, b1: 1000, b2: 1000 });
+  assert.equal(repartitionBudget(budgets[0], groupes[0].unites).ecartQp, false, "100 % dans le bâtiment A");
+  // Immeuble seul : le budget de la copropriété entière sert toujours
+  const seules = unites.filter((u) => u.batimentId === "A");
+  assert.equal(budgetDuGroupe([budgets[2]], "2026-11", "A", seulGroupe(seules)).id, "gc");
+  assert.equal(budgetDuGroupe(budgets, "2026-11", "A", seulGroupe(seules)).id, "ga", "son propre budget passe d'abord");
+  assert.equal(budgetDuGroupe(budgets, "2026-11", null, true).id, "gc", "sans bâtiment : le budget de la copropriété");
 });
 
 console.log(`\n${reussis} test${reussis > 1 ? "s" : ""} réussi${reussis > 1 ? "s" : ""}${process.exitCode ? " — des tests ont échoué" : ""}.`);

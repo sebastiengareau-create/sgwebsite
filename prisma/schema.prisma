@@ -2051,6 +2051,7 @@ model BatimentCopro {
   travaux           TravailCopro[]
   entretiens        EntretienCopro[]
   documents         DocumentCopro[]
+  budgets           BudgetCopro[]
   photo             PhotoBatiment? // photo du bâtiment (lib/photoBatiment.js)
   creeLe            DateTime         @default(now())
 }
@@ -2174,7 +2175,9 @@ model EspaceCopro {
 // Budget annuel adopté : réparti entre les unités selon leur quote-part
 model BudgetCopro {
   id                 String    @id @default(cuid())
-  annee              Int       @unique // année où commence l'exercice
+  batimentId         String? // budget d'un bâtiment, réparti selon les quotes-parts de ses unités (100 % par bâtiment) ; vide : budget de la copropriété entière (lib/coproprieteCalculs.js, budgetsDuGroupe)
+  batiment           BatimentCopro? @relation(fields: [batimentId], references: [id], onDelete: Cascade)
+  annee              Int // année où commence l'exercice — un budget par exercice et par bâtiment
   moisDebut          Int       @default(1) // 1 = janvier
   chargesCourantes   Float     @default(0) // dépenses d'opération
   fondsPrevoyance    Float     @default(0) // contribution au fonds de prévoyance
@@ -2182,6 +2185,8 @@ model BudgetCopro {
   adopteLe           DateTime?
   notes              String?
   creeLe             DateTime  @default(now())
+
+  @@unique([batimentId, annee])
 }
 
 // Ce qui est facturé à une unité : cotisation mensuelle, cotisation

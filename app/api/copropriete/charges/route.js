@@ -16,5 +16,5 @@ export async function POST(request) {
   if (!session) return refus();
   const r = await genererCotisations(body.generer, session.nom);
   if (r.erreur) return erreur(r.erreur);
-  return NextResponse.json({ ok: true, creees: r.creees });
+  return NextResponse.json({ ok: true, creees: r.creees, sansBudget: r.sansBudget });
 }

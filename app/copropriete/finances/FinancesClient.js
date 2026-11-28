@@ -5,7 +5,7 @@ import Link from "next/link";
 import BandeauCopro from "@/app/copropriete/BandeauCopro";
 import { BoutonPlein } from "../../components/StyleSection";
 import {
-  MODES_PAIEMENT, argent, pourcent, libelle, dateLisible, repartitionBudget, totalBudget, prevoyanceSuffisante, budgetPourPeriode, periodeLisible, nomsProprietaires, TYPES_CHARGE, nomUnite,
+  MODES_PAIEMENT, argent, pourcent, libelle, dateLisible, repartitionBudget, totalBudget, prevoyanceSuffisante, budgetPourPeriode, budgetsDuGroupe, budgetDuGroupe, groupesRepartition, seulGroupe, periodeLisible, nomsProprietaires, TYPES_CHARGE, nomUnite,
 } from "@/lib/coproprieteCalculs";
 import {
   NavCopro, Section, Formulaire, Onglets, BoutonTexte, BoutonSupprimer, Vide, Tableau, cellule, celluleDroite, valeursDe, aujourdhui, useApi, Erreur, champStyle, Statistique,
@@ -27,7 +27,7 @@ const champsBudget = [
   { nom: "notes", label: "Notes", type: "long", lignes: 2 },
 ];
 
-export default function FinancesClient({ budgets, unites, soldes, cotisations, derniersPaiements, ongletInitial, compta }) {
+export default function FinancesClient({ budgets, unites, soldes, cotisations, derniersPaiements, batiments = [], ongletInitial, compta }) {
   const [onglet, setOnglet] = useState(ONGLETS.some((o) => o.code === ongletInitial) ? ongletInitial : "BUDGET");
   return (
     <div className="conteneur-page">
@@ -40,20 +40,46 @@ export default function FinancesClient({ budgets, unites, soldes, cotisations, d
         </p>
       )}
       <Onglets options={ONGLETS} valeur={onglet} onChange={setOnglet} />
-      {onglet === "BUDGET" && <Budgets budgets={budgets} unites={unites} />}
-      {onglet === "COTISATIONS" && <Cotisations budgets={budgets} cotisations={cotisations} />}
+      {onglet === "BUDGET" && <Budgets budgets={budgets} unites={unites} batiments={batiments} />}
+      {onglet === "COTISATIONS" && <Cotisations budgets={budgets} unites={unites} batiments={batiments} cotisations={cotisations} />}
       {onglet === "SOLDES" && <Soldes unites={unites} soldes={soldes} derniersPaiements={derniersPaiements} />}
     </div>
   );
 }
 
-function Budgets({ budgets, unites }) {
+// Un budget par bâtiment : les quotes-parts font 100 % dans chaque bâtiment
+// (lib/coproprieteCalculs.js, groupesRepartition) ; un immeuble seul garde
+// un seul budget, celui de la copropriété
+function Budgets({ budgets, unites, batiments }) {
+  const groupes = groupesRepartition(unites, batiments);
+  const seul = seulGroupe(unites);
+  const [groupeId, setGroupeId] = useState(groupes[0]?.batimentId ?? null);
+  const groupe = groupes.find((g) => g.batimentId === groupeId) || groupes[0] || { batimentId: null, nom: null, unites: [] };
+  // Nouveau budget : celui du bâtiment, ou celui de la copropriété entière pour un immeuble seul
+  return (
+    <>
+      {groupes.length > 1 && (
+        <>
+          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 8px" }}>Chaque bâtiment a son budget, réparti entre ses unités selon leurs quotes-parts (100 % par bâtiment).</p>
+          <Onglets options={groupes.map((g) => ({ code: g.batimentId || "", label: `🏢 ${g.nom || "Sans bâtiment"}` }))} valeur={groupe.batimentId || ""} onChange={(v) => setGroupeId(v || null)} />
+        </>
+      )}
+      <BudgetsDuGroupe
+        key={groupe.batimentId || "copro"}
+        budgets={budgetsDuGroupe(budgets, groupe.batimentId, seul)} unites={groupe.unites}
+        batimentId={seul ? null : groupe.batimentId} nom={groupes.length > 1 ? groupe.nom : null}
+      />
+    </>
+  );
+}
+
+function BudgetsDuGroupe({ budgets, unites, batimentId, nom }) {
   const enVigueur = budgetPourPeriode(budgets, aujourdhui().slice(0, 7));
   const [choisi, setChoisi] = useState(enVigueur?.id || budgets[0]?.id || null);
   const [formulaire, setFormulaire] = useState(false);
   const [edition, setEdition] = useState(false);
   const budget = budgets.find((b) => b.id === choisi);
-  const anneeSuivante = (budgets[0]?.annee || Number(aujourdhui().slice(0, 4)) - 1) + 1;
+  const anneeSuivante = (Math.max(0, ...budgets.map((b) => b.annee)) || Number(aujourdhui().slice(0, 4)) - 1) + 1;
   return (
     <>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
@@ -68,12 +94,13 @@ function Budgets({ budgets, unites }) {
         <Formulaire
           champs={champsBudget}
           initial={budgets[0] ? { ...valeursDe(budgets[0], champsBudget), annee: String(anneeSuivante), adopteLe: "", notes: "" } : { annee: String(anneeSuivante) }}
-          url="/api/copropriete/budgets" bouton="Ajouter le budget" onFini={(d) => { setFormulaire(false); setChoisi(d.id); }}
+          extra={{ batimentId }}
+          url="/api/copropriete/budgets" bouton={nom ? `Ajouter le budget de ${nom}` : "Ajouter le budget"} onFini={(d) => { setFormulaire(false); setChoisi(d.id); }}
         />
       )}
-      {!budget ? <Vide>Aucun budget. Ajoute celui de l'exercice adopté en assemblée : il sera réparti entre les unités selon leur quote-part.</Vide> : (
+      {!budget ? <Vide>Aucun budget{nom ? ` pour ${nom}` : ""}. Ajoute celui de l'exercice adopté en assemblée : il sera réparti entre les unités{nom ? " du bâtiment" : ""} selon leur quote-part.</Vide> : (
         <>
-          <Section titre={`Budget ${budget.annee}${budget.moisDebut !== 1 ? `-${budget.annee + 1}` : ""}`} droite={<BoutonTexte onClick={() => setEdition((v) => !v)}>{edition ? "Annuler" : "Modifier"}</BoutonTexte>}>
+          <Section titre={`Budget ${budget.annee}${budget.moisDebut !== 1 ? `-${budget.annee + 1}` : ""}${nom ? ` — ${nom}` : ""}`} droite={<BoutonTexte onClick={() => setEdition((v) => !v)}>{edition ? "Annuler" : "Modifier"}</BoutonTexte>}>
             {edition ? (
               <>
                 <Formulaire key={budget.id} cadre={false} champs={champsBudget} initial={valeursDe(budget, champsBudget)} url={`/api/copropriete/budgets/${budget.id}`} methode="PATCH" onFini={() => setEdition(false)} />
@@ -139,33 +166,42 @@ function Repartition({ budget, unites }) {
   );
 }
 
-function Cotisations({ budgets, cotisations }) {
+function Cotisations({ budgets, unites, batiments, cotisations }) {
   const [periode, setPeriode] = useState(aujourdhui().slice(0, 7));
   const [resultat, setResultat] = useState("");
   const { appeler, enCours, erreur } = useApi();
-  const budget = budgetPourPeriode(budgets, periode);
+  const seul = seulGroupe(unites);
+  // Budget de chaque bâtiment pour le mois choisi
+  const parGroupe = groupesRepartition(unites, batiments).map((g) => ({ ...g, budget: budgetDuGroupe(budgets, periode, g.batimentId, seul) }));
+  const sansGroupe = parGroupe.length === 0 ? [{ nom: null, budget: budgetPourPeriode(budgets, periode) }] : parGroupe;
   const periodes = [...new Set(cotisations.map((c) => c.periode))].sort().reverse();
 
   async function generer() {
     setResultat("");
     if (!window.confirm(`Générer les cotisations de ${periodeLisible(periode)} pour toutes les unités ?`)) return;
     const r = await appeler("/api/copropriete/charges", "POST", { generer: periode });
-    if (r) setResultat(r.creees > 0 ? `${r.creees} cotisation${r.creees > 1 ? "s" : ""} ajoutée${r.creees > 1 ? "s" : ""} aux comptes des unités.` : "Rien à ajouter : chaque unité a déjà sa cotisation de ce mois.");
+    if (r) {
+      const texte = r.creees > 0 ? `${r.creees} cotisation${r.creees > 1 ? "s" : ""} ajoutée${r.creees > 1 ? "s" : ""} aux comptes des unités.` : "Rien à ajouter : chaque unité a déjà sa cotisation de ce mois.";
+      setResultat(r.sansBudget?.length ? `${texte} Sans budget pour ce mois, donc sans cotisation : ${r.sansBudget.join(", ")}.` : texte);
+    }
   }
 
   return (
     <>
       <Section titre="Générer les cotisations du mois">
         <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "0 0 10px" }}>
-          Ajoute au compte de chaque unité sa part mensuelle du budget (quote-part × budget ÷ 12), plus les frais mensuels de ses stationnements et rangements. Une unité n'est jamais facturée deux fois pour le même mois.
+          Ajoute au compte de chaque unité sa part mensuelle du budget de son bâtiment (quote-part × budget ÷ 12), plus les frais mensuels de ses stationnements et rangements. Une unité n'est jamais facturée deux fois pour le même mois.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <input type="month" value={periode} onChange={(e) => setPeriode(e.target.value)} style={{ ...champStyle, width: "auto", marginBottom: 0 }} />
           <button type="button" onClick={generer} disabled={enCours || !periode} className="bouton-3d" style={{ padding: "9px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>{enCours ? "…" : "Générer"}</button>
         </div>
-        <p style={{ fontSize: 12.5, margin: "8px 0 0", color: budget ? "var(--text-muted)" : "var(--danger)" }}>
-          {budget ? `Budget ${budget.annee} : ${argent(totalBudget(budget) / 12)} à répartir ce mois-ci.` : "Aucun budget ne couvre ce mois."}
-        </p>
+        {sansGroupe.map((g) => (
+          <p key={g.batimentId || "copro"} style={{ fontSize: 12.5, margin: "8px 0 0", color: g.budget ? "var(--text-muted)" : "var(--danger)" }}>
+            {g.nom && <strong>{g.nom} : </strong>}
+            {g.budget ? `Budget ${g.budget.annee} : ${argent(totalBudget(g.budget) / 12)} à répartir ce mois-ci.` : "Aucun budget ne couvre ce mois."}
+          </p>
+        ))}
         {resultat && <p style={{ fontSize: 12.5, color: "var(--success)", margin: "8px 0 0" }}>{resultat}</p>}
         <Erreur texte={erreur} />
       </Section>

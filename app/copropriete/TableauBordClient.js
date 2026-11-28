@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  argent, pourcent, dateLisible, etatEcheance, budgetPourPeriode, totalBudget, libelle, trouver, periodeLisible,
+  argent, pourcent, dateLisible, etatEcheance, budgetPourPeriode, budgetDuGroupe, groupesRepartition, seulGroupe, totalBudget, libelle, trouver, periodeLisible,
   PRIORITES, STATUTS_DEMANDE, STATUTS_TRAVAIL, CATEGORIES_DOCUMENTS, TYPES_ENTRETIEN,
 } from "@/lib/coproprieteCalculs";
 import { CONSEILS_MOIS_COPRO, ETATS_UNITE, etatUnite, batimentsPourRue } from "@/lib/coproprieteVisuel";
@@ -19,12 +19,21 @@ const s = (n) => (n > 1 ? "s" : "");
 const rangPriorite = (p) => trouver(PRIORITES, p)?.rang ?? 9;
 
 export default function TableauBordClient({ unites, nbCoproprietaires, demandes, travaux, entretiens, budgets, documents, soldes, batiments = [], duCeMois = {}, periode, vueRue, percuCeMois = 0, visuel }) {
-  const totalQp = unites.reduce((s, u) => s + (u.quotePart || 0), 0);
   const sansProprietaire = unites.filter((u) => u.proprietes.length === 0).length;
   const aRecevoir = soldes.filter((s) => s.solde > 0.005);
   const totalARecevoir = aRecevoir.reduce((s, x) => s + x.solde, 0);
   const numeroUnite = Object.fromEntries(unites.map((u) => [u.id, u.numero]));
-  const budget = budgetPourPeriode(budgets, aujourdhui().slice(0, 7));
+  // Quotes-parts et budget de chaque bâtiment (100 % par bâtiment, un budget chacun)
+  const seul = seulGroupe(unites);
+  const groupes = groupesRepartition(unites, batiments).map((g) => ({
+    ...g, qp: g.unites.reduce((s, u) => s + (u.quotePart || 0), 0), budget: budgetDuGroupe(budgets, aujourdhui().slice(0, 7), g.batimentId, seul),
+  }));
+  const ecartsQp = groupes.filter((g) => Math.abs(g.qp - 100) > 0.001);
+  const sansBudget = groupes.filter((g) => !g.budget);
+  const enVigueur = groupes.filter((g) => g.budget);
+  // Un seul groupe : son budget, affiché en détail ; plusieurs : un total par bâtiment
+  const budget = groupes.length <= 1 ? (groupes[0] ? groupes[0].budget : budgetPourPeriode(budgets, aujourdhui().slice(0, 7))) : null;
+  const totalAnnuel = groupes.length <= 1 ? (budget ? totalBudget(budget) : 0) : enVigueur.reduce((s, g) => s + totalBudget(g.budget), 0);
   const aVenir = entretiens.map((e) => ({ ...e, etat: etatEcheance(e.prochaineDate) })).filter((e) => e.etat.code !== "PLUS_TARD");
   const enRetard = aVenir.filter((e) => e.etat.code === "RETARD").length;
   const demandesTriees = [...demandes].sort((a, b) => rangPriorite(a.priorite) - rangPriorite(b.priorite) || new Date(b.creeLe) - new Date(a.creeLe));
@@ -49,7 +58,7 @@ export default function TableauBordClient({ unites, nbCoproprietaires, demandes,
     <div className="conteneur-page">
       <HeroCopro
         visuel={visuel} rue={rue} infos={infos} mois={mois} attendu={attendu} percu={percuCeMois} encaisse={encaisse}
-        nbUnites={unites.length} nbCoproprietaires={nbCoproprietaires} nbDemandes={demandes.length} budget={budget}
+        nbUnites={unites.length} nbCoproprietaires={nbCoproprietaires} nbDemandes={demandes.length} totalAnnuel={totalAnnuel}
       />
       {rue.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "6px 14px", margin: "0 4px 14px" }}>
@@ -75,11 +84,11 @@ export default function TableauBordClient({ unites, nbCoproprietaires, demandes,
 
       <ConseilDuMois conseil={visuel ? CONSEILS_MOIS_COPRO[visuel.mois - 1] : null} etiquette={`En ${mois}, au syndicat`} couleur="var(--copro)" fond="var(--copro-fond)" />
 
-      {(unites.length > 0 && Math.abs(totalQp - 100) > 0.001) && (
-        <Alerte>Les quotes-parts totalisent {pourcent(totalQp)} au lieu de 100 % — vérifie-les dans <Link href="/copropriete/unites" style={{ color: "var(--accent)" }}>Unités</Link> (déclaration de copropriété).</Alerte>
-      )}
+      {ecartsQp.map((g) => (
+        <Alerte key={g.batimentId || "copro"}>Les quotes-parts {groupes.length > 1 ? `de ${g.nom || "des unités sans bâtiment"} ` : ""}totalisent {pourcent(g.qp)} au lieu de 100 %{groupes.length > 1 ? " (100 % par bâtiment)" : ""} — vérifie-les dans <Link href={g.batimentId && groupes.length > 1 ? `/copropriete/batiments/${g.batimentId}` : "/copropriete/unites"} style={{ color: "var(--accent)" }}>{g.nom && groupes.length > 1 ? g.nom : "Unités"}</Link> (déclaration de copropriété).</Alerte>
+      ))}
       {sansProprietaire > 0 && <Alerte>{sansProprietaire} unité{sansProprietaire > 1 ? "s n'ont" : " n'a"} aucun propriétaire inscrit.</Alerte>}
-      {!budget && <Alerte>Aucun budget ne couvre le mois en cours : ajoute-le dans <Link href="/copropriete/finances" style={{ color: "var(--accent)" }}>Charges</Link> pour générer les cotisations.</Alerte>}
+      {(groupes.length === 0 ? !budget : sansBudget.length > 0) && <Alerte>Aucun budget ne couvre le mois en cours{groupes.length > 1 ? ` pour ${sansBudget.map((g) => g.nom || "Sans bâtiment").join(", ")}` : ""} : ajoute-le dans <Link href="/copropriete/finances" style={{ color: "var(--accent)" }}>Charges</Link> pour générer les cotisations.</Alerte>}
       {unites.length === 0 && (
         <Section titre="Pour commencer">
           <ol style={{ fontSize: 13.5, margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
@@ -141,8 +150,15 @@ export default function TableauBordClient({ unites, nbCoproprietaires, demandes,
             </Link>
           ))}
         </Section>
-        <Section titre={budget ? `Budget ${budget.annee}` : "Budget"}>
-          {budget ? (
+        <Section titre={budget ? `Budget ${budget.annee}` : groupes.length > 1 ? "Budgets des bâtiments" : "Budget"}>
+          {groupes.length > 1 ? (
+            <>
+              {groupes.map((g) => (
+                <div key={g.batimentId || "copro"} className="ligne-info"><span>{g.nom || "Sans bâtiment"}{g.budget && <span style={{ color: "var(--text-muted)", fontSize: 12 }}> · {g.budget.annee}</span>}</span><span style={g.budget ? undefined : { color: "var(--danger)" }}>{g.budget ? argent(totalBudget(g.budget)) : "aucun budget"}</span></div>
+              ))}
+              <div className="ligne-info" style={{ fontWeight: 700 }}><span>Total annuel</span><span>{argent(totalAnnuel)}</span></div>
+            </>
+          ) : budget ? (
             <>
               <div className="ligne-info"><span>Charges courantes</span><span>{argent(budget.chargesCourantes)}</span></div>
               <div className="ligne-info"><span>Fonds de prévoyance</span><span>{argent(budget.fondsPrevoyance)}</span></div>
@@ -173,7 +189,7 @@ function Alerte({ children }) {
 }
 
 // En-tête : ciel, salutation, cotisations du mois et rue des bâtiments
-function HeroCopro({ visuel, rue, infos, mois, attendu, percu, encaisse, nbUnites, nbCoproprietaires, nbDemandes, budget }) {
+function HeroCopro({ visuel, rue, infos, mois, attendu, percu, encaisse, nbUnites, nbCoproprietaires, nbDemandes, totalAnnuel }) {
   if (!visuel) return null;
   const tout = attendu > 0 && encaisse >= 0.999;
   const phrase = nbUnites === 0
@@ -191,7 +207,7 @@ function HeroCopro({ visuel, rue, infos, mois, attendu, percu, encaisse, nbUnite
         ...(rue.length > 1 ? [`🏢 ${rue.length} bâtiments`] : []),
         `🚪 ${nbUnites} unité${s(nbUnites)}`, `👥 ${nbCoproprietaires} copropriétaire${s(nbCoproprietaires)}`,
         `🛠️ ${nbDemandes} demande${s(nbDemandes)} ouverte${s(nbDemandes)}`,
-        ...(budget ? [`💰 ${argent(totalBudget(budget))} / an`] : []),
+        ...(totalAnnuel > 0 ? [`💰 ${argent(totalAnnuel)} / an`] : []),
       ] : []}
       immeubles={rue} infos={infos} hrefDe={hrefBatiment} plus="/copropriete/unites?onglet=BATIMENTS"
     />
