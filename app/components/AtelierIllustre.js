@@ -179,11 +179,12 @@ function PilePneus({ x, sol, etages }) {
   ));
 }
 
-// L'atelier. portes : véhicules aux portes (bons en cours) ; cour : en
-// attente ou prêts — vehiculesAtelier() ; nomEntreprise : l'enseigne ;
+// L'atelier. portes : véhicules aux portes (bons en cours) ; cour : la
+// rangée du fond de la cour, devant : la rangée de devant (plus bas, en
+// quinconce) — dispositionAtelier() ; nomEntreprise : l'enseigne ;
 // vr : motorisés et roulottes ; mois : 1 à 12 (saison des pneus)
 // aVendre : véhicules à vendre (vehiculesAVendrePourAtelier) ; hrefVente(v) → leur fiche
-export function AtelierIllustre({ portes, cour, aVendre = [], nomEntreprise, vr = false, moment, saison, mois, hrefDe, hrefVente, couleurEnseigne = "#e07338", maxPortes = 6, hauteurMax = 240, hauteurMin = 130, cle = "a" }) {
+export function AtelierIllustre({ portes, cour, devant = [], aVendre = [], nomEntreprise, vr = false, moment, saison, mois, hrefDe, hrefVente, couleurEnseigne = "#e07338", maxPortes = 6, hauteurMax = 240, hauteurMin = 130, cle = "a" }) {
   const router = useRouter();
   const ciel = cielDe(moment, saison);
   const neige = NEIGE[ciel.moment];
@@ -197,8 +198,12 @@ export function AtelierIllustre({ portes, cour, aVendre = [], nomEntreprise, vr 
   const xPortes = x0 + BUREAU;
   const finBatiment = xPortes + nbPortes * g.porte + 10;
   const xCour = finBatiment + 46;
-  const xVente = xCour + Math.max(2, cour.length) * g.place + 40;
-  const largeur = Math.max(640, aVendre.length ? xVente + aVendre.length * g.place + 50 : xCour + Math.max(2, cour.length) * g.place + 50);
+  // Places de la cour : la rangée de devant est décalée d'une demi-place
+  const placesCour = Math.max(2, cour.length, devant.length ? devant.length + 0.5 : 0);
+  const xVente = xCour + placesCour * g.place + 40;
+  const largeur = Math.max(640, aVendre.length ? xVente + aVendre.length * g.place + 50 : xCour + placesCour * g.place + 50);
+  // La rangée de devant, plus près de nous : plus bas sur l'asphalte
+  const yDevant = SOL + (vr ? 20 : 16);
   const haut = SOL - g.mur;
   const teinte = (c, f = 1) => melanger(c, ciel.ombre[0], ciel.ombre[1] * f);
   const mur = teinte("#c9ced5");
@@ -288,21 +293,22 @@ export function AtelierIllustre({ portes, cour, aVendre = [], nomEntreprise, vr 
       {vr ? <Bonbonnes x={finBatiment + 6} sol={SOL} /> : <PilePneus x={finBatiment + 8} sol={SOL} etages={saisonPneus ? 5 : 3} />}
       {saisonPneus && <PilePneus x={x0 - 26} sol={SOL} etages={4} />}
 
-      {/* La cour : prêts près de la porte, puis en attente */}
+      {/* La cour : prêts près de la porte, en cours qui attendent une porte,
+          puis en attente ; la rangée de devant en quinconce, par-dessus */}
       <Lampadaire x={xCour - 18} sol={SOL} ciel={ciel} />
-      {cour.map((v, i) => {
-        const cx = xCour + i * g.place + g.place / 2;
+      {[[cour, SOL, 0], [devant, yDevant, g.place / 2]].flatMap(([rangee, y, decalage]) => rangee.map((v, i) => {
+        const cx = xCour + decalage + i * g.place + g.place / 2;
         const href = hrefDe(v);
         const hauteurV = vr ? 48 : 30;
         return (
           <a key={v.id} href={href} className="vehicule-atelier" onClick={(ev) => ouvrir(ev, href)} aria-label={v.texte}>
             <title>{v.texte}</title>
-            <ellipse cx={cx} cy={SOL + 1} rx={g.place * 0.42} ry={3} fill="#000" opacity={0.18} />
-            <Vehicule v={v} x={cx} y={SOL} sens={i % 2 ? -1 : 1} vr={vr} ciel={ciel} saison={saison} dehors neige={neige} />
-            <Pastille x={cx} y={SOL - hauteurV - 10} etat={v.etat} />
+            <ellipse cx={cx} cy={y + 1} rx={g.place * 0.42} ry={3} fill="#000" opacity={0.18} />
+            <Vehicule v={v} x={cx} y={y} sens={(i + (decalage ? 1 : 0)) % 2 ? -1 : 1} vr={vr} ciel={ciel} saison={saison} dehors neige={neige} />
+            <Pastille x={cx} y={y - hauteurV - 10} etat={v.etat} />
           </a>
         );
-      })}
+      }))}
       {/* Cour de vente : fanions, pancarte et prix */}
       {aVendre.length > 0 && (
         <g>

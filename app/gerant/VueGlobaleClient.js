@@ -8,7 +8,7 @@ import { argent, nombre } from "@/lib/format";
 import HeroRue, { ConseilDuMois } from "../components/HeroRue";
 import { AtelierIllustre } from "../components/AtelierIllustre";
 import { SECTEURS } from "@/lib/marque";
-import { CONSEILS_MOIS_GARAGE, CONSEILS_MOIS_VR, ETATS_VEHICULE, vehiculesAtelier, vehiculesAVendrePourAtelier } from "@/lib/garageVisuel";
+import { CONSEILS_MOIS_GARAGE, CONSEILS_MOIS_VR, ETATS_VEHICULE, vehiculesAtelier, dispositionAtelier, vehiculesAVendrePourAtelier } from "@/lib/garageVisuel";
 import { Icone, TEINTES, TitrePanneau, stylePanneau, TitreGroupe } from "../components/StyleSection";
 
 function fmt(montant) {
@@ -490,17 +490,21 @@ function HeroAtelier({ nomUtilisateur, atelier, vr, visuel, children }) {
     ...(compte.VENTE ? [`🏷️ ${compte.VENTE} ${vehicules}${vr ? "" : s(compte.VENTE)} à vendre`] : []),
   ];
   const couleur = (SECTEURS[vr ? "premium" : "garage"] || SECTEURS.garage).couleur;
-  const scenes = [["atelier-large", 6, 8, 4], ["atelier-etroite", 3, 3, 1]];
+  // [classe, portes, places par rangée de la cour, VR à vendre] : une
+  // vingtaine de bons tiennent dans la grande scène, le téléphone en montre
+  // un échantillon de chaque état
+  const scenes = [["atelier-large", vr ? 6 : 8, 7, vr ? 3 : 4], ["atelier-etroite", 3, 2, 1]];
   return (
     <>
       <HeroRue
         visuel={{ ...visuel, prenom }} badge={vr ? "🚐 ATELIER VR" : "🔧 ATELIER"} phrase={phrase} puces={puces}
-        scene={scenes.map(([classe, maxPortes, maxCour, maxVente]) => {
-          const cachees = Math.max(0, portes.length - maxPortes) + Math.max(0, cour.length - maxCour);
+        scene={scenes.map(([classe, maxPortes, maxParRangee, maxVente]) => {
+          const d = dispositionAtelier({ portes, cour }, { maxPortes, maxParRangee });
+          const cachees = d.cachees;
           return (
             <div key={classe} className={classe}>
               <AtelierIllustre
-                cle={classe} portes={portes.slice(0, maxPortes)} cour={cour.slice(0, maxCour)} maxPortes={maxPortes} vr={vr} couleurEnseigne={couleur}
+                cle={classe} portes={d.portes} cour={d.fond} devant={d.devant} maxPortes={maxPortes} vr={vr} couleurEnseigne={couleur}
                 aVendre={aVendre.slice(0, maxVente)} hrefVente={(v) => `/secretaire/inventaire/vehicules/${v.id}`}
                 nomEntreprise={atelier.nomEntreprise} moment={visuel.moment} saison={visuel.saison} mois={visuel.mois} hrefDe={(v) => `/bons/${v.id}`}
               />
