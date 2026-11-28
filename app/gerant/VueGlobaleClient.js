@@ -5,7 +5,10 @@ import Link from "next/link";
 import { CLIENT } from "@/lib/client";
 import { NIVEAUX } from "./niveaux";
 import { argent, nombre } from "@/lib/format";
-import BandeauSection from "../components/BandeauSection";
+import HeroRue, { ConseilDuMois } from "../components/HeroRue";
+import { AtelierIllustre } from "../components/AtelierIllustre";
+import { SECTEURS } from "@/lib/marque";
+import { CONSEILS_MOIS_GARAGE, ETATS_VEHICULE, vehiculesAtelier } from "@/lib/garageVisuel";
 import { Icone, TEINTES, TitrePanneau, stylePanneau, TitreGroupe } from "../components/StyleSection";
 
 function fmt(montant) {
@@ -37,7 +40,7 @@ function niveauVariation(variation) {
   return variation >= 0 ? { niveau: "bon", etat: "En hausse" } : { niveau: "avertissement", etat: "En baisse" };
 }
 
-export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes, rentabilite, afficherRapports }) {
+export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois, kpis, graphique, sante, alertes, rentabilite, afficherRapports, atelier, vr, visuel }) {
   const [vueGraphique, setVueGraphique] = useState("comparaison"); // "comparaison" | "benefice"
   const [periodeRentabilite, setPeriodeRentabilite] = useState("mois"); // "mois" | "annee"
 
@@ -60,16 +63,16 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
 
   return (
     <div className="conteneur-page">
-      {/* Bandeau d'accueil, avec le choix du mois */}
-      <BandeauSection icone="📊" titre={`Bonjour ${nomUtilisateur.split(" ")[0]} 👋`} sousTitre="Voici l'état de votre entreprise aujourd'hui.">
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 12, background: "rgba(0,0,0,0.28)", borderRadius: 999, padding: 4 }}>
+      {/* Atelier illustré, salutation et choix du mois */}
+      <HeroAtelier nomUtilisateur={nomUtilisateur} atelier={atelier} vr={vr} visuel={visuel}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 12, background: "rgba(0,0,0,0.28)", borderRadius: 999, padding: 4, textShadow: "none" }}>
           <Link href={`/gerant?annee=${moisPrecUrl.annee}&mois=${moisPrecUrl.mois}`} aria-label="Mois précédent" style={boutonMois}><Icone nom="chevronGauche" taille={16} /></Link>
           <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", minWidth: 120, textAlign: "center", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <Icone nom="calendrier" taille={14} /> {nomMois} {annee}
           </span>
           <Link href={`/gerant?annee=${moisSuivUrl.annee}&mois=${moisSuivUrl.mois}`} aria-label="Mois suivant" style={boutonMois}><Icone nom="chevron" taille={16} /></Link>
         </div>
-      </BandeauSection>
+      </HeroAtelier>
 
       {/* Bénéfice net mis en avant, puis les quatre autres indicateurs (4 colonnes, 2 sur cellulaire) */}
       <div style={{ marginBottom: 10 }}>
@@ -95,6 +98,13 @@ export default function VueGlobaleClient({ nomUtilisateur, annee, mois, nomMois,
           sousLabel={sante.moisReserve != null ? `${fmtNombre(sante.moisReserve)} mois de réserve` : null}
         />
       </div>
+
+      {visuel && (
+        <ConseilDuMois
+          conseil={CONSEILS_MOIS_GARAGE[visuel.mois - 1]} couleur="var(--accent-ombre)" fond="rgba(232,163,61,0.14)"
+          etiquette={`En ${new Intl.DateTimeFormat("fr-CA", { month: "long", timeZone: "America/Toronto" }).format(new Date())}, à l'atelier`}
+        />
+      )}
 
       <BlocAlertes alertes={alertesTriees} decompte={decompteAlertes} />
 
@@ -446,5 +456,75 @@ function Metrique({ label, valeur, niveau, sousLabel }) {
       <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-muted)" }}>{label}</div>
       {sousLabel && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{sousLabel}</div>}
     </div>
+  );
+}
+
+// En-tête de la Vue d'ensemble : le ciel du moment, la salutation, la
+// journée de l'atelier en chiffres et l'atelier illustré — une scène plus
+// petite sur un téléphone ; chaque véhicule mène à son bon
+function HeroAtelier({ nomUtilisateur, atelier, vr, visuel, children }) {
+  const prenom = (nomUtilisateur || "").trim().split(/\s+/)[0] || "";
+  if (!visuel || !atelier) {
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>Bonjour {prenom} 👋</h1>
+        {children}
+      </div>
+    );
+  }
+  const { portes, cour } = vehiculesAtelier(atelier.bons, atelier.enChrono);
+  const compte = {};
+  for (const v of [...portes, ...cour]) compte[v.etat] = (compte[v.etat] || 0) + 1;
+  const auChrono = new Set(Object.values(atelier.enChrono).flat()).size;
+  const s = (n) => (n > 1 ? "s" : "");
+  const vehicules = vr ? "VR" : "véhicule";
+  const total = portes.length + cour.length;
+  const phrase = total === 0
+    ? "L'atelier est calme : aucun bon ouvert pour le moment."
+    : `Aujourd'hui : ${total} ${vehicules}${vr ? "" : s(total)} au garage${auChrono ? ` · ${auChrono} employé${s(auChrono)} au travail` : ""}${compte.PRET ? ` · ${compte.PRET} prêt${s(compte.PRET)} à repartir` : ""}`;
+  const puces = [
+    ...(compte.TRAVAIL || compte.COURS ? [`🔧 ${(compte.TRAVAIL || 0) + (compte.COURS || 0)} en cours`] : []),
+    ...(compte.ATTENTE ? [`⏱️ ${compte.ATTENTE} en attente`] : []),
+    ...(compte.PRET ? [`✅ ${compte.PRET} prêt${s(compte.PRET)}`] : []),
+  ];
+  const couleur = (SECTEURS[vr ? "premium" : "garage"] || SECTEURS.garage).couleur;
+  const scenes = [["atelier-large", 6, 8], ["atelier-etroite", 3, 3]];
+  return (
+    <>
+      <HeroRue
+        visuel={{ ...visuel, prenom }} badge={vr ? "🚐 ATELIER VR" : "🔧 ATELIER"} phrase={phrase} puces={puces}
+        scene={scenes.map(([classe, maxPortes, maxCour]) => {
+          const cachees = Math.max(0, portes.length - maxPortes) + Math.max(0, cour.length - maxCour);
+          return (
+            <div key={classe} className={classe}>
+              <AtelierIllustre
+                cle={classe} portes={portes.slice(0, maxPortes)} cour={cour.slice(0, maxCour)} maxPortes={maxPortes} vr={vr} couleurEnseigne={couleur}
+                nomEntreprise={atelier.nomEntreprise} moment={visuel.moment} saison={visuel.saison} mois={visuel.mois} hrefDe={(v) => `/bons/${v.id}`}
+              />
+              {cachees > 0 && (
+                <a href="/secretaire" style={{ position: "absolute", right: 12, top: 4, fontSize: 12, fontWeight: 800, color: "#fff", background: "rgba(30,20,10,0.6)", padding: "4px 10px", borderRadius: 999, textDecoration: "none" }}>
+                  + {cachees} autre{s(cachees)} →
+                </a>
+              )}
+            </div>
+          );
+        })}
+      >
+        {children}
+      </HeroRue>
+      {total > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "6px 14px", margin: "0 4px 14px", fontSize: 12, color: "var(--text-muted)" }}>
+          <span style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
+            {Object.entries(ETATS_VEHICULE).filter(([code]) => compte[code]).map(([code, e]) => (
+              <span key={code} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 999, background: e.couleur }} />
+                {e.label} ({compte[code]})
+              </span>
+            ))}
+          </span>
+          <span>Touche un {vr ? "VR" : "véhicule"} pour ouvrir son bon</span>
+        </div>
+      )}
+    </>
   );
 }

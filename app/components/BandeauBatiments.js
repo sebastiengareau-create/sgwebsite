@@ -5,6 +5,8 @@
 //   variante « immobilier » : violet, plex à corniche
 //   variante « copropriete » : bleu, tours en copropriété à balcons vitrés
 //   variante « ferme » : vert et blé, grange, silo et vaches au pâturage
+//   variante « garage » : orange, atelier à portes de garage, auto et pneus
+//   variante « premium » : or, atelier et VR (motorisé, roulotte)
 
 const SILHOUETTE = [
   // [x, largeur, hauteur, corniche]
@@ -20,6 +22,8 @@ const FONDS = {
   immobilier: "linear-gradient(118deg, #22195a 0%, #4f3398 38%, #9a4a9c 70%, #ec8a5c 100%)",
   copropriete: "linear-gradient(118deg, #0d2350 0%, #1d4d98 40%, #2b86c4 72%, #5cc4c4 100%)",
   ferme: "linear-gradient(118deg, #10301a 0%, #2a5e2c 38%, #5f9a3e 70%, #e0b04f 100%)",
+  garage: "linear-gradient(118deg, #241206 0%, #6a2c0f 38%, #c55a26 70%, #f2a64a 100%)",
+  premium: "linear-gradient(118deg, #15110a 0%, #3b2e14 38%, #866622 70%, #d8b158 100%)",
 };
 
 function SilhouettePlex() {
@@ -92,6 +96,46 @@ function SilhouetteFerme() {
   );
 }
 
+// Atelier à portes de garage, avec une auto (ou des VR) et des pneus empilés
+function SilhouetteAtelier({ vr }) {
+  const ombre = "#1c0d04";
+  return (
+    <>
+      <circle cx="300" cy="20" r="10" fill="#fff0cf" opacity="0.85" />
+      <g fill={ombre} opacity="0.58">
+        <rect x="118" y="42" width="150" height="58" />
+        <rect x="114" y="38" width="158" height="6" />
+      </g>
+      <rect x="128" y="47" width="130" height="9" rx="2" fill="#ffd36b" opacity="0.75" />
+      {[132, 176, 220].map((x) => (
+        <g key={x}>
+          <rect x={x} y="62" width="36" height="38" fill="#0e0602" opacity="0.5" />
+          <rect x={x + 3} y="66" width="30" height="30" fill="#ffd36b" opacity="0.3" />
+        </g>
+      ))}
+      <g fill={ombre} opacity="0.62">
+        {vr ? (
+          <>
+            <rect x="12" y="62" width="72" height="32" rx="4" />
+            <rect x="70" y="62" width="20" height="12" rx="3" />
+            <path d="M84 74 H92 Q98 76 98 84 V94 H84 Z" />
+            <circle cx="30" cy="96" r="5.5" /><circle cx="78" cy="96" r="5.5" />
+            <rect x="278" y="66" width="50" height="28" rx="7" />
+            <circle cx="300" cy="96" r="5" />
+          </>
+        ) : (
+          <>
+            <path d="M30 84 L38 72 H62 L70 84 Z" />
+            <rect x="20" y="82" width="62" height="12" rx="4" />
+            <circle cx="36" cy="95" r="5.5" /><circle cx="68" cy="95" r="5.5" />
+            {[0, 1, 2, 3].map((i) => <rect key={i} x="284" y={94 - i * 7} width="22" height="6.4" rx="3.2" />)}
+          </>
+        )}
+      </g>
+    </>
+  );
+}
+
 export default function BandeauBatiments({ icone, titre, sousTitre, children, variante = "immobilier" }) {
   return (
     <div style={{
@@ -108,7 +152,7 @@ export default function BandeauBatiments({ icone, titre, sousTitre, children, va
           <mask id={`masque-${variante}`}><rect x="0" y="0" width="332" height="100" fill={`url(#fondu-${variante})`} /></mask>
         </defs>
         <g mask={`url(#masque-${variante})`}>
-          {variante === "copropriete" ? <SilhouetteTours /> : variante === "ferme" ? <SilhouetteFerme /> : <SilhouettePlex />}
+          {variante === "copropriete" ? <SilhouetteTours /> : variante === "ferme" ? <SilhouetteFerme /> : variante === "garage" ? <SilhouetteAtelier /> : variante === "premium" ? <SilhouetteAtelier vr /> : <SilhouettePlex />}
         </g>
       </svg>
       <div style={{ position: "relative" }}>
